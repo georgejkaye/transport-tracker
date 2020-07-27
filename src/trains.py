@@ -1,13 +1,20 @@
+from __future__ import print_function
 import json
 import requests
 import os
 import datetime
+import pickle
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+
 
 time_error = 10
 
-credentials_file = os.path.dirname(os.path.realpath(__file__)) + "/credentials"
+rtt_credentials_file = os.path.dirname(os.path.realpath(__file__)) + "/rtt"
+sheet_file = os.path.dirname(os.path.realpath(__file__)) + "/sheet"
 
-with open(credentials_file, "r") as creds:
+with open(rtt_credentials_file, "r") as creds:
     (usr, pwd) = creds.read().splitlines()
 
 base = "https://api.rtt.io/api/v1/json/"
@@ -252,12 +259,17 @@ service_data = response.json()
 on_train = False
 stops = []
 
+i = 0
+
 for location in service_data["locations"]:
 
     if on_train:
         stops.append(location["description"])
     elif location["crs"] == stn:
         on_train = True
+        dep = i
+
+    i = i + 1
 
 i = 1
 
@@ -267,4 +279,63 @@ for stop in stops:
     print(str(i) + ": " + stop)
     i = i + 1
 
-dest = input("Pick a destination (1-" + str(len(stops)) + "): ")
+
+number_of_stops = len(stops)
+choice_format = False
+
+while not choice_format:
+    arr = input("Pick a destination (1-" + str(len(stops)) + "): ")
+    arr = check_if_number(arr, number_of_stops)
+
+    if arr == -1:
+        print("Not a number")
+    elif arr == -2:
+        print("Not in range")
+    else:
+        arr = int(arr)
+        choice_format = True
+
+headcode = service_data["trainIdentity"]
+toc_name = service_data["atocName"]
+
+departure_station = service_data["locations"][dep]
+arrival_station = service_data["locations"][arr + dep]
+
+departure_station_name = departure_station["description"]
+arrival_station_name = arrival_station["description"]
+
+sheets_scopes = ['https://www.googleapis.com/auth/spreadsheets']
+
+with open(sheet_file, "r") as sheetfile:
+    sheet_id = sheetfile.read()
+
+print(sheet_id)
+
+sheet_range = '2020!B8:V'
+
+creds = None
+
+if os.path.exists('token.pickle'):
+    with open('token.pickle', 'rb') as token:
+        creds = pickle.load(token)
+    # If there are no (valid) credentials available, let the user log in.
+if not creds or not creds.valid:
+    if creds and creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+    else:
+        flow = InstalledAppFlow.from_client_secrets_file(
+            'sheets-auth', sheets_scopes)
+        creds = flow.run_local_server(port=0)
+    # Save the credentials for the next run
+    with open('token.pickle', 'wb') as token:
+        pickle.dump(creds, token)
+
+sheets = build('sheets', 'v4', credentials=creds)
+
+row_obj = {"values": [[day + "/" + month, headcode, toc_name,
+                       departure_station_name, "", "", "", arrival_station_name]]}
+
+sheet = sheets.spreadsheets()
+result = sheet.values().append(spreadsheetId=sheet_id,
+                               range=sheet_range, body=row_obj, valueInputOption="RAW", insertDataOption="INSERT_ROWS").execute()
+values = result.get("values", [])
