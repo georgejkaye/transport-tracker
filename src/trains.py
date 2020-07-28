@@ -17,6 +17,7 @@ time_error = 10
 
 rtt_credentials_file = os.path.dirname(os.path.realpath(__file__)) + "/rtt"
 sheet_file = os.path.dirname(os.path.realpath(__file__)) + "/sheet"
+sheet_range = '2020!B8:V'
 
 with open(rtt_credentials_file, "r") as creds:
     (usr, pwd) = creds.read().splitlines()
@@ -71,6 +72,7 @@ def date_and_time(year, month, day, time):
 
 
 def time_string(time):
+    time = str(time)
     if len(time) == 4:
         return time[:2] + ":" + time[2:]
 
@@ -116,14 +118,41 @@ def service_string(service):
     return train_id + " " + origin_departure + " " + origin_description + " to " + destination_description + " (" + toc_name + ")"
 
 
-time_format = False
+def get_sheets():
 
-stn = input("Station: ")
+    creds = None
 
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+        # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'sheets-auth', sheets_scopes)
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+
+    sheets = build('sheets', 'v4', credentials=creds)
+    return sheets
+
+
+stn_format = False
 day_format = False
 month_format = False
 year_format = False
 time_format = False
+
+while not stn_format:
+    stn = input("Station: ")
+    if len(stn) == 3:
+        stn_format = True
+    else:
+        print("Not a three letter station code")
 
 current_year = pad_front(str(datetime.datetime.now().year), 4)
 
@@ -312,39 +341,39 @@ departure_station = service_data["locations"][dep]
 arrival_station = service_data["locations"][arr + dep]
 
 departure_station_name = departure_station["description"]
+departure_station_planned = int(departure_station["gbttBookedDeparture"])
+departure_station_actual = int(departure_station["realtimeDeparture"])
+departure_station_delay = (
+    departure_station_actual - departure_station_planned) / 1440
 arrival_station_name = arrival_station["description"]
+arrival_station_planned = int(arrival_station["gbttBookedArrival"])
+arrival_station_actual = int(arrival_station["realtimeArrival"])
+arrival_station_delay = (arrival_station_actual -
+                         arrival_station_planned) / 1440
+
+time_planned = (arrival_station_planned - departure_station_planned) / 1440
+time_actual = (arrival_station_actual - departure_station_actual) / 1440
+time_diff = (time_actual - time_planned)
 
 sheets_scopes = ['https://www.googleapis.com/auth/spreadsheets']
 
 with open(sheet_file, "r") as sheetfile:
     sheet_id = sheetfile.read()
 
-print(sheet_id)
-
-sheet_range = '2020!B8:V'
-
-creds = None
-
-if os.path.exists('token.pickle'):
-    with open('token.pickle', 'rb') as token:
-        creds = pickle.load(token)
-    # If there are no (valid) credentials available, let the user log in.
-if not creds or not creds.valid:
-    if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-    else:
-        flow = InstalledAppFlow.from_client_secrets_file(
-            'sheets-auth', sheets_scopes)
-        creds = flow.run_local_server(port=0)
-    # Save the credentials for the next run
-    with open('token.pickle', 'wb') as token:
-        pickle.dump(creds, token)
-
-sheets = build('sheets', 'v4', credentials=creds)
-
 row_obj = {"values": [[day + "/" + month, headcode, toc_name,
-                       departure_station_name, "", "", "", arrival_station_name]]}
+                       departure_station_name,
+                       time_string(departure_station_planned),
+                       time_string(departure_station_actual),
+                       departure_station_delay,
+                       arrival_station_name,
+                       time_string(arrival_station_planned),
+                       time_string(arrival_station_actual),
+                       arrival_station_delay,
+                       time_planned,
+                       time_actual,
+                       time_diff]]}
 
+sheets = get_sheets()
 sheet = sheets.spreadsheets()
 result = sheet.values().append(spreadsheetId=sheet_id,
                                range=sheet_range, body=row_obj, valueInputOption="RAW", insertDataOption="INSERT_ROWS").execute()
