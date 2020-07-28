@@ -18,6 +18,11 @@ time_error = 10
 
 rtt_credentials_file = os.path.dirname(os.path.realpath(__file__)) + "/rtt"
 sheet_file = os.path.dirname(os.path.realpath(__file__)) + "/sheet"
+sheets_scopes = ['https://www.googleapis.com/auth/spreadsheets']
+
+with open(sheet_file, "r") as sheetfile:
+    spreadsheet_id = sheetfile.read()
+
 sheet_name = "'2020'"
 sheet_range = sheet_name + "!B8:V"
 
@@ -164,6 +169,7 @@ def get_sheets():
 
 
 end = False
+journeys = 0
 
 while not end:
 
@@ -378,11 +384,6 @@ while not end:
     time_actual = (arrival_station_actual - departure_station_actual) / 1440
     time_diff = (time_actual - time_planned)
 
-    sheets_scopes = ['https://www.googleapis.com/auth/spreadsheets']
-
-    with open(sheet_file, "r") as sheetfile:
-        sheet_id = sheetfile.read()
-
     row_obj = {"values": [[day + "/" + month, headcode, toc_name,
                            departure_station_name,
                            time_string(departure_station_planned),
@@ -398,7 +399,14 @@ while not end:
 
     sheets = get_sheets()
     sheet = sheets.spreadsheets()
-    result = sheet.values().append(spreadsheetId=sheet_id,
+
+    spreadsheet = sheets.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    sheet_id = None
+    for _sheet in spreadsheet["sheets"]:
+        if _sheet["properties"]["title"] == sheet_name:
+            sheet_id = _sheet["properties"]["sheetId"]
+
+    result = sheet.values().append(spreadsheetId=spreadsheet_id,
                                    range=sheet_range,
                                    body=row_obj,
                                    valueInputOption="RAW",
@@ -408,8 +416,10 @@ while not end:
 
     if first:
         top_row = range_regex.match(changed_range)
-        top_row = top_row.group(1)
+        top_row = int(top_row.group(1))
         first = False
+
+    journeys = journeys + 1
 
     legs_format = False
 
@@ -431,3 +441,30 @@ while not price_format:
         print("Not a valid price")
     else:
         price_format = True
+
+price_cell_requests = [
+    {"mergeCells": {
+        "mergeType": "MERGE_ROWS",
+        "range": {
+            "endColumnIndex": 19,
+            "endRowIndex": top_row + journeys,
+            "sheetId": sheet_id,
+            "startColumnIndex": 19,
+            "startRowIndex": top_row
+        }
+    }},
+    {"mergeCells": {
+        "mergeType": "MERGE_ROWS",
+        "range": {
+            "endColumnIndex": 20,
+            "endRowIndex": top_row + journeys,
+            "sheetId": sheet_id,
+            "startColumnIndex": 20,
+            "startRowIndex": top_row
+        }
+    }}
+]
+
+sheet.batchUpdate(spreadsheetId=spreadsheet_id,
+                  body={'requests': price_cell_requests}
+                  ).execute()
