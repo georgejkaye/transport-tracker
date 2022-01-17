@@ -1,8 +1,11 @@
 # secret
-rtt
+rtt.credentials
 sheet
 sheets-auth
 token.pickle
+
+# accumulated data
+data
 
 # Python stuff
 
