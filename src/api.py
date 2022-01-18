@@ -93,7 +93,7 @@ def filter_services_by_stop(services, origin, station):
         service_data = request_service_on_day(
             get_service_uid(service), year, month, day)
         if stops_at_station(service_data, origin, station):
-            filtered_services.append(service)
+            filtered_services.append(service_data)
     return filtered_services
 
 
@@ -119,6 +119,41 @@ def stops_at_station(service, origin, station):
                 return True
 
     return False
+
+
+def get_headcode_full(service):
+    return service["trainIdentity"]
+
+
+def get_origin_full(service):
+    return service["origin"]["description"]
+
+
+def get_destination_full(service):
+    return service["destination"]["description"]
+
+
+def get_departure_time_from_origin_full(service):
+    return service["origin"][0]["publicTime"]
+
+
+def get_multiple_location_string_full(service, origin):
+    if origin:
+        end = "origin"
+    else:
+        end = "destination"
+
+    for i, loc in enumerate(service[end]):
+        if i == 0:
+            string = loc["description"]
+        else:
+            string = string + " and " + loc["description"]
+    return string
+
+
+def service_to_string_full(service):
+    return get_headcode_full(service) + " " + get_departure_time_from_origin_full(service) + " " + get_multiple_location_string_full(service, True) + " to " + get_multiple_location_string_full(service, False)
+
 
 # location methods
 

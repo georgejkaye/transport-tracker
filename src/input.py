@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from api import filter_services_by_stop, filter_services_by_time, get_services, get_station_name, request_station_at_time, short_service_string
+from api import filter_services_by_stop, filter_services_by_time, get_services, get_station_name, request_station_at_time, service_to_string_full, short_service_string
 from network import get_matching_station_names, station_codes, station_names, station_code_to_name, station_name_to_code
 
 
@@ -91,23 +91,32 @@ def get_station_string(prompt):
             if len(matches) == 1:
                 return station_name_to_code[string]
             print("Multiple matches found: ")
-            # Print all the matches for the user to choose from
-            for i, match in enumerate(matches):
-                print(str(i) + ": " + match)
-            print(str(len(matches)) + ": Cancel")
-            while True:
-                resp = input(
-                    "Select a station (0-" + str(len(matches)) + ") ")
-                try:
-                    resp = int(resp)
-                    if resp == len(matches):
-                        return ""
-                    return station_name_to_code[matches[int(resp)]]
-                except:
-                    pass
+            choice = pick_from_list(matches, "Select a station")
+            if choice == "":
+                return ""
+            return station_name_to_code[choice]
         else:
             print("Search string must be at least three characters")
             return ""
+
+
+def pick_from_list(choices, prompt, display=lambda x: x):
+    """
+    Let the user pick from a list of choices
+    """
+    for i, choice in enumerate(choices):
+        print(str(i) + ": " + display(choice))
+    # The last option is a cancel option, this returns ""
+    print(str(len(choices)) + ": Cancel")
+    while True:
+        resp = input(prompt + " (0-" + str(len(choices)) + ") ")
+        try:
+            resp = int(resp)
+            if resp == len(choices):
+                return ""
+            return choices[resp]
+        except:
+            pass
 
 
 def record_new_journey():
@@ -137,7 +146,7 @@ def record_new_journey():
     # Make the request
     station_data = request_station_at_time(origin, year, month, day, time)
 
-    # We want a somewhat fuzzy timeframe
+    # We want to search within a smaller timeframe
     search_time = datetime(int(year), int(month), int(day),
                            int(time[0:2]), int(time[2:4]))
     earliest_time = get_time_string(search_time - timedelta(minutes=timeframe))
@@ -147,14 +156,19 @@ def record_new_journey():
 
     if services is not None:
         departure_station = get_station_name(station_data)
+        # The results encompass a ~1 hour period
+        # We only want to check our given timeframe
         filtered_services = filter_services_by_time(
             services, earliest_time, latest_time)
+        # We also only want services that stop at our destination
         filtered_services = filter_services_by_stop(
             filtered_services, origin, dest
         )
 
         print("Searching for services from " + departure_station)
-        for i, service in enumerate(filtered_services):
-            print(str(i) + ": " + short_service_string(service))
+        choice = pick_from_list(
+            filtered_services, "Pick a service", service_to_string_full)
+        print(service_to_string_full(choice))
+
     else:
         print("No services found!")

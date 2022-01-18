@@ -5,4 +5,4 @@ debug = True
 
 def debug(string):
     if debug:
-        cprint(string, "red")
+        cprint(string, "yellow")
