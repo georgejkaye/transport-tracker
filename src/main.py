@@ -1,21 +1,19 @@
 import os
-import requests
-import webbrowser
 import yaml
 from datetime import datetime, timedelta
 
+from api import authenticate, get_station_name, request_station, request_service, short_service_string
+
+
+railmiles_site = "https://my.railmiles.me/mileage-engine/"
 
 rtt_credentials_file = os.path.dirname(
     os.path.realpath(__file__)) + "/rtt.credentials"
 
-rtt_endpoint = "https://api.rtt.io/api/v1/json/"
-station_endpoint = rtt_endpoint + "search/"
-service_endpoint = rtt_endpoint + "service/"
-
-railmiles_site = "https://my.railmiles.me/mileage-engine/"
-
 with open("rtt.credentials", "r") as rtt_credentials:
     (usr, pwd) = rtt_credentials.read().splitlines()
+
+authenticate(usr, pwd)
 
 with open("data/codes.yml", "r") as codefiles:
     stns = yaml.safe_load(codefiles)
@@ -33,13 +31,6 @@ for stn in stns:
     station_name_to_code[stn["name"]] = stn["code"]
 
 timeframe = 15
-
-
-def request(url):
-    """Make a request to a url and get its response"""
-    print("Requesting " + url)
-    response = requests.get(url, auth=(usr, pwd))
-    return response
 
 
 def get_month_length(month, year):
@@ -134,26 +125,8 @@ def get_input_no(length, prompt, upper=-1, default=-1):
             print("Expected number but got '" + string + "'")
 
 
-def request_station(origin, year, month, day, time, to):
-    """Get the response for a station at a given time"""
-    url = station_endpoint + origin + "/"
-    if to != "":
-        url = url + "to/" + to + "/"
-    url = url + year + "/" + month + "/" + day + "/" + time
-    return request(url)
-
-
-def request_service(uid, year, month, day):
-    """Get the response for a service on a given day"""
-    return request(service_endpoint + uid + "/" + year + "/" + month + "/" + day)
-
-
 def get_hourmin(time):
     return pad_front(time.hour, 2) + pad_front(time.minute, 2)
-
-
-def short_service_string(service):
-    return service["trainIdentity"] + " " + service["locationDetail"]["origin"][0]["publicTime"] + " " + service["locationDetail"]["origin"][0]["description"] + " to " + service["locationDetail"]["destination"][0]["description"]
 
 
 # The default values use today's date
@@ -183,16 +156,11 @@ earliest_time = get_hourmin(search_time - timedelta(minutes=timeframe))
 latest_time = get_hourmin(search_time + timedelta(minutes=timeframe))
 
 # Make the request
-response = request_station(origin, year, month, day, time, dest)
-# Did it work okay?
-if response.status_code != 200:
-    print(str(response.status_code) + ": error obtaining data")
-    exit(1)
-# Get out the data
-station_data = response.json()
-departure_station = station_data["location"]["name"]
+station_data = request_station(origin, year, month, day, time, dest)
+
+departure_station = get_station_name(station_data)
 print("Searching for services from " + departure_station)
 
-if len(station_data["services"]) > 0:
+if len(station_data["services"]) is not None:
     for i, service in enumerate(station_data["services"]):
         print(str(i) + ": " + short_service_string(service))
