@@ -103,12 +103,20 @@ def get_station_name(station):
 # full service methods
 
 
-def get_locs(service):
+def get_uid_full(service):
+    return service["serviceUid"]
+
+
+def get_date_full(service):
+    return service["runDate"]
+
+
+def get_locs_full(service):
     return service["locations"]
 
 
 def stops_at_station(service, origin, station):
-    locs = get_locs(service)
+    locs = get_locs_full(service)
     reached = False
     for loc in locs:
         if not reached:
