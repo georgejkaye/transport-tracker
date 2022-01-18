@@ -168,21 +168,26 @@ def tab(level):
 def make_loc_entry(level, loc, arr, dep, first=-1):
     if first == -1:
         first = level
-    plan = loc["gbttBookedDeparture"]
-    act = loc["realtimeDeparture"]
     string = tab(first) + "name: " + loc["description"] + "\n" + \
         tab(level) + "crs: " + loc["crs"] + "\n"
     if arr:
-        string = string + tab(level) + "arr_plan: " + plan + "\n" + \
-            tab(level) + "arr_act: " + act + "\n" + \
-            tab(level) + "arr_diff: " + \
-            compute_time_difference(act, plan) + "\n"
+        plan = loc["gbttBookedArrival"]
+        string = string + tab(level) + "arr_plan: " + plan + "\n"
+        if loc["realtimeArrivalActual"]:
+            act = loc["realtimeArrival"]
+            string = string + tab(level) + "arr_act: " + act + "\n" + \
+                tab(level) + "arr_diff: " + \
+                compute_time_difference(act, plan) + "\n"
     if dep:
-        string = string + tab(level) + "dep_plan: " + plan + "\n" + \
-            tab(level) + "dep_act: " + act + "\n" + \
-            tab(level) + "dep_diff: " + \
-            compute_time_difference(act, plan) + "\n"
-    string = string + tab(level) + "platform: " + loc["platform"] + "\n"
+        plan = loc["gbttBookedDeparture"]
+        string = string + tab(level) + "dep_plan: " + plan + "\n"
+        if loc["realtimeDepartureActual"]:
+            act = loc["realtimeDeparture"]
+            string = string + tab(level) + "dep_act: " + act + "\n" + \
+                tab(level) + "dep_diff: " + \
+                compute_time_difference(act, plan) + "\n"
+    if "platform" in loc:
+        string = string + tab(level) + "platform: " + loc["platform"] + "\n"
     return string
 
 
@@ -209,7 +214,7 @@ def add_to_log(year, month, day, service, origin, destination):
                 string = string + tab(2) + "- " + \
                     make_loc_entry(3, loc, True, True, 0)
 
-    with open(log_file, "w+") as logfile:
+    with open(log_file, "a+") as logfile:
         logfile.write(string)
 
 
@@ -251,7 +256,8 @@ def record_new_journey():
         debug("Searching for services from " + departure_station)
         choice = pick_from_list(
             filtered_services, "Pick a service", service_to_string_full)
-        add_to_log(year, month, day, choice, origin, dest)
+        if choice != "":
+            add_to_log(year, month, day, choice, origin, dest)
 
     else:
         print("No services found!")
