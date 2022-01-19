@@ -1,6 +1,7 @@
+import yaml
 from datetime import datetime, timedelta
 from pathlib import Path
-from api import filter_services_by_stop, filter_services_by_time, get_headcode_full, get_locs_full, get_operator_code_full, get_operator_full, get_services, get_station_name, get_uid_full, request_station_at_time, service_to_string_full, service_to_string_full_from_station, short_service_string
+from api import filter_services_by_stop, filter_services_by_time, get_destinations_full, get_headcode_full, get_locs_full, get_operator_code_full, get_operator_full, get_origins_full, get_services, get_station_name, get_uid_full, request_station_at_time, service_to_string_full, service_to_string_full_from_station, short_service_string
 from network import get_matching_station_names, station_codes, station_names, station_code_to_name, station_name_to_code
 from debug import debug
 from dirs import output_log
@@ -157,6 +158,12 @@ def compute_time_difference(t1, t2):
     return str(diff)
 
 
+def mins_to_hours(mins):
+    hours = int(int(mins) / 60)
+    mins = int(mins) % 60
+    return pad_front(hours, 2) + ":" + pad_front(mins, 2)
+
+
 def tab(level):
     string = ""
     for _ in range(level):
@@ -164,59 +171,95 @@ def tab(level):
     return string
 
 
-def make_loc_entry(level, loc, arr, dep, first=-1):
-    if first == -1:
-        first = level
-    string = tab(first) + "name: " + loc["description"] + "\n" + \
-        tab(level) + "crs: " + loc["crs"] + "\n"
+def make_loc_entry(loc, arr, dep):
+    entry = {
+        "name": loc["description"],
+        "crs": loc["crs"],
+    }
     if arr:
-        plan = loc["gbttBookedArrival"]
-        string = string + tab(level) + "arr_plan: " + plan + "\n"
+        entry["arr_plan"] = loc["gbttBookedArrival"]
         if loc["realtimeArrivalActual"]:
-            act = loc["realtimeArrival"]
-            string = string + tab(level) + "arr_act: " + act + "\n" + \
-                tab(level) + "arr_diff: " + \
-                compute_time_difference(act, plan) + "\n"
+            entry["arr_act"] = loc["realtimeArrival"]
+            entry["arr_diff"] = compute_time_difference(
+                entry["arr_act"], entry["arr_plan"])
     if dep:
-        plan = loc["gbttBookedDeparture"]
-        string = string + tab(level) + "dep_plan: " + plan + "\n"
+        entry["dep_plan"] = loc["gbttBookedDeparture"]
         if loc["realtimeDepartureActual"]:
-            act = loc["realtimeDeparture"]
-            string = string + tab(level) + "dep_act: " + act + "\n" + \
-                tab(level) + "dep_diff: " + \
-                compute_time_difference(act, plan) + "\n"
+            entry["dep_act"] = loc["realtimeDeparture"]
+            entry["dep_diff"] = compute_time_difference(
+                entry["dep_act"], entry["dep_plan"])
     if "platform" in loc:
-        string = string + tab(level) + "platform: " + loc["platform"] + "\n"
-    return string
+        entry["platform"] = loc["platform"]
+    return entry
 
 
-def add_to_log(year, month, day, service, origin, destination):
-    string = "- year: " + year + "\n" + \
-        tab(1) + "month: " + month + "\n" + \
-        tab(1) + "day: " + day + "\n" + \
-        tab(1) + "uid: " + get_uid_full(service) + "\n" + \
-        tab(1) + "headcode: " + get_headcode_full(service) + "\n" +  \
-        tab(1) + "operator_code: " + get_operator_code_full(service) + "\n" + \
-        tab(1) + "operator: " + get_operator_full(service) + "\n"
+def make_short_loc_entry(loc):
+    return {
+        "name": loc["description"],
+        "crs": station_name_to_code[loc["description"]]
+    }
+
+
+def make_new_log_entry(year, month, day, service, origin, destination):
+    # start off with some basic info about the service
+
+    service_origins = []
+    for loc in get_origins_full(service):
+        service_origins.append(make_short_loc_entry(loc))
+
+    service_destinations = []
+    for loc in get_destinations_full(service):
+        service_destinations.append(make_short_loc_entry(loc))
+
+    stops = []
     boarded = False
     for loc in get_locs_full(service):
         if not boarded:
             if loc["crs"] == origin:
-                string = string + tab(1) + "origin: " + "\n" + \
-                    make_loc_entry(2, loc, False, True) + \
-                    tab(1) + "stops: " + "\n"
+                journey_origin = make_loc_entry(loc, False, True)
                 boarded = True
         else:
             if loc["crs"] == destination:
-                string = string + tab(1) + "destination: " + "\n" + \
-                    make_loc_entry(2, loc, True, False)
+                journey_destination = make_loc_entry(loc, True, False)
                 break
             else:
-                string = string + tab(2) + "- " + \
-                    make_loc_entry(3, loc, True, True, 0)
+                stops.append(make_loc_entry(loc, True, True))
 
-    with open(output_log, "a+") as logfile:
-        logfile.write(string)
+    entry = {
+        "year": year,
+        "month": month,
+        "day": day,
+        "uid": get_uid_full(service),
+        "headcode": get_headcode_full(service),
+        "operator_code": get_operator_code_full(service),
+        "operator": get_operator_full(service),
+        "service_origin": service_origins,
+        "service_destination": service_destinations,
+        "journey_origin": journey_origin,
+        "journey_destination": journey_destination,
+        "stops": stops
+    }
+
+    dur_plan = compute_time_difference(
+        journey_destination["arr_plan"], journey_origin["dep_plan"])
+    entry["dur_plan"] = mins_to_hours(dur_plan)
+
+    if "arr_act" in journey_destination and "dep_act" in journey_origin:
+        dur_act = compute_time_difference(
+            journey_destination["arr_act"], journey_origin["dep_act"])
+        entry["dur_act"] = mins_to_hours(dur_act)
+        entry["dur_diff"] = compute_time_difference(dur_act, dur_plan)
+
+    with open(output_log, "r") as logfile:
+        cur_yaml = yaml.safe_load(logfile)
+
+    if cur_yaml is not None:
+        cur_yaml.append(entry)
+    else:
+        cur_yaml = [entry]
+
+    with open(output_log, "w") as logfile:
+        yaml.safe_dump(cur_yaml, logfile)
 
 
 def record_new_journey():
@@ -258,7 +301,7 @@ def record_new_journey():
         choice = pick_from_list(
             filtered_services, "Pick a service", lambda x: service_to_string_full_from_station(x, origin))
         if choice != "":
-            add_to_log(year, month, day, choice, origin, dest)
+            make_new_log_entry(year, month, day, choice, origin, dest)
 
     else:
         print("No services found!")

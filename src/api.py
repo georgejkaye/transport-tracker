@@ -115,8 +115,8 @@ def get_date_full(service):
 def get_operator_full(service):
     toc = service["atocName"]
     if toc == "West Midlands Trains":
-        origins = get_origins_full(service)
-        dests = get_destinations_full(service)
+        origins = get_origins_names_full(service)
+        dests = get_destinations_names_full(service)
         if any(x in origins for x in lnwr_dests) or any(x in dests for x in lnwr_dests):
             toc = "London Northwestern Railway"
         else:
@@ -151,10 +151,18 @@ def get_headcode_full(service):
 
 
 def get_origins_full(service):
-    return list(map(lambda x: x["description"], service["origin"]))
+    return service["origin"]
 
 
 def get_destinations_full(service):
+    return service["destination"]
+
+
+def get_origins_names_full(service):
+    return list(map(lambda x: x["description"], service["origin"]))
+
+
+def get_destinations_names_full(service):
     return list(map(lambda x: x["description"], service["destination"]))
 
 
