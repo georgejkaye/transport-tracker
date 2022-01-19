@@ -11,8 +11,8 @@ from google.auth.transport.requests import Request
 
 # These are destinations served by LNWR trains - use to distinguish between different WMT services
 # Birmingham New Street is absent because WMR also serve it
-lnwr_dests = ["London Euston", "Tring", "Milton Keynes Central", "Watford Junction",
-              "St Albans Abbey", "Bletchley", "Bedford", "Crewe", "Northampton", "Liverpool Lime Street"]
+lnwr_file = ["London Euston", "Tring", "Milton Keynes Central", "Watford Junction",
+             "St Albans Abbey", "Bletchley", "Bedford", "Crewe", "Northampton", "Liverpool Lime Street"]
 
 time_error = 10
 
@@ -361,7 +361,7 @@ while not end:
     toc_name = service_data["atocName"]
 
     if toc_name == "West Midlands Trains":
-        if service_data["origin"][0]["description"] in lnwr_dests or service_data["destination"][0]["description"] in lnwr_dests:
+        if service_data["origin"][0]["description"] in lnwr_file or service_data["destination"][0]["description"] in lnwr_file:
             toc_name = "London Northwestern Railway"
         else:
             toc_name = "West Midlands Railway"

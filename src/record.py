@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
-from api import filter_services_by_stop, filter_services_by_time, get_headcode_full, get_locs_full, get_services, get_station_name, get_uid_full, request_station_at_time, service_to_string_full, short_service_string
+from pathlib import Path
+from api import filter_services_by_stop, filter_services_by_time, get_headcode_full, get_locs_full, get_operator_code_full, get_operator_full, get_services, get_station_name, get_uid_full, request_station_at_time, service_to_string_full, service_to_string_full_from_station, short_service_string
 from network import get_matching_station_names, station_codes, station_names, station_code_to_name, station_name_to_code
 from debug import debug
+from dirs import output_log
 
 
 def pad_front(string, length):
@@ -136,9 +138,6 @@ def get_station_from_user(origin):
     return (station_data, year, month, day, time)
 
 
-log_file = "data/log.yml"
-
-
 def compute_time_difference(t1, t2):
     diff = int(t1) - int(t2)
     neg = False
@@ -195,8 +194,10 @@ def add_to_log(year, month, day, service, origin, destination):
     string = "- year: " + year + "\n" + \
         tab(1) + "month: " + month + "\n" + \
         tab(1) + "day: " + day + "\n" + \
-        tab(1) + "uid: " + get_uid_full(service) + "\n" +\
-        tab(1) + "headcode: " + get_headcode_full(service) + "\n"
+        tab(1) + "uid: " + get_uid_full(service) + "\n" + \
+        tab(1) + "headcode: " + get_headcode_full(service) + "\n" +  \
+        tab(1) + "operator_code: " + get_operator_code_full(service) + "\n" + \
+        tab(1) + "operator: " + get_operator_full(service) + "\n"
     boarded = False
     for loc in get_locs_full(service):
         if not boarded:
@@ -214,7 +215,7 @@ def add_to_log(year, month, day, service, origin, destination):
                 string = string + tab(2) + "- " + \
                     make_loc_entry(3, loc, True, True, 0)
 
-    with open(log_file, "a+") as logfile:
+    with open(output_log, "a+") as logfile:
         logfile.write(string)
 
 
@@ -255,7 +256,7 @@ def record_new_journey():
 
         debug("Searching for services from " + departure_station)
         choice = pick_from_list(
-            filtered_services, "Pick a service", service_to_string_full)
+            filtered_services, "Pick a service", lambda x: service_to_string_full_from_station(x, origin))
         if choice != "":
             add_to_log(year, month, day, choice, origin, dest)
 

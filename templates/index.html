@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+    <head>
+        <title>Train journey tracker</title>
+        <link rel="stylesheet" href="styles.css">
+    </head>
+    <body>
+        <h1>Train journey tracker</h1>
+        
+        {% for journey in journeys -%}
+            <div class="journey box-{{ journey["operator"] | slug }}">
+                <div class="headcode">
+                    {{ journey["headcode"] }}
+                </div>
+                <div class="route">
+                    {{- journey["origin"]["name"] }} to {{ journey["destination"]["name"] -}}
+                </div>
+                <div class="toc">
+                    {{ journey["operator_code"] }}
+                </div>
+            </div>
+        {% endfor %}
+    </body>
+</html>

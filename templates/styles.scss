@@ -1,0 +1,60 @@
+$toc-colours: (
+  "abellio-scotrail": #1f2d61,
+  "avanti-west-coast": #204555,
+  "c2c": #b4007f,
+  "caledonian-sleeper": #08272c,
+  "chiltern-railways": #55bae2,
+  "crosscountry": #dd1554,
+  "east-midlands-railway": #492d45,
+  "heathrow-express": #4e2b5c,
+  "gatwick-express": #e11829,
+  "grand-central": #e37716,
+  "greater-anglia": #3a4651,
+  "great-northern": #00a0ff,
+  "great-western-railway": #0a493e,
+  "hull-trains": #013475,
+  "london-north-eastern-railway": #c62a33,
+  "london-northwestern-railway": #00bf6f,
+  "london-overground": #f07c08,
+  "lumo": #1c02ea,
+  "merseyrail": #ffdc00,
+  "northern-trains": #212d5a,
+  "southern": #80c242,
+  "southeastern": #1c1c4c,
+  "south-western-railway": #061a29,
+  "tfl-rail": #6b529d,
+  "thameslink": #e84aba,
+  "transpennine-express": #00a8e7,
+  "transport-for-wales": #e51b1f,
+  "west-midlands-railway": #fd8103,
+);
+
+body {
+  max-width: 750px;
+  margin: auto;
+}
+
+h1 {
+  text-align: center;
+}
+
+.journey {
+  border-radius: 5px;
+  border-color: gray;
+
+  margin: 10px;
+  padding: 10px;
+
+  display: flex;
+}
+
+.route {
+  flex: 1;
+  text-align: center;
+}
+
+@each $name, $colour in $toc-colours {
+  .box-#{$name} {
+    background-color: $colour;
+  }
+}

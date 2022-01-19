@@ -2,6 +2,7 @@ import requests
 import os
 
 from debug import debug
+from network import lnwr_dests
 
 rtt_credentials_file = "rtt.credentials"
 rtt_endpoint = "https://api.rtt.io/api/v1/json/"
@@ -111,6 +112,22 @@ def get_date_full(service):
     return service["runDate"]
 
 
+def get_operator_full(service):
+    toc = service["atocName"]
+    if toc == "West Midlands Trains":
+        origins = get_origins_full(service)
+        dests = get_destinations_full(service)
+        if any(x in origins for x in lnwr_dests) or any(x in dests for x in lnwr_dests):
+            toc = "London Northwestern Railway"
+        else:
+            toc = "West Midlands Railway"
+    return toc
+
+
+def get_operator_code_full(service):
+    return service["atocCode"]
+
+
 def get_locs_full(service):
     return service["locations"]
 
@@ -133,12 +150,12 @@ def get_headcode_full(service):
     return service["trainIdentity"]
 
 
-def get_origin_full(service):
-    return service["origin"]["description"]
+def get_origins_full(service):
+    return list(map(lambda x: x["description"], service["origin"]))
 
 
-def get_destination_full(service):
-    return service["destination"]["description"]
+def get_destinations_full(service):
+    return list(map(lambda x: x["description"], service["destination"]))
 
 
 def get_departure_time_from_origin_full(service):
@@ -163,6 +180,12 @@ def service_to_string_full(service):
     return get_headcode_full(service) + " " + get_departure_time_from_origin_full(service) + " " + get_multiple_location_string_full(service, True) + " to " + get_multiple_location_string_full(service, False)
 
 
+def service_to_string_full_from_station(service, origin):
+    string = service_to_string_full(service)
+    for loc in get_locs_full(service):
+        if loc["crs"] == origin:
+            return get_departure_time(loc) + " // " + string
+
 # location methods
 
 
@@ -170,6 +193,12 @@ def get_crs(loc):
     if loc["crs"]:
         return loc["crs"]
     return ""
+
+
+def get_departure_time(loc):
+    if "realtimeDeparture" in loc:
+        return loc["realtimeDeparture"]
+    return loc["gbttBookedDeparture"]
 
 # station service methods
 

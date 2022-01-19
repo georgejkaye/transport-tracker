@@ -4,8 +4,14 @@ sheet
 sheets-auth
 token.pickle
 
-# accumulated data
-data
+# output
+out
+
+# raw css
+*.css
+*.css.map
+*.scss.map
+*.scss.css.map
 
 # Python stuff
 

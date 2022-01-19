@@ -1,15 +1,17 @@
 import yaml
-
-network_file = "data/codes.yml"
+from dirs import stations_list, lnwr_file
 
 station_codes = []
 station_names = []
 station_code_to_name = {}
 station_name_to_code = {}
 
+with open(lnwr_file) as lnwr:
+    lnwr_dests = yaml.safe_load(lnwr)
+
 
 def setup_network():
-    with open(network_file, "r") as codefiles:
+    with open(stations_list, "r") as codefiles:
         stations = yaml.safe_load(codefiles)
 
     for station in stations:
