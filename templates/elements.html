@@ -41,11 +41,13 @@
         {% endif %}
     </td>
     <td class="diff">
-        {% if dest %}
-            {{ loc["arr_diff"] }}
-        {% else %}
-            {{ loc["dep_diff"] }}
-        {% endif %}
+        <div class="diff-box {% if dest %}{{ loc["arr_status"] }}{% else %}{{ loc["dep_status"] }}{% endif %}">
+            {% if dest %}
+                {{ loc["arr_diff"] }}
+            {% else %}
+                {{ loc["dep_diff"] }}
+            {% endif %}
+        </div>
     </td>
 </tr>
 {% endmacro %}

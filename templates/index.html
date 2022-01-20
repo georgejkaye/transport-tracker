@@ -12,22 +12,21 @@
         <h1>Train journey tracker</h1>
         
         {% for journey in journeys -%}
-            <div class="journey box-{{ journey["operator"] | slug }}">
-                <div class="journey-row">
-                    <div class="journey-row-item headcode journey-header">
+            <div class="journey">
+                <div class="journey-row journey-top">
+                    <div class="journey-top-left">
+                        <div class="journey-row-item headcode journey-header">
                         {{ journey["headcode"] }}
-                    </div>
-                    <div class="journey-row-item date journey-header">
+                        </div>
+                        <div class="journey-row-item date journey-header">
                         {{ journey["day"] -}} / {{- journey["month"] -}} / {{- journey["year"] }}
+                        </div>
                     </div>
                     <div class="journey-row-item route journey-header">
                         {{- journey["journey_origin"]["name"] }} to {{ journey["journey_destination"]["name"] -}}
                     </div>
                 </div>
                 <div class="journey-row service-details">
-                    <div class="service-operator">
-                        {{ journey["operator"] }}
-                    </div>
                     <div class="service-route">
                         {{ journey["headcode"] }}
                         {{ journey["service_origin"][0]["dep_plan"] }}
@@ -48,6 +47,9 @@
                             {%- endif -%}
                             {{- loc["name"] -}}
                         {% endfor %}
+                    </div>
+                    <div class="service-operator box-{{ journey["operator"] | slug }}">
+                        {{ journey["operator"] }}
                     </div>
                 </div>
                 <div class="performance-details">

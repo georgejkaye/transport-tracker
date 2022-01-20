@@ -1,5 +1,5 @@
 import yaml
-from dirs import stations_list, lnwr_file
+from dirs import stations_list, lnwr_file, stock_file
 
 station_codes = []
 station_names = []
@@ -8,6 +8,9 @@ station_name_to_code = {}
 
 with open(lnwr_file) as lnwr:
     lnwr_dests = yaml.safe_load(lnwr)
+
+with open(stock_file) as stock:
+    stock_dict = yaml.safe_load(stock)
 
 
 def setup_network():

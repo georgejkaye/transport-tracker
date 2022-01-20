@@ -8,6 +8,7 @@
     arr_act: '1548'
     arr_diff: '0'
     arr_plan: '1548'
+    arr_status: on-time
     crs: BHM
     name: Birmingham New Street
     platform: '3'
@@ -15,6 +16,7 @@
     crs: LMS
     dep_act: '1513'
     dep_diff: '-1'
+    dep_status: early
     dep_plan: '1514'
     name: Leamington Spa
     platform: '2'
@@ -38,6 +40,7 @@
     crs: COV
     dep_act: '1526'
     dep_diff: '0'
+    dep_status: on-time
     dep_plan: '1526'
     name: Coventry
     platform: '4'
@@ -47,6 +50,7 @@
     crs: BHI
     dep_act: '1536'
     dep_diff: '0'
+    dep_status: on-time
     dep_plan: '1536'
     name: Birmingham International
     platform: '2'
@@ -61,6 +65,7 @@
   journey_destination:
     arr_act: '1609'
     arr_diff: '-1'
+    arr_status: early
     arr_plan: '1610'
     crs: UNI
     name: University
@@ -69,6 +74,7 @@
     crs: BHM
     dep_act: '1603'
     dep_diff: '0'
+    dep_status: on-time
     dep_plan: '1603'
     name: Birmingham New Street
     platform: '12'
@@ -92,6 +98,7 @@
     crs: FWY
     dep_act: '1607'
     dep_diff: '0'
+    dep_status: on-time
     dep_plan: '1607'
     name: Five Ways
     platform: '2'
@@ -105,7 +112,8 @@
   headcode: 1M94
   journey_destination:
     arr_act: '1247'
-    arr_diff: '2'
+    arr_diff: '+2'
+    arr_status: late
     arr_plan: '1245'
     crs: BHM
     name: Birmingham New Street
@@ -113,7 +121,8 @@
   journey_origin:
     crs: UNI
     dep_act: '1241'
-    dep_diff: '2'
+    dep_diff: '+2'
+    dep_status: late
     dep_plan: '1239'
     name: University
     platform: '1'
@@ -142,6 +151,7 @@
   journey_destination:
     arr_act: '1328'
     arr_diff: '-1'
+    arr_status: early
     arr_plan: '1329'
     crs: HIA
     name: Hampton-in-Arden
@@ -150,6 +160,7 @@
     crs: BHM
     dep_act: '1314'
     dep_diff: '0'
+    dep_status: on-time
     dep_plan: '1314'
     name: Birmingham New Street
     platform: '7'
@@ -169,19 +180,23 @@
   stops:
   - arr_act: '1321'
     arr_diff: '-1'
+    arr_status: early
     arr_plan: '1322'
     crs: MGN
     dep_act: '1322'
     dep_diff: '0'
+    dep_status: on-time
     dep_plan: '1322'
     name: Marston Green
     platform: '1'
   - arr_act: '1324'
     arr_diff: '-1'
+    arr_status: early
     arr_plan: '1325'
     crs: BHI
     dep_act: '1326'
     dep_diff: '0'
+    dep_status: on-time
     dep_plan: '1326'
     name: Birmingham International
     platform: '4'
@@ -196,6 +211,7 @@
   journey_destination:
     arr_act: '1640'
     arr_diff: '-4'
+    arr_status: early
     arr_plan: '1644'
     crs: BHM
     name: Birmingham New Street
@@ -204,6 +220,7 @@
     crs: BKW
     dep_act: '1621'
     dep_diff: '-1'
+    dep_status: early
     dep_plan: '1622'
     name: Berkswell
     platform: '1'
@@ -223,28 +240,34 @@
   stops:
   - arr_act: '1625'
     arr_diff: '-1'
+    arr_status: early
     arr_plan: '1626'
     crs: HIA
     dep_act: '1625'
     dep_diff: '-1'
+    dep_status: early
     dep_plan: '1626'
     name: Hampton-in-Arden
     platform: '2'
   - arr_act: '1628'
     arr_diff: '-1'
+    arr_status: early
     arr_plan: '1629'
     crs: BHI
     dep_act: '1629'
     dep_diff: '0'
+    dep_status: on-time
     dep_plan: '1629'
     name: Birmingham International
     platform: '3'
   - arr_act: '1631'
     arr_diff: '-1'
+    arr_status: early
     arr_plan: '1632'
     crs: MGN
     dep_act: '1632'
     dep_diff: '-1'
+    dep_status: early
     dep_plan: '1633'
     name: Marston Green
     platform: '2'
@@ -258,7 +281,8 @@
   headcode: 2R44
   journey_destination:
     arr_act: '1656'
-    arr_diff: '3'
+    arr_diff: '+3'
+    arr_status: late
     arr_plan: '1653'
     crs: SLY
     name: Selly Oak
@@ -266,7 +290,8 @@
   journey_origin:
     crs: BHM
     dep_act: '1646'
-    dep_diff: '3'
+    dep_diff: '+3'
+    dep_status: late
     dep_plan: '1643'
     name: Birmingham New Street
     platform: '12'
@@ -285,22 +310,75 @@
   stock: Class 323
   stops:
   - arr_act: '1650'
-    arr_diff: '4'
+    arr_diff: '+4'
+    arr_status: late
     arr_plan: '1646'
     crs: FWY
     dep_act: '1651'
-    dep_diff: '4'
+    dep_diff: '+4'
+    dep_status: late
     dep_plan: '1647'
     name: Five Ways
     platform: '2'
   - arr_act: '1654'
-    arr_diff: '4'
+    arr_diff: '+4'
+    arr_status: late
     arr_plan: '1650'
     crs: UNI
     dep_act: '1654'
-    dep_diff: '3'
+    dep_diff: '+3'
+    dep_status: late
     dep_plan: '1651'
     name: University
     platform: '2'
   uid: G08572
+  year: '2022'
+- chains: '10'
+  day: '20'
+  dur_act: 00:04
+  dur_diff: 00:59
+  dur_plan: 00:05
+  headcode: 1N62
+  journey_destination:
+    arr_act: '1706'
+    arr_diff: '-1'
+    arr_status: early
+    arr_plan: '1707'
+    crs: DGT
+    name: Deansgate
+    platform: '2'
+  journey_origin:
+    crs: MAN
+    dep_act: '1702'
+    dep_diff: '0'
+    dep_status: on-time
+    dep_plan: '1702'
+    name: Manchester Piccadilly
+    platform: '14'
+  miles: '2'
+  month: '01'
+  operator: Northern
+  operator_code: NT
+  service_destination:
+  - arr_plan: '1821'
+    crs: BPN
+    name: Blackpool North
+  service_origin:
+  - crs: MIA
+    dep_plan: '1644'
+    name: Manchester Airport
+  stock: Class 195
+  stops:
+  - arr_act: '1704'
+    arr_diff: '0'
+    arr_plan: '1704'
+    arr_status: on-time
+    crs: MCO
+    dep_act: '1705'
+    dep_diff: '0'
+    dep_status: on-time
+    dep_plan: '1705'
+    name: Manchester Oxford Road
+    platform: '2'
+  uid: G32086
   year: '2022'

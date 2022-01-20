@@ -2,7 +2,7 @@ import yaml
 from datetime import datetime, timedelta
 from pathlib import Path
 from api import filter_services_by_stop, filter_services_by_time, get_destinations_full, get_headcode_full, get_locs_full, get_operator_code_full, get_operator_full, get_origins_full, get_services, get_station_name, get_uid_full, request_station_at_time, service_to_string_full, service_to_string_full_from_station, short_service_string
-from network import get_matching_station_names, station_codes, station_names, station_code_to_name, station_name_to_code
+from network import get_matching_station_names, station_codes, station_names, station_code_to_name, station_name_to_code, stock_dict
 from debug import debug
 
 
@@ -109,16 +109,17 @@ def pick_from_list(choices, prompt, display=lambda x: x):
     Let the user pick from a list of choices
     """
     for i, choice in enumerate(choices):
-        print(str(i) + ": " + display(choice))
+        print(str(i+1) + ": " + display(choice))
     # The last option is a cancel option, this returns ""
-    print(str(len(choices)) + ": Cancel")
+    print(str(len(choices) + 1) + ": Cancel")
     while True:
-        resp = input(prompt + " (0-" + str(len(choices)) + "): ")
+        resp = input(prompt + " (1-" + str(len(choices) + 1) + "): ")
         try:
             resp = int(resp)
-            if resp == len(choices):
+            if resp == len(choices) + 1:
                 return ""
-            return choices[resp]
+            elif resp > 0 or resp < len(choices):
+                return choices[resp-1]
         except:
             pass
 
@@ -174,6 +175,19 @@ def tab(level):
     return string
 
 
+def get_status(diff):
+    diff = int(diff)
+    if diff <= -5:
+        return "very-late"
+    if diff < 0:
+        return "late"
+    if diff == 0:
+        return "on-time"
+    if diff < 5:
+        return "early"
+    return "very-early"
+
+
 def make_loc_entry(loc, arr, dep):
     entry = {
         "name": loc["description"],
@@ -183,14 +197,18 @@ def make_loc_entry(loc, arr, dep):
         entry["arr_plan"] = loc["gbttBookedArrival"]
         if loc["realtimeArrivalActual"]:
             entry["arr_act"] = loc["realtimeArrival"]
-            entry["arr_diff"] = compute_time_difference(
+            diff = compute_time_difference(
                 entry["arr_act"], entry["arr_plan"], True)
+            entry["arr_diff"] = diff
+            entry["arr_status"] = get_status(diff)
     if dep:
         entry["dep_plan"] = loc["gbttBookedDeparture"]
         if loc["realtimeDepartureActual"]:
             entry["dep_act"] = loc["realtimeDeparture"]
-            entry["dep_diff"] = compute_time_difference(
+            diff = compute_time_difference(
                 entry["dep_act"], entry["dep_plan"], True)
+            entry["dep_diff"] = diff
+            entry["dep_status"] = get_status(diff)
     if "platform" in loc:
         entry["platform"] = loc["platform"]
     return entry
@@ -318,7 +336,10 @@ def record_new_journey(output_file):
             # Currently getting this automatically isn't implemented
             # We could trawl wikipedia and make a map of which trains operate which services
             # Or if know your train becomes part of the api
-            stock = input("Stock: ")
+            stock = pick_from_list(
+                stock_dict[get_operator_full(choice)], "Stock", lambda x: x
+            )
+
             # If we can get a good distance set this could be automated
             miles = get_input_no(-1, "Miles")
             chains = get_input_no(2, "Chains", 79)

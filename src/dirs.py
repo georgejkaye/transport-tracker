@@ -6,3 +6,4 @@ data_dir = "data/"
 
 stations_list = Path(data_dir + "stations.yml")
 lnwr_file = Path(data_dir + "lnwr.yml")
+stock_file = Path(data_dir + "stock.yml")
