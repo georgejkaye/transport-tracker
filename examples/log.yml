@@ -1,0 +1,288 @@
+- day: '01'
+  dur_act: 00:34
+  dur_diff: '0'
+  dur_plan: 00:33
+  headcode: 1M50
+  journey_destination:
+    arr_act: '1548'
+    arr_diff: '0'
+    arr_plan: '1548'
+    crs: BHM
+    name: Birmingham New Street
+    platform: '3'
+  journey_origin:
+    crs: LMS
+    dep_act: '1513'
+    dep_diff: '7'
+    dep_plan: '1514'
+    name: Leamington Spa
+    platform: '2'
+  month: '01'
+  operator: CrossCountry
+  operator_code: XC
+  service_destination:
+  - crs: MAN
+    name: Manchester Piccadilly
+    arr_plan: '1723'
+  service_origin:
+  - crs: RDG
+    name: Reading
+    dep_plan: '1415'
+  stops:
+  - arr_act: '1526'
+    arr_diff: '0'
+    arr_plan: '1526'
+    crs: COV
+    dep_act: '1526'
+    dep_diff: '0'
+    dep_plan: '1526'
+    name: Coventry
+    platform: '4'
+  - arr_act: '1536'
+    arr_diff: '0'
+    arr_plan: '1536'
+    crs: BHI
+    dep_act: '1536'
+    dep_diff: '0'
+    dep_plan: '1536'
+    name: Birmingham International
+    platform: '2'
+  uid: L11528
+  year: '2022'
+- day: '01'
+  dur_act: 00:06
+  dur_diff: '-1'
+  dur_plan: 00:07
+  headcode: 2O41
+  journey_destination:
+    arr_act: '1609'
+    arr_diff: '-1'
+    arr_plan: '1610'
+    crs: UNI
+    name: University
+    platform: '2'
+  journey_origin:
+    crs: BHM
+    dep_act: '1603'
+    dep_diff: '0'
+    dep_plan: '1603'
+    name: Birmingham New Street
+    platform: '12'
+  month: '01'
+  operator: West Midlands Railway
+  operator_code: LM
+  service_destination:
+  - crs: BMV
+    name: Bromsgrove
+    arr_plan: '1636'
+  service_origin:
+  - crs: LTV
+    name: Lichfield Trent Valley
+    dep_plan: '1520'
+  stops:
+  - arr_act: '1606'
+    arr_diff: '0'
+    arr_plan: '1606'
+    crs: FWY
+    dep_act: '1607'
+    dep_diff: '0'
+    dep_plan: '1607'
+    name: Five Ways
+    platform: '2'
+  uid: G06802
+  year: '2022'
+- day: '15'
+  dur_act: 00:08
+  dur_diff: '1'
+  dur_plan: 00:07
+  headcode: 1M94
+  journey_destination:
+    arr_act: '1247'
+    arr_diff: '2'
+    arr_plan: '1245'
+    crs: BHM
+    name: Birmingham New Street
+    platform: '9'
+  journey_origin:
+    crs: UNI
+    dep_act: '1239'
+    dep_diff: '1'
+    dep_plan: '1238'
+    name: University
+    platform: '1'
+  month: '01'
+  operator: CrossCountry
+  operator_code: XC
+  service_destination:
+  - crs: NOT
+    name: Nottingham
+    arr_plan: '1403'
+  service_origin:
+  - crs: CDF
+    name: Cardiff Central
+    dep_plan: '1045'
+  stops: []
+  uid: L11587
+  year: '2022'
+- day: '15'
+  dur_act: 00:14
+  dur_diff: '-1'
+  dur_plan: 00:15
+  headcode: 2Y64
+  journey_destination:
+    arr_act: '1328'
+    arr_diff: '-1'
+    arr_plan: '1329'
+    crs: HIA
+    name: Hampton-in-Arden
+    platform: '1'
+  journey_origin:
+    crs: BHM
+    dep_act: '1314'
+    dep_diff: '0'
+    dep_plan: '1314'
+    name: Birmingham New Street
+    platform: '7'
+  month: '01'
+  operator: London Northwestern Railway
+  operator_code: LM
+  service_destination:
+  - crs: NMP
+    name: Northampton
+    arr_plan: '1421'
+  service_origin:
+  - crs: BHM
+    name: Birmingham New Street
+    dep_plan: '1315'
+  stops:
+  - arr_act: '1321'
+    arr_diff: '-1'
+    arr_plan: '1322'
+    crs: MGN
+    dep_act: '1322'
+    dep_diff: '0'
+    dep_plan: '1322'
+    name: Marston Green
+    platform: '1'
+  - arr_act: '1324'
+    arr_diff: '-1'
+    arr_plan: '1325'
+    crs: BHI
+    dep_act: '1326'
+    dep_diff: '0'
+    dep_plan: '1326'
+    name: Birmingham International
+    platform: '4'
+  uid: C28692
+  year: '2022'
+- day: '15'
+  dur_act: 00:19
+  dur_diff: '-3'
+  dur_plan: 00:22
+  headcode: 2Y63
+  journey_destination:
+    arr_act: '1640'
+    arr_diff: '-4'
+    arr_plan: '1644'
+    crs: BHM
+    name: Birmingham New Street
+    platform: '6'
+  journey_origin:
+    crs: BKW
+    dep_act: '1621'
+    dep_diff: '-1'
+    dep_plan: '1622'
+    name: Berkswell
+    platform: '1'
+  month: '01'
+  operator: London Northwestern Railway
+  operator_code: LM
+  service_destination:
+  - crs: BHM
+    name: Birmingham New Street
+    arr_plan: '1644'
+  service_origin:
+  - crs: NMP
+    name: Northampton
+    dep_plan: '1537'
+  stops:
+  - arr_act: '1625'
+    arr_diff: '-1'
+    arr_plan: '1626'
+    crs: HIA
+    dep_act: '1625'
+    dep_diff: '-1'
+    dep_plan: '1626'
+    name: Hampton-in-Arden
+    platform: '2'
+  - arr_act: '1628'
+    arr_diff: '-1'
+    arr_plan: '1629'
+    crs: BHI
+    dep_act: '1629'
+    dep_diff: '0'
+    dep_plan: '1629'
+    name: Birmingham International
+    platform: '3'
+  - arr_act: '1631'
+    arr_diff: '-1'
+    arr_plan: '1632'
+    crs: MGN
+    dep_act: '1632'
+    dep_diff: '-1'
+    dep_plan: '1633'
+    name: Marston Green
+    platform: '2'
+  uid: G08846
+  year: '2022'
+- day: '15'
+  dur_act: 00:10
+  dur_diff: '0'
+  dur_plan: 00:10
+  headcode: 2R44
+  journey_destination:
+    arr_act: '1656'
+    arr_diff: '3'
+    arr_plan: '1653'
+    crs: SLY
+    name: Selly Oak
+    platform: '2'
+  journey_origin:
+    crs: BHM
+    dep_act: '1646'
+    dep_diff: '3'
+    dep_plan: '1643'
+    name: Birmingham New Street
+    platform: '12'
+  month: '01'
+  operator: West Midlands Railway
+  operator_code: LM
+  service_destination:
+  - crs: RDC
+    name: Redditch
+    arr_plan: '1724'
+  service_origin:
+  - crs: FOK
+    name: Four Oaks
+    dep_plan: '1616'
+  stops:
+  - arr_act: '1650'
+    arr_diff: '4'
+    arr_plan: '1646'
+    crs: FWY
+    dep_act: '1651'
+    dep_diff: '4'
+    dep_plan: '1647'
+    name: Five Ways
+    platform: '2'
+  - arr_act: '1654'
+    arr_diff: '4'
+    arr_plan: '1650'
+    crs: UNI
+    dep_act: '1654'
+    dep_diff: '3'
+    dep_plan: '1651'
+    name: University
+    platform: '2'
+  uid: G08572
+  year: '2022'

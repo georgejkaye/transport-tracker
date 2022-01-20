@@ -1,0 +1,165 @@
+body {
+  max-width: 750px;
+  margin: auto;
+}
+
+h1 {
+  text-align: center;
+}
+
+.journey {
+  border-radius: 5px;
+  border-color: gray;
+  margin: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.journey-row {
+  display: flex;
+  flex-direction: row;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.service-details {
+  font-style: italic;
+}
+
+.service-route {
+  flex: 1;
+  text-align: center;
+}
+
+.journey-row-item {
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+.route {
+  flex: 1;
+  text-align: center;
+}
+
+.box-abellio-scotrail {
+  background-color: #1f2d61;
+}
+
+.box-avanti-west-coast {
+  background-color: #204555;
+}
+
+.box-c2c {
+  background-color: #b4007f;
+}
+
+.box-caledonian-sleeper {
+  background-color: #08272c;
+}
+
+.box-chiltern-railways {
+  background-color: #55bae2;
+}
+
+.box-crosscountry {
+  background-color: #dd1554;
+}
+
+.box-east-midlands-railway {
+  background-color: #492d45;
+}
+
+.box-heathrow-express {
+  background-color: #4e2b5c;
+}
+
+.box-gatwick-express {
+  background-color: #e11829;
+}
+
+.box-grand-central {
+  background-color: #e37716;
+}
+
+.box-greater-anglia {
+  background-color: #3a4651;
+}
+
+.box-great-northern {
+  background-color: #00a0ff;
+}
+
+.box-great-western-railway {
+  background-color: #0a493e;
+}
+
+.box-hull-trains {
+  background-color: #013475;
+}
+
+.box-london-north-eastern-railway {
+  background-color: #c62a33;
+}
+
+.box-london-northwestern-railway {
+  background-color: #00bf6f;
+}
+
+.box-london-overground {
+  background-color: #f07c08;
+}
+
+.box-lumo {
+  background-color: #1c02ea;
+}
+
+.box-merseyrail {
+  background-color: #ffdc00;
+}
+
+.box-northern-trains {
+  background-color: #212d5a;
+}
+
+.box-southern {
+  background-color: #80c242;
+}
+
+.box-southeastern {
+  background-color: #1c1c4c;
+}
+
+.box-south-western-railway {
+  background-color: #061a29;
+}
+
+.box-tfl-rail {
+  background-color: #6b529d;
+}
+
+.box-thameslink {
+  background-color: #e84aba;
+}
+
+.box-transpennine-express {
+  background-color: #00a8e7;
+}
+
+.box-transport-for-wales {
+  background-color: #e51b1f;
+}
+
+.box-west-midlands-railway {
+  background-color: #fd8103;
+}
+
+.name {
+  width: 300px;
+}
+
+.platform {
+  text-align: center;
+}
+
+/*# sourceMappingURL=styles.css.map */

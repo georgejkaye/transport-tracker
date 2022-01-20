@@ -46,6 +46,28 @@ h1 {
   padding: 10px;
 
   display: flex;
+  flex-direction: column;
+}
+
+.journey-row {
+  display: flex;
+  flex-direction: row;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.service-details {
+  font-style: italic;
+}
+
+.service-route {
+  flex: 1;
+  text-align: center;
+}
+
+.journey-row-item {
+  margin-left: 10px;
+  margin-right: 10px;
 }
 
 .route {
@@ -57,4 +79,12 @@ h1 {
   .box-#{$name} {
     background-color: $colour;
   }
+}
+
+.name {
+  width: 300px;
+}
+
+.platform {
+  text-align: center;
 }

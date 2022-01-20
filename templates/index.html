@@ -8,14 +8,63 @@
         
         {% for journey in journeys -%}
             <div class="journey box-{{ journey["operator"] | slug }}">
-                <div class="headcode">
-                    {{ journey["headcode"] }}
+                <div class="journey-row">
+                    <div class="journey-row-item headcode">
+                        {{ journey["headcode"] }}
+                    </div>
+                    <div class="journey-row-item date">
+                        {{ journey["day"] -}} / {{- journey["month"] -}} / {{- journey["year"] }}
+                    </div>
+                    <div class="journey-row-item route">
+                        {{- journey["journey_origin"]["name"] }} to {{ journey["journey_destination"]["name"] -}}
+                    </div>
+                    <div class="journey-row-item toc">
+                        {{ journey["operator_code"] }}
+                    </div>
                 </div>
-                <div class="route">
-                    {{- journey["journey_origin"]["name"] }} to {{ journey["journey_destination"]["name"] -}}
+                <div class="stop-details">
+                    <table>
+                    <tr class="stop origin">
+                        <td class="name">{{ journey["journey_origin"]["name"] }}</td>
+                        <td class="platform">{{ journey["journey_origin"]["platform"] }}</td>
+                    </tr>
+                    {% for stn in journey["stops"] %}
+                        <tr class="stop call">
+                            <td class="name">{{ stn["name"] }}</td>
+                            <td class="platform">{{ stn["platform"] }}</td>
+                        </tr>
+                    {% endfor %}
+                    <tr class="stop destination">
+                        <td class="name">{{ journey["journey_destination"]["name"] }}</td>
+                        <td class="platform">{{ journey["journey_destination"]["platform"] }}</td>
+                    </tr>                    
+                    </table>
                 </div>
-                <div class="toc">
-                    {{ journey["operator_code"] }}
+                <div class="journey-row service-details">
+                    <div class="service-operator">
+                        {{ journey["operator"] }}
+                    </div>
+                    <div class="service-route">
+                        {{ journey["headcode"] }}
+                        {{ journey["service_origin"][0]["dep_plan"] }}
+                        {% for loc in journey["service_origin"] %}
+                            {% if loop.last and not loop.first %}
+                                and
+                            {% elif not loop.first %}
+                                , 
+                            {% endif %}
+                            {{ loc["name"] }}
+                        {% endfor %}
+                        to
+                        {% for loc in journey["service_destination"] %}
+                            {% if loop.last and not loop.first %}
+                                and
+                            {% elif not loop.first %}
+                                , 
+                            {% endif %}
+                            {{ loc["name"] }}
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         {% endfor %}

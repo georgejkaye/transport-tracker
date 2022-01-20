@@ -4,7 +4,6 @@ from pathlib import Path
 from api import filter_services_by_stop, filter_services_by_time, get_destinations_full, get_headcode_full, get_locs_full, get_operator_code_full, get_operator_full, get_origins_full, get_services, get_station_name, get_uid_full, request_station_at_time, service_to_string_full, service_to_string_full_from_station, short_service_string
 from network import get_matching_station_names, station_codes, station_names, station_code_to_name, station_name_to_code
 from debug import debug
-from dirs import output_log
 
 
 def pad_front(string, length):
@@ -193,23 +192,28 @@ def make_loc_entry(loc, arr, dep):
     return entry
 
 
-def make_short_loc_entry(loc):
-    return {
+def make_short_loc_entry(loc, arr):
+    entry = {
         "name": loc["description"],
         "crs": station_name_to_code[loc["description"]]
     }
+    if arr:
+        entry["arr_plan"] = loc["publicTime"]
+    else:
+        entry["dep_plan"] = loc["publicTime"]
+    return entry
 
 
-def make_new_log_entry(year, month, day, service, origin, destination):
+def make_new_log_entry(year, month, day, service, origin, destination, output_file):
     # start off with some basic info about the service
 
     service_origins = []
     for loc in get_origins_full(service):
-        service_origins.append(make_short_loc_entry(loc))
+        service_origins.append(make_short_loc_entry(loc, False))
 
     service_destinations = []
     for loc in get_destinations_full(service):
-        service_destinations.append(make_short_loc_entry(loc))
+        service_destinations.append(make_short_loc_entry(loc, True))
 
     stops = []
     boarded = False
@@ -250,7 +254,7 @@ def make_new_log_entry(year, month, day, service, origin, destination):
         entry["dur_act"] = mins_to_hours(dur_act)
         entry["dur_diff"] = compute_time_difference(dur_act, dur_plan)
 
-    with open(output_log, "r") as logfile:
+    with open(output_file, "r") as logfile:
         cur_yaml = yaml.safe_load(logfile)
 
     if cur_yaml is not None:
@@ -258,11 +262,11 @@ def make_new_log_entry(year, month, day, service, origin, destination):
     else:
         cur_yaml = [entry]
 
-    with open(output_log, "w") as logfile:
+    with open(output_file, "w") as logfile:
         yaml.safe_dump(cur_yaml, logfile)
 
 
-def record_new_journey():
+def record_new_journey(output_file):
     """
     Record a new journey in the logfile
     """
@@ -301,7 +305,8 @@ def record_new_journey():
         choice = pick_from_list(
             filtered_services, "Pick a service", lambda x: service_to_string_full_from_station(x, origin))
         if choice != "":
-            make_new_log_entry(year, month, day, choice, origin, dest)
+            make_new_log_entry(year, month, day, choice,
+                               origin, dest, output_file)
 
     else:
         print("No services found!")

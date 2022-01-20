@@ -7,9 +7,9 @@ token.pickle
 # output
 out
 
-# raw css
-*.css
+# css maps
 *.css.map
+*.scss.css
 *.scss.map
 *.scss.css.map
 
