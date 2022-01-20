@@ -1,46 +1,25 @@
+
+
 <!DOCTYPE html>
     <head>
         <title>Train journey tracker</title>
         <link rel="stylesheet" href="styles.css">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400;0,700;1,700&display=swap" rel="stylesheet">  
     </head>
     <body>
         <h1>Train journey tracker</h1>
         
         <div class="journey box-crosscountry">
                 <div class="journey-row">
-                    <div class="journey-row-item headcode">
+                    <div class="journey-row-item headcode journey-header">
                         1M50
                     </div>
-                    <div class="journey-row-item date">
-                        01/01/2022
+                    <div class="journey-row-item date journey-header">
+                        01/01/22
                     </div>
-                    <div class="journey-row-item route">Leamington Spa to Birmingham New Street</div>
-                    <div class="journey-row-item toc">
-                        XC
-                    </div>
-                </div>
-                <div class="stop-details">
-                    <table>
-                    <tr class="stop origin">
-                        <td class="name">Leamington Spa</td>
-                        <td class="platform">2</td>
-                    </tr>
-                    
-                        <tr class="stop call">
-                            <td class="name">Coventry</td>
-                            <td class="platform">4</td>
-                        </tr>
-                    
-                        <tr class="stop call">
-                            <td class="name">Birmingham International</td>
-                            <td class="platform">2</td>
-                        </tr>
-                    
-                    <tr class="stop destination">
-                        <td class="name">Birmingham New Street</td>
-                        <td class="platform">3</td>
-                    </tr>                    
-                    </table>
+                    <div class="journey-row-item route journey-header">Leamington Spa to Birmingham New Street</div>
                 </div>
                 <div class="journey-row service-details">
                     <div class="service-operator">
@@ -49,48 +28,182 @@
                     <div class="service-route">
                         1M50
                         1415
-                        
-                            
-                            Reading
-                        
+                        Reading
                         to
-                        
-                            
-                            Manchester Piccadilly
-                        
+                        Manchester Piccadilly
                     </div>
+                </div>
+                <div class="performance-details">
+                    <table class="performance-table">
+                        <tr>
+                            <td colspan="3">Dep</td>
+                            <td colspan="3">Arr</td>
+                            <td colspan="3">Duration</td>
+                        </tr>
+                        <tr>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                        </tr>
+                        <tr>
+                            <td>1514</td>
+                            <td>1513</td>
+                            <td>-1</td>
+                            <td>1548</td>
+                            <td>1548</td>
+                            <td>0</td>
+                            <td>00:33</td>
+                            <td>00:34</td>
+                            <td>00:01</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="misc-info">
+                    <div>Distance</div>
+                    <div>28m 46ch</div>
+                    <div>Class 220</div>
+                </div>
+                <div class="stop-details">
+                    <table><tr class="stop origin">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/origin.svg"/>
+    </td>
+    <td class="name">Leamington Spa [LMS]</td>
+    <td class="platform">2</td>
+    <td class="time arr-plan">
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1514
+        
+    </td>
+    <td class="time arr-act">
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1513
+        
+    </td>
+    <td class="diff">
+        
+            -1
+        
+    </td>
+</tr>
+<tr class="stop call">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/stop.svg"/>
+    </td>
+    <td class="name">Coventry [COV]</td>
+    <td class="platform">4</td>
+    <td class="time arr-plan">
+        
+            1526
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1526
+        
+    </td>
+    <td class="time arr-act">
+        
+            1526
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1526
+        
+    </td>
+    <td class="diff">
+        
+            0
+        
+    </td>
+</tr>
+<tr class="stop call">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/stop.svg"/>
+    </td>
+    <td class="name">Birmingham International [BHI]</td>
+    <td class="platform">2</td>
+    <td class="time arr-plan">
+        
+            1536
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1536
+        
+    </td>
+    <td class="time arr-act">
+        
+            1536
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1536
+        
+    </td>
+    <td class="diff">
+        
+            0
+        
+    </td>
+</tr>
+<tr class="stop destination">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/destination.svg"/>
+    </td>
+    <td class="name">Birmingham New Street [BHM]</td>
+    <td class="platform">3</td>
+    <td class="time arr-plan">
+        
+            1548
+        
+    </td>
+    <td class="time dep-plan">
+        
+        
+        
+    </td>
+    <td class="time arr-act">
+        
+            1548
+        
+    </td>
+    <td class="time dep-plan">
+        
+    </td>
+    <td class="diff">
+        
+            0
+        
+    </td>
+</tr>
+</table>
                 </div>
             </div>
         <div class="journey box-west-midlands-railway">
                 <div class="journey-row">
-                    <div class="journey-row-item headcode">
+                    <div class="journey-row-item headcode journey-header">
                         2O41
                     </div>
-                    <div class="journey-row-item date">
-                        01/01/2022
+                    <div class="journey-row-item date journey-header">
+                        01/01/22
                     </div>
-                    <div class="journey-row-item route">Birmingham New Street to University</div>
-                    <div class="journey-row-item toc">
-                        LM
-                    </div>
-                </div>
-                <div class="stop-details">
-                    <table>
-                    <tr class="stop origin">
-                        <td class="name">Birmingham New Street</td>
-                        <td class="platform">12</td>
-                    </tr>
-                    
-                        <tr class="stop call">
-                            <td class="name">Five Ways</td>
-                            <td class="platform">2</td>
-                        </tr>
-                    
-                    <tr class="stop destination">
-                        <td class="name">University</td>
-                        <td class="platform">2</td>
-                    </tr>                    
-                    </table>
+                    <div class="journey-row-item route journey-header">Birmingham New Street to University</div>
                 </div>
                 <div class="journey-row service-details">
                     <div class="service-operator">
@@ -99,43 +212,150 @@
                     <div class="service-route">
                         2O41
                         1520
-                        
-                            
-                            Lichfield Trent Valley
-                        
+                        Lichfield Trent Valley
                         to
-                        
-                            
-                            Bromsgrove
-                        
+                        Bromsgrove
                     </div>
+                </div>
+                <div class="performance-details">
+                    <table class="performance-table">
+                        <tr>
+                            <td colspan="3">Dep</td>
+                            <td colspan="3">Arr</td>
+                            <td colspan="3">Duration</td>
+                        </tr>
+                        <tr>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                        </tr>
+                        <tr>
+                            <td>1603</td>
+                            <td>1603</td>
+                            <td>0</td>
+                            <td>1610</td>
+                            <td>1609</td>
+                            <td>-1</td>
+                            <td>00:07</td>
+                            <td>00:06</td>
+                            <td>00:01</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="misc-info">
+                    <div>Distance</div>
+                    <div>2m 49ch</div>
+                    <div>Class 323</div>
+                </div>
+                <div class="stop-details">
+                    <table><tr class="stop origin">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/origin.svg"/>
+    </td>
+    <td class="name">Birmingham New Street [BHM]</td>
+    <td class="platform">12</td>
+    <td class="time arr-plan">
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1603
+        
+    </td>
+    <td class="time arr-act">
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1603
+        
+    </td>
+    <td class="diff">
+        
+            0
+        
+    </td>
+</tr>
+<tr class="stop call">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/stop.svg"/>
+    </td>
+    <td class="name">Five Ways [FWY]</td>
+    <td class="platform">2</td>
+    <td class="time arr-plan">
+        
+            1606
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1607
+        
+    </td>
+    <td class="time arr-act">
+        
+            1606
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1607
+        
+    </td>
+    <td class="diff">
+        
+            0
+        
+    </td>
+</tr>
+<tr class="stop destination">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/destination.svg"/>
+    </td>
+    <td class="name">University [UNI]</td>
+    <td class="platform">2</td>
+    <td class="time arr-plan">
+        
+            1610
+        
+    </td>
+    <td class="time dep-plan">
+        
+        
+        
+    </td>
+    <td class="time arr-act">
+        
+            1609
+        
+    </td>
+    <td class="time dep-plan">
+        
+    </td>
+    <td class="diff">
+        
+            -1
+        
+    </td>
+</tr>
+</table>
                 </div>
             </div>
         <div class="journey box-crosscountry">
                 <div class="journey-row">
-                    <div class="journey-row-item headcode">
+                    <div class="journey-row-item headcode journey-header">
                         1M94
                     </div>
-                    <div class="journey-row-item date">
+                    <div class="journey-row-item date journey-header">
                         15/01/2022
                     </div>
-                    <div class="journey-row-item route">University to Birmingham New Street</div>
-                    <div class="journey-row-item toc">
-                        XC
-                    </div>
-                </div>
-                <div class="stop-details">
-                    <table>
-                    <tr class="stop origin">
-                        <td class="name">University</td>
-                        <td class="platform">1</td>
-                    </tr>
-                    
-                    <tr class="stop destination">
-                        <td class="name">Birmingham New Street</td>
-                        <td class="platform">9</td>
-                    </tr>                    
-                    </table>
+                    <div class="journey-row-item route journey-header">University to Birmingham New Street</div>
                 </div>
                 <div class="journey-row service-details">
                     <div class="service-operator">
@@ -144,53 +364,118 @@
                     <div class="service-route">
                         1M94
                         1045
-                        
-                            
-                            Cardiff Central
-                        
+                        Cardiff Central
                         to
-                        
-                            
-                            Nottingham
-                        
+                        Nottingham
                     </div>
+                </div>
+                <div class="performance-details">
+                    <table class="performance-table">
+                        <tr>
+                            <td colspan="3">Dep</td>
+                            <td colspan="3">Arr</td>
+                            <td colspan="3">Duration</td>
+                        </tr>
+                        <tr>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                        </tr>
+                        <tr>
+                            <td>1239</td>
+                            <td>1241</td>
+                            <td>2</td>
+                            <td>1245</td>
+                            <td>1247</td>
+                            <td>2</td>
+                            <td>00:06</td>
+                            <td>00:06</td>
+                            <td>00:00</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="misc-info">
+                    <div>Distance</div>
+                    <div>2m 49ch</div>
+                    <div>Class 323</div>
+                </div>
+                <div class="stop-details">
+                    <table><tr class="stop origin">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/origin.svg"/>
+    </td>
+    <td class="name">University [UNI]</td>
+    <td class="platform">1</td>
+    <td class="time arr-plan">
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1239
+        
+    </td>
+    <td class="time arr-act">
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1241
+        
+    </td>
+    <td class="diff">
+        
+            2
+        
+    </td>
+</tr>
+<tr class="stop destination">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/destination.svg"/>
+    </td>
+    <td class="name">Birmingham New Street [BHM]</td>
+    <td class="platform">9</td>
+    <td class="time arr-plan">
+        
+            1245
+        
+    </td>
+    <td class="time dep-plan">
+        
+        
+        
+    </td>
+    <td class="time arr-act">
+        
+            1247
+        
+    </td>
+    <td class="time dep-plan">
+        
+    </td>
+    <td class="diff">
+        
+            2
+        
+    </td>
+</tr>
+</table>
                 </div>
             </div>
         <div class="journey box-london-northwestern-railway">
                 <div class="journey-row">
-                    <div class="journey-row-item headcode">
+                    <div class="journey-row-item headcode journey-header">
                         2Y64
                     </div>
-                    <div class="journey-row-item date">
+                    <div class="journey-row-item date journey-header">
                         15/01/2022
                     </div>
-                    <div class="journey-row-item route">Birmingham New Street to Hampton-in-Arden</div>
-                    <div class="journey-row-item toc">
-                        LM
-                    </div>
-                </div>
-                <div class="stop-details">
-                    <table>
-                    <tr class="stop origin">
-                        <td class="name">Birmingham New Street</td>
-                        <td class="platform">7</td>
-                    </tr>
-                    
-                        <tr class="stop call">
-                            <td class="name">Marston Green</td>
-                            <td class="platform">1</td>
-                        </tr>
-                    
-                        <tr class="stop call">
-                            <td class="name">Birmingham International</td>
-                            <td class="platform">4</td>
-                        </tr>
-                    
-                    <tr class="stop destination">
-                        <td class="name">Hampton-in-Arden</td>
-                        <td class="platform">1</td>
-                    </tr>                    
-                    </table>
+                    <div class="journey-row-item route journey-header">Birmingham New Street to Hampton-in-Arden</div>
                 </div>
                 <div class="journey-row service-details">
                     <div class="service-operator">
@@ -198,59 +483,183 @@
                     </div>
                     <div class="service-route">
                         2Y64
-                        1315
-                        
-                            
-                            Birmingham New Street
-                        
+                        1314
+                        Birmingham New Street
                         to
-                        
-                            
-                            Northampton
-                        
+                        Northampton
                     </div>
+                </div>
+                <div class="performance-details">
+                    <table class="performance-table">
+                        <tr>
+                            <td colspan="3">Dep</td>
+                            <td colspan="3">Arr</td>
+                            <td colspan="3">Duration</td>
+                        </tr>
+                        <tr>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                        </tr>
+                        <tr>
+                            <td>1314</td>
+                            <td>1314</td>
+                            <td>0</td>
+                            <td>1329</td>
+                            <td>1328</td>
+                            <td>-1</td>
+                            <td>00:15</td>
+                            <td>00:14</td>
+                            <td>00:59</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="misc-info">
+                    <div>Distance</div>
+                    <div>10m 12ch</div>
+                    <div>Class 350</div>
+                </div>
+                <div class="stop-details">
+                    <table><tr class="stop origin">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/origin.svg"/>
+    </td>
+    <td class="name">Birmingham New Street [BHM]</td>
+    <td class="platform">7</td>
+    <td class="time arr-plan">
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1314
+        
+    </td>
+    <td class="time arr-act">
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1314
+        
+    </td>
+    <td class="diff">
+        
+            0
+        
+    </td>
+</tr>
+<tr class="stop call">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/stop.svg"/>
+    </td>
+    <td class="name">Marston Green [MGN]</td>
+    <td class="platform">1</td>
+    <td class="time arr-plan">
+        
+            1322
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1322
+        
+    </td>
+    <td class="time arr-act">
+        
+            1321
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1322
+        
+    </td>
+    <td class="diff">
+        
+            0
+        
+    </td>
+</tr>
+<tr class="stop call">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/stop.svg"/>
+    </td>
+    <td class="name">Birmingham International [BHI]</td>
+    <td class="platform">4</td>
+    <td class="time arr-plan">
+        
+            1325
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1326
+        
+    </td>
+    <td class="time arr-act">
+        
+            1324
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1326
+        
+    </td>
+    <td class="diff">
+        
+            0
+        
+    </td>
+</tr>
+<tr class="stop destination">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/destination.svg"/>
+    </td>
+    <td class="name">Hampton-in-Arden [HIA]</td>
+    <td class="platform">1</td>
+    <td class="time arr-plan">
+        
+            1329
+        
+    </td>
+    <td class="time dep-plan">
+        
+        
+        
+    </td>
+    <td class="time arr-act">
+        
+            1328
+        
+    </td>
+    <td class="time dep-plan">
+        
+    </td>
+    <td class="diff">
+        
+            -1
+        
+    </td>
+</tr>
+</table>
                 </div>
             </div>
         <div class="journey box-london-northwestern-railway">
                 <div class="journey-row">
-                    <div class="journey-row-item headcode">
+                    <div class="journey-row-item headcode journey-header">
                         2Y63
                     </div>
-                    <div class="journey-row-item date">
+                    <div class="journey-row-item date journey-header">
                         15/01/2022
                     </div>
-                    <div class="journey-row-item route">Berkswell to Birmingham New Street</div>
-                    <div class="journey-row-item toc">
-                        LM
-                    </div>
-                </div>
-                <div class="stop-details">
-                    <table>
-                    <tr class="stop origin">
-                        <td class="name">Berkswell</td>
-                        <td class="platform">1</td>
-                    </tr>
-                    
-                        <tr class="stop call">
-                            <td class="name">Hampton-in-Arden</td>
-                            <td class="platform">2</td>
-                        </tr>
-                    
-                        <tr class="stop call">
-                            <td class="name">Birmingham International</td>
-                            <td class="platform">3</td>
-                        </tr>
-                    
-                        <tr class="stop call">
-                            <td class="name">Marston Green</td>
-                            <td class="platform">2</td>
-                        </tr>
-                    
-                    <tr class="stop destination">
-                        <td class="name">Birmingham New Street</td>
-                        <td class="platform">6</td>
-                    </tr>                    
-                    </table>
+                    <div class="journey-row-item route journey-header">Berkswell to Birmingham New Street</div>
                 </div>
                 <div class="journey-row service-details">
                     <div class="service-operator">
@@ -259,53 +668,214 @@
                     <div class="service-route">
                         2Y63
                         1537
-                        
-                            
-                            Northampton
-                        
+                        Northampton
                         to
-                        
-                            
-                            Birmingham New Street
-                        
+                        Birmingham New Street
                     </div>
+                </div>
+                <div class="performance-details">
+                    <table class="performance-table">
+                        <tr>
+                            <td colspan="3">Dep</td>
+                            <td colspan="3">Arr</td>
+                            <td colspan="3">Duration</td>
+                        </tr>
+                        <tr>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                        </tr>
+                        <tr>
+                            <td>1622</td>
+                            <td>1621</td>
+                            <td>-1</td>
+                            <td>1644</td>
+                            <td>1640</td>
+                            <td>-4</td>
+                            <td>00:22</td>
+                            <td>00:19</td>
+                            <td>00:57</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="misc-info">
+                    <div>Distance</div>
+                    <div>13m 35ch</div>
+                    <div>Class 350</div>
+                </div>
+                <div class="stop-details">
+                    <table><tr class="stop origin">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/origin.svg"/>
+    </td>
+    <td class="name">Berkswell [BKW]</td>
+    <td class="platform">1</td>
+    <td class="time arr-plan">
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1622
+        
+    </td>
+    <td class="time arr-act">
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1621
+        
+    </td>
+    <td class="diff">
+        
+            -1
+        
+    </td>
+</tr>
+<tr class="stop call">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/stop.svg"/>
+    </td>
+    <td class="name">Hampton-in-Arden [HIA]</td>
+    <td class="platform">2</td>
+    <td class="time arr-plan">
+        
+            1626
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1626
+        
+    </td>
+    <td class="time arr-act">
+        
+            1625
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1625
+        
+    </td>
+    <td class="diff">
+        
+            -1
+        
+    </td>
+</tr>
+<tr class="stop call">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/stop.svg"/>
+    </td>
+    <td class="name">Birmingham International [BHI]</td>
+    <td class="platform">3</td>
+    <td class="time arr-plan">
+        
+            1629
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1629
+        
+    </td>
+    <td class="time arr-act">
+        
+            1628
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1629
+        
+    </td>
+    <td class="diff">
+        
+            0
+        
+    </td>
+</tr>
+<tr class="stop call">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/stop.svg"/>
+    </td>
+    <td class="name">Marston Green [MGN]</td>
+    <td class="platform">2</td>
+    <td class="time arr-plan">
+        
+            1632
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1633
+        
+    </td>
+    <td class="time arr-act">
+        
+            1631
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1632
+        
+    </td>
+    <td class="diff">
+        
+            -1
+        
+    </td>
+</tr>
+<tr class="stop destination">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/destination.svg"/>
+    </td>
+    <td class="name">Birmingham New Street [BHM]</td>
+    <td class="platform">6</td>
+    <td class="time arr-plan">
+        
+            1644
+        
+    </td>
+    <td class="time dep-plan">
+        
+        
+        
+    </td>
+    <td class="time arr-act">
+        
+            1640
+        
+    </td>
+    <td class="time dep-plan">
+        
+    </td>
+    <td class="diff">
+        
+            -4
+        
+    </td>
+</tr>
+</table>
                 </div>
             </div>
         <div class="journey box-west-midlands-railway">
                 <div class="journey-row">
-                    <div class="journey-row-item headcode">
+                    <div class="journey-row-item headcode journey-header">
                         2R44
                     </div>
-                    <div class="journey-row-item date">
+                    <div class="journey-row-item date journey-header">
                         15/01/2022
                     </div>
-                    <div class="journey-row-item route">Birmingham New Street to Selly Oak</div>
-                    <div class="journey-row-item toc">
-                        LM
-                    </div>
-                </div>
-                <div class="stop-details">
-                    <table>
-                    <tr class="stop origin">
-                        <td class="name">Birmingham New Street</td>
-                        <td class="platform">12</td>
-                    </tr>
-                    
-                        <tr class="stop call">
-                            <td class="name">Five Ways</td>
-                            <td class="platform">2</td>
-                        </tr>
-                    
-                        <tr class="stop call">
-                            <td class="name">University</td>
-                            <td class="platform">2</td>
-                        </tr>
-                    
-                    <tr class="stop destination">
-                        <td class="name">Selly Oak</td>
-                        <td class="platform">2</td>
-                    </tr>                    
-                    </table>
+                    <div class="journey-row-item route journey-header">Birmingham New Street to Selly Oak</div>
                 </div>
                 <div class="journey-row service-details">
                     <div class="service-operator">
@@ -314,16 +884,171 @@
                     <div class="service-route">
                         2R44
                         1616
-                        
-                            
-                            Four Oaks
-                        
+                        Four Oaks
                         to
-                        
-                            
-                            Redditch
-                        
+                        Redditch
                     </div>
+                </div>
+                <div class="performance-details">
+                    <table class="performance-table">
+                        <tr>
+                            <td colspan="3">Dep</td>
+                            <td colspan="3">Arr</td>
+                            <td colspan="3">Duration</td>
+                        </tr>
+                        <tr>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                            <td>Plan</td>
+                            <td>Act</td>
+                            <td>Delay</td>
+                        </tr>
+                        <tr>
+                            <td>1643</td>
+                            <td>1646</td>
+                            <td>3</td>
+                            <td>1653</td>
+                            <td>1656</td>
+                            <td>3</td>
+                            <td>00:10</td>
+                            <td>00:10</td>
+                            <td>00:00</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="misc-info">
+                    <div>Distance</div>
+                    <div>3m 26ch</div>
+                    <div>Class 323</div>
+                </div>
+                <div class="stop-details">
+                    <table><tr class="stop origin">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/origin.svg"/>
+    </td>
+    <td class="name">Birmingham New Street [BHM]</td>
+    <td class="platform">12</td>
+    <td class="time arr-plan">
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1643
+        
+    </td>
+    <td class="time arr-act">
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1646
+        
+    </td>
+    <td class="diff">
+        
+            3
+        
+    </td>
+</tr>
+<tr class="stop call">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/stop.svg"/>
+    </td>
+    <td class="name">Five Ways [FWY]</td>
+    <td class="platform">2</td>
+    <td class="time arr-plan">
+        
+            1646
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1647
+        
+    </td>
+    <td class="time arr-act">
+        
+            1650
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1651
+        
+    </td>
+    <td class="diff">
+        
+            4
+        
+    </td>
+</tr>
+<tr class="stop call">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/stop.svg"/>
+    </td>
+    <td class="name">University [UNI]</td>
+    <td class="platform">2</td>
+    <td class="time arr-plan">
+        
+            1650
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1651
+        
+    </td>
+    <td class="time arr-act">
+        
+            1654
+        
+    </td>
+    <td class="time dep-plan">
+        
+        1654
+        
+    </td>
+    <td class="diff">
+        
+            3
+        
+    </td>
+</tr>
+<tr class="stop destination">
+    <td class="icon">
+        <img class="journey-icon"src="imgs/destination.svg"/>
+    </td>
+    <td class="name">Selly Oak [SLY]</td>
+    <td class="platform">2</td>
+    <td class="time arr-plan">
+        
+            1653
+        
+    </td>
+    <td class="time dep-plan">
+        
+        
+        
+    </td>
+    <td class="time arr-act">
+        
+            1656
+        
+    </td>
+    <td class="time dep-plan">
+        
+    </td>
+    <td class="diff">
+        
+            3
+        
+    </td>
+</tr>
+</table>
                 </div>
             </div>
         

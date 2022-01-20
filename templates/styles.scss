@@ -1,41 +1,67 @@
 $toc-colours: (
-  "abellio-scotrail": #1f2d61,
-  "avanti-west-coast": #204555,
-  "c2c": #b4007f,
-  "caledonian-sleeper": #08272c,
-  "chiltern-railways": #55bae2,
-  "crosscountry": #dd1554,
-  "east-midlands-railway": #492d45,
-  "heathrow-express": #4e2b5c,
+  "abellio-scotrail": #1c4074,
+  "avanti-west-coast": #004354,
+  "c2c": #b7007c,
+  "caledonian-sleeper": #1d2e35,
+  "chiltern-railways": #00bfff,
+  "crosscountry": #660f21,
+  "east-midlands-railway": #703e69,
+  "heathrow-express": #532e63,
   "gatwick-express": #e11829,
-  "grand-central": #e37716,
-  "greater-anglia": #3a4651,
+  "grand-central": #1d1d1b,
+  "greater-anglia": #d70428,
   "great-northern": #00a0ff,
   "great-western-railway": #0a493e,
-  "hull-trains": #013475,
-  "london-north-eastern-railway": #c62a33,
+  "hull-trains": #de005c,
+  "london-north-eastern-railway": #bf0000,
   "london-northwestern-railway": #00bf6f,
   "london-overground": #f07c08,
   "lumo": #1c02ea,
   "merseyrail": #ffdc00,
-  "northern-trains": #212d5a,
-  "southern": #80c242,
-  "southeastern": #1c1c4c,
-  "south-western-railway": #061a29,
+  "northern-trains": #0f0d78,
+  "southern": #8cc63e,
+  "southeastern": #389cff,
+  "south-western-railway": #24398c,
   "tfl-rail": #6b529d,
-  "thameslink": #e84aba,
-  "transpennine-express": #00a8e7,
-  "transport-for-wales": #e51b1f,
-  "west-midlands-railway": #fd8103,
+  "thameslink": #ff5aa4,
+  "transpennine-express": #09a4ec,
+  "transport-for-wales": #ff4500,
+  "west-midlands-railway": #ff8200,
 );
 
+$nr-blue: #002163;
+$nr-white: #ffffff;
+$nr-yellow: #fed200;
+
+html {
+  background-color: $nr-blue;
+  color: $nr-white;
+}
+
 body {
+  font-family: "Raleway", sans-serif;
   max-width: 750px;
   margin: auto;
 }
 
 h1 {
   text-align: center;
+  color: $nr-yellow;
+}
+
+img {
+  margin: 0;
+  display: block;
+}
+
+table {
+  border-spacing: 0;
+  border-collapse: collapse;
+  border: 0;
+}
+
+td {
+  border-spacing: 0;
 }
 
 .journey {
@@ -54,10 +80,24 @@ h1 {
   flex-direction: row;
   margin-top: 10px;
   margin-bottom: 10px;
+  align-content: center;
+}
+
+.journey-header {
+  font-size: 1.5em;
 }
 
 .service-details {
   font-style: italic;
+}
+
+.stop-details {
+  margin: auto;
+}
+
+.origin,
+.destination {
+  font-weight: bold;
 }
 
 .service-route {
@@ -68,6 +108,11 @@ h1 {
 .journey-row-item {
   margin-left: 10px;
   margin-right: 10px;
+}
+
+.service-operator {
+  width: 200px;
+  text-align: center;
 }
 
 .route {
@@ -81,10 +126,60 @@ h1 {
   }
 }
 
+.call {
+  font-size: 0.8em;
+}
+
 .name {
   width: 300px;
+  font-weight: bold;
+}
+
+.icon {
+  padding-right: 25px;
 }
 
 .platform {
   text-align: center;
+  padding-left: 5px;
+  padding-right: 10px;
+}
+
+.journey-icon {
+  padding: 0;
+  width: 50px;
+}
+
+.time {
+  padding-left: 5px;
+  padding-right: 5px;
+  text-align: center;
+}
+
+.diff {
+  padding-left: 10px;
+  text-align: center;
+}
+
+td {
+  padding: 0;
+}
+
+.performance-details {
+  text-align: center;
+}
+
+.performance-details table {
+  width: 100%;
+}
+
+.performance-details td {
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.misc-info {
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
 }

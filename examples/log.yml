@@ -1,6 +1,7 @@
-- day: '01'
+- chains: '46'
+  day: '01'
   dur_act: 00:34
-  dur_diff: '0'
+  dur_diff: 00:01
   dur_plan: 00:33
   headcode: 1M50
   journey_destination:
@@ -13,21 +14,23 @@
   journey_origin:
     crs: LMS
     dep_act: '1513'
-    dep_diff: '7'
+    dep_diff: '-1'
     dep_plan: '1514'
     name: Leamington Spa
     platform: '2'
+  miles: '28'
   month: '01'
   operator: CrossCountry
   operator_code: XC
   service_destination:
-  - crs: MAN
+  - arr_plan: '1723'
+    crs: MAN
     name: Manchester Piccadilly
-    arr_plan: '1723'
   service_origin:
   - crs: RDG
-    name: Reading
     dep_plan: '1415'
+    name: Reading
+  stock: Class 220
   stops:
   - arr_act: '1526'
     arr_diff: '0'
@@ -48,10 +51,11 @@
     name: Birmingham International
     platform: '2'
   uid: L11528
-  year: '2022'
-- day: '01'
+  year: '22'
+- chains: '49'
+  day: '01'
   dur_act: 00:06
-  dur_diff: '-1'
+  dur_diff: 00:01
   dur_plan: 00:07
   headcode: 2O41
   journey_destination:
@@ -68,17 +72,19 @@
     dep_plan: '1603'
     name: Birmingham New Street
     platform: '12'
+  miles: '2'
   month: '01'
   operator: West Midlands Railway
   operator_code: LM
   service_destination:
-  - crs: BMV
+  - arr_plan: '1636'
+    crs: BMV
     name: Bromsgrove
-    arr_plan: '1636'
   service_origin:
   - crs: LTV
-    name: Lichfield Trent Valley
     dep_plan: '1520'
+    name: Lichfield Trent Valley
+  stock: Class 323
   stops:
   - arr_act: '1606'
     arr_diff: '0'
@@ -90,11 +96,12 @@
     name: Five Ways
     platform: '2'
   uid: G06802
-  year: '2022'
-- day: '15'
-  dur_act: 00:08
-  dur_diff: '1'
-  dur_plan: 00:07
+  year: '22'
+- chains: '49'
+  day: '15'
+  dur_act: 00:06
+  dur_diff: 00:00
+  dur_plan: 00:06
   headcode: 1M94
   journey_destination:
     arr_act: '1247'
@@ -105,28 +112,31 @@
     platform: '9'
   journey_origin:
     crs: UNI
-    dep_act: '1239'
-    dep_diff: '1'
-    dep_plan: '1238'
+    dep_act: '1241'
+    dep_diff: '2'
+    dep_plan: '1239'
     name: University
     platform: '1'
+  miles: '2'
   month: '01'
   operator: CrossCountry
   operator_code: XC
   service_destination:
-  - crs: NOT
+  - arr_plan: '1403'
+    crs: NOT
     name: Nottingham
-    arr_plan: '1403'
   service_origin:
   - crs: CDF
-    name: Cardiff Central
     dep_plan: '1045'
+    name: Cardiff Central
+  stock: Class 323
   stops: []
   uid: L11587
   year: '2022'
-- day: '15'
+- chains: '12'
+  day: '15'
   dur_act: 00:14
-  dur_diff: '-1'
+  dur_diff: 00:59
   dur_plan: 00:15
   headcode: 2Y64
   journey_destination:
@@ -143,17 +153,19 @@
     dep_plan: '1314'
     name: Birmingham New Street
     platform: '7'
+  miles: '10'
   month: '01'
   operator: London Northwestern Railway
   operator_code: LM
   service_destination:
-  - crs: NMP
+  - arr_plan: '1421'
+    crs: NMP
     name: Northampton
-    arr_plan: '1421'
   service_origin:
   - crs: BHM
+    dep_plan: '1314'
     name: Birmingham New Street
-    dep_plan: '1315'
+  stock: Class 350
   stops:
   - arr_act: '1321'
     arr_diff: '-1'
@@ -175,9 +187,10 @@
     platform: '4'
   uid: C28692
   year: '2022'
-- day: '15'
+- chains: '35'
+  day: '15'
   dur_act: 00:19
-  dur_diff: '-3'
+  dur_diff: 00:57
   dur_plan: 00:22
   headcode: 2Y63
   journey_destination:
@@ -194,17 +207,19 @@
     dep_plan: '1622'
     name: Berkswell
     platform: '1'
+  miles: '13'
   month: '01'
   operator: London Northwestern Railway
   operator_code: LM
   service_destination:
-  - crs: BHM
+  - arr_plan: '1644'
+    crs: BHM
     name: Birmingham New Street
-    arr_plan: '1644'
   service_origin:
   - crs: NMP
-    name: Northampton
     dep_plan: '1537'
+    name: Northampton
+  stock: Class 350
   stops:
   - arr_act: '1625'
     arr_diff: '-1'
@@ -235,9 +250,10 @@
     platform: '2'
   uid: G08846
   year: '2022'
-- day: '15'
+- chains: '26'
+  day: '15'
   dur_act: 00:10
-  dur_diff: '0'
+  dur_diff: 00:00
   dur_plan: 00:10
   headcode: 2R44
   journey_destination:
@@ -254,17 +270,19 @@
     dep_plan: '1643'
     name: Birmingham New Street
     platform: '12'
+  miles: '3'
   month: '01'
   operator: West Midlands Railway
   operator_code: LM
   service_destination:
-  - crs: RDC
+  - arr_plan: '1724'
+    crs: RDC
     name: Redditch
-    arr_plan: '1724'
   service_origin:
   - crs: FOK
-    name: Four Oaks
     dep_plan: '1616'
+    name: Four Oaks
+  stock: Class 323
   stops:
   - arr_act: '1650'
     arr_diff: '4'

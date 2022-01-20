@@ -56,7 +56,8 @@ def get_input_no(length, prompt, upper=-1, default=-1):
             # Check the number is in the range
             if nat > 0 and (upper == -1 or nat <= upper):
                 if len(string) < length:
-                    string = pad_front(string, length)
+                    if length != -1:
+                        string = pad_front(string, length)
                 return string
             else:
                 error_msg = "Expected number in range 0-"
@@ -138,7 +139,7 @@ def get_station_from_user(origin):
     return (station_data, year, month, day, time)
 
 
-def compute_time_difference(t1, t2):
+def compute_time_difference(t1, t2, plus=False):
     diff = int(t1) - int(t2)
     neg = False
     # To make things simpler, we deal with positive numbers for now
@@ -154,6 +155,9 @@ def compute_time_difference(t1, t2):
     # Don't forget to negate the number again if necessary
     if neg:
         diff = -diff
+    string = str(diff)
+    if diff > 0 and plus:
+        string = "+" + string
     return str(diff)
 
 
@@ -180,13 +184,13 @@ def make_loc_entry(loc, arr, dep):
         if loc["realtimeArrivalActual"]:
             entry["arr_act"] = loc["realtimeArrival"]
             entry["arr_diff"] = compute_time_difference(
-                entry["arr_act"], entry["arr_plan"])
+                entry["arr_act"], entry["arr_plan"], True)
     if dep:
         entry["dep_plan"] = loc["gbttBookedDeparture"]
         if loc["realtimeDepartureActual"]:
             entry["dep_act"] = loc["realtimeDeparture"]
             entry["dep_diff"] = compute_time_difference(
-                entry["dep_act"], entry["dep_plan"])
+                entry["dep_act"], entry["dep_plan"], True)
     if "platform" in loc:
         entry["platform"] = loc["platform"]
     return entry
@@ -204,7 +208,7 @@ def make_short_loc_entry(loc, arr):
     return entry
 
 
-def make_new_log_entry(year, month, day, service, origin, destination, output_file):
+def make_new_log_entry(year, month, day, service, origin, destination, stock, miles, chains, output_file):
     # start off with some basic info about the service
 
     service_origins = []
@@ -241,18 +245,22 @@ def make_new_log_entry(year, month, day, service, origin, destination, output_fi
         "service_destination": service_destinations,
         "journey_origin": journey_origin,
         "journey_destination": journey_destination,
-        "stops": stops
+        "stops": stops,
+        "stock": stock,
+        "miles": miles,
+        "chains": chains
     }
 
     dur_plan = compute_time_difference(
-        journey_destination["arr_plan"], journey_origin["dep_plan"])
+        journey_destination["arr_plan"], journey_origin["dep_plan"], True)
     entry["dur_plan"] = mins_to_hours(dur_plan)
 
     if "arr_act" in journey_destination and "dep_act" in journey_origin:
         dur_act = compute_time_difference(
-            journey_destination["arr_act"], journey_origin["dep_act"])
+            journey_destination["arr_act"], journey_origin["dep_act"], False)
         entry["dur_act"] = mins_to_hours(dur_act)
-        entry["dur_diff"] = compute_time_difference(dur_act, dur_plan)
+        entry["dur_diff"] = mins_to_hours(
+            compute_time_difference(dur_act, dur_plan, False))
 
     with open(output_file, "r") as logfile:
         cur_yaml = yaml.safe_load(logfile)
@@ -304,9 +312,19 @@ def record_new_journey(output_file):
         debug("Searching for services from " + departure_station)
         choice = pick_from_list(
             filtered_services, "Pick a service", lambda x: service_to_string_full_from_station(x, origin))
+
         if choice != "":
+
+            # Currently getting this automatically isn't implemented
+            # We could trawl wikipedia and make a map of which trains operate which services
+            # Or if know your train becomes part of the api
+            stock = input("Stock: ")
+            # If we can get a good distance set this could be automated
+            miles = get_input_no(-1, "Miles")
+            chains = get_input_no(2, "Chains", 79)
+
             make_new_log_entry(year, month, day, choice,
-                               origin, dest, output_file)
+                               origin, dest, stock, miles, chains, output_file)
 
     else:
         print("No services found!")

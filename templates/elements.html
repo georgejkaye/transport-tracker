@@ -1,0 +1,51 @@
+{%- macro stop(loc, origin, dest) -%}
+<tr {% if origin -%}
+        class="stop origin"
+    {%- elif dest -%}
+        class="stop destination"
+    {%- else -%}
+        class="stop call"
+    {%- endif -%}
+>
+    <td class="icon">
+        <img class="journey-icon"
+            {%- if origin -%}
+                src="imgs/origin.svg"
+            {%- elif dest -%}    
+                src="imgs/destination.svg"
+            {%- else -%}
+                src="imgs/stop.svg"
+            {%- endif -%}
+        />
+    </td>
+    <td class="name">{{ loc["name"] }} [{{ loc["crs"] }}]</td>
+    <td class="platform">{{ loc["platform"] }}</td>
+    <td class="time arr-plan">
+        {% if not origin %}
+            {{ loc["arr_plan"]}}
+        {% endif %}
+    </td>
+    <td class="time dep-plan">
+        {% if not departure %}
+        {{ loc["dep_plan"]}}
+        {% endif %}
+    </td>
+    <td class="time arr-act">
+        {% if not origin %}
+            {{ loc["arr_act"]}}
+        {% endif %}
+    </td>
+    <td class="time dep-plan">
+        {% if not dest %}
+        {{ loc["dep_act"]}}
+        {% endif %}
+    </td>
+    <td class="diff">
+        {% if dest %}
+            {{ loc["arr_diff"] }}
+        {% else %}
+            {{ loc["dep_diff"] }}
+        {% endif %}
+    </td>
+</tr>
+{% endmacro %}

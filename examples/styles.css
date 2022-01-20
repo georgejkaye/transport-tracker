@@ -1,10 +1,32 @@
+html {
+  background-color: #002163;
+  color: #ffffff;
+}
+
 body {
+  font-family: "Raleway", sans-serif;
   max-width: 750px;
   margin: auto;
 }
 
 h1 {
   text-align: center;
+  color: #fed200;
+}
+
+img {
+  margin: 0;
+  display: block;
+}
+
+table {
+  border-spacing: 0;
+  border-collapse: collapse;
+  border: 0;
+}
+
+td {
+  border-spacing: 0;
 }
 
 .journey {
@@ -21,10 +43,24 @@ h1 {
   flex-direction: row;
   margin-top: 10px;
   margin-bottom: 10px;
+  align-content: center;
+}
+
+.journey-header {
+  font-size: 1.5em;
 }
 
 .service-details {
   font-style: italic;
+}
+
+.stop-details {
+  margin: auto;
+}
+
+.origin,
+.destination {
+  font-weight: bold;
 }
 
 .service-route {
@@ -37,41 +73,46 @@ h1 {
   margin-right: 10px;
 }
 
+.service-operator {
+  width: 200px;
+  text-align: center;
+}
+
 .route {
   flex: 1;
   text-align: center;
 }
 
 .box-abellio-scotrail {
-  background-color: #1f2d61;
+  background-color: #1c4074;
 }
 
 .box-avanti-west-coast {
-  background-color: #204555;
+  background-color: #004354;
 }
 
 .box-c2c {
-  background-color: #b4007f;
+  background-color: #b7007c;
 }
 
 .box-caledonian-sleeper {
-  background-color: #08272c;
+  background-color: #1d2e35;
 }
 
 .box-chiltern-railways {
-  background-color: #55bae2;
+  background-color: #00bfff;
 }
 
 .box-crosscountry {
-  background-color: #dd1554;
+  background-color: #660f21;
 }
 
 .box-east-midlands-railway {
-  background-color: #492d45;
+  background-color: #703e69;
 }
 
 .box-heathrow-express {
-  background-color: #4e2b5c;
+  background-color: #532e63;
 }
 
 .box-gatwick-express {
@@ -79,11 +120,11 @@ h1 {
 }
 
 .box-grand-central {
-  background-color: #e37716;
+  background-color: #1d1d1b;
 }
 
 .box-greater-anglia {
-  background-color: #3a4651;
+  background-color: #d70428;
 }
 
 .box-great-northern {
@@ -95,11 +136,11 @@ h1 {
 }
 
 .box-hull-trains {
-  background-color: #013475;
+  background-color: #de005c;
 }
 
 .box-london-north-eastern-railway {
-  background-color: #c62a33;
+  background-color: #bf0000;
 }
 
 .box-london-northwestern-railway {
@@ -119,19 +160,19 @@ h1 {
 }
 
 .box-northern-trains {
-  background-color: #212d5a;
+  background-color: #0f0d78;
 }
 
 .box-southern {
-  background-color: #80c242;
+  background-color: #8cc63e;
 }
 
 .box-southeastern {
-  background-color: #1c1c4c;
+  background-color: #389cff;
 }
 
 .box-south-western-railway {
-  background-color: #061a29;
+  background-color: #24398c;
 }
 
 .box-tfl-rail {
@@ -139,27 +180,77 @@ h1 {
 }
 
 .box-thameslink {
-  background-color: #e84aba;
+  background-color: #ff5aa4;
 }
 
 .box-transpennine-express {
-  background-color: #00a8e7;
+  background-color: #09a4ec;
 }
 
 .box-transport-for-wales {
-  background-color: #e51b1f;
+  background-color: #ff4500;
 }
 
 .box-west-midlands-railway {
-  background-color: #fd8103;
+  background-color: #ff8200;
+}
+
+.call {
+  font-size: 0.8em;
 }
 
 .name {
   width: 300px;
+  font-weight: bold;
+}
+
+.icon {
+  padding-right: 25px;
 }
 
 .platform {
   text-align: center;
+  padding-left: 5px;
+  padding-right: 10px;
+}
+
+.journey-icon {
+  padding: 0;
+  width: 50px;
+}
+
+.time {
+  padding-left: 5px;
+  padding-right: 5px;
+  text-align: center;
+}
+
+.diff {
+  padding-left: 10px;
+  text-align: center;
+}
+
+td {
+  padding: 0;
+}
+
+.performance-details {
+  text-align: center;
+}
+
+.performance-details table {
+  width: 100%;
+}
+
+.performance-details td {
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.misc-info {
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
 }
 
 /*# sourceMappingURL=styles.css.map */
