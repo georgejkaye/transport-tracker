@@ -5,7 +5,7 @@ Get the details of trains you've been on, and present them prettily
 ## Dependencies
 
 ```sh
-pip install pyyaml Jinja2 termcolor
+pip install pyyaml Jinja2 termcolor libsass
 ```
 
 ## Credentials

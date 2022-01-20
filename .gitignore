@@ -10,6 +10,7 @@ token.pickle
 
 # output
 out
+*html
 
 # css maps
 *.css.map
