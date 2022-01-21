@@ -4,8 +4,16 @@ Get the details of trains you've been on, and present them prettily
 
 ## Dependencies
 
+You can install the packages yourself with `pip`...
+
 ```sh
 pip install pyyaml Jinja2 termcolor libsass
+```
+
+...or use `pipenv`.
+
+```sh
+pipenv install
 ```
 
 ## Credentials
