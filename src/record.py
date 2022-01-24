@@ -280,12 +280,12 @@ def make_new_log_entry(year, month, day, service, origin, destination, stock, mi
         entry["dur_diff"] = mins_to_hours(
             compute_time_difference(dur_act, dur_plan, False))
 
-    with open(output_file, "r") as logfile:
-        cur_yaml = yaml.safe_load(logfile)
-
-    if cur_yaml is not None:
-        cur_yaml.append(entry)
-    else:
+    try:
+        with open(output_file, "r") as logfile:
+            cur_yaml = yaml.safe_load(logfile)
+        if cur_yaml is not None:
+            cur_yaml.append(entry)
+    except:
         cur_yaml = [entry]
 
     with open(output_file, "w") as logfile:

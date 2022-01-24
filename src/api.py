@@ -15,8 +15,12 @@ def authenticate():
     Globally set the realtime trains username and password
     """
 
-    with open(rtt_credentials_file, "r") as rtt_credentials:
-        (new_usr, new_pwd) = rtt_credentials.read().splitlines()
+    try:
+        with open(rtt_credentials_file, "r") as rtt_credentials:
+            (new_usr, new_pwd) = rtt_credentials.read().splitlines()
+    except:
+        print("Could not open rtt.credentials.")
+        exit(1)
 
     global usr
     usr = new_usr
