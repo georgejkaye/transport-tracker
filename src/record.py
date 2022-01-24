@@ -279,6 +279,9 @@ def make_new_log_entry(year, month, day, service, origin, destination, stock, mi
         entry["dur_act"] = mins_to_hours(dur_act)
         entry["dur_diff"] = mins_to_hours(
             compute_time_difference(dur_act, dur_plan, False))
+        speed = ((int(miles) + (int(chains) / 80)) /
+                 (int(dur_act) / 60), 2)
+        entry["speed"] = "{:.2f}".format(speed)
 
     try:
         with open(output_file, "r") as logfile:

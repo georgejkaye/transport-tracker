@@ -1,4 +1,5 @@
 - chains: '46'
+  speed: "50.43"
   day: '01'
   dur_act: 00:34
   dur_diff: 00:01
@@ -57,6 +58,7 @@
   uid: L11528
   year: '22'
 - chains: '49'
+  speed: "23.22"
   day: '01'
   dur_act: 00:06
   dur_diff: 00:01
@@ -105,6 +107,7 @@
   uid: G06802
   year: '22'
 - chains: '49'
+  speed: "24.12"
   day: '15'
   dur_act: 00:06
   dur_diff: 00:00
@@ -141,8 +144,9 @@
   stock: Class 323
   stops: []
   uid: L11587
-  year: '2022'
+  year: '22'
 - chains: '12'
+  speed: "42.00"
   day: '15'
   dur_act: 00:14
   dur_diff: 00:59
@@ -201,8 +205,9 @@
     name: Birmingham International
     platform: '4'
   uid: C28692
-  year: '2022'
+  year: '22'
 - chains: '35'
+  speed: "43.00"
   day: '15'
   dur_act: 00:19
   dur_diff: 00:57
@@ -272,8 +277,9 @@
     name: Marston Green
     platform: '2'
   uid: G08846
-  year: '2022'
+  year: '22'
 - chains: '26'
+  speed: "21.00"
   day: '15'
   dur_act: 00:10
   dur_diff: 00:00
@@ -332,53 +338,4 @@
     name: University
     platform: '2'
   uid: G08572
-  year: '2022'
-- chains: '10'
-  day: '20'
-  dur_act: 00:04
-  dur_diff: 00:59
-  dur_plan: 00:05
-  headcode: 1N62
-  journey_destination:
-    arr_act: '1706'
-    arr_diff: '-1'
-    arr_status: early
-    arr_plan: '1707'
-    crs: DGT
-    name: Deansgate
-    platform: '2'
-  journey_origin:
-    crs: MAN
-    dep_act: '1702'
-    dep_diff: '0'
-    dep_status: on-time
-    dep_plan: '1702'
-    name: Manchester Piccadilly
-    platform: '14'
-  miles: '2'
-  month: '01'
-  operator: Northern
-  operator_code: NT
-  service_destination:
-  - arr_plan: '1821'
-    crs: BPN
-    name: Blackpool North
-  service_origin:
-  - crs: MIA
-    dep_plan: '1644'
-    name: Manchester Airport
-  stock: Class 195
-  stops:
-  - arr_act: '1704'
-    arr_diff: '0'
-    arr_plan: '1704'
-    arr_status: on-time
-    crs: MCO
-    dep_act: '1705'
-    dep_diff: '0'
-    dep_status: on-time
-    dep_plan: '1705'
-    name: Manchester Oxford Road
-    platform: '2'
-  uid: G32086
-  year: '2022'
+  year: '22'

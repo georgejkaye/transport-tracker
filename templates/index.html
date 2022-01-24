@@ -53,43 +53,21 @@
                     </div>
                 </div>
                 <div class="performance-details">
-                    <table class="performance-table">
-                        <tr>
-                            <td colspan="3">Dep</td>
-                            <td colspan="3">Arr</td>
-                            <td colspan="3">Duration</td>
-                        </tr>
-                        <tr>
-                            <td>Plan</td>
-                            <td>Act</td>
-                            <td>Delay</td>
-                            <td>Plan</td>
-                            <td>Act</td>
-                            <td>Delay</td>
-                            <td>Plan</td>
-                            <td>Act</td>
-                            <td>Delay</td>
-                        </tr>
-                        <tr>
-                            <td>{{ journey["journey_origin"]["dep_plan"] }}</td>
-                            <td>{{ journey["journey_origin"]["dep_act"] }}</td>
-                            <td>{{ journey["journey_origin"]["dep_diff"] }}</td>
-                            <td>{{ journey["journey_destination"]["arr_plan"] }}</td>
-                            <td>{{ journey["journey_destination"]["arr_act"] }}</td>
-                            <td>{{ journey["journey_destination"]["arr_diff"] }}</td>
-                            <td>{{ journey["dur_plan"] }}</td>
-                            <td>{{ journey["dur_act"] }}</td>
-                            <td>{{ journey["dur_diff"] }}</td>
-                        </tr>
-                    </table>
-                </div>
-                <div class="misc-info">
-                    <div>Distance</div>
-                    <div>{{ journey["miles"] }}m {{ journey["chains"] }}ch</div>
-                    <div>{{ journey["stock"] }}</div>
+                    <div class="duration">{{ journey["dur_act"] }}</div>
+                    <div class="distance">{{ journey["miles"] }}m {{ journey["chains"] }}ch</div>
+                    {% if journey["speed"] %}
+                    <div class="distance">{{ journey["speed"] }}mph</div>
+                    {% endif %}
+                    <div class="stock">{{ journey["stock"] }}</div>
                 </div>
                 <div class="stop-details">
                     <table>
+                        <th>
+                            <td>Stop</td>
+                            <td class="platform-header">Pl</td>
+                            <td class="time-header" colspan="2">Arr</td>
+                            <td class="time-header" colspan="2">Dep</td>
+                        </th>
                     {{- elements.stop(journey["journey_origin"], true, false) -}}
                     {% for stn in journey["stops"] %}
                         {{- elements.stop(stn, false, false) -}}
