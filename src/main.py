@@ -1,7 +1,7 @@
 import sys
 
 from api import authenticate
-from record import record_new_journey
+from record import add_to_logfile
 from network import setup_network
 
 if len(sys.argv) != 2:
@@ -12,4 +12,4 @@ output_file = sys.argv[1]
 
 setup_network()
 authenticate()
-record_new_journey(output_file)
+add_to_logfile(output_file)

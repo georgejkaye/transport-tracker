@@ -21,7 +21,15 @@ def setup_network():
         station_codes.append(station["code"])
         station_names.append(station["name"])
         station_code_to_name[station["code"]] = station["name"]
-        station_name_to_code[station["name"]] = station["code"]
+        station_name_to_code[station["name"].lower()] = station["code"]
+
+
+def get_station_name_from_crs(crs: str):
+    return station_code_to_name[crs.upper()]
+
+
+def get_station_crs_from_name(name: str):
+    return station_name_to_code[name.lower()]
 
 
 def get_matching_station_names(string: str):

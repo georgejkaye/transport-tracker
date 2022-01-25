@@ -1,18 +1,29 @@
 from dataclasses import dataclass
-from datetime import datetime, time, timedelta
-from record import pad_front
+from datetime import date, datetime, time, timedelta
 
 
 def add(dt: datetime, delta: int):
     return dt + timedelta(minutes=delta)
 
 
+def pad_front(string, length):
+    """
+    Add zeroes to the front of a number string until it is the desired length
+    """
+    string = str(string)
+    return "0" * (length - len(string)) + string
+
+
 def get_hourmin_string(datetime: datetime | time, colon: bool = False):
-    string = pad_front(datetime.hours, 2)
+    string = pad_front(datetime.hour, 2)
     if colon:
         string = string + " : "
     string = string + pad_front(datetime.minute, 2)
     return string
+
+
+def get_duration_string(td: timedelta):
+    return f"{td.seconds // 3600}:{(td.seconds//60) % 60}"
 
 
 def get_hour(datetime: datetime):
@@ -28,7 +39,7 @@ def get_year(datetime: datetime):
 
 
 def get_month(datetime: datetime):
-    return str(datetime.month, 2)
+    return pad_front(datetime.month, 2)
 
 
 def get_day(datetime: datetime):
@@ -36,7 +47,7 @@ def get_day(datetime: datetime):
 
 
 def get_url(datetime: datetime, long: bool = True):
-    string = get_hour(datetime) + "/" + \
+    string = get_year(datetime) + "/" + \
         get_month(datetime) + "/" + get_day(datetime)
     if long:
         string = string + "/" + get_hourmin_string(datetime)
@@ -47,12 +58,19 @@ def get_diff_string(diff: int):
     if diff > 0:
         return f'+{diff}'
     if diff < 0:
-        return f'-{diff}'
+        return diff
     return "0"
 
 
-def get_duration(start: time, end: time):
-    delta = (end - start).total_seconds()
-    hours = int(delta / 3600)
-    mins = int(delta % 3600) / 60
-    return time(hours, mins)
+def get_duration(start: time, end: time) -> datetime:
+    start = datetime.combine(date.today(), start)
+    end = datetime.combine(date.today(), end)
+
+    if end <= start:
+        end = end + timedelta(1)
+
+    return end - start
+
+
+def to_time(str: str):
+    return time(int(str[0:2]), int(str[2:4]))

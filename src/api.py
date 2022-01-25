@@ -1,26 +1,20 @@
-import datetime
-import string
-from httplib2 import Response
 import requests
-import os
 
 from debug import debug
-from network import lnwr_dests
-from time import url
 
 rtt_credentials_file = "rtt.credentials"
 rtt_endpoint = "https://api.rtt.io/api/v1/json/"
 station_endpoint = rtt_endpoint + "search/"
 service_endpoint = rtt_endpoint + "service/"
 
-usr = ""
-pwd = ""
-
 
 def authenticate():
     """
     Globally set the realtime trains username and password
     """
+
+    global usr
+    global pwd
 
     try:
         with open(rtt_credentials_file, "r") as rtt_credentials:
@@ -35,3 +29,10 @@ def request(url: str):
     debug("Requesting " + url)
     response = requests.get(url, auth=(usr, pwd))
     return response
+
+
+def check_response(response):
+    # Did it work okay?
+    if response.status_code != 200:
+        print(f"{str(response.status_code)}: {response.content}")
+        exit(1)

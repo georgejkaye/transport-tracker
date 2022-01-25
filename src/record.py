@@ -1,21 +1,10 @@
 import yaml
-from datetime import date, time, datetime
-from pathlib import Path
+from datetime import time, date, datetime, timedelta
 
-
-from api import filter_services_by_stop, filter_services_by_time, get_destinations_full, get_headcode_full, get_locs_full, get_operator_code_full, get_operator_full, get_origins_full, get_services, get_station_name, get_uid_full, request_station_at_time, service_to_string_full, service_to_string_full_from_station, short_service_string
-from network import get_matching_station_names, station_codes, station_names, station_code_to_name, station_name_to_code, stock_dict
-from time import add, get_hourmin_string, get_diff_string, get_duration
+from network import get_matching_station_names, get_station_crs_from_name, station_codes, station_code_to_name, station_name_to_code, stock_dict
+from times import get_duration_string, pad_front, add, get_hourmin_string, get_diff_string, get_duration, to_time
 from structures import Mileage, PlanActTime, Service, ShortLocation, Station, Location, get_mph_string
 from debug import debug
-
-
-def pad_front(string, length):
-    """
-    Add zeroes to the front of a number string until it is the desired length
-    """
-    string = str(string)
-    return "0" * (length - len(string)) + string
 
 
 def get_month_length(month, year):
@@ -32,7 +21,7 @@ def get_month_length(month, year):
         return 28
 
 
-def get_input_no(length, prompt, upper=-1, default=-1):
+def get_input_no(prompt, upper=-1, default=-1):
     """
     Get a natural number of a given length from the user,
     optionally with an upper bound and a default value to use if no input is given
@@ -47,15 +36,12 @@ def get_input_no(length, prompt, upper=-1, default=-1):
         string = input(prompt_string)
         # If the user gives an empty input, use the default if it exists
         if string == "" and default != -1:
-            return default
+            return int(default)
         try:
             nat = int(string)
             # Check the number is in the range
-            if nat > 0 and (upper == -1 or nat <= upper):
-                if len(string) < length:
-                    if length != -1:
-                        string = pad_front(string, length)
-                return string
+            if nat >= 0 and (upper == -1 or nat <= upper):
+                return nat
             else:
                 error_msg = "Expected number in range 0-"
                 if upper != -1:
@@ -63,7 +49,21 @@ def get_input_no(length, prompt, upper=-1, default=-1):
                 error_msg = error_msg + " but got " + string
                 print(error_msg)
         except:
-            print("Expected number but got '" + string + "'")
+            print(f"Expected number but got '{string}'")
+
+
+def get_input_price(prompt):
+    while True:
+        string = input(f"{prompt} ")
+        try:
+            parts = string.replace("£", "").split(".")
+            if len(parts) == 2:
+                pounds = int(parts[0])
+                pence = int(parts[1])
+                if pounds >= 0 and pence >= 0 and pence < 100:
+                    return f"{pad_front(pounds, 2)}.{pad_front(pence,2)}"
+        except:
+            print(f"Expected price but got '{string}'")
 
 
 def get_station_string(prompt: str):
@@ -80,19 +80,23 @@ def get_station_string(prompt: str):
             if string in station_codes:
                 name = station_code_to_name[string]
                 # Just check that it's right, often the tlc is a guess
-                resp = yes_or_no("Did you mean " + name + "?")
+                resp = yes_or_no(f"Did you mean {name}?")
                 if resp:
-                    return name
+                    return get_station_crs_from_name(name)
             # Otherwise search for substrings in the full names of stations
             matches = get_matching_station_names(string.lower().strip())
             if len(matches) == 0:
                 print("No matches found, try again")
             elif len(matches) == 1:
-                return station_name_to_code[matches[0]]
-            print("Multiple matches found: ")
-            choice = pick_from_list(matches, "Select a station")
-            if choice != "":
-                return station_name_to_code[choice]
+                match = matches[0]
+                resp = yes_or_no(f"Did you mean {match}?")
+                if resp:
+                    return get_station_crs_from_name(match)
+            else:
+                print("Multiple matches found: ")
+                choice = pick_from_list(matches, "Select a station")
+                if choice is not None:
+                    return get_station_crs_from_name(choice)
         else:
             print("Search string must be at least three characters")
 
@@ -101,7 +105,7 @@ def yes_or_no(prompt: str):
     """
     Let the user say yes or no
     """
-    choice = input(prompt + " (Y/n)")
+    choice = input(prompt + " (Y/n) ")
     if choice == "y" or choice == "Y" or choice == "":
         return True
     return False
@@ -141,8 +145,8 @@ def get_service(station: Station, destination_crs: str):
             # We want to search within a smaller timeframe
             timeframe = 15
 
-            earliest_time = add(station.datetime, timeframe)
-            latest_time = add(station.datetime, -timeframe)
+            earliest_time = add(station.datetime, -timeframe)
+            latest_time = add(station.datetime, timeframe)
             # The results encompass a ~1 hour period
             # We only want to check our given timeframe
             # We also only want services that stop at our destination
@@ -152,7 +156,7 @@ def get_service(station: Station, destination_crs: str):
 
             debug("Searching for services from " + station.name)
             choice = pick_from_list(
-                filtered_services, "Pick a service", lambda x: x.get_string())
+                filtered_services, "Pick a service", lambda x: x.get_string(station.crs))
 
             if choice is not None:
                 return choice
@@ -170,8 +174,8 @@ def get_stock(service: Service):
 
 def get_mileage():
     # If we can get a good distance set this could be automated
-    miles = get_input_no(-1, "Miles")
-    chains = get_input_no(2, "Chains", 79)
+    miles = get_input_no("Miles")
+    chains = get_input_no("Chains", 79)
     return Mileage(miles, chains)
 
 
@@ -189,13 +193,15 @@ def make_short_loc_entry(loc: ShortLocation, origin: bool):
 
 
 def make_planact_entry(planact: PlanActTime):
-    entry = {
-        "plan": planact.plan
-    }
+    entry = {}
+    if planact.plan is not None:
+        entry["plan"] = get_hourmin_string(planact.plan)
     if planact.act is not None:
-        entry["act"] = planact.act
+        entry["act"] = get_hourmin_string(planact.act)
+    if planact.diff is not None:
         entry["diff"] = get_diff_string(planact.diff)
         entry["status"] = planact.status
+    return entry
 
 
 def make_loc_entry(loc: Location, arr: bool = True, dep: bool = True):
@@ -228,8 +234,8 @@ def make_entry(service: Service, origin_crs: str, destination_crs: str, stock: s
         "uid": service.uid,
         "headcode": service.headcode,
         "stock": stock,
-        "origins": list(map(make_short_loc_entry, service.origins)),
-        "destinations": list(map(make_short_loc_entry, service.destinations)),
+        "origins": list(map(lambda x: make_short_loc_entry(x, True), service.origins)),
+        "destinations": list(map(lambda x: make_short_loc_entry(x, False), service.destinations)),
     }
 
     boarded = False
@@ -243,78 +249,118 @@ def make_entry(service: Service, origin_crs: str, destination_crs: str, stock: s
         else:
             if loc.crs == destination_crs:
                 entry["destination"] = make_loc_entry(loc, True, False)
-                destination_time = loc.dep
+                destination_time = loc.arr
             else:
                 stop_entries.append(make_loc_entry(loc))
 
     entry["stops"] = stop_entries
 
-    duration_plan = get_hourmin_string(
-        get_duration(origin_time.plan, destination_time.plan))
-    duration = {
-        "plan": duration_plan
-    }
+    duration = {}
 
-    if destination_time.act is not None and origin_time.act is not None:
+    if origin_time.plan is not None and destination_time.plan is not None:
+        duration_plan = get_duration(origin_time.plan, destination_time.plan)
+        duration["plan"] = get_duration_string(duration_plan)
+
+    if origin_time.act is not None and destination_time.act is not None:
         duration_act = get_duration(origin_time.act, destination_time.act)
-        duration["act"] = duration_act
+        duration["act"] = get_duration_string(duration_act)
         entry["speed"] = get_mph_string(mileage.speed(duration_act))
+    else:
+        duration_act = None
 
     entry["duration"] = duration
 
-    return entry
+    if duration_act is not None:
+        return (duration_act, entry)
+    return (duration_plan, entry)
 
 
-def get_date(start: date = None):
+def get_date(start: datetime = None):
     if start is None:
-        start = datetime.now().date()
+        start = datetime.now()
 
-    year = get_input_no(4, "Year", 2022, pad_front(start.year, 4))
-    month = get_input_no(2, "Month", 12, pad_front(start.month, 2))
-    max_days = get_month_length(int(month), int(year))
-    day = get_input_no(2, "Day", max_days, pad_front(start.day, 2))
+    year = get_input_no("Year", 2022, pad_front(start.year, 4))
+    month = get_input_no("Month", 12, pad_front(start.month, 2))
+    max_days = get_month_length(month, year)
+    day = get_input_no("Day", max_days, pad_front(start.day, 2))
     return date(year, month, day)
 
 
-def get_time(start: time = None):
+def get_time(start: datetime = None):
     if start is None:
-        start = datetime.now().time()
-    time = get_input_no(4, "Time", 2359, pad_front(
-        start.hour, 2) + pad_front(start.minute, 2))
-    return time(time[0:2], time[2:4])
+        start = datetime.now()
+    tt = pad_front(get_input_no("Time", 2359, pad_front(
+        start.hour, 2) + pad_front(start.minute, 2)), 4)
+    return to_time(tt)
 
 
 def get_datetime(start: date = None):
     date = get_date(start)
-    time = get_time()
+    time = get_time(start)
     return datetime(date.year, date.month, date.day, time.hour, time.minute)
 
 
-def record_new_leg(start: date):
-    origin_crs = get_station_string()
-    destination_crs = get_station_string()
+def record_new_leg(start: datetime):
+    origin_crs = get_station_string("Origin")
+    destination_crs = get_station_string("Destination")
     dt = get_datetime(start)
-    time = get_time()
-    origin_station = Station(origin_crs, time)
+    origin_station = Station(origin_crs, dt)
     service = get_service(origin_station, destination_crs)
+    arr_time = service.get_arr_at(destination_crs)
     stock = get_stock(service)
     mileage = get_mileage()
-    return make_entry(service, stock, mileage)
+    (duration, entry) = make_entry(
+        service, origin_crs, destination_crs, stock, mileage)
+    return (arr_time, mileage, duration, entry)
 
 
-def write_journey(journey: list, output_file: str):
-    pass
-
-
-def record_new_journey(output_file):
-
-    journey = []
-
+def record_new_journey():
+    legs = []
+    dt = None
+    mileage = Mileage(0, 0)
+    duration = timedelta()
     while True:
-        leg = record_new_leg(time)
-        journey.append(leg)
+        (dt, dist, dur, leg) = record_new_leg(dt)
+        legs.append(leg)
+        mileage = mileage.add(dist)
+        duration = duration + dur
         choice = yes_or_no("Add another leg?")
         if not choice:
             break
+    cost = get_input_price("Journey cost?")
 
-    write_journey(journey, output_file)
+    duration_hours = duration.seconds // 3600
+    duration_minutes = (duration.seconds // 60) % 60
+
+    return {
+        "cost": cost,
+        "duration": f"{duration_hours}:{duration_minutes}",
+        "distance": {
+            "miles": mileage.miles,
+            "chains": mileage.chains
+        },
+        "legs": legs
+    }
+
+
+def add_to_logfile(log_file: str):
+    journey = record_new_journey()
+    log = read_logfile(log_file)
+    log.append(journey)
+    write_logfile(log, log_file)
+
+
+def read_logfile(log_file: str):
+    try:
+        with open(log_file, "r") as input:
+            log = yaml.safe_load(input)
+    except:
+        debug(f'Logfile {log_file} not found, making empty log')
+    if log is None:
+        log = []
+    return log
+
+
+def write_logfile(log: list, log_file: str):
+    with open(log_file, "w+") as output:
+        yaml.dump(log, output)
