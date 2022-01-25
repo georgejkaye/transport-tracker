@@ -1,10 +1,10 @@
 import yaml
 from dirs import stations_list, lnwr_file, stock_file
 
-station_codes = []
-station_names = []
-station_code_to_name = {}
-station_name_to_code = {}
+station_codes: list[str] = []
+station_names: list[str] = []
+station_code_to_name: dict[str, str] = {}
+station_name_to_code: dict[str, str] = {}
 
 with open(lnwr_file) as lnwr:
     lnwr_dests = yaml.safe_load(lnwr)
@@ -24,8 +24,8 @@ def setup_network():
         station_name_to_code[station["name"]] = station["code"]
 
 
-def get_matching_station_names(string):
-    matches = []
+def get_matching_station_names(string: str):
+    matches: list[str] = []
     for name in station_names:
         if string.lower() in name.lower():
             matches.append(name)

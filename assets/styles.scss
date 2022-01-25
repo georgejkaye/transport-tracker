@@ -64,6 +64,12 @@ td {
   border-spacing: 0;
 }
 
+hr {
+  color: white;
+  width: 90%;
+  margin: 20px auto;
+}
+
 .journey {
   border-radius: 5px;
   border-color: gray;
@@ -94,7 +100,7 @@ td {
 }
 
 .stop-details {
-  margin: auto;
+  margin: 10px auto;
 }
 
 .platform-header,
@@ -223,7 +229,7 @@ td {
   text-align: center;
   display: flex;
   align-items: center;
-  margin: 5px 0;
+  margin: 10px 0;
   font-size: 1.2em;
   justify-content: center;
 }
