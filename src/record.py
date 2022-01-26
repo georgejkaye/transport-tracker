@@ -61,7 +61,7 @@ def get_input_price(prompt):
                 pounds = int(parts[0])
                 pence = int(parts[1])
                 if pounds >= 0 and pence >= 0 and pence < 100:
-                    return f"{pad_front(pounds, 2)}.{pad_front(pence,2)}"
+                    return f"{pounds}.{pad_front(pence,2)}"
         except:
             print(f"Expected price but got '{string}'")
 
@@ -329,12 +329,9 @@ def record_new_journey():
             break
     cost = get_input_price("Journey cost?")
 
-    duration_hours = duration.seconds // 3600
-    duration_minutes = (duration.seconds // 60) % 60
-
     return {
         "cost": cost,
-        "duration": f"{duration_hours}:{duration_minutes}",
+        "duration": get_duration_string(duration),
         "distance": {
             "miles": mileage.miles,
             "chains": mileage.chains
@@ -351,13 +348,14 @@ def add_to_logfile(log_file: str):
 
 
 def read_logfile(log_file: str):
+    log = []
     try:
         with open(log_file, "r") as input:
             log = yaml.safe_load(input)
+        if log is None:
+            log = []
     except:
         debug(f'Logfile {log_file} not found, making empty log')
-    if log is None:
-        log = []
     return log
 
 

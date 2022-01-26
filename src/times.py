@@ -23,7 +23,7 @@ def get_hourmin_string(datetime: datetime | time, colon: bool = False):
 
 
 def get_duration_string(td: timedelta):
-    return f"{td.seconds // 3600}:{(td.seconds//60) % 60}"
+    return f"{pad_front(str(td.seconds // 3600), 2)}:{pad_front(str((td.seconds//60) % 60), 2)}"
 
 
 def get_hour(datetime: datetime):
