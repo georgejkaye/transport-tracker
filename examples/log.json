@@ -170,7 +170,7 @@
       },
       {
         "date": { "day": "15", "month": "01", "year": "22" },
-        "duration": { "act": "00:14", "diff": "00:59", "plan": "00:15" },
+        "duration": { "act": "00:14", "diff": "-00:01", "plan": "00:15" },
         "headcode": "2Y64",
         "operator": "London Northwestern Railway",
         "mileage": { "chains": "12", "miles": "10" },
@@ -234,7 +234,7 @@
       },
       {
         "date": { "day": "15", "month": "01", "year": "22" },
-        "duration": { "act": "00:19", "diff": "00:57", "plan": "00:22" },
+        "duration": { "act": "00:19", "diff": "-00:03", "plan": "00:22" },
         "headcode": "2Y63",
         "operator": "London Northwestern Railway",
         "mileage": { "chains": "35", "miles": "13" },

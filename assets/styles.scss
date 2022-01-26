@@ -33,6 +33,7 @@ $nr-blue: #002163;
 $nr-blue-lighter: lighten($nr-blue, 10%);
 $nr-white: #ffffff;
 $nr-yellow: #fed200;
+$table-border-colour: #545454;
 
 html {
   background-color: $nr-blue;
@@ -75,15 +76,52 @@ hr {
   background-color: $nr-blue-lighter;
   border-radius: 5px;
   margin: 20px 0;
-  padding: 5px;
+  padding: 10px;
+}
+
+.journey-id {
+  font-size: 3em;
+  text-align: center;
+  background-color: $nr-yellow;
+  color: $nr-blue;
+  font-weight: bold;
+  padding: 5px 5px 5px 5px;
+  margin: 10px 10px 10px 0;
+  border-radius: 5px;
+  width: 75px;
+  height: 75px;
+  line-height: 1.5;
+}
+
+.journey-stats {
+  display: flex;
+  flex-direction: column;
+  margin-left: 10px;
+}
+
+.journey-item-caption {
+  font-size: 1.25em;
+  color: $nr-yellow;
+}
+
+.journey-stats-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 }
 
 .journey-row {
   display: flex;
+  align-items: center;
 }
 
 .journey-item {
-  margin: 5px;
+  margin: 5px 10px;
+  background-color: gray;
+  padding: 5px;
+  border-radius: 5px;
+  font-size: 1.5em;
+  font-weight: bold;
 }
 
 .leg {
@@ -91,7 +129,7 @@ hr {
   border-color: gray;
   background-color: black;
 
-  margin: 10px 5px;
+  margin: 10px 0px;
   padding: 15px;
 
   display: flex;
@@ -116,18 +154,12 @@ hr {
 }
 
 .stop-details {
-  margin: 10px auto;
+  margin: 0 auto 10px auto;
 }
 
 .platform-header,
 .time-header {
   text-align: center;
-}
-
-.origin,
-.destination {
-  font-size: 1.2em;
-  font-weight: bold;
 }
 
 .service-route {
@@ -187,26 +219,40 @@ hr {
   padding-right: 25px;
 }
 
+.stop-header {
+  height: 50px;
+  border-bottom: 1px solid $table-border-colour;
+}
+
 .platform {
   text-align: center;
-  padding-left: 5px;
+  padding-left: 10px;
   padding-right: 10px;
+  border-left: 1px solid $table-border-colour;
+}
+
+$call-row-height: 60px;
+
+.stop {
+  height: $call-row-height;
 }
 
 .stop-icon {
   padding: 0;
-  width: 50px;
+  width: $call-row-height;
 }
 
 .time {
-  padding-left: 5px;
-  padding-right: 5px;
+  padding-left: 10px;
+  padding-right: 10px;
   text-align: center;
+  border-left: 1px solid $table-border-colour;
 }
 
 .diff {
   padding-left: 10px;
   text-align: center;
+  border-left: 1px solid $table-border-colour;
 }
 
 .diff-box {
@@ -244,10 +290,18 @@ td {
 .performance-details {
   text-align: center;
   display: flex;
+  flex-direction: column;
   align-items: center;
   margin: 10px 0;
   font-size: 1.2em;
   justify-content: center;
+}
+
+.performance-detail-row {
+  display: flex;
+  flex-direction: row;
+  margin: 10px 0;
+  align-items: center;
 }
 
 .misc-info {
@@ -256,12 +310,24 @@ td {
   justify-content: space-around;
 }
 
-.duration,
-.stock,
-.distance,
-.speed {
+.performance-detail-item {
   background-color: gray;
   padding: 5px;
   border-radius: 5px;
-  margin: 0 5px;
+  margin: 0 10px;
+  font-weight: bold;
+}
+
+.origin,
+.destination {
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.origin {
+  height: 75px;
+}
+
+.origin-icon {
+  margin-top: 15px;
 }

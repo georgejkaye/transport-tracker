@@ -8,14 +8,17 @@
     {%- endif -%}
 >
     <td class="icon">
-        <img class="stop-icon"
-            {%- if origin -%}
+        <img 
+            {% if origin -%}
+                class="origin-icon stop-icon"
                 src="imgs/origin.svg"
-            {%- elif dest -%}    
+            {% elif dest -%}    
+                class="destination-icon stop-icon"
                 src="imgs/destination.svg"
-            {%- else -%}
+            {% else -%}
+                class="stop-icon"
                 src="imgs/stop.svg"
-            {%- endif -%}
+            {% endif -%}
         />
     </td>
     <td class="name">{{ loc["name"] }} [{{ loc["crs"] }}]</td>

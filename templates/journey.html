@@ -3,12 +3,25 @@
 {% macro journey(journey, i) %}
 <div class="journey">
     <div class="journey-row">
-        <div class="journey-item">#{{ i }}</div>
-        <div class="journey-item">{{ journey["cost"] }}</div>
-        <div class="journey-item">{{ journey["per_mile"] }}</div>
-        <div class="journey-item">{{ journey["distance"]["miles"] -}}m {{ journey["distance"]["miles"] -}}ch</div>
-        <div class="journey-item">{{ journey["duration"]["plan"] }}</div>
-        <div class="journey-item">{{ journey["duration"]["act"] }}</div>
+        <div class="journey-id">#{{ i }}</div>
+        <div class="journey-stats">
+            <div class="journey-stats-row">
+                <div class="journey-item-caption">Cost</div>
+                <div class="journey-item">£{{ journey["cost"] }}</div>
+                <div class="journey-item-caption">Distance</div>
+                <div class="journey-item">{{ journey["distance"]["miles"] -}}m {{ journey["distance"]["miles"] -}}ch</div>
+                <div class="journey-item-caption">Cost per mile</div>
+                <div class="journey-item">£{{ journey["per_mile"] }}/mi</div>
+            </div>
+            <div class="journey-stats-row">
+                <div class="journey-item-caption">Plan duration</div>
+                <div class="journey-item">{{ journey["duration"]["plan"] }}</div>
+                <div class="journey-item-caption">Act duration</div>
+                <div class="journey-item">{{ journey["duration"]["act"] }}</div>
+                <div class="journey-item-caption">Diff</div>
+                <div class="journey-item">{{ journey["duration"]["diff"] }}</div>
+            </div>
+        </div>
     </div>
     {% for l in journey["legs"] %}
         {{- leg.leg(l) }}

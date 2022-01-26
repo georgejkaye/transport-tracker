@@ -41,22 +41,35 @@
         </div>
     </div>
     <div class="performance-details">
-        <div class="duration">{{ leg["duration"]["act"] }}</div>
-        <div class="distance">{{ leg["mileage"]["miles"] }}m {{ leg["mileage"]["chains"] }}ch</div>
-        {% if leg["speed"] %}
-        <div class="speed">{{ leg["speed"] }}mph</div>
-        {% endif %}
-        <div class="stock">{{ leg["stock"] }}</div>
+        <div class="performance-detail-row">
+            <div class="performance-detail-caption">Distance</div> 
+            <div class="performance-detail-item">{{ leg["mileage"]["miles"] }}m {{ leg["mileage"]["chains"] }}ch</div>
+            {% if leg["speed"] %}
+                <div class="performance-detail-caption">Avg speed</div>
+                <div class="performance-detail-item">{{ leg["speed"] }}mph</div>
+            {% endif %}
+            <div class="performance-detail-caption">Stock</div>
+            <div class="performance-detail-item">{{ leg["stock"] }}</div>
+        </div>
+        <div class="performance-detail-row">
+            <div class="performance-detail-caption">Plan duration</div> 
+            <div class="performance-detail-item">{{ leg["duration"]["plan"] }}</div>
+            <div class="performance-detail-caption">Act duration</div> 
+            <div class="performance-detail-item">{{ leg["duration"]["act"] }}</div>
+            <div class="performance-detail-caption">Diff</div> 
+            <div class="performance-detail-item">{{ leg["duration"]["diff"] }}</div>
+        </div>    
     </div>
     <hr>
     <div class="stop-details">
         <table>
-            <th>
-                <td>Stop</td>
-                <td class="platform-header">Pl</td>
-                <td class="time-header" colspan="2">Arr</td>
-                <td class="time-header" colspan="2">Dep</td>
-            </th>
+            <tr class="stop stop-header">
+                <th></th>
+                <th>Stop</th>
+                <th class="platform platform-header">Pl</th>
+                <th class="time time-header" colspan="2">Arr</th>
+                <th class="time time-header" colspan="3">Dep</th>
+            </tr>
         {{- stop.stop(leg["trip_origin"], true, false) -}}
         {% for stn in leg["stops"] %}
             {{- stop.stop(stn, false, false) -}}
