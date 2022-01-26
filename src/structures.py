@@ -104,14 +104,14 @@ class Station:
 
 def get_status(diff: int):
     if diff <= -5:
-        return "very-late"
+        return "very-early"
     if diff < 0:
-        return "late"
+        return "early"
     if diff == 0:
         return "on-time"
     if diff < 5:
-        return "early"
-    return "very-early"
+        return "late"
+    return "very-late"
 
 
 class PlanActTime:
@@ -205,15 +205,16 @@ class Service:
                     return datetime.combine(self.date, arr.act)
                 return datetime.combine(self.date, arr.plan)
 
-    def get_dep_from(self, crs: str):
+    def get_dep_from(self, crs: str, plan: bool):
         for loc in self.calls:
             if loc.crs == crs:
                 dep = loc.dep
-                if dep.act is not None:
+                if dep.act is not None and not plan:
                     return datetime.combine(self.date, dep.act)
                 return datetime.combine(self.date, dep.plan)
 
     def get_string(self, crs: str):
         string = f"{self.headcode} {get_hourmin_string(self.origins[0].time)} {get_multiple_location_string(self.origins)} to {get_multiple_location_string(self.destinations)}"
-        dep = get_hourmin_string(self.get_dep_from(crs))
-        return f"{string} dep {dep}"
+        act = get_hourmin_string(self.get_dep_from(crs, False))
+        plan = get_hourmin_string(self.get_dep_from(crs, True))
+        return f"{string} plan {plan} act {act} ({self.toc})"

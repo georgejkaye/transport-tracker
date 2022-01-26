@@ -1,7 +1,7 @@
 import json
 from datetime import time, date, datetime, timedelta
 
-from network import get_matching_station_names, get_station_crs_from_name, station_codes, station_code_to_name, station_name_to_code, stock_dict
+from network import get_matching_station_names, get_station_crs_from_name, get_station_name_from_crs, station_codes, station_code_to_name, station_name_to_code, stock_dict
 from times import get_duration_string, pad_front, add, get_hourmin_string, get_diff_string, get_duration, to_time
 from structures import Mileage, PlanActTime, Service, ShortLocation, Station, Location, get_mph_string
 from debug import debug
@@ -57,24 +57,32 @@ def get_input_price(prompt):
         string = input(f"{prompt} ")
         try:
             parts = string.replace("£", "").split(".")
-            if len(parts) == 2:
+            if len(parts) == 2 or len(parts) == 1:
+                if len(parts) == 1:
+                    pence = 0
+                else:
+                    pence = int(parts[1])
                 pounds = int(parts[0])
-                pence = int(parts[1])
                 if pounds >= 0 and pence >= 0 and pence < 100:
                     return f"{pounds}.{pad_front(pence,2)}"
         except:
             print(f"Expected price but got '{string}'")
 
 
-def get_station_string(prompt: str):
+def get_station_string(prompt: str, stn: Station = None):
     """
     Get a string specifying a station from a user.
     Can either be a three letter code (in which case confirmation will be asked for)
     or a full station name
     """
     while True:
-        string = input(prompt + ": ").upper()
+        if stn is not None:
+            prompt = f"{prompt} ({get_station_name_from_crs(stn)})"
+        prompt = f'{prompt}: '
+        string = input(prompt).upper()
         # We only search for strings of length at least three, otherwise there would be loads
+        if len(string) == 0:
+            return stn
         if len(string) >= 3:
             # Check the three letter codes first
             if string in station_codes:
@@ -94,7 +102,7 @@ def get_station_string(prompt: str):
                     return get_station_crs_from_name(match)
             else:
                 print("Multiple matches found: ")
-                choice = pick_from_list(matches, "Select a station")
+                choice = pick_from_list(matches, "Select a station", True)
                 if choice is not None:
                     return get_station_crs_from_name(choice)
         else:
@@ -111,20 +119,23 @@ def yes_or_no(prompt: str):
     return False
 
 
-def pick_from_list(choices: list, prompt: str, display=lambda x: x):
+def pick_from_list(choices: list, prompt: str, cancel: bool, display=lambda x: x):
     """
     Let the user pick from a list of choices
     """
     for i, choice in enumerate(choices):
         print(str(i+1) + ": " + display(choice))
-    max_choice = len(choices) + 1
-    # The last option is a cancel option, this returns None
-    print(str(max_choice) + ": Cancel")
+    if cancel:
+        max_choice = len(choices) + 1
+        # The last option is a cancel option, this returns None
+        print(str(max_choice) + ": Cancel")
+    else:
+        max_choice = len(choices)
     while True:
         resp = input(prompt + " (1-" + str(max_choice) + "): ")
         try:
             resp = int(resp)
-            if resp == len(choices) + 1:
+            if cancel and resp == len(choices) + 1:
                 return None
             elif resp > 0 or resp < len(choices):
                 return choices[resp-1]
@@ -156,7 +167,7 @@ def get_service(station: Station, destination_crs: str):
 
             debug("Searching for services from " + station.name)
             choice = pick_from_list(
-                filtered_services, "Pick a service", lambda x: x.get_string(station.crs))
+                filtered_services, "Pick a service", True, lambda x: x.get_string(station.crs))
 
             if choice is not None:
                 return choice
@@ -168,7 +179,7 @@ def get_stock(service: Service):
     # Currently getting this automatically isn't implemented
     # We could trawl wikipedia and make a map of which trains operate which services
     # Or if know your train becomes part of the api
-    stock = pick_from_list(stock_dict[service.toc], "Stock")
+    stock = pick_from_list(stock_dict[service.toc], "Stock", False)
     return stock
 
 
@@ -234,8 +245,8 @@ def make_entry(service: Service, origin_crs: str, destination_crs: str, stock: s
         "uid": service.uid,
         "headcode": service.headcode,
         "stock": stock,
-        "origins": list(map(lambda x: make_short_loc_entry(x, True), service.origins)),
-        "destinations": list(map(lambda x: make_short_loc_entry(x, False), service.destinations)),
+        "service_origins": list(map(lambda x: make_short_loc_entry(x, True), service.origins)),
+        "service_destinations": list(map(lambda x: make_short_loc_entry(x, False), service.destinations)),
     }
 
     boarded = False
@@ -244,12 +255,13 @@ def make_entry(service: Service, origin_crs: str, destination_crs: str, stock: s
         if not boarded:
             if loc.crs == origin_crs:
                 boarded = True
-                entry["origin"] = make_loc_entry(loc, False, True)
+                entry["trip_origin"] = make_loc_entry(loc, False, True)
                 origin_time = loc.dep
         else:
             if loc.crs == destination_crs:
-                entry["destination"] = make_loc_entry(loc, True, False)
+                entry["trip_destination"] = make_loc_entry(loc, True, False)
                 destination_time = loc.arr
+                break
             else:
                 stop_entries.append(make_loc_entry(loc))
 
@@ -300,8 +312,8 @@ def get_datetime(start: date = None):
     return datetime(date.year, date.month, date.day, time.hour, time.minute)
 
 
-def record_new_leg(start: datetime):
-    origin_crs = get_station_string("Origin")
+def record_new_leg(start: datetime, station: Station):
+    origin_crs = get_station_string("Origin", station)
     destination_crs = get_station_string("Destination")
     dt = get_datetime(start)
     origin_station = Station(origin_crs, dt)
@@ -311,7 +323,7 @@ def record_new_leg(start: datetime):
     mileage = get_mileage()
     (duration, entry) = make_entry(
         service, origin_crs, destination_crs, stock, mileage)
-    return (arr_time, mileage, duration, entry)
+    return (arr_time, mileage, duration, entry, destination_crs)
 
 
 def record_new_journey():
@@ -319,8 +331,9 @@ def record_new_journey():
     dt = None
     mileage = Mileage(0, 0)
     duration = timedelta()
+    station = None
     while True:
-        (dt, dist, dur, leg) = record_new_leg(dt)
+        (dt, dist, dur, leg, station) = record_new_leg(dt, station)
         legs.append(leg)
         mileage = mileage.add(dist)
         duration = duration + dur

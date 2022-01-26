@@ -25,11 +25,6 @@
             {{ loc["arr"]["plan"] }}
         {% endif %}
     </td>
-    <td class="time dep-plan">
-        {% if not dest %}
-            {{ loc["dep"]["plan"] }}
-        {% endif %}
-    </td>
     <td class="time arr-act">
         {% if not origin %}
             {{ loc["arr"]["act"] }}
@@ -37,7 +32,12 @@
     </td>
     <td class="time dep-plan">
         {% if not dest %}
-        {{ loc["dep"]["plan"] }}
+            {{ loc["dep"]["plan"] }}
+        {% endif %}
+    </td>
+    <td class="time dep-act">
+        {% if not dest %}
+        {{ loc["dep"]["act"] }}
         {% endif %}
     </td>
     <td class="diff">
