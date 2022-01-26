@@ -30,6 +30,7 @@ $toc-colours: (
 );
 
 $nr-blue: #002163;
+$nr-blue-lighter: lighten($nr-blue, 10%);
 $nr-white: #ffffff;
 $nr-yellow: #fed200;
 
@@ -71,18 +72,33 @@ hr {
 }
 
 .journey {
+  background-color: $nr-blue-lighter;
+  border-radius: 5px;
+  margin: 20px 0;
+  padding: 5px;
+}
+
+.journey-row {
+  display: flex;
+}
+
+.journey-item {
+  margin: 5px;
+}
+
+.leg {
   border-radius: 5px;
   border-color: gray;
   background-color: black;
 
-  margin: 10px;
+  margin: 10px 5px;
   padding: 15px;
 
   display: flex;
   flex-direction: column;
 }
 
-.journey-row {
+.leg-row {
   display: flex;
   flex-direction: row;
   margin-top: 10px;
@@ -90,7 +106,7 @@ hr {
   align-content: center;
 }
 
-.journey-header {
+.leg-header {
   font-size: 1.5em;
 }
 
@@ -119,16 +135,16 @@ hr {
   text-align: center;
 }
 
-.journey-row-item {
+.leg-row-item {
   margin-left: 10px;
   margin-right: 10px;
 }
 
-.journey-top {
+.leg-top {
   font-weight: bold;
 }
 
-.journey-top-left {
+.leg-top-left {
   display: flex;
 }
 
@@ -177,7 +193,7 @@ hr {
   padding-right: 10px;
 }
 
-.journey-icon {
+.stop-icon {
   padding: 0;
   width: 50px;
 }
@@ -242,7 +258,8 @@ td {
 
 .duration,
 .stock,
-.distance {
+.distance,
+.speed {
   background-color: gray;
   padding: 5px;
   border-radius: 5px;

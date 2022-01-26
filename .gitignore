@@ -12,6 +12,9 @@ token.pickle
 out
 *html
 
+# keep templates!
+!templates/**
+
 # css maps
 *.css.map
 *.scss.css

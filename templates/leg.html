@@ -1,0 +1,68 @@
+{% import 'stop.html' as stop %}
+{% macro leg(leg) %}
+<div class="leg">
+    <div class="leg-row leg-top">
+        <div class="leg-top-left">
+            <div class="leg-row-item headcode leg-header">
+            {{ leg["headcode"] }}
+            </div>
+            <div class="leg-row-item date leg-header">
+            {{ leg["date"]["day"] -}} / {{- leg["date"]["month"] -}} / {{- leg["date"]["year"] }}
+            </div>
+        </div>
+        <div class="leg-row-item route leg-header">
+            {{- leg["trip_origin"]["name"] }} to {{ leg["trip_destination"]["name"] -}}
+        </div>
+    </div>
+    <div class="leg-row service-details">
+        <div class="service-route">
+            {{ leg["headcode"] }}
+            {{ leg["service_origins"][0]["dep_plan"] }}
+            {% for loc in leg["service_origins"] -%}
+                {%- if loop.last and not loop.first %}
+                    and
+                {% elif not loop.first -%}
+                    , 
+                {%- endif -%}
+                {{- loc["name"] -}}
+            {%- endfor %}
+            to
+            {% for loc in leg["service_destinations"] -%}
+                {%- if loop.last and not loop.first -%}
+                    and
+                {%- elif not loop.first -%}
+                    , 
+                {%- endif -%}
+                {{- loc["name"] -}}
+            {% endfor %}
+        </div>
+        <div class="service-operator box-{{ leg["operator"] | slug }}">
+            {{ leg["operator"] }}
+        </div>
+    </div>
+    <div class="performance-details">
+        <div class="duration">{{ leg["duration"]["act"] }}</div>
+        <div class="distance">{{ leg["mileage"]["miles"] }}m {{ leg["mileage"]["chains"] }}ch</div>
+        {% if leg["speed"] %}
+        <div class="speed">{{ leg["speed"] }}mph</div>
+        {% endif %}
+        <div class="stock">{{ leg["stock"] }}</div>
+    </div>
+    <hr>
+    <div class="stop-details">
+        <table>
+            <th>
+                <td>Stop</td>
+                <td class="platform-header">Pl</td>
+                <td class="time-header" colspan="2">Arr</td>
+                <td class="time-header" colspan="2">Dep</td>
+            </th>
+        {{- stop.stop(leg["trip_origin"], true, false) -}}
+        {% for stn in leg["stops"] %}
+            {{- stop.stop(stn, false, false) -}}
+        {% endfor %}
+        {{- stop.stop(leg["trip_destination"], false, true) -}}
+        </table>
+    </div>
+</div>
+{% endmacro %}

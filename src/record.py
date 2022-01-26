@@ -1,4 +1,4 @@
-import yaml
+import json
 from datetime import time, date, datetime, timedelta
 
 from network import get_matching_station_names, get_station_crs_from_name, station_codes, station_code_to_name, station_name_to_code, stock_dict
@@ -351,7 +351,7 @@ def read_logfile(log_file: str):
     log = []
     try:
         with open(log_file, "r") as input:
-            log = yaml.safe_load(input)
+            log = json.load(input)
         if log is None:
             log = []
     except:
@@ -361,4 +361,4 @@ def read_logfile(log_file: str):
 
 def write_logfile(log: list, log_file: str):
     with open(log_file, "w+") as output:
-        yaml.dump(log, output)
+        json.dump(log, output)

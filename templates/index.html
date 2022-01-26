@@ -1,4 +1,4 @@
-{% import 'elements.html' as elements %}
+{% import 'journey.html' as journey %}
 
 <!DOCTYPE html>
     <head>
@@ -11,72 +11,8 @@
     <body>
         <h1>Train journey tracker</h1>
         
-        {% for journey in journeys -%}
-            <div class="journey">
-                <div class="journey-row journey-top">
-                    <div class="journey-top-left">
-                        <div class="journey-row-item headcode journey-header">
-                        {{ journey["headcode"] }}
-                        </div>
-                        <div class="journey-row-item date journey-header">
-                        {{ journey["day"] -}} / {{- journey["month"] -}} / {{- journey["year"] }}
-                        </div>
-                    </div>
-                    <div class="journey-row-item route journey-header">
-                        {{- journey["journey_origin"]["name"] }} to {{ journey["journey_destination"]["name"] -}}
-                    </div>
-                </div>
-                <div class="journey-row service-details">
-                    <div class="service-route">
-                        {{ journey["headcode"] }}
-                        {{ journey["service_origin"][0]["dep_plan"] }}
-                        {% for loc in journey["service_origin"] -%}
-                            {%- if loop.last and not loop.first %}
-                                and
-                            {% elif not loop.first -%}
-                                , 
-                            {%- endif -%}
-                            {{- loc["name"] -}}
-                        {%- endfor %}
-                        to
-                        {% for loc in journey["service_destination"] -%}
-                            {%- if loop.last and not loop.first -%}
-                                and
-                            {%- elif not loop.first -%}
-                                , 
-                            {%- endif -%}
-                            {{- loc["name"] -}}
-                        {% endfor %}
-                    </div>
-                    <div class="service-operator box-{{ journey["operator"] | slug }}">
-                        {{ journey["operator"] }}
-                    </div>
-                </div>
-                <div class="performance-details">
-                    <div class="duration">{{ journey["dur_act"] }}</div>
-                    <div class="distance">{{ journey["miles"] }}m {{ journey["chains"] }}ch</div>
-                    {% if journey["speed"] %}
-                    <div class="distance">{{ journey["speed"] }}mph</div>
-                    {% endif %}
-                    <div class="stock">{{ journey["stock"] }}</div>
-                </div>
-                <hr>
-                <div class="stop-details">
-                    <table>
-                        <th>
-                            <td>Stop</td>
-                            <td class="platform-header">Pl</td>
-                            <td class="time-header" colspan="2">Arr</td>
-                            <td class="time-header" colspan="2">Dep</td>
-                        </th>
-                    {{- elements.stop(journey["journey_origin"], true, false) -}}
-                    {% for stn in journey["stops"] %}
-                        {{- elements.stop(stn, false, false) -}}
-                    {% endfor %}
-                    {{- elements.stop(journey["journey_destination"], false, true) -}}
-                    </table>
-                </div>
-            </div>
+        {% for j in journeys -%}
+            {{- journey.journey(j, loop.index) }}
         {% endfor %}
     </body>
 </html>

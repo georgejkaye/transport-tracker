@@ -1,4 +1,4 @@
-import yaml
+import json
 import sys
 import sass
 import os
@@ -41,7 +41,7 @@ output_file = Path(output_dir + "/index.html")
 output_css = Path(output_dir + "/styles.css")
 
 with open(input_log) as logfile:
-    journeys = yaml.safe_load(logfile)
+    journeys = json.load(logfile)
 
 html = index.render(journeys=journeys)
 

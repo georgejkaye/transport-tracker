@@ -8,7 +8,7 @@
     {%- endif -%}
 >
     <td class="icon">
-        <img class="journey-icon"
+        <img class="stop-icon"
             {%- if origin -%}
                 src="imgs/origin.svg"
             {%- elif dest -%}    
@@ -22,30 +22,30 @@
     <td class="platform">{{ loc["platform"] }}</td>
     <td class="time arr-plan">
         {% if not origin %}
-            {{ loc["arr_plan"]}}
-        {% endif %}
-    </td>
-    <td class="time dep-plan">
-        {% if not departure %}
-        {{ loc["dep_plan"]}}
-        {% endif %}
-    </td>
-    <td class="time arr-act">
-        {% if not origin %}
-            {{ loc["arr_act"]}}
+            {{ loc["arr"]["plan"] }}
         {% endif %}
     </td>
     <td class="time dep-plan">
         {% if not dest %}
-        {{ loc["dep_act"]}}
+            {{ loc["dep"]["plan"] }}
+        {% endif %}
+    </td>
+    <td class="time arr-act">
+        {% if not origin %}
+            {{ loc["arr"]["act"] }}
+        {% endif %}
+    </td>
+    <td class="time dep-plan">
+        {% if not dest %}
+        {{ loc["dep"]["plan"] }}
         {% endif %}
     </td>
     <td class="diff">
-        <div class="diff-box {% if dest %}{{ loc["arr_status"] }}{% else %}{{ loc["dep_status"] }}{% endif %}">
+        <div class="diff-box {% if dest %}{{ loc["arr"]["status"] }}{% else %}{{ loc["dep"]["status"] }}{% endif %}">
             {% if dest %}
-                {{ loc["arr_diff"] }}
+                {{ loc["arr"]["diff"] }}
             {% else %}
-                {{ loc["dep_diff"] }}
+                {{ loc["dep"]["diff"] }}
             {% endif %}
         </div>
     </td>
