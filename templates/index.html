@@ -12,8 +12,34 @@
     <body>
         <h1>Train journey tracker</h1>
         
-        {% for j in data["journeys"] -%}
-            {{- journey.journey(j, loop.index) }}
-        {% endfor %}
+        <div class="log">
+            <div class="log-stats">
+                <div class="log-stat-caption">Journeys</div>
+                <div class="log-stat-item">{{ data["no_journeys"] }}</div>
+                <div class="log-stat-caption">Legs</div>
+                <div class="log-stat-item">{{ data["no_legs"] }}</div>
+            </div>
+            <div class="log-stats">
+                <div class="log-stat-caption">Distance</div>
+                <div class="log-stat-item">{{ data["distance"]["miles"] }}m {{ data["distance"]["chains"] }}ch</div>
+                <div class="log-stat-caption">Cost</div>
+                <div class="log-stat-item">£{{ data["cost"] }}</div>
+                <div class="log-stat-caption">Cost per mile</div>
+                <div class="log-stat-item">£{{ data["cost_per_mile"] }}/mi</div>
+            </div>
+            <div class="log-stats">
+                <div class="log-stat-caption">Plan duration</div>
+                <div class="log-stat-item">{{ data["duration"]["plan"]}}</div>
+                <div class="log-stat-caption">Act duration</div>
+                <div class="log-stat-item">{{ data["duration"]["act"]}}</div>
+                <div class="log-stat-caption">Diff</div>
+                <div class="log-stat-item">{{ data["duration"]["diff"] }}</div>
+                <div class="log-stat-caption">Delay</div>
+                <div class="log-stat-item {{ data["status"] }}">{{ data["delay"] }}</div>
+            </div>
+            {% for j in data["journeys"] -%}
+                {{- journey.journey(j, loop.index) }}
+            {% endfor %}
+        </div>
     </body>
 </html>

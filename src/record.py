@@ -3,7 +3,7 @@ from datetime import time, date, datetime, timedelta
 
 from network import get_matching_station_names, get_station_crs_from_name, get_station_name_from_crs, station_codes, station_code_to_name, station_name_to_code, stock_dict
 from times import get_duration_string, pad_front, add, get_hourmin_string, get_diff_string, get_duration, to_time
-from structures import Journey, Leg, Mileage, PlanActDuration, PlanActTime, Price, Service, ShortLocation, Station, Location, add_durations, get_mph_string, new_duration
+from structures import Journey, Leg, Mileage, PlanActDuration, PlanActTime, Price, Service, ShortLocation, Station, Location, add_durations, get_mph_string, get_status, new_duration
 from debug import debug
 
 
@@ -251,6 +251,8 @@ def make_leg_entry(leg: Leg):
         "uid": leg.uid,
         "headcode": leg.headcode,
         "stock": leg.stock,
+        "delay": get_diff_string(leg.journey_destination.diff),
+        "status": get_status(leg.journey_destination.diff),
         "service_origins": list(map(lambda x: make_short_loc_entry(x, True), leg.service_origins)),
         "service_destinations": list(map(lambda x: make_short_loc_entry(x, False), leg.service_destinations)),
         "leg_origin": make_loc_entry(leg.leg_origin, False, True),
@@ -283,7 +285,8 @@ def make_journey_entry(journey: Journey):
         "duration": {
             "plan": get_duration_string(journey.duration.plan)
         },
-        "delay": get_diff_string(journey.delay)
+        "delay": get_diff_string(journey.delay),
+        "status": get_status(journey.delay)
     }
 
     if journey.duration.act is not None:
@@ -337,13 +340,13 @@ def record_new_journey():
     dt = None
     distance = Mileage(0, 0)
     duration = new_duration()
+    delay = 0
     station = None
     while True:
         leg = record_new_leg(dt, station)
         legs.append(leg)
         # update the running totals for distance and duration
         distance = distance.add(leg.distance)
-        duration = add_durations(duration, leg.duration)
         # get the end of this leg since it potentially might be the start of the next
         station = leg.leg_destination
         if leg.leg_destination.arr.act is not None:
@@ -368,11 +371,16 @@ def add_to_logfile(log_file: str):
     log["no_journeys"] = log["no_journeys"] + 1
     log["no_legs"] = log["no_legs"] + journey.no_legs
     log["delay"] = get_diff_string(int(log["delay"]) + journey.delay)
-    new_duration = timedelta_from_string(
-        log["duration"]) + journey.duration.act
+    new_duration_act = timedelta_from_string(
+        log["duration"]["act"]) + journey.duration.act
+    new_duration_plan = timedelta_from_string(
+        log["duration"]["plan"]) + journey.duration.plan
+    new_duration_diff = int(log["duration"]["diff"]) + journey.duration.diff
     new_distance = Mileage(log["distance"]["miles"],
                            log["distance"]["chains"]).add(journey.distance)
-    log["duration"] = get_duration_string(new_duration)
+    log["duration"]["act"] = get_duration_string(new_duration_act)
+    log["duration"]["plan"] = get_duration_string(new_duration_plan)
+    log["duration"]["diff"] = get_diff_string(new_duration_diff)
     log["distance"]["miles"] = new_distance.miles
     log["distance"]["chains"] = new_distance.chains
     log["distance"]["total"] = new_distance.all_miles

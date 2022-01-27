@@ -31,6 +31,7 @@ $toc-colours: (
 
 $nr-blue: #002163;
 $nr-blue-lighter: lighten($nr-blue, 10%);
+$nr-blue-lighterer: lighten($nr-blue, 20%);
 $nr-white: #ffffff;
 $nr-yellow: #fed200;
 $table-border-colour: #545454;
@@ -72,9 +73,22 @@ hr {
   margin: 20px auto;
 }
 
+.log {
+  background-color: $nr-blue-lighterer;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.log-stats {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
 .journey {
   background-color: $nr-blue-lighter;
-  border-radius: 5px;
+  border-radius: 10px;
   margin: 20px 0;
   padding: 10px;
 }
@@ -87,7 +101,7 @@ hr {
   font-weight: bold;
   padding: 5px 5px 5px 5px;
   margin: 10px 10px 10px 0;
-  border-radius: 5px;
+  border-radius: 10px;
   width: 75px;
   height: 75px;
   line-height: 1.5;
@@ -99,6 +113,7 @@ hr {
   margin-left: 10px;
 }
 
+.log-stat-caption,
 .journey-item-caption {
   font-size: 1.25em;
   color: $nr-yellow;
@@ -115,17 +130,18 @@ hr {
   align-items: center;
 }
 
+.log-stat-item,
 .journey-item {
   margin: 5px 10px;
   background-color: gray;
   padding: 5px;
-  border-radius: 5px;
+  border-radius: 10px;
   font-size: 1.5em;
   font-weight: bold;
 }
 
 .leg {
-  border-radius: 5px;
+  border-radius: 10px;
   border-color: gray;
   background-color: black;
 
@@ -184,7 +200,7 @@ hr {
   width: 200px;
   text-align: center;
   padding: 5px;
-  border-radius: 5px;
+  border-radius: 10px;
   margin: 5px;
 }
 
@@ -196,7 +212,7 @@ hr {
 .service-route {
   padding: 5px;
   background-color: gray;
-  border-radius: 5px;
+  border-radius: 10px;
   margin: 5px;
 }
 
@@ -256,7 +272,7 @@ $call-row-height: 60px;
 }
 
 .diff-box {
-  border-radius: 5px;
+  border-radius: 10px;
   padding: 4px;
   padding-bottom: 6px;
   width: 20px;
@@ -265,22 +281,6 @@ $call-row-height: 60px;
 
 .on-time {
   background-color: gray;
-}
-
-.early {
-  background-color: limegreen;
-}
-
-.very-early {
-  background-color: green;
-}
-
-.late {
-  background-color: red;
-}
-
-.very-late {
-  background-color: darkred;
 }
 
 td {
@@ -313,9 +313,25 @@ td {
 .performance-detail-item {
   background-color: gray;
   padding: 5px;
-  border-radius: 5px;
+  border-radius: 10px;
   margin: 0 10px;
   font-weight: bold;
+}
+
+.early {
+  background-color: limegreen;
+}
+
+.very-early {
+  background-color: green;
+}
+
+.late {
+  background-color: red;
+}
+
+.very-late {
+  background-color: darkred;
 }
 
 .origin,

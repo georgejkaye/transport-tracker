@@ -58,6 +58,8 @@
             <div class="performance-detail-item">{{ leg["duration"]["act"] }}</div>
             <div class="performance-detail-caption">Diff</div> 
             <div class="performance-detail-item">{{ leg["duration"]["diff"] }}</div>
+            <div class="performance-detail-caption">Delay</div> 
+            <div class="performance-detail-item {{ leg["leg_destination"]["arr"]["status"] }}">{{ leg["leg_destination"]["arr"]["diff"] }}</div>
         </div>    
     </div>
     <hr>

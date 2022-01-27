@@ -56,9 +56,9 @@ def get_url(datetime: datetime, long: bool = True):
 
 def get_diff_string(diff: int):
     if diff > 0:
-        return f'+{diff}'
+        return f"+{diff}"
     if diff < 0:
-        return diff
+        return f"{diff}"
     return "0"
 
 
