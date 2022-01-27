@@ -7,7 +7,13 @@ Get the details of trains you've been on, and present them prettily
 You can install the packages yourself with `pip`...
 
 ```sh
-pip install pyyaml Jinja2 termcolor libsass
+pip install Jinja2 termcolor libsass
+```
+
+... or use the `requirements.txt` file...
+
+```sh
+pip install -r requirements.txt
 ```
 
 ...or use `pipenv`.

@@ -1,4 +1,3 @@
-pyyaml
 Jinja2
 termcolor
 libsass

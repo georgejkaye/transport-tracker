@@ -41,9 +41,9 @@ output_file = Path(output_dir + "/index.html")
 output_css = Path(output_dir + "/styles.css")
 
 with open(input_log) as logfile:
-    journeys = json.load(logfile)
+    data = json.load(logfile)
 
-html = index.render(journeys=journeys)
+html = index.render(data=data)
 
 with open(output_file, "w+") as file:
     file.write(html)

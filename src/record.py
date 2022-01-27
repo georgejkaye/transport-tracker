@@ -3,8 +3,15 @@ from datetime import time, date, datetime, timedelta
 
 from network import get_matching_station_names, get_station_crs_from_name, get_station_name_from_crs, station_codes, station_code_to_name, station_name_to_code, stock_dict
 from times import get_duration_string, pad_front, add, get_hourmin_string, get_diff_string, get_duration, to_time
-from structures import Leg, Mileage, PlanActDuration, PlanActTime, Price, Service, ShortLocation, Station, Location, add_durations, get_mph_string, new_duration
+from structures import Journey, Leg, Mileage, PlanActDuration, PlanActTime, Price, Service, ShortLocation, Station, Location, add_durations, get_mph_string, new_duration
 from debug import debug
+
+
+def timedelta_from_string(str):
+    parts = str.split(":")
+    hour = int(parts[0])
+    minutes = int(parts[1])
+    return timedelta(hours=hour, minutes=minutes)
 
 
 def get_month_length(month, year):
@@ -228,7 +235,7 @@ def make_loc_entry(loc: Location, arr: bool = True, dep: bool = True):
     return entry
 
 
-def make_entry(leg: Leg):
+def make_leg_entry(leg: Leg):
 
     entry = {
         "date": {
@@ -257,8 +264,34 @@ def make_entry(leg: Leg):
     if leg.duration.act is not None:
         duration["act"] = get_duration_string(leg.duration.act)
         duration["diff"] = leg.duration.diff
-
+        entry["speed"] = get_mph_string(leg.distance.speed(leg.duration.act))
     entry["duration"] = duration
+
+    return entry
+
+
+def make_journey_entry(journey: Journey):
+    entry = {
+        "legs": list(map(make_leg_entry, journey.legs)),
+        "no_legs": journey.no_legs,
+        "cost": journey.cost.to_string(),
+        "cost_per_mile": journey.cost_per_mile.to_string(),
+        "distance": {
+            "miles": journey.distance.miles,
+            "chains": journey.distance.chains,
+        },
+        "duration": {
+            "plan": get_duration_string(journey.duration.plan)
+        },
+        "delay": get_diff_string(journey.delay)
+    }
+
+    if journey.duration.act is not None:
+        entry["duration"]["act"] = get_duration_string(journey.duration.act)
+        entry["duration"]["diff"] = get_diff_string(journey.duration.diff)
+
+    if journey.speed is not None:
+        entry["speed"] = journey.speed
     return entry
 
 
@@ -307,7 +340,7 @@ def record_new_journey():
     station = None
     while True:
         leg = record_new_leg(dt, station)
-        legs.append(make_entry(leg))
+        legs.append(leg)
         # update the running totals for distance and duration
         distance = distance.add(leg.distance)
         duration = add_durations(duration, leg.duration)
@@ -322,31 +355,31 @@ def record_new_journey():
         if not choice:
             break
     cost = get_input_price("Journey cost?")
-    cost_per_mile = cost.per_mile(distance)
-
-    journey = {
-        "cost": cost.to_string(),
-        "cost_per_mile": cost_per_mile.to_string(),
-        "duration": {
-            "plan": get_duration_string(duration.plan),
-        },
-        "distance": {
-            "miles": distance.miles,
-            "chains": distance.chains
-        },
-        "legs": legs
-    }
-    if duration.act is not None:
-        journey["duration"]["act"] = get_duration_string(duration.act)
-        journey["speed"] = distance.speed(duration.act)
-        journey["duration"]["diff"] = duration.diff
+    journey = Journey(legs, cost, distance, duration)
     return journey
 
 
 def add_to_logfile(log_file: str):
     journey = record_new_journey()
     log = read_logfile(log_file)
-    log.append(journey)
+    all_journeys = log["journeys"]
+    all_journeys.append(make_journey_entry(journey))
+    log["journeys"] = all_journeys
+    log["no_journeys"] = log["no_journeys"] + 1
+    log["no_legs"] = log["no_legs"] + journey.no_legs
+    log["delay"] = get_diff_string(int(log["delay"]) + journey.delay)
+    new_duration = timedelta_from_string(
+        log["duration"]) + journey.duration.act
+    new_distance = Mileage(log["distance"]["miles"],
+                           log["distance"]["chains"]).add(journey.distance)
+    log["duration"] = get_duration_string(new_duration)
+    log["distance"]["miles"] = new_distance.miles
+    log["distance"]["chains"] = new_distance.chains
+    log["distance"]["total"] = new_distance.all_miles
+    log["speed"] = get_mph_string(new_distance.speed(new_duration))
+    new_cost = journey.cost.add(float(log["cost"]))
+    log["cost"] = new_cost.to_string()
+    log["cost_per_mile"] = new_cost.per_mile(new_distance).to_string()
     write_logfile(log, log_file)
 
 

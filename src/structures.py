@@ -60,6 +60,9 @@ class Price:
     def per_mile(self, distance: Mileage):
         return Price(self.all_pounds / distance.all_miles)
 
+    def add(self, other: float):
+        return Price(self.all_pounds + other)
+
 
 class ShortLocation:
     def __init__(self, loc):
@@ -291,7 +294,7 @@ class Leg:
                 if call.crs == origin_crs:
                     boarded = True
                     self.leg_origin = call
-                    origin_i = i
+                    origin_i = i+1
 
             elif call.crs == dest_crs:
                 self.leg_destination = call
@@ -306,3 +309,21 @@ class Leg:
             self.speed = self.distance.speed(self.duration.act)
         else:
             self.speed = self.distance.speed(self.duration.plan)
+
+
+class Journey:
+    def __init__(self, legs: list[Leg], cost: Price, distance: Mileage, duration: PlanActDuration):
+        self.legs = legs
+        self.no_legs = len(legs)
+        self.cost = cost
+        self.cost_per_mile = cost.per_mile(distance)
+        self.distance = distance
+        self.duration = duration
+        if duration.act is not None:
+            self.speed = distance.speed(duration.act)
+        else:
+            self.speed = None
+        self.delay = 0
+        for leg in legs:
+            if leg.leg_destination.arr.diff is not None:
+                self.delay = self.delay + leg.leg_destination.arr.diff

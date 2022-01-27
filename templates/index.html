@@ -12,7 +12,7 @@
     <body>
         <h1>Train journey tracker</h1>
         
-        {% for j in journeys -%}
+        {% for j in data["journeys"] -%}
             {{- journey.journey(j, loop.index) }}
         {% endfor %}
     </body>
