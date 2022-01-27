@@ -1,4 +1,5 @@
 import yaml
+from debug import error_msg
 from dirs import stations_list, lnwr_file, stock_file
 
 station_codes: list[str] = []
@@ -29,7 +30,12 @@ def get_station_name_from_crs(crs: str):
 
 
 def get_station_crs_from_name(name: str):
-    return station_name_to_code[name.lower()]
+    try:
+        return station_name_to_code[name.lower()]
+    except:
+        error_msg("Station name not found...")
+        error_msg(
+            "This should not happen! Please file an issue at https://github.com/georgejkaye/train-tracker/issues")
 
 
 def get_matching_station_names(string: str):

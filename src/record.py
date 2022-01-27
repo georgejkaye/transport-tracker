@@ -3,7 +3,7 @@ from datetime import time, date, datetime, timedelta
 
 from network import get_matching_station_names, get_station_crs_from_name, get_station_name_from_crs, station_codes, station_code_to_name, station_name_to_code, stock_dict
 from times import get_duration_string, pad_front, add, get_hourmin_string, get_diff_string, get_duration, to_time
-from structures import Mileage, PlanActTime, Service, ShortLocation, Station, Location, get_mph_string
+from structures import Leg, Mileage, PlanActDuration, PlanActTime, Price, Service, ShortLocation, Station, Location, add_durations, get_mph_string, new_duration
 from debug import debug
 
 
@@ -64,7 +64,7 @@ def get_input_price(prompt):
                     pence = int(parts[1])
                 pounds = int(parts[0])
                 if pounds >= 0 and pence >= 0 and pence < 100:
-                    return f"{pounds}.{pad_front(pence,2)}"
+                    return Price(pounds, pence)
         except:
             print(f"Expected price but got '{string}'")
 
@@ -75,14 +75,14 @@ def get_station_string(prompt: str, stn: Station = None):
     Can either be a three letter code (in which case confirmation will be asked for)
     or a full station name
     """
+    if stn is not None:
+        prompt = f"{prompt} ({get_station_name_from_crs(stn.crs)})"
+    prompt = f'{prompt}: '
     while True:
-        if stn is not None:
-            prompt = f"{prompt} ({get_station_name_from_crs(stn)})"
-        prompt = f'{prompt}: '
         string = input(prompt).upper()
         # We only search for strings of length at least three, otherwise there would be loads
-        if len(string) == 0:
-            return stn
+        if len(string) == 0 and stn is not None:
+            return stn.crs
         if len(string) >= 3:
             # Check the three letter codes first
             if string in station_codes:
@@ -228,63 +228,38 @@ def make_loc_entry(loc: Location, arr: bool = True, dep: bool = True):
     return entry
 
 
-def make_entry(service: Service, origin_crs: str, destination_crs: str, stock: str, mileage: Mileage):
+def make_entry(leg: Leg):
 
     entry = {
         "date": {
-            "year": service.date.year,
-            "month": service.date.month,
-            "day": service.date.day,
+            "year": leg.date.year,
+            "month": leg.date.month,
+            "day": leg.date.day,
         },
-        "operator": service.toc,
-        "operator_code": service.tocCode,
+        "operator": leg.toc,
         "mileage": {
-            "miles": mileage.miles,
-            "chains": mileage.chains
+            "miles": leg.distance.miles,
+            "chains": leg.distance.chains
         },
-        "uid": service.uid,
-        "headcode": service.headcode,
-        "stock": stock,
-        "service_origins": list(map(lambda x: make_short_loc_entry(x, True), service.origins)),
-        "service_destinations": list(map(lambda x: make_short_loc_entry(x, False), service.destinations)),
+        "uid": leg.uid,
+        "headcode": leg.headcode,
+        "stock": leg.stock,
+        "service_origins": list(map(lambda x: make_short_loc_entry(x, True), leg.service_origins)),
+        "service_destinations": list(map(lambda x: make_short_loc_entry(x, False), leg.service_destinations)),
+        "leg_origin": make_loc_entry(leg.leg_origin, False, True),
+        "leg_destination": make_loc_entry(leg.leg_destination, True, False),
+        "stops": list(map(lambda x: make_loc_entry(x), leg.calls)),
     }
 
-    boarded = False
-    stop_entries = []
-    for loc in service.calls:
-        if not boarded:
-            if loc.crs == origin_crs:
-                boarded = True
-                entry["trip_origin"] = make_loc_entry(loc, False, True)
-                origin_time = loc.dep
-        else:
-            if loc.crs == destination_crs:
-                entry["trip_destination"] = make_loc_entry(loc, True, False)
-                destination_time = loc.arr
-                break
-            else:
-                stop_entries.append(make_loc_entry(loc))
-
-    entry["stops"] = stop_entries
-
-    duration = {}
-
-    if origin_time.plan is not None and destination_time.plan is not None:
-        duration_plan = get_duration(origin_time.plan, destination_time.plan)
-        duration["plan"] = get_duration_string(duration_plan)
-
-    if origin_time.act is not None and destination_time.act is not None:
-        duration_act = get_duration(origin_time.act, destination_time.act)
-        duration["act"] = get_duration_string(duration_act)
-        entry["speed"] = get_mph_string(mileage.speed(duration_act))
-    else:
-        duration_act = None
+    duration = {
+        "plan": get_duration_string(leg.duration.plan)
+    }
+    if leg.duration.act is not None:
+        duration["act"] = get_duration_string(leg.duration.act)
+        duration["diff"] = leg.duration.diff
 
     entry["duration"] = duration
-
-    if duration_act is not None:
-        return (duration_act, entry)
-    return (duration_plan, entry)
+    return entry
 
 
 def get_date(start: datetime = None):
@@ -318,39 +293,54 @@ def record_new_leg(start: datetime, station: Station):
     dt = get_datetime(start)
     origin_station = Station(origin_crs, dt)
     service = get_service(origin_station, destination_crs)
-    arr_time = service.get_arr_at(destination_crs)
     stock = get_stock(service)
     mileage = get_mileage()
-    (duration, entry) = make_entry(
-        service, origin_crs, destination_crs, stock, mileage)
-    return (arr_time, mileage, duration, entry, destination_crs)
+    leg = Leg(service, origin_crs, destination_crs, mileage, stock)
+    return leg
 
 
 def record_new_journey():
     legs = []
     dt = None
-    mileage = Mileage(0, 0)
-    duration = timedelta()
+    distance = Mileage(0, 0)
+    duration = new_duration()
     station = None
     while True:
-        (dt, dist, dur, leg, station) = record_new_leg(dt, station)
-        legs.append(leg)
-        mileage = mileage.add(dist)
-        duration = duration + dur
+        leg = record_new_leg(dt, station)
+        legs.append(make_entry(leg))
+        # update the running totals for distance and duration
+        distance = distance.add(leg.distance)
+        duration = add_durations(duration, leg.duration)
+        # get the end of this leg since it potentially might be the start of the next
+        station = leg.leg_destination
+        if leg.leg_destination.arr.act is not None:
+            dt = leg.leg_destination.arr.act
+        else:
+            dt = leg.leg_destination.arr.plan
+        # do we want to go around again?
         choice = yes_or_no("Add another leg?")
         if not choice:
             break
     cost = get_input_price("Journey cost?")
+    cost_per_mile = cost.per_mile(distance)
 
-    return {
-        "cost": cost,
-        "duration": get_duration_string(duration),
+    journey = {
+        "cost": cost.to_string(),
+        "cost_per_mile": cost_per_mile.to_string(),
+        "duration": {
+            "plan": get_duration_string(duration.plan),
+        },
         "distance": {
-            "miles": mileage.miles,
-            "chains": mileage.chains
+            "miles": distance.miles,
+            "chains": distance.chains
         },
         "legs": legs
     }
+    if duration.act is not None:
+        journey["duration"]["act"] = get_duration_string(duration.act)
+        journey["speed"] = distance.speed(duration.act)
+        journey["duration"]["diff"] = duration.diff
+    return journey
 
 
 def add_to_logfile(log_file: str):

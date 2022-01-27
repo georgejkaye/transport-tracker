@@ -3,11 +3,11 @@
     "cost": "8.25",
     "per_mile": "0.26",
     "distance": { "miles": 31, "chains": 15 },
-    "duration": { "act": "0:40", "plan": "0:40", "diff": "0:00" },
+    "duration": { "act": "0:40", "plan": "0:40", "diff": "0" },
     "legs": [
       {
         "date": { "day": "01", "month": "01", "year": "22" },
-        "duration": { "act": "00:34", "diff": "00:01", "plan": "00:33" },
+        "duration": { "act": "00:34", "diff": "+1", "plan": "00:33" },
         "headcode": "1M50",
         "operator": "CrossCountry",
         "mileage": { "chains": "46", "miles": "28" },
@@ -45,7 +45,7 @@
             "platform": "2"
           }
         ],
-        "trip_destination": {
+        "leg_destination": {
           "arr": {
             "act": "1548",
             "diff": "0",
@@ -56,7 +56,7 @@
           "name": "Birmingham New Street",
           "platform": "3"
         },
-        "trip_origin": {
+        "leg_origin": {
           "crs": "LMS",
           "dep": {
             "act": "1513",
@@ -71,7 +71,7 @@
       },
       {
         "date": { "day": "01", "month": "01", "year": "22" },
-        "duration": { "act": "00:06", "diff": "00:01", "plan": "00:07" },
+        "duration": { "act": "00:06", "diff": "-1", "plan": "00:07" },
         "headcode": "2O41",
         "operator": "West Midlands Railway",
         "mileage": { "chains": "49", "miles": "2" },
@@ -97,7 +97,7 @@
             "platform": "2"
           }
         ],
-        "trip_destination": {
+        "leg_destination": {
           "arr": {
             "act": "1609",
             "diff": "-1",
@@ -108,7 +108,7 @@
           "name": "University",
           "platform": "2"
         },
-        "trip_origin": {
+        "leg_origin": {
           "crs": "BHM",
           "dep": {
             "act": "1603",
@@ -127,11 +127,11 @@
     "cost": "4.15",
     "per_mile": "0.14",
     "distance": { "miles": 29, "chains": 42 },
-    "duration": { "act": "0:47", "plan": "0:49", "diff": "-0:02" },
+    "duration": { "act": "0:47", "plan": "0:49", "diff": "-2" },
     "legs": [
       {
         "date": { "day": "15", "month": "01", "year": "22" },
-        "duration": { "act": "00:06", "diff": "00:00", "plan": "00:06" },
+        "duration": { "act": "00:06", "diff": "0", "plan": "00:06" },
         "headcode": "1M94",
         "operator": "West Midlands Railway",
         "mileage": { "chains": "49", "miles": "2" },
@@ -144,7 +144,7 @@
         "speed": "24.12",
         "stock": "Class 323",
         "stops": [],
-        "trip_destination": {
+        "leg_destination": {
           "arr": {
             "act": "1247",
             "diff": "+2",
@@ -155,7 +155,7 @@
           "name": "Birmingham New Street",
           "platform": "9"
         },
-        "trip_origin": {
+        "leg_origin": {
           "crs": "UNI",
           "dep": {
             "act": "1241",
@@ -170,7 +170,7 @@
       },
       {
         "date": { "day": "15", "month": "01", "year": "22" },
-        "duration": { "act": "00:14", "diff": "-00:01", "plan": "00:15" },
+        "duration": { "act": "00:14", "diff": "-1", "plan": "00:15" },
         "headcode": "2Y64",
         "operator": "London Northwestern Railway",
         "mileage": { "chains": "12", "miles": "10" },
@@ -208,7 +208,7 @@
             "platform": "4"
           }
         ],
-        "trip_destination": {
+        "leg_destination": {
           "arr": {
             "act": "1328",
             "diff": "-1",
@@ -219,7 +219,7 @@
           "name": "Hampton-in-Arden",
           "platform": "1"
         },
-        "trip_origin": {
+        "leg_origin": {
           "crs": "BHM",
           "dep": {
             "act": "1314",
@@ -234,7 +234,7 @@
       },
       {
         "date": { "day": "15", "month": "01", "year": "22" },
-        "duration": { "act": "00:19", "diff": "-00:03", "plan": "00:22" },
+        "duration": { "act": "00:19", "diff": "-3", "plan": "00:22" },
         "headcode": "2Y63",
         "operator": "London Northwestern Railway",
         "mileage": { "chains": "35", "miles": "13" },
@@ -284,7 +284,7 @@
             "platform": "2"
           }
         ],
-        "trip_destination": {
+        "leg_destination": {
           "arr": {
             "act": "1640",
             "diff": "-4",
@@ -295,7 +295,7 @@
           "name": "Birmingham New Street",
           "platform": "6"
         },
-        "trip_origin": {
+        "leg_origin": {
           "crs": "BKW",
           "dep": {
             "act": "1621",
@@ -310,7 +310,7 @@
       },
       {
         "date": { "day": "15", "month": "01", "year": "22" },
-        "duration": { "act": "00:10", "diff": "00:00", "plan": "00:10" },
+        "duration": { "act": "00:10", "diff": "0", "plan": "00:10" },
         "headcode": "2R44",
         "operator": "West Midlands Railway",
         "mileage": { "chains": "26", "miles": "3" },
@@ -348,7 +348,7 @@
             "platform": "2"
           }
         ],
-        "trip_destination": {
+        "leg_destination": {
           "arr": {
             "act": "1656",
             "diff": "+3",
@@ -359,7 +359,7 @@
           "name": "Selly Oak",
           "platform": "2"
         },
-        "trip_origin": {
+        "leg_origin": {
           "crs": "BHM",
           "dep": {
             "act": "1646",

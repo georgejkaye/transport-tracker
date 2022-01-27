@@ -1,7 +1,8 @@
 from datetime import date, datetime, time, timedelta
 
 from api import check_response, request, station_endpoint, service_endpoint
-from times import get_hourmin_string, get_url, to_time
+from debug import error_msg
+from times import get_hourmin_string, get_url, pad_front, to_time
 from network import get_station_crs_from_name, get_station_name_from_crs, station_name_to_code, lnwr_dests
 
 
@@ -9,10 +10,20 @@ def get_mph_string(speed: float):
     return "{:.2f}".format(speed)
 
 
+class PlanActDuration:
+    def __init__(self, plan: timedelta, act: timedelta = None):
+        self.act = act
+        self.plan = plan
+        if self.act is not None:
+            self.diff = int((self.act.total_seconds() -
+                             self.plan.total_seconds()) // 60)
+
+
 class Mileage:
     def __init__(self, miles, chains):
         self.miles = miles
         self.chains = chains
+        self.all_miles = miles + (chains / 80)
 
     def get_string(self):
         return f'{self.miles}m {self.chains}ch'
@@ -24,10 +35,30 @@ class Mileage:
         chains = chains % 80
         return Mileage(miles, chains)
 
-    def speed(self, time: timedelta):
-        miles = self.miles + (self.chains / 80)
-        hours = (time.seconds / 3600)
-        return round(miles / hours, 2)
+    def speed(self, dur: timedelta):
+        hours = (dur.total_seconds() / 3600)
+        return round(self.all_miles / hours, 2)
+
+
+class Price:
+    def __init__(self, *args):
+        if len(args) == 1:
+            self.all_pounds = round(args[0], 2)
+            self.pounds = int(self.all_pounds)
+            self.pence = int((self.all_pounds * 100) % 100)
+        elif len(args) == 2:
+            self.pounds = args[0]
+            self.pence = args[1]
+            self.all_pounds = self.pounds + (self.pence / 100)
+        else:
+            error_msg("Bad arguments to Price constructor")
+            exit(1)
+
+    def to_string(self):
+        return f'{self.pounds}.{pad_front(self.pence, 2)}'
+
+    def per_mile(self, distance: Mileage):
+        return Price(self.all_pounds / distance.all_miles)
 
 
 class ShortLocation:
@@ -50,10 +81,10 @@ def get_multiple_location_string(locs: list[ShortLocation]):
 class ServiceAtStation:
     def __init__(self, service):
         self.origins = map(lambda x: ShortLocation(
-            x), service["locationDetail"]["origin"])
+            x), service["locationDetail"].get("origin"))
         self.destinations = map(lambda x: ShortLocation(
-            x), service["locationDetail"]["destination"])
-        self.platform = service["locationDetail"]["platform"]
+            x), service["locationDetail"].get("destination"))
+        self.platform = service["locationDetail"].get("platform")
 
         self.dep = service["locationDetail"].get("realtimeDeparture")
         if self.dep is None:
@@ -115,35 +146,56 @@ def get_status(diff: int):
 
 
 class PlanActTime:
-    def __init__(self, plan: str, act: str):
+    def __init__(self, date: date, plan: str, act: str):
         if plan is not None:
-            self.plan = to_time(plan)
+            self.plan = datetime.combine(date, to_time(plan))
         else:
             self.plan = None
         if act is not None:
-            self.act = to_time(act)
+            self.act = datetime.combine(date, to_time(act))
         else:
             self.act = None
 
         if self.plan is not None and self.act is not None:
-            self.diff = int((datetime.combine(date.today(), self.act) -
-                            datetime.combine(date.today(), self.plan)).total_seconds() / 60)
+            self.diff = int((self.act - self.plan).total_seconds() // 60)
             self.status = get_status(self.diff)
         else:
             self.diff = None
             self.status = None
 
 
+def new_duration():
+    return PlanActDuration(timedelta(), timedelta())
+
+
+def duration_from_times(origin_plan: datetime, origin_act: datetime, destination_plan: datetime, destination_act: datetime):
+    plan = destination_plan - origin_plan
+    if origin_act is not None and destination_act is not None:
+        act = destination_act - origin_act
+    else:
+        act = None
+    return PlanActDuration(plan, act)
+
+
+def add_durations(a: PlanActDuration, b: PlanActDuration):
+    plan = a.plan + b.plan
+    if a.act is not None and b.act is not None:
+        act = a.act + b.act
+    else:
+        act = None
+    return PlanActDuration(plan, act)
+
+
 class Location:
-    def __init__(self, loc):
+    def __init__(self, date: date, loc):
         self.name = loc["description"]
         self.crs = loc["crs"]
         self.tiploc = loc["tiploc"]
 
-        self.arr = PlanActTime(
-            loc.get("gbttBookedArrival"), loc.get("realtimeArrival"))
-        self.dep = PlanActTime(
-            loc.get("gbttBookedDeparture"), loc.get("realtimeDeparture"))
+        self.arr = PlanActTime(date,
+                               loc.get("gbttBookedArrival"), loc.get("realtimeArrival"))
+        self.dep = PlanActTime(date,
+                               loc.get("gbttBookedDeparture"), loc.get("realtimeDeparture"))
         self.platform = loc.get("platform")
 
 
@@ -165,6 +217,9 @@ class Service:
 
         self.toc = service["atocName"]
 
+        if self.toc == "LNER":
+            self.toc = "London North Eastern Railway"
+
         if self.toc == "West Midlands Trains":
             for loc in self.origins:
                 if loc.crs in lnwr_dests:
@@ -179,7 +234,8 @@ class Service:
             else:
                 self.toc = "West Midlands Railway"
 
-        self.calls = list(map(lambda x: Location(x), service["locations"]))
+        self.calls = list(map(lambda x: Location(
+            self.date, x), service["locations"]))
 
     def origin(self):
         return self.calls[0]
@@ -210,11 +266,43 @@ class Service:
             if loc.crs == crs:
                 dep = loc.dep
                 if dep.act is not None and not plan:
-                    return datetime.combine(self.date, dep.act)
-                return datetime.combine(self.date, dep.plan)
+                    return dep.act
+                return dep.plan
 
     def get_string(self, crs: str):
         string = f"{self.headcode} {get_hourmin_string(self.origins[0].time)} {get_multiple_location_string(self.origins)} to {get_multiple_location_string(self.destinations)}"
         act = get_hourmin_string(self.get_dep_from(crs, False))
         plan = get_hourmin_string(self.get_dep_from(crs, True))
         return f"{string} plan {plan} act {act} ({self.toc})"
+
+
+class Leg:
+    def __init__(self, service: Service, origin_crs: str, dest_crs: str, distance: Mileage, stock: str):
+        self.date = service.date
+        self.service_origins = service.origins
+        self.service_destinations = service.destinations
+        self.headcode = service.headcode
+        self.toc = service.toc
+        self.uid = service.uid
+
+        boarded = False
+        for (i, call) in enumerate(service.calls):
+            if not boarded:
+                if call.crs == origin_crs:
+                    boarded = True
+                    self.leg_origin = call
+                    origin_i = i
+
+            elif call.crs == dest_crs:
+                self.leg_destination = call
+                destination_i = i
+                break
+        self.calls = service.calls[origin_i:destination_i]
+        self.duration = duration_from_times(
+            self.leg_origin.dep.plan, self.leg_origin.dep.act, self.leg_destination.arr.plan, self.leg_destination.arr.act)
+        self.distance = distance
+        self.stock = stock
+        if self.duration.act is not None:
+            self.speed = self.distance.speed(self.duration.act)
+        else:
+            self.speed = self.distance.speed(self.duration.plan)

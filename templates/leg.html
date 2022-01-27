@@ -11,7 +11,7 @@
             </div>
         </div>
         <div class="leg-row-item route leg-header">
-            {{- leg["trip_origin"]["name"] }} to {{ leg["trip_destination"]["name"] -}}
+            {{- leg["leg_origin"]["name"] }} to {{ leg["leg_destination"]["name"] -}}
         </div>
     </div>
     <div class="leg-row service-details">
@@ -70,11 +70,11 @@
                 <th class="time time-header" colspan="2">Arr</th>
                 <th class="time time-header" colspan="3">Dep</th>
             </tr>
-        {{- stop.stop(leg["trip_origin"], true, false) -}}
+        {{- stop.stop(leg["leg_origin"], true, false) -}}
         {% for stn in leg["stops"] %}
             {{- stop.stop(stn, false, false) -}}
         {% endfor %}
-        {{- stop.stop(leg["trip_destination"], false, true) -}}
+        {{- stop.stop(leg["leg_destination"], false, true) -}}
         </table>
     </div>
 </div>
