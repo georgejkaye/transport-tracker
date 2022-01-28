@@ -69,8 +69,10 @@
                 <th></th>
                 <th>Stop</th>
                 <th class="platform platform-header">Pl</th>
-                <th class="time time-header" colspan="2">Arr</th>
-                <th class="time time-header" colspan="3">Dep</th>
+                <th class="time time-header header-desktop" colspan="2">Arr</th>
+                <th class="time time-header header-desktop" colspan="3">Dep</th>
+                <th class="time time-header header-mobile" colspan="1">Arr</th>
+                <th class="time time-header header-mobile" colspan="2">Dep</th>
             </tr>
         {{- stop.stop(leg["leg_origin"], true, false) -}}
         {% for stn in leg["stops"] %}

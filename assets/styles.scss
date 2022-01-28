@@ -45,6 +45,10 @@ body {
   font-family: "Raleway", sans-serif;
   max-width: 800px;
   margin: auto;
+
+  @media (max-width: 500px) {
+    font-size: 0.8em;
+  }
 }
 
 h1 {
@@ -229,6 +233,7 @@ hr {
 .name {
   width: 300px;
   font-weight: bold;
+  padding-right: 10px;
 }
 
 .icon {
@@ -346,4 +351,23 @@ td {
 
 .origin-icon {
   margin-top: 15px;
+}
+
+.arr-plan,
+.dep-plan {
+  @media (max-width: 500px) {
+    display: none;
+  }
+}
+
+.header-desktop {
+  @media (max-width: 500px) {
+    display: none;
+  }
+}
+
+.header-mobile {
+  @media (min-width: 500px) {
+    display: none;
+  }
 }
