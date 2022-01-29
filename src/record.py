@@ -251,8 +251,8 @@ def make_leg_entry(leg: Leg):
         "uid": leg.uid,
         "headcode": leg.headcode,
         "stock": leg.stock,
-        "delay": get_diff_string(leg.journey_destination.diff),
-        "status": get_status(leg.journey_destination.diff),
+        "delay": get_diff_string(leg.duration.diff),
+        "status": get_status(leg.duration.diff),
         "service_origins": list(map(lambda x: make_short_loc_entry(x, True), leg.service_origins)),
         "service_destinations": list(map(lambda x: make_short_loc_entry(x, False), leg.service_destinations)),
         "leg_origin": make_loc_entry(leg.leg_origin, False, True),
@@ -347,6 +347,7 @@ def record_new_journey():
         legs.append(leg)
         # update the running totals for distance and duration
         distance = distance.add(leg.distance)
+        duration = add_durations(duration, leg.duration)
         # get the end of this leg since it potentially might be the start of the next
         station = leg.leg_destination
         if leg.leg_destination.arr.act is not None:
@@ -365,39 +366,62 @@ def record_new_journey():
 def add_to_logfile(log_file: str):
     journey = record_new_journey()
     log = read_logfile(log_file)
-    all_journeys = log["journeys"]
+    if log != {}:
+        all_journeys = log["journeys"]
+        no_journeys = log["no_journeys"]
+        no_legs = log["no_legs"]
+        delay = int(log["delay"])
+        duration_act = timedelta_from_string(log["duration"]["act"])
+        duration_plan = timedelta_from_string(log["duration"]["diff"])
+        duration_diff = int(log["duration"]["diff"])
+        miles = log["distance"]["miles"]
+        chains = log["distance"]["chains"]
+        cost = float(log["cost"])
+    else:
+        all_journeys = []
+        no_journeys = 0
+        no_legs = 0
+        delay = 0
+        duration_act = timedelta()
+        duration_plan = timedelta()
+        duration_diff = 0
+        miles = 0
+        chains = 0
+        cost = 0.0
+
     all_journeys.append(make_journey_entry(journey))
     log["journeys"] = all_journeys
-    log["no_journeys"] = log["no_journeys"] + 1
-    log["no_legs"] = log["no_legs"] + journey.no_legs
-    log["delay"] = get_diff_string(int(log["delay"]) + journey.delay)
-    new_duration_act = timedelta_from_string(
-        log["duration"]["act"]) + journey.duration.act
-    new_duration_plan = timedelta_from_string(
-        log["duration"]["plan"]) + journey.duration.plan
-    new_duration_diff = int(log["duration"]["diff"]) + journey.duration.diff
-    new_distance = Mileage(log["distance"]["miles"],
-                           log["distance"]["chains"]).add(journey.distance)
-    log["duration"]["act"] = get_duration_string(new_duration_act)
-    log["duration"]["plan"] = get_duration_string(new_duration_plan)
-    log["duration"]["diff"] = get_diff_string(new_duration_diff)
-    log["distance"]["miles"] = new_distance.miles
-    log["distance"]["chains"] = new_distance.chains
-    log["distance"]["total"] = new_distance.all_miles
-    log["speed"] = get_mph_string(new_distance.speed(new_duration))
-    new_cost = journey.cost.add(float(log["cost"]))
+    log["no_journeys"] = no_journeys + 1
+    log["no_legs"] = no_legs + journey.no_legs
+    log["delay"] = get_diff_string(delay) + get_diff_string(journey.delay)
+    new_duration_act = duration_act + journey.duration.act
+    new_duration_plan = duration_plan + journey.duration.plan
+    new_duration_diff = duration_diff + journey.duration.diff
+    new_distance = Mileage(miles, chains).add(journey.distance)
+    log["duration"] = {
+        "act": get_duration_string(new_duration_act),
+        "plan": get_duration_string(new_duration_plan),
+        "diff":  get_diff_string(new_duration_diff)
+    }
+    log["distance"] = {
+        "miles": new_distance.miles,
+        "chains": new_distance.chains,
+        "total": new_distance.all_miles
+    }
+    log["speed"] = get_mph_string(new_distance.speed(new_duration_act))
+    new_cost = journey.cost.add(cost)
     log["cost"] = new_cost.to_string()
     log["cost_per_mile"] = new_cost.per_mile(new_distance).to_string()
     write_logfile(log, log_file)
 
 
 def read_logfile(log_file: str):
-    log = []
+    log = {}
     try:
         with open(log_file, "r") as input:
             log = json.load(input)
         if log is None:
-            log = []
+            log = {}
     except:
         debug(f'Logfile {log_file} not found, making empty log')
     return log
