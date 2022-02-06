@@ -1657,7 +1657,7 @@
 - code: EXC
   name: Exeter Central
 - code: EXD
-  name: Exeter St David's
+  name: Exeter St Davids
 - code: EXT
   name: Exeter St Thomas
 - code: EXG
@@ -3693,7 +3693,7 @@
 - code: PRB
   name: Prestbury
 - code: PRE
-  name: Preston (Lancs)
+  name: Preston
 - code: PRP
   name: Preston Park
 - code: PST

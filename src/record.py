@@ -372,7 +372,7 @@ def add_to_logfile(log_file: str):
         no_legs = log["no_legs"]
         delay = int(log["delay"])
         duration_act = timedelta_from_string(log["duration"]["act"])
-        duration_plan = timedelta_from_string(log["duration"]["diff"])
+        duration_plan = timedelta_from_string(log["duration"]["plan"])
         duration_diff = int(log["duration"]["diff"])
         miles = log["distance"]["miles"]
         chains = log["distance"]["chains"]

@@ -33,7 +33,7 @@ def get_station_crs_from_name(name: str):
     try:
         return station_name_to_code[name.lower()]
     except:
-        error_msg("Station name not found...")
+        error_msg(f"Station name {name} not found...")
         error_msg(
             "This should not happen! Please file an issue at https://github.com/georgejkaye/train-tracker/issues")
 
