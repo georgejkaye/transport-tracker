@@ -30,15 +30,19 @@ if len(sys.argv) != 3:
 input_log = sys.argv[1]
 output_dir = sys.argv[2]
 
+output_dir = Path(output_dir)
+assets_dir = Path(assets_dir)
+
 try:
     os.mkdir(output_dir)
 except:
     pass
 
-scss_file = Path(assets_dir + "/styles.scss")
 
-output_file = Path(output_dir + "/index.html")
-output_css = Path(output_dir + "/styles.css")
+scss_file = Path(assets_dir / "styles.scss")
+
+output_file = Path(output_dir / "index.html")
+output_css = Path(output_dir / "styles.css")
 
 with open(input_log) as logfile:
     data = json.load(logfile)
@@ -56,16 +60,21 @@ css = sass.compile(string=scss)
 with open(output_css, "w+") as file:
     file.write(css)
 
-assets_imgs_dir = Path(assets_dir + "/imgs")
-output_imgs_dir = Path(output_dir + "/imgs")
+scripts_file = Path(assets_dir / "scripts.js")
+output_scripts_file = Path(output_dir / "scripts.js")
+copy(scripts_file, output_scripts_file)
+
+assets_imgs_dir = Path(assets_dir / "imgs")
+output_imgs_dir = Path(output_dir / "imgs")
 
 try:
     os.mkdir(output_imgs_dir)
 except:
     pass
 
+
 for file in os.listdir(assets_imgs_dir):
     filename = os.fsdecode(file)
-    input_file = Path(assets_dir + "/imgs/" + filename)
-    output_file = Path(output_dir + "/imgs/" + filename)
+    input_file = Path(assets_dir / "imgs" / filename)
+    output_file = Path(output_dir / "imgs" / filename)
     copy(input_file, output_file)

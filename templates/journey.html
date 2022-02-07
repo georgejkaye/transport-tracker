@@ -1,7 +1,7 @@
 {% import 'leg.html' as leg %}
 
 {% macro journey(journey, i) %}
-<div class="journey">
+<div id="journey-{{- i -}}" class="journey">
     <div class="journey-row">
         <div class="journey-id">#{{ i }}</div>
         <div class="journey-stats">
@@ -26,7 +26,7 @@
         </div>
     </div>
     {% for l in journey["legs"] %}
-        {{- leg.leg(l) }}
+        {{- leg.leg(l, i, loop.index) }}
     {% endfor %}
 </div>
 {% endmacro %}

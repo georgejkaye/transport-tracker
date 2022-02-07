@@ -370,3 +370,15 @@ td {
     display: none;
   }
 }
+
+.divider {
+  display: flex;
+}
+
+.line {
+  flex: 1;
+}
+
+.line-text {
+  padding-top: 8px;
+}
