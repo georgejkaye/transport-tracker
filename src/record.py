@@ -240,8 +240,8 @@ def make_leg_entry(leg: Leg):
     entry = {
         "date": {
             "year": leg.date.year,
-            "month": leg.date.month,
-            "day": leg.date.day,
+            "month": pad_front(leg.date.month, 2),
+            "day": pad_front(leg.date.day, 2),
         },
         "operator": leg.toc,
         "mileage": {
@@ -393,7 +393,7 @@ def add_to_logfile(log_file: str):
     log["journeys"] = all_journeys
     log["no_journeys"] = no_journeys + 1
     log["no_legs"] = no_legs + journey.no_legs
-    log["delay"] = get_diff_string(delay) + get_diff_string(journey.delay)
+    log["delay"] = get_diff_string(delay + journey.delay)
     new_duration_act = duration_act + journey.duration.act
     new_duration_plan = duration_plan + journey.duration.plan
     new_duration_diff = duration_diff + journey.duration.diff

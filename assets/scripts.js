@@ -1,18 +1,28 @@
 let stopDivKey = "stops"
+let stopButtonClass = "stop-toggle"
 
-// Add behaviour to stop toggle buttons
-let elements = document.getElementsByClassName("stop-toggle")
-for (let element of elements) {
-    let id = element.id.substring(12)
-    element.onclick = function (e) {
-        console.log(`hello ${id}!`)
-        let stopSection = document.getElementById(`${stopDivKey}-${id}`)
-        if (stopSection.style.display === "none") {
-            stopSection.style.display = "block"
-            element.innerText = "Show less"
-        } else {
-            stopSection.style.display = "none"
-            element.innerText = "Show more"
+let performanceDivKey = "performance-details"
+let performanceButtonClass = "performance-toggle"
+
+function assignOnclickBehaviour(className, divKey, text) {
+    console.log(className.length)
+    let elements = document.getElementsByClassName(className)
+    for (let element of elements) {
+        console.log(element.id)
+        let id = element.id.substring(className.length + 1)
+        element.onclick = function (e) {
+            console.log(`hello ${id}!`)
+            let section = document.getElementById(`${divKey}-${id}`)
+            if (section.style.display === "none") {
+                section.style.display = "flex"
+                element.innerText = `Hide ${text}`
+            } else {
+                section.style.display = "none"
+                element.innerText = `Show ${text}`
+            }
         }
     }
 }
+
+assignOnclickBehaviour(stopButtonClass, stopDivKey, "stops")
+assignOnclickBehaviour(performanceButtonClass, performanceDivKey, "performance")

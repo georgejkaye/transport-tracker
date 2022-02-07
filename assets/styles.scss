@@ -193,10 +193,13 @@ hr {
 
 .leg-top {
   font-weight: bold;
+  align-items: center;
 }
 
 .leg-top-left {
   display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .service-operator {
