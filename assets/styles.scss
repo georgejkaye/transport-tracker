@@ -29,20 +29,24 @@ $toc-colours: (
   "west-midlands-railway": #ff8200,
 );
 
-$nr-blue: #002163;
-$nr-blue-lighter: lighten($nr-blue, 10%);
-$nr-blue-lighterer: lighten($nr-blue, 20%);
-$nr-white: #ffffff;
-$nr-yellow: #fed200;
+$nr-bg: #000000;
+$nr-bg-lighter: lighten($nr-bg, 10%);
+$nr-bg-lighterer: lighten($nr-bg, 20%);
+$nr-fg: #ffffff;
 $table-border-colour: #545454;
 
+@font-face {
+  font-family: "RailAlphabet";
+  src: url(('rail-alphabet.ttf'));
+}
+
 html {
-  background-color: $nr-blue;
-  color: $nr-white;
+  background-color: $nr-bg;
+  color: $nr-fg;
 }
 
 body {
-  font-family: "Raleway", sans-serif;
+  font-family: "RailAlphabet", "Raleway", sans-serif;
   max-width: 800px;
   margin: auto;
 
@@ -53,7 +57,7 @@ body {
 
 h1 {
   text-align: center;
-  color: $nr-yellow;
+  color: $nr-fg;
 }
 
 img {
@@ -90,7 +94,7 @@ hr {
 }
 
 .journey {
-  background-color: $nr-blue-lighter;
+  background-color: $nr-bg-lighter;
   border-radius: 10px;
   margin: 20px 0;
   padding: 10px;
@@ -99,8 +103,8 @@ hr {
 .journey-id {
   font-size: 3em;
   text-align: center;
-  background-color: $nr-yellow;
-  color: $nr-blue;
+  background-color: $nr-bg-lighterer;
+  color: $nr-fg;
   font-weight: bold;
   padding: 5px 5px 5px 5px;
   margin: 10px 10px 10px 0;
@@ -119,7 +123,7 @@ hr {
 .log-stat-caption,
 .journey-item-caption {
   font-size: 1.25em;
-  color: $nr-yellow;
+  color: $nr-fg;
 }
 
 .journey-stats-row {
@@ -136,7 +140,7 @@ hr {
 .log-stat-item,
 .journey-item {
   margin: 5px 10px;
-  background-color: gray;
+  background-color: $nr-bg-lighterer;
   padding: 5px;
   border-radius: 10px;
   font-size: 1.5em;
@@ -145,7 +149,7 @@ hr {
 
 .leg {
   border-radius: 10px;
-  border-color: gray;
+  border-color: $nr-bg-lighterer;
   background-color: black;
 
   margin: 10px 0px;
@@ -318,7 +322,7 @@ td {
 }
 
 .performance-detail-item {
-  background-color: gray;
+  background-color: $nr-bg-lighter;
   padding: 5px;
   border-radius: 10px;
   margin: 0 10px;

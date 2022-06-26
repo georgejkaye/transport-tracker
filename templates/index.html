@@ -35,7 +35,7 @@
                 <div class="log-stat-caption">Diff</div>
                 <div class="log-stat-item">{{ data["duration"]["diff"] }}</div>
                 <div class="log-stat-caption">Delay</div>
-                <div class="log-stat-item {{ data["status"] }}">{{ data["delay"] }}</div>
+                <div class="log-stat-item late">{{ data["delay"] }}</div>
             </div>
             {% for j in data["journeys"] -%}
                 {{- journey.journey(j, loop.index) }}

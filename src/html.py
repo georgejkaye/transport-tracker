@@ -40,6 +40,7 @@ except:
 
 
 scss_file = Path(assets_dir / "styles.scss")
+font_file = Path(assets_dir / "rail-alphabet.ttf")
 
 output_file = Path(output_dir / "index.html")
 output_css = Path(output_dir / "styles.css")
@@ -63,6 +64,9 @@ with open(output_css, "w+") as file:
 scripts_file = Path(assets_dir / "scripts.js")
 output_scripts_file = Path(output_dir / "scripts.js")
 copy(scripts_file, output_scripts_file)
+
+output_font_file = Path(output_dir / "rail-alphabet.ttf")
+copy(font_file, output_font_file)
 
 assets_imgs_dir = Path(assets_dir / "imgs")
 output_imgs_dir = Path(output_dir / "imgs")
