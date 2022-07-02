@@ -1,6 +1,20 @@
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
+very = 5
+
+
+def get_status(diff: int):
+    if diff <= -very:
+        return "very-early"
+    if diff < 0:
+        return "early"
+    if diff == 0:
+        return "on-time"
+    if diff < very:
+        return "late"
+    return "very-late"
+
 
 def add(dt: datetime, delta: int):
     return dt + timedelta(minutes=delta)
@@ -60,6 +74,15 @@ def get_diff_string(diff: int):
     if diff < 0:
         return f"{diff}"
     return "0"
+
+
+def get_diff_struct(diff: int):
+    string = get_diff_string(diff)
+    status = get_status(diff)
+    return {
+        "diff": string,
+        "status": status
+    }
 
 
 def get_duration(start: time, end: time) -> datetime:

@@ -2,7 +2,7 @@ from datetime import date, datetime, time, timedelta
 
 from api import check_response, request, station_endpoint, service_endpoint
 from debug import error_msg
-from times import get_hourmin_string, get_url, pad_front, to_time
+from times import get_hourmin_string, get_url, pad_front, to_time, get_status
 from network import get_station_crs_from_name, get_station_name_from_crs, station_name_to_code, lnwr_dests
 
 
@@ -33,6 +33,14 @@ class Mileage:
         chains = self.chains + other.chains
         miles = miles + int(chains / 80)
         chains = chains % 80
+        return Mileage(miles, chains)
+
+    def subtract(self, other):
+        miles = self.miles - other.miles
+        chains = self.chains - other.chains
+        if (chains < 0):
+            miles = miles - 1
+            chains = 80 + chains
         return Mileage(miles, chains)
 
     def speed(self, dur: timedelta):
@@ -136,18 +144,6 @@ class Station:
         return stop_filtered
 
 
-def get_status(diff: int):
-    if diff <= -5:
-        return "very-early"
-    if diff < 0:
-        return "early"
-    if diff == 0:
-        return "on-time"
-    if diff < 5:
-        return "late"
-    return "very-late"
-
-
 class PlanActTime:
     def __init__(self, date: date, plan: str, act: str):
         if plan is not None:
@@ -200,6 +196,8 @@ class Location:
         self.dep = PlanActTime(date,
                                loc.get("gbttBookedDeparture"), loc.get("realtimeDeparture"))
         self.platform = loc.get("platform")
+        if self.platform is None:
+            self.platform = "-"
 
 
 class Service:

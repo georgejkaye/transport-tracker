@@ -2,8 +2,9 @@ import json
 from datetime import time, date, datetime, timedelta
 
 from network import get_matching_station_names, get_station_crs_from_name, get_station_name_from_crs, station_codes, station_code_to_name, station_name_to_code, stock_dict
-from times import get_duration_string, pad_front, add, get_hourmin_string, get_diff_string, get_duration, to_time
-from structures import Journey, Leg, Mileage, PlanActDuration, PlanActTime, Price, Service, ShortLocation, Station, Location, add_durations, get_mph_string, get_status, new_duration
+from scraper import get_mileage_for_service_call
+from times import get_diff_struct, get_duration_string, pad_front, add, get_hourmin_string, get_diff_string, get_duration, to_time, get_status
+from structures import Journey, Leg, Mileage, PlanActDuration, PlanActTime, Price, Service, ShortLocation, Station, Location, add_durations, get_mph_string, new_duration
 from debug import debug
 
 
@@ -158,7 +159,6 @@ def get_service(station: Station, destination_crs: str):
 
     while True:
         services = station.services
-
         if services is not None:
             # We want to search within a smaller timeframe
             timeframe = 15
@@ -188,6 +188,13 @@ def get_stock(service: Service):
     # Or if know your train becomes part of the api
     stock = pick_from_list(stock_dict[service.toc], "Stock", False)
     return stock
+
+
+def compute_mileage(service: Service, origin: str, destination: str) -> Mileage:
+    origin_mileage = get_mileage_for_service_call(service, origin)
+    destination_mileage = get_mileage_for_service_call(
+        service, destination)
+    return destination_mileage.subtract(origin_mileage)
 
 
 def get_mileage():
@@ -330,7 +337,7 @@ def record_new_leg(start: datetime, station: Station):
     origin_station = Station(origin_crs, dt)
     service = get_service(origin_station, destination_crs)
     stock = get_stock(service)
-    mileage = get_mileage()
+    mileage = compute_mileage(service, origin_crs, destination_crs)
     leg = Leg(service, origin_crs, destination_crs, mileage, stock)
     return leg
 
@@ -370,7 +377,7 @@ def add_to_logfile(log_file: str):
         all_journeys = log["journeys"]
         no_journeys = log["no_journeys"]
         no_legs = log["no_legs"]
-        delay = int(log["delay"])
+        delay = int(log["delay"]["diff"])
         duration_act = timedelta_from_string(log["duration"]["act"])
         duration_plan = timedelta_from_string(log["duration"]["plan"])
         duration_diff = int(log["duration"]["diff"])
@@ -393,7 +400,7 @@ def add_to_logfile(log_file: str):
     log["journeys"] = all_journeys
     log["no_journeys"] = no_journeys + 1
     log["no_legs"] = no_legs + journey.no_legs
-    log["delay"] = get_diff_string(delay + journey.delay)
+    log["delay"] = get_diff_struct(delay + journey.delay)
     new_duration_act = duration_act + journey.duration.act
     new_duration_plan = duration_plan + journey.duration.plan
     new_duration_diff = duration_diff + journey.duration.diff
