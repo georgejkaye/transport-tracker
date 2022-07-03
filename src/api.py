@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from datetime import date
+from typing import Dict, Any
 
 import requests
 
@@ -6,8 +8,8 @@ from debug import debug_msg
 
 rtt_credentials_file = "rtt.credentials"
 rtt_endpoint = "https://api.rtt.io/api/v1/json/"
-station_endpoint = rtt_endpoint + "search/"
-service_endpoint = rtt_endpoint + "service/"
+station_endpoint = rtt_endpoint + "search"
+service_endpoint = rtt_endpoint + "service"
 
 
 @dataclass
@@ -39,3 +41,10 @@ def check_response(response):
     if response.status_code != 200:
         print(f"{str(response.status_code)}: {response.content}")
         exit(1)
+
+
+def request_service(uid: str, service_date: date, credentials: Credentials) -> Dict[str, Any]:
+    date_string = service_date.strftime("%Y-%m-%d")
+    response = request(f"{service_endpoint}/{uid}/{date_string}", credentials)
+    check_response(response)
+    return response.json()

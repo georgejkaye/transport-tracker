@@ -1,19 +1,57 @@
+from enum import Enum
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
-very = 5
+# How many minutes late/early is 'very' late/early
+very: int = 5
 
 
-def get_status(diff: int):
+class OnTimeStatus(Enum):
+    VERY_EARLY = "very-early"
+    EARLY = "early"
+    ON_TIME = "on-time"
+    LATE = "late"
+    VERY_LATE = "very-late"
+
+
+@dataclass
+class PlanActTime:
+    plan: datetime
+    act: datetime
+    diff: int
+    status: OnTimeStatus
+
+
+def get_diff(a: datetime, b: datetime) -> int:
+    c = a - b
+    return int(c.total_seconds() / 60.0)
+
+
+def get_status(diff: int) -> OnTimeStatus:
     if diff <= -very:
-        return "very-early"
+        return OnTimeStatus.VERY_EARLY
     if diff < 0:
-        return "early"
+        return OnTimeStatus.EARLY
     if diff == 0:
-        return "on-time"
+        return OnTimeStatus.ON_TIME
     if diff < very:
-        return "late"
-    return "very-late"
+        return OnTimeStatus.LATE
+    return OnTimeStatus.VERY_LATE
+
+
+def make_planact(date: date, plan: str, act: str):
+    plan_time = datetime.strptime(plan, "%H%M")
+    act_time = datetime.strptime(act, "%H%M")
+    plan_datetime = datetime.combine(date, plan_time.time())
+    act_datetime = datetime.combine(date, act_time.time())
+    diff = get_diff(act_datetime, plan_datetime)
+    status = get_status(diff)
+    return PlanActTime(
+        plan_datetime,
+        act_datetime,
+        diff,
+        status
+    )
 
 
 def add(dt: datetime, delta: int):
