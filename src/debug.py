@@ -3,7 +3,7 @@ from termcolor import cprint
 debug = True
 
 
-def debug(string):
+def debug_msg(string) -> None:
     if debug:
         cprint(string, "yellow")
 

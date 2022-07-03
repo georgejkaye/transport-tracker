@@ -1,11 +1,12 @@
 import json
 from datetime import time, date, datetime, timedelta
+from api import Credentials
 
 from network import get_matching_station_names, get_station_crs_from_name, get_station_name_from_crs, station_codes, station_code_to_name, station_name_to_code, stock_dict
 from scraper import get_mileage_for_service_call
 from times import get_diff_struct, get_duration_string, pad_front, add, get_hourmin_string, get_diff_string, get_duration, to_time, get_status
 from structures import Journey, Leg, Mileage, PlanActDuration, PlanActTime, Price, Service, ShortLocation, Station, Location, add_durations, get_mph_string, new_duration
-from debug import debug
+from debug import debug_msg
 
 
 def timedelta_from_string(str):
@@ -77,7 +78,7 @@ def get_input_price(prompt):
             print(f"Expected price but got '{string}'")
 
 
-def get_station_string(prompt: str, stn: Station = None):
+def get_station_string(prompt: str, stn: Station | None = None):
     """
     Get a string specifying a station from a user.
     Can either be a three letter code (in which case confirmation will be asked for)
@@ -142,17 +143,17 @@ def pick_from_list(choices: list, prompt: str, cancel: bool, display=lambda x: x
     while True:
         resp = input(prompt + " (1-" + str(max_choice) + "): ")
         try:
-            resp = int(resp)
+            resp_no = int(resp)
             if cancel and resp == len(choices) + 1:
                 return None
-            elif resp > 0 or resp < len(choices):
-                return choices[resp-1]
-            print(f'Expected number 1-{max_choice} but got \'{resp}\'')
+            elif resp_no > 0 or resp_no < len(choices):
+                return choices[resp_no - 1]
+            print(f'Expected number 1-{max_choice} but got \'{resp_no}\'')
         except:
-            print(f'Expected number 1-{max_choice} but got \'{resp}\'')
+            print(f'Expected number 1-{max_choice} but got \'{resp_no}\'')
 
 
-def get_service(station: Station, destination_crs: str):
+def get_service(station: Station, destination_crs: str, creds: Credentials):
     """
     Record a new journey in the logfile
     """
@@ -169,10 +170,10 @@ def get_service(station: Station, destination_crs: str):
             # We only want to check our given timeframe
             # We also only want services that stop at our destination
             filtered_services = station.filter_services_by_time_and_stop(
-                earliest_time, latest_time, station.crs, destination_crs
+                earliest_time, latest_time, station.crs, destination_crs, creds
             )
 
-            debug("Searching for services from " + station.name)
+            debug_msg("Searching for services from " + station.name)
             choice = pick_from_list(
                 filtered_services, "Pick a service", True, lambda x: x.get_string(station.crs))
 
@@ -324,25 +325,25 @@ def get_time(start: datetime = None):
     return to_time(tt)
 
 
-def get_datetime(start: date = None):
+def get_datetime(start: datetime | None = None):
     date = get_date(start)
     time = get_time(start)
     return datetime(date.year, date.month, date.day, time.hour, time.minute)
 
 
-def record_new_leg(start: datetime, station: Station):
+def record_new_leg(start: datetime | None, station: Station | None, creds: Credentials):
     origin_crs = get_station_string("Origin", station)
     destination_crs = get_station_string("Destination")
     dt = get_datetime(start)
-    origin_station = Station(origin_crs, dt)
-    service = get_service(origin_station, destination_crs)
+    origin_station = Station(origin_crs, dt, creds)
+    service = get_service(origin_station, destination_crs, creds)
     stock = get_stock(service)
     mileage = compute_mileage(service, origin_crs, destination_crs)
     leg = Leg(service, origin_crs, destination_crs, mileage, stock)
     return leg
 
 
-def record_new_journey():
+def record_new_journey(creds: Credentials):
     legs = []
     dt = None
     distance = Mileage(0, 0)
@@ -350,7 +351,7 @@ def record_new_journey():
     delay = 0
     station = None
     while True:
-        leg = record_new_leg(dt, station)
+        leg = record_new_leg(dt, station, creds)
         legs.append(leg)
         # update the running totals for distance and duration
         distance = distance.add(leg.distance)
@@ -370,8 +371,8 @@ def record_new_journey():
     return journey
 
 
-def add_to_logfile(log_file: str):
-    journey = record_new_journey()
+def add_to_logfile(log_file: str, creds: Credentials):
+    journey = record_new_journey(creds)
     log = read_logfile(log_file)
     if log != {}:
         all_journeys = log["journeys"]
@@ -430,7 +431,7 @@ def read_logfile(log_file: str):
         if log is None:
             log = {}
     except:
-        debug(f'Logfile {log_file} not found, making empty log')
+        debug_msg(f'Logfile {log_file} not found, making empty log')
     return log
 
 

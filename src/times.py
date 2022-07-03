@@ -48,15 +48,15 @@ def get_mins(datetime: datetime):
     return pad_front(datetime.minute, 2)
 
 
-def get_year(datetime: datetime):
+def get_year(datetime: datetime | date):
     return str(datetime.year)
 
 
-def get_month(datetime: datetime):
+def get_month(datetime: datetime | date):
     return pad_front(datetime.month, 2)
 
 
-def get_day(datetime: datetime):
+def get_day(datetime: datetime | date):
     return pad_front(datetime.day, 2)
 
 
@@ -85,14 +85,14 @@ def get_diff_struct(diff: int):
     }
 
 
-def get_duration(start: time, end: time) -> datetime:
-    start = datetime.combine(date.today(), start)
-    end = datetime.combine(date.today(), end)
+def get_duration(start: time, end: time) -> timedelta:
+    start_datetime = datetime.combine(date.today(), start)
+    end_datetime = datetime.combine(date.today(), end)
 
-    if end <= start:
-        end = end + timedelta(1)
+    if end_datetime <= start_datetime:
+        start_datetime = start_datetime + timedelta(1)
 
-    return end - start
+    return end_datetime - start_datetime
 
 
 def to_time(str: str):

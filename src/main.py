@@ -12,5 +12,5 @@ if __name__ == "__main__":
     output_file = sys.argv[1]
 
     setup_network()
-    authenticate()
-    add_to_logfile(output_file)
+    creds = authenticate()
+    add_to_logfile(output_file, creds)

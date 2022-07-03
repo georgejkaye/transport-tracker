@@ -1,6 +1,6 @@
 from datetime import date, datetime, time, timedelta
 
-from api import check_response, request, station_endpoint, service_endpoint
+from api import Credentials, check_response, request, station_endpoint, service_endpoint
 from debug import error_msg
 from times import get_hourmin_string, get_url, pad_front, to_time, get_status
 from network import get_station_crs_from_name, get_station_name_from_crs, station_name_to_code, lnwr_dests
@@ -113,12 +113,12 @@ class ServiceAtStation:
 
 
 class Station:
-    def __init__(self, crs: str, dt: datetime):
+    def __init__(self, crs: str, dt: datetime, creds: Credentials):
         self.name = get_station_name_from_crs(crs)
         self.crs = crs
         self.datetime = dt
         endpoint = f"{station_endpoint}{self.crs}/{get_url(dt)}"
-        response = request(endpoint)
+        response = request(endpoint, creds)
         check_response(response)
         station = response.json()
         self.tiploc = station["location"]["tiploc"]
@@ -134,11 +134,11 @@ class Station:
                     filtered_services.append(service)
         return filtered_services
 
-    def filter_services_by_time_and_stop(self, earliest: datetime, latest: datetime, origin_crs: str, destination_crs: str):
+    def filter_services_by_time_and_stop(self, earliest: datetime, latest: datetime, origin_crs: str, destination_crs: str, creds: Credentials):
         time_filtered: list = self.filter_services_by_time(earliest, latest)
         stop_filtered: list[Service] = []
         for service in time_filtered:
-            full_service = Service(service.service_id, service.date)
+            full_service = Service(service.service_id, service.date, creds)
             if full_service.stops_at_station(origin_crs, destination_crs):
                 stop_filtered.append(full_service)
         return stop_filtered
@@ -201,22 +201,23 @@ class Location:
 
 
 class Service:
-    def __init__(self, service: str, d: date):
+    def __init__(self, service: str, d: datetime, credentials: Credentials):
         endpoint = f"{service_endpoint}{service}/{get_url(d, False)}"
-        response = request(endpoint)
+        response = request(endpoint, credentials)
         check_response(response)
-        service = response.json()
+        service_json = response.json()
         self.date = d
-        self.origins = list(map(ShortLocation, service["origin"]))
-        self.destinations = list(map(ShortLocation, service["destination"]))
-        self.uid = service["serviceUid"]
-        self.headcode = service["trainIdentity"]
-        self.power = service["powerType"]
-        self.tocCode = service["atocCode"]
+        self.origins = list(map(ShortLocation, service_json["origin"]))
+        self.destinations = list(
+            map(ShortLocation, service_json["destination"]))
+        self.uid = service_json["serviceUid"]
+        self.headcode = service_json["trainIdentity"]
+        self.power = service_json["powerType"]
+        self.tocCode = service_json["atocCode"]
 
         lnwr = False
 
-        self.toc = service["atocName"]
+        self.toc = service_json["atocName"]
 
         if self.toc == "LNER":
             self.toc = "London North Eastern Railway"
@@ -236,7 +237,7 @@ class Service:
                 self.toc = "West Midlands Railway"
 
         self.calls = list(map(lambda x: Location(
-            self.date, x), service["locations"]))
+            self.date, x), service_json["locations"]))
 
     def origin(self):
         return self.calls[0]
@@ -259,7 +260,7 @@ class Service:
             if loc.crs == crs:
                 arr = loc.arr
                 if arr.act is not None:
-                    return datetime.combine(self.date, arr.act)
+                    return datetime.combine(self.date, arr.act.time())
                 return datetime.combine(self.date, arr.plan)
 
     def get_dep_from(self, crs: str, plan: bool):

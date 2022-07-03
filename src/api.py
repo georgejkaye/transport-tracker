@@ -1,6 +1,8 @@
+from dataclasses import dataclass
+
 import requests
 
-from debug import debug
+from debug import debug_msg
 
 rtt_credentials_file = "rtt.credentials"
 rtt_endpoint = "https://api.rtt.io/api/v1/json/"
@@ -8,26 +10,27 @@ station_endpoint = rtt_endpoint + "search/"
 service_endpoint = rtt_endpoint + "service/"
 
 
-def authenticate():
-    """
-    Globally set the realtime trains username and password
-    """
+@dataclass
+class Credentials:
+    usr: str
+    pwd: str
 
-    global usr
-    global pwd
 
+def authenticate() -> Credentials:
     try:
         with open(rtt_credentials_file, "r") as rtt_credentials:
             (usr, pwd) = rtt_credentials.read().splitlines()
+            return Credentials(usr, pwd)
+
     except:
         print("Could not open rtt.credentials.")
         exit(1)
 
 
-def request(url: str):
+def request(url: str, credentials: Credentials):
     """Make a request to a url and get its response"""
-    debug("Requesting " + url)
-    response = requests.get(url, auth=(usr, pwd))
+    debug_msg("Requesting " + url)
+    response = requests.get(url, auth=(credentials.usr, credentials.pwd))
     return response
 
 

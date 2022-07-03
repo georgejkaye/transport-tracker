@@ -1,7 +1,7 @@
 import requests
 
 from datetime import date
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup  # type: ignore
 from debug import error_msg
 
 from structures import Mileage, Service
