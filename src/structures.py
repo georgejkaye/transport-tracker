@@ -1,4 +1,7 @@
+import requests
+
 from datetime import date, datetime, time, timedelta
+from bs4 import BeautifulSoup
 
 from api import check_response, request, station_endpoint, service_endpoint
 from debug import error_msg
@@ -8,6 +11,26 @@ from network import get_station_crs_from_name, get_station_name_from_crs, statio
 
 def get_mph_string(speed: float):
     return "{:.2f}".format(speed)
+
+
+def soupify(doc: str) -> BeautifulSoup:
+    return BeautifulSoup(doc, "html.parser")
+
+
+def get_service_page_url(date: date, id: str) -> str:
+    date_string = date.strftime("%Y-%m-%d")
+    return f"https://www.realtimetrains.co.uk/service/gb-nr:{id}/{date_string}/detailed"
+
+
+def get_service_page(date: date, id: str) -> BeautifulSoup:
+    url = get_service_page_url(date, id)
+    page = requests.get(url)
+    if (page.status_code != 200):
+        error_msg(f"Request {url} failed: {page.status_code}")
+        exit(1)
+
+    html_doc = page.text
+    return soupify(html_doc)
 
 
 class PlanActDuration:
@@ -213,6 +236,7 @@ class Service:
         self.headcode = service["trainIdentity"]
         self.power = service["powerType"]
         self.tocCode = service["atocCode"]
+        self.page = get_service_page(self.date, self.uid)
 
         lnwr = False
 

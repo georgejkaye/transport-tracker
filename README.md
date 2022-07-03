@@ -4,22 +4,10 @@ Get the details of trains you've been on, and present them prettily
 
 ## Dependencies
 
-You can install the packages yourself with `pip`...
-
-```sh
-pip install Jinja2 termcolor libsass
-```
-
-... or use the `requirements.txt` file...
+You can install the dependencies with `pip`.
 
 ```sh
 pip install -r requirements.txt
-```
-
-...or use `pipenv`.
-
-```sh
-pipenv install
 ```
 
 ## Credentials

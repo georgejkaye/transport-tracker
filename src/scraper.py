@@ -1,30 +1,9 @@
-import requests
 
-from datetime import date
+import re
 from bs4 import BeautifulSoup
-from debug import error_msg
+from network import get_station_crs_from_name
 
 from structures import Mileage, Service
-
-
-def soupify(doc: str) -> BeautifulSoup:
-    return BeautifulSoup(doc, "html.parser")
-
-
-def get_service_page_url(date: date, id: str) -> str:
-    date_string = date.strftime("%Y-%m-%d")
-    return f"https://www.realtimetrains.co.uk/service/gb-nr:{id}/{date_string}/detailed"
-
-
-def get_service_page(date: date, id: str) -> BeautifulSoup:
-    url = get_service_page_url(date, id)
-    page = requests.get(url)
-    if (page.status_code != 200):
-        error_msg(f"Request {url} failed: {page.status_code}")
-        exit(1)
-
-    html_doc = page.text
-    return soupify(html_doc)
 
 
 def get_location_div(soup: BeautifulSoup, crs: str) -> BeautifulSoup:
@@ -40,7 +19,35 @@ def get_miles_and_chains(div: BeautifulSoup) -> Mileage:
     return Mileage(int(miles.get_text()), int(chains.get_text()))
 
 
+single_alloc_regex = r"Operated with ([0-9 \+]*)"
+multi_alloc_regex = r"([0-9 \+]*) to ([A-Za-z ]*)"
+
+
+def get_allocation(service: Service, origin: str, destination: str) -> list[tuple[list[int], tuple[str, str]]]:
+    soup = service.page
+    alloc_div = soup.find(class_="allocation")
+    alloc_lis = alloc_div.find_all("li")
+    if len(allocs) == 0:
+        alloc_span = alloc_div.find("span")
+        result = re.search(single_alloc_regex, alloc_span.get_text())
+        allocs = [(result.group(1), service.origins[0].crs,
+                   service.destinations[0].crs)]
+    else:
+        previous = service.origins[0].crs
+        allocs = []
+        for alloc in alloc_lis:
+            result = re.search(multi_alloc_regex, alloc)
+            units = result.group(1)
+            until = get_station_crs_from_name(result.group(2))
+            allocs.append((
+                units,
+                previous,
+                until
+            ))
+            previous = until
+    return allocs
+
+
 def get_mileage_for_service_call(service: Service, crs: str) -> Mileage:
-    soup = get_service_page(service.date, service.uid)
-    div = get_location_div(soup, crs)
+    div = get_location_div(service.page, crs)
     return get_miles_and_chains(div)

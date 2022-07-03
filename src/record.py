@@ -2,7 +2,7 @@ import json
 from datetime import time, date, datetime, timedelta
 
 from network import get_matching_station_names, get_station_crs_from_name, get_station_name_from_crs, station_codes, station_code_to_name, station_name_to_code, stock_dict
-from scraper import get_mileage_for_service_call
+from scraper import get_allocation, get_mileage_for_service_call
 from times import get_diff_struct, get_duration_string, pad_front, add, get_hourmin_string, get_diff_string, get_duration, to_time, get_status
 from structures import Journey, Leg, Mileage, PlanActDuration, PlanActTime, Price, Service, ShortLocation, Station, Location, add_durations, get_mph_string, new_duration
 from debug import debug
@@ -182,12 +182,16 @@ def get_service(station: Station, destination_crs: str):
             print("No services found!")
 
 
-def get_stock(service: Service):
+def get_stock(service: Service, origin: str, destination: str):
     # Currently getting this automatically isn't implemented
     # We could trawl wikipedia and make a map of which trains operate which services
     # Or if know your train becomes part of the api
-    stock = pick_from_list(stock_dict[service.toc], "Stock", False)
-    return stock
+    allocation = get_allocation(service, origin, destination)
+    if allocation is None:
+        stock = pick_from_list(stock_dict[service.toc], "Stock", False)
+        allocation = [stock, (origin, destination)]
+
+    return allocation
 
 
 def compute_mileage(service: Service, origin: str, destination: str) -> Mileage:
@@ -336,7 +340,7 @@ def record_new_leg(start: datetime, station: Station):
     dt = get_datetime(start)
     origin_station = Station(origin_crs, dt)
     service = get_service(origin_station, destination_crs)
-    stock = get_stock(service)
+    stock = get_stock(service, origin_crs, destination_crs)
     mileage = compute_mileage(service, origin_crs, destination_crs)
     leg = Leg(service, origin_crs, destination_crs, mileage, stock)
     return leg
