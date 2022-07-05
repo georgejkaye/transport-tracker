@@ -6,8 +6,8 @@ from times import PlanActTime
 
 @dataclass
 class Mileage:
-    miles: int
-    chains: int
+    miles: Optional[int]
+    chains: Optional[int]
 
 
 @dataclass
@@ -22,7 +22,7 @@ class Location:
     name: str
     crs: str
     tiploc: str
-    arr: PlanActTime
-    dep: PlanActTime
+    arr: Optional[PlanActTime]
+    dep: Optional[PlanActTime]
     platform: Optional[str]
     mileage: Mileage

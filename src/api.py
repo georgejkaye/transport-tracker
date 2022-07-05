@@ -44,7 +44,7 @@ def check_response(response):
 
 
 def request_service(uid: str, service_date: date, credentials: Credentials) -> Dict[str, Any]:
-    date_string = service_date.strftime("%Y-%m-%d")
+    date_string = service_date.strftime("%Y/%m/%d")
     response = request(f"{service_endpoint}/{uid}/{date_string}", credentials)
     check_response(response)
     return response.json()

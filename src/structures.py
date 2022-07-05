@@ -117,7 +117,7 @@ class Station:
         self.name = get_station_name_from_crs(crs)
         self.crs = crs
         self.datetime = dt
-        endpoint = f"{station_endpoint}{self.crs}/{get_url(dt)}"
+        endpoint = f"{station_endpoint}/{self.crs}/{get_url(dt)}"
         response = request(endpoint, creds)
         check_response(response)
         station = response.json()
@@ -202,7 +202,7 @@ class Location:
 
 class Service:
     def __init__(self, service: str, d: datetime, credentials: Credentials):
-        endpoint = f"{service_endpoint}{service}/{get_url(d, False)}"
+        endpoint = f"{service_endpoint}/{service}/{get_url(d, False)}"
         response = request(endpoint, credentials)
         check_response(response)
         service_json = response.json()
