@@ -8,7 +8,7 @@ station_code_to_name: dict[str, str] = {}
 station_name_to_code: dict[str, str] = {}
 
 with open(lnwr_file) as lnwr:
-    lnwr_dests = yaml.safe_load(lnwr)
+    lnwr_destinations = yaml.safe_load(lnwr)
 
 with open(stock_file) as stock:
     stock_dict = yaml.safe_load(stock)

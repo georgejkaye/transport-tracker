@@ -25,4 +25,4 @@ class Location:
     arr: Optional[PlanActTime]
     dep: Optional[PlanActTime]
     platform: Optional[str]
-    mileage: Mileage
+    mileage: Optional[Mileage]

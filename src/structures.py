@@ -3,7 +3,7 @@ from datetime import date, datetime, time, timedelta
 from api import Credentials, check_response, request, station_endpoint, service_endpoint
 from debug import error_msg
 from times import get_hourmin_string, get_url, pad_front, to_time, get_status
-from network import get_station_crs_from_name, get_station_name_from_crs, station_name_to_code, lnwr_dests
+from network import get_station_crs_from_name, get_station_name_from_crs, station_name_to_code, lnwr_destinations
 
 
 def get_mph_string(speed: float):
@@ -224,11 +224,11 @@ class Service:
 
         if self.toc == "West Midlands Trains":
             for loc in self.origins:
-                if loc.crs in lnwr_dests:
+                if loc.crs in lnwr_destinations:
                     lnwr = True
                     break
             for loc in self.destinations:
-                if loc.crs in lnwr_dests:
+                if loc.crs in lnwr_destinations:
                     lnwr = True
                     break
             if lnwr:

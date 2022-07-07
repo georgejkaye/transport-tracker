@@ -14,10 +14,12 @@ if __name__ == "__main__":
     output_file = sys.argv[1]
 
     setup_network()
-    creds = authenticate()
+    credentials = authenticate()
 
     uid = input("Service uid: ")
 
-    services = make_services(uid, date.today(), creds)
+    services = make_services(uid, date.today(), credentials)
+    for service in services:
+        print(service.uid)
 
     # add_to_logfile(output_file, creds)

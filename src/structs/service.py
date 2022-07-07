@@ -1,14 +1,14 @@
 import re
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Dict, Optional
 
 from bs4 import BeautifulSoup  # type: ignore
 from api import Credentials, request_service
 from debug import debug_msg
 from structs.location import Location, Mileage, ShortLocation
-from network import get_station_crs_from_name, lnwr_dests
+from network import get_station_crs_from_name, lnwr_destinations
 from record import make_planact_entry
 from scraper import get_service_page
 from structures import PlanActTime
@@ -21,35 +21,37 @@ class Allocation:
     until: Optional[str]
 
 
+def get_allocation_list(units: str) -> list[int]:
+    return list(map(lambda x: int(x), units.split(" + ")))
+
+
 def get_allocations(html: BeautifulSoup) -> list[Allocation]:
     allocation_div = html.find(class_="allocation")
-
+    # Some units don't have allocation info yet
     if allocation_div is not None:
-
         lis = allocation_div.find_all("li")
-
+        # If a service only has one allocation for its duration there
+        # will be no lis
         if len(lis) == 0:
-            units = list(map(lambda x: int(x), allocation_div.find(
-                "span").get_text().split(" + ")))
+            units = get_allocation_list(allocation_div.find("span").get_text())
             allocation = Allocation(units, None)
             allocations = [allocation]
         else:
             allocations = []
             for li in lis:
-                allocation_regex = r"([0-9+ ]*) to ([A-Za-z]*)"
+                allocation_regex = r"([0-9+ ]*) to ([A-Za-z ]*)"
                 matches = re.search(allocation_regex, li.get_text())
-
+                # Safety check!
                 if matches is not None:
-                    units = matches.group(1)
-                    split = units.split(" + ")
-                    unit_nos = list(map(lambda x: int(x), split))
+                    unit_match = matches.group(1)
+                    units = get_allocation_list(unit_match)
                     until = matches.group(2)
-                    allocations.append(Allocation(
-                        unit_nos, get_station_crs_from_name(until)))
+                    allocation = Allocation(
+                        units, get_station_crs_from_name(until))
+                    allocations.append(allocation)
                 else:
                     debug_msg("Allocation div exists but no allocation")
                     exit(1)
-
         return allocations
     else:
         return []
@@ -60,7 +62,7 @@ def get_service_url(uid: str, service_date: date) -> str:
     return f"https://www.realtimetrains.co.uk/service/gb-nr:{uid}/{date_string}/detailed"
 
 
-@ dataclass
+@dataclass
 class Service:
     uid: str
     date: date
@@ -70,7 +72,7 @@ class Service:
     power: str
     toc_code: str
     toc: str
-    calls: list[tuple[Allocation, list[Location]]]
+    calls: list[tuple[Optional[Allocation], list[Location]]]
     service_url: str
 
 
@@ -79,15 +81,15 @@ def get_toc(origins: list[ShortLocation], destinations: list[ShortLocation], toc
     if toc == "LNER":
         toc = "London North Eastern Railway"
     # The official toc for West Midlands Railway and London North Western Railway
-    # is West Midlands Trains', but we want to use the former 'brand names'
+    # is West Midlands Trains', but we want to use the 'brand names'
     if toc == "West Midlands Trains":
         lnwr = False
         for loc in origins:
-            if loc.crs in lnwr_dests:
+            if loc.crs in lnwr_destinations:
                 lnwr = True
                 break
         for loc in destinations:
-            if loc.crs in lnwr_dests:
+            if loc.crs in lnwr_destinations:
                 lnwr = True
                 break
         if lnwr:
@@ -97,44 +99,103 @@ def get_toc(origins: list[ShortLocation], destinations: list[ShortLocation], toc
     return toc
 
 
-def get_mileages(html: BeautifulSoup) -> Dict[str, Mileage]:
+def get_mileages(html: BeautifulSoup) -> Dict[str, Optional[Mileage]]:
     calls = html.find_all(class_="call")
-    mileages: Dict[str, Mileage] = {}
+    mileages: Dict[str, Optional[Mileage]] = {}
     for call in calls:
         location = call.find(class_="name")
-        crs = location.get_text().split(" ")[-1]
+        location_text = location.get_text()
+        # Check if this call is actually a station call
+        # If it is, it'll have a [TLC]
+        if location_text[-1] != "]":
+            continue
+        # Extract the actual CRS
+        crs = location.get_text().split(" ")[-1][1:-1]
         miles = call.find(class_="miles")
-        chains = call.find(class_="chains")
-        mileages[crs[1:-1]] = Mileage(miles, chains)
+        # Not all services have mileages given
+        # If this one doesn't, we just input None
+        if miles is None:
+            mileages[crs] = None
+        else:
+            chains = call.find(class_="chains")
+            mileages[crs] = Mileage(miles, chains)
     return mileages
 
 
-def get_calls(date: date, calls: list[Dict[str, Any]], allocations: list[Allocation], mileage_map: Dict[str, Mileage]) -> tuple[list[tuple[Allocation, list[Location]]], list[tuple[str, str]]]:
-    splits = []
-    formations = []
-    current_formation = []
+"""
+An allocation list is a list of tuples (allocation, locations), where
+allocation is a (possibly None) Allocation object, and locations is a
+list of Location objects that this allocation is used for
+"""
+AllocationList = list[tuple[Optional[Allocation], list[Location]]]
+
+
+@dataclass
+class AssociatedService:
+    """
+    An associated refers to a service that splits off another one
+    """
+    uid: str
+    service_date: date
+
+
+def get_divisions(call: Dict[str, Any]) -> list[AssociatedService]:
+    """
+    Given a call, get the list of services that divide off at it
+    """
+    dividing_services = []
+    associations = call.get("associations")
+    if associations is not None:
+        for association in associations:
+            association_type = association.get("type")
+            if association_type == "divide":
+                association_uid = association["associatedUid"]
+                association_date = datetime.strptime(
+                    association["associatedRunDate"], "%Y-%m-%d").date()
+                associated_service = AssociatedService(
+                    association_uid, association_date)
+                dividing_services.append(associated_service)
+        return dividing_services
+    return []
+
+
+def get_calls(date: date, json: Dict[str, Any]) -> tuple[AllocationList, list[AssociatedService]]:
+    """
+    Get a list of all the calls this service makes, with the associated allocations if available
+    Also returns the list of associated services if any
+    """
+
+    html = get_service_page(date, json["serviceUid"])
+    allocations = get_allocations(html)
+    mileage_map = get_mileages(html)
+    calls = json["locations"]
+
+    division_services: list[AssociatedService] = []
+    formations: list[tuple[Optional[Allocation], list[Location]]] = []
+    locations_with_current_formation: list[Location] = []
+    # Allocation details might be unavailable. If they are,
+    # just set the allocation to None and move on
     if len(allocations) != 0:
-        allocation = allocations.pop(0)
+        current_formation = allocations.pop(0)
     else:
-        allocation = None
+        current_formation = None
     for i, call in enumerate(calls):
         call_name = call["description"]
         call_crs = call["crs"]
         call_tiploc = call["tiploc"]
         platform = call.get("platform")
-
+        # No arrival for first call
         if i != 0:
             arr = make_planact(
                 date, call["gbttBookedArrival"], call.get("realtimeArrival"))
         else:
             arr = None
-
+        # No departure for final call
         if i != len(calls) - 1:
             dep = make_planact(
                 date, call["gbttBookedDeparture"], call.get("realtimeDeparture"))
         else:
             dep = None
-
         location = Location(
             call_name,
             call_crs,
@@ -144,26 +205,23 @@ def get_calls(date: date, calls: list[Dict[str, Any]], allocations: list[Allocat
             platform,
             mileage_map[call_crs]
         )
-
-        current_formation.append(location)
-
-        if allocation is not None and len(allocations) != 0 and call_crs == allocation.until:
-            formations.append((allocation, current_formation))
-            allocation = allocations.pop(0)
-            current_formation = [location]
-
-        # Check for if the service divides
-        associations = call.get("associations")
-        if associations is not None:
-            for assoc in associations:
-                assoc_type = assoc.get("type")
-                if assoc_type == "divide":
-                    splits.append((assoc.get("associatedUid"),
-                                  assoc.get("associatedRundate")))
-
-    formations.append((allocation, current_formation))
-
-    return (formations, splits)
+        locations_with_current_formation.append(location)
+        # Check if we have reached a call at which the formation changes
+        if current_formation is not None and len(allocations) != 0 and call_crs == current_formation.until:
+            formations.append(
+                (current_formation, locations_with_current_formation))
+            current_formation = allocations.pop(0)
+            locations_with_current_formation = [location]
+        # Check if we have reached a call at which the service divides
+        # If this is the first call, we skip it, because if this service
+        # divides off another then the same association is used, and a
+        # service can't divide at the first stop anyway
+        if i != 0:
+            divisions_at_this_call = get_divisions(call)
+            division_services = division_services + divisions_at_this_call
+    # Append the current formation as we never reached the end
+    formations.append((current_formation, locations_with_current_formation))
+    return (formations, division_services)
 
 
 def make_services(uid: str, service_date: date, credentials: Credentials) -> list[Service]:
@@ -180,17 +238,13 @@ def make_services(uid: str, service_date: date, credentials: Credentials) -> lis
 
     service_uid = service_json["serviceUid"]
     url = get_service_url(service_uid, service_date)
-    html = get_service_page(service_date, service_uid)
     headcode = service_json["trainIdentity"]
     origins = map_short_locations(service_json["origin"])
     destinations = map_short_locations(service_json["destination"])
     power = service_json["powerType"]
     toc_code = service_json["atocCode"]
     toc = get_toc(origins, destinations, service_json["atocName"])
-    allocations = get_allocations(html)
-    mileages = get_mileages(html)
-    (calls, other_services) = get_calls(
-        service_date, service_json["locations"], allocations, mileages)
+    (calls, other_services) = get_calls(service_date, service_json)
 
     service = Service(
         service_uid,
@@ -205,6 +259,11 @@ def make_services(uid: str, service_date: date, credentials: Credentials) -> lis
         url
     )
 
-    print(service)
+    services = [service]
 
-    return [service]
+    for other_service in other_services:
+        new_services = make_services(
+            other_service.uid, other_service.service_date, credentials)
+        services = services + new_services
+
+    return services
