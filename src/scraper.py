@@ -1,5 +1,7 @@
 import requests
 
+from typing import Optional
+
 from datetime import date
 from bs4 import BeautifulSoup  # type: ignore
 from debug import error_msg
@@ -34,10 +36,12 @@ def get_location_div(soup: BeautifulSoup, crs: str) -> BeautifulSoup:
             return call
 
 
-def get_miles_and_chains(div: BeautifulSoup) -> Mileage:
+def get_miles_and_chains(div: BeautifulSoup) -> Optional[Mileage]:
     miles = div.find(class_="miles")
     chains = div.find(class_="chains")
-    return Mileage(int(miles.get_text()), int(chains.get_text()))
+    if miles is not None:
+        return Mileage(int(miles.get_text()), int(chains.get_text()))
+    return None
 
 
 def get_mileage_for_service_call(service: Service, crs: str) -> Mileage:

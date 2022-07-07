@@ -193,9 +193,12 @@ def get_stock(service: Service):
 
 def compute_mileage(service: Service, origin: str, destination: str) -> Mileage:
     origin_mileage = get_mileage_for_service_call(service, origin)
-    destination_mileage = get_mileage_for_service_call(
-        service, destination)
-    return destination_mileage.subtract(origin_mileage)
+    if origin_mileage is None:
+        return get_mileage()
+    else:
+        destination_mileage = get_mileage_for_service_call(
+            service, destination)
+        return destination_mileage.subtract(origin_mileage)
 
 
 def get_mileage():
@@ -378,7 +381,7 @@ def add_to_logfile(log_file: str, creds: Credentials):
         all_journeys = log["journeys"]
         no_journeys = log["no_journeys"]
         no_legs = log["no_legs"]
-        delay = int(log["delay"]["diff"])
+        delay = log["delay"]
         duration_act = timedelta_from_string(log["duration"]["act"])
         duration_plan = timedelta_from_string(log["duration"]["plan"])
         duration_diff = int(log["duration"]["diff"])
@@ -401,6 +404,10 @@ def add_to_logfile(log_file: str, creds: Credentials):
     log["journeys"] = all_journeys
     log["no_journeys"] = no_journeys + 1
     log["no_legs"] = no_legs + journey.no_legs
+    if delay[0] == "+":
+        delay = int(delay[1:])
+    else:
+        delay = int(delay)
     log["delay"] = get_diff_struct(delay + journey.delay)
     new_duration_act = duration_act + journey.duration.act
     new_duration_plan = duration_plan + journey.duration.plan
