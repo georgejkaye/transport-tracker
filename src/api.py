@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Dict, Any
 
 import requests
@@ -46,5 +46,12 @@ def check_response(response):
 def request_service(uid: str, service_date: date, credentials: Credentials) -> Dict[str, Any]:
     date_string = service_date.strftime("%Y/%m/%d")
     response = request(f"{service_endpoint}/{uid}/{date_string}", credentials)
+    check_response(response)
+    return response.json()
+
+
+def request_station(crs: str, search_datetime: datetime, credentials: Credentials) -> Dict[str, Any]:
+    date_string = search_datetime.strftime("%Y/%m/%d")
+    response = request(f"{station_endpoint}/{crs}/{date_string}", credentials)
     check_response(response)
     return response.json()

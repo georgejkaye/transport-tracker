@@ -1,18 +1,15 @@
 import re
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time
 from typing import Any, Dict, Optional
 
 from bs4 import BeautifulSoup  # type: ignore
 from api import Credentials, request_service
 from debug import debug_msg
-from structs.location import Location, Mileage, ShortLocation
-from network import get_station_crs_from_name, lnwr_destinations
-from record import make_planact_entry
+from structs.network import Network, get_station_crs_from_name
 from scraper import get_service_page
-from structures import PlanActTime
-from times import make_planact
+from structs.time import PlanActTime, make_planact
 
 
 @dataclass
@@ -25,7 +22,7 @@ def get_allocation_list(units: str) -> list[int]:
     return list(map(lambda x: int(x), units.split(" + ")))
 
 
-def get_allocations(html: BeautifulSoup) -> list[Allocation]:
+def get_allocations(html: BeautifulSoup, network: Network) -> list[Allocation]:
     allocation_div = html.find(class_="allocation")
     # Some units don't have allocation info yet
     if allocation_div is not None:
@@ -47,7 +44,7 @@ def get_allocations(html: BeautifulSoup) -> list[Allocation]:
                     units = get_allocation_list(unit_match)
                     until = matches.group(2)
                     allocation = Allocation(
-                        units, get_station_crs_from_name(until))
+                        units, get_station_crs_from_name(network, until))
                     allocations.append(allocation)
                 else:
                     debug_msg("Allocation div exists but no allocation")
@@ -57,12 +54,64 @@ def get_allocations(html: BeautifulSoup) -> list[Allocation]:
         return []
 
 
+@dataclass
+class Mileage:
+    miles: Optional[int]
+    chains: Optional[int]
+
+
+@dataclass
+class ShortLocation:
+    name: str
+    crs: str
+    time: time
+
+
+def get_multiple_location_string(locs: list[ShortLocation]) -> str:
+    for i, loc in enumerate(locs):
+        if i == 0:
+            string = loc.name
+        else:
+            string = string + " and " + loc.name
+    return string
+
+
+@dataclass
+class AssociatedService:
+    """
+    An associated refers to a service that splits off another one
+    """
+    uid: str
+    service_date: date
+
+
+@dataclass
+class Location:
+    name: str
+    crs: str
+    tiploc: str
+    arr: Optional[PlanActTime]
+    dep: Optional[PlanActTime]
+    platform: Optional[str]
+    mileage: Optional[Mileage]
+    split: list['Service']
+
+
+@dataclass
+class Station:
+    name: str
+    crs: str
+    around_time: datetime
+    tiploc: str
+    services: list['Service']
+
+
 def get_service_url(uid: str, service_date: date) -> str:
     date_string = service_date.strftime("%Y-%m-%d")
     return f"https://www.realtimetrains.co.uk/service/gb-nr:{uid}/{date_string}/detailed"
 
 
-@dataclass
+@ dataclass
 class Service:
     uid: str
     date: date
@@ -76,7 +125,7 @@ class Service:
     service_url: str
 
 
-def get_toc(origins: list[ShortLocation], destinations: list[ShortLocation], toc: str) -> str:
+def get_toc(origins: list[ShortLocation], destinations: list[ShortLocation], toc: str, network: Network) -> str:
     # RTT abbreviates LNER so we expand it
     if toc == "LNER":
         toc = "London North Eastern Railway"
@@ -85,11 +134,11 @@ def get_toc(origins: list[ShortLocation], destinations: list[ShortLocation], toc
     if toc == "West Midlands Trains":
         lnwr = False
         for loc in origins:
-            if loc.crs in lnwr_destinations:
+            if loc.crs in network.lnwr_destinations:
                 lnwr = True
                 break
         for loc in destinations:
-            if loc.crs in lnwr_destinations:
+            if loc.crs in network.lnwr_destinations:
                 lnwr = True
                 break
         if lnwr:
@@ -110,7 +159,7 @@ def get_mileages(html: BeautifulSoup) -> Dict[str, Optional[Mileage]]:
         if location_text[-1] != "]":
             continue
         # Extract the actual CRS
-        crs = location.get_text().split(" ")[-1][1:-1]
+        crs = location.get_text().split(" ")[-1][1: -1]
         miles = call.find(class_="miles")
         # Not all services have mileages given
         # If this one doesn't, we just input None
@@ -130,16 +179,7 @@ list of Location objects that this allocation is used for
 AllocationList = list[tuple[Optional[Allocation], list[Location]]]
 
 
-@dataclass
-class AssociatedService:
-    """
-    An associated refers to a service that splits off another one
-    """
-    uid: str
-    service_date: date
-
-
-def get_divisions(call: Dict[str, Any]) -> list[AssociatedService]:
+def get_divisions(call: Dict[str, Any], credentials:  Credentials, network: Network) -> list[Service]:
     """
     Given a call, get the list of services that divide off at it
     """
@@ -152,21 +192,21 @@ def get_divisions(call: Dict[str, Any]) -> list[AssociatedService]:
                 association_uid = association["associatedUid"]
                 association_date = datetime.strptime(
                     association["associatedRunDate"], "%Y-%m-%d").date()
-                associated_service = AssociatedService(
-                    association_uid, association_date)
+                associated_service = make_service(
+                    association_uid, association_date, credentials, network)
                 dividing_services.append(associated_service)
         return dividing_services
     return []
 
 
-def get_calls(date: date, json: Dict[str, Any]) -> tuple[AllocationList, list[AssociatedService]]:
+def get_calls(date: date, json: Dict[str, Any], credentials: Credentials, network: Network) -> tuple[AllocationList, list[AssociatedService]]:
     """
     Get a list of all the calls this service makes, with the associated allocations if available
     Also returns the list of associated services if any
     """
 
     html = get_service_page(date, json["serviceUid"])
-    allocations = get_allocations(html)
+    allocations = get_allocations(html, network)
     mileage_map = get_mileages(html)
     calls = json["locations"]
 
@@ -196,6 +236,15 @@ def get_calls(date: date, json: Dict[str, Any]) -> tuple[AllocationList, list[As
                 date, call["gbttBookedDeparture"], call.get("realtimeDeparture"))
         else:
             dep = None
+        # Check if we have reached a call at which the service divides
+        # If this is the first call, we skip it, because if this service
+        # divides off another then the same association is used, and a
+        # service can't divide at the first stop anyway
+        if i != 0:
+            divisions_at_this_call = get_divisions(call, credentials, network)
+        else:
+            divisions_at_this_call = []
+        # Make the location object
         location = Location(
             call_name,
             call_crs,
@@ -203,7 +252,8 @@ def get_calls(date: date, json: Dict[str, Any]) -> tuple[AllocationList, list[As
             arr,
             dep,
             platform,
-            mileage_map[call_crs]
+            mileage_map[call_crs],
+            divisions_at_this_call
         )
         locations_with_current_formation.append(location)
         # Check if we have reached a call at which the formation changes
@@ -212,19 +262,12 @@ def get_calls(date: date, json: Dict[str, Any]) -> tuple[AllocationList, list[As
                 (current_formation, locations_with_current_formation))
             current_formation = allocations.pop(0)
             locations_with_current_formation = [location]
-        # Check if we have reached a call at which the service divides
-        # If this is the first call, we skip it, because if this service
-        # divides off another then the same association is used, and a
-        # service can't divide at the first stop anyway
-        if i != 0:
-            divisions_at_this_call = get_divisions(call)
-            division_services = division_services + divisions_at_this_call
     # Append the current formation as we never reached the end
     formations.append((current_formation, locations_with_current_formation))
     return (formations, division_services)
 
 
-def make_services(uid: str, service_date: date, credentials: Credentials) -> list[Service]:
+def make_service(uid: str, service_date: date, credentials: Credentials, network: Network) -> Service:
     service_json = request_service(uid, service_date, credentials)
 
     def map_short_locations(short_locs: list[Dict[str, Any]]) -> list[ShortLocation]:
@@ -232,7 +275,7 @@ def make_services(uid: str, service_date: date, credentials: Credentials) -> lis
             lambda loc:
                 ShortLocation(
                     loc["description"],
-                    get_station_crs_from_name(loc["description"]),
+                    get_station_crs_from_name(network, loc["description"]),
                     loc["tiploc"]
                 ), short_locs))
 
@@ -243,8 +286,9 @@ def make_services(uid: str, service_date: date, credentials: Credentials) -> lis
     destinations = map_short_locations(service_json["destination"])
     power = service_json["powerType"]
     toc_code = service_json["atocCode"]
-    toc = get_toc(origins, destinations, service_json["atocName"])
-    (calls, other_services) = get_calls(service_date, service_json)
+    toc = get_toc(origins, destinations, service_json["atocName"], network)
+    (calls, other_services) = get_calls(
+        service_date, service_json, credentials, network)
 
     service = Service(
         service_uid,
@@ -259,11 +303,31 @@ def make_services(uid: str, service_date: date, credentials: Credentials) -> lis
         url
     )
 
-    services = [service]
+    return service
 
-    for other_service in other_services:
-        new_services = make_services(
-            other_service.uid, other_service.service_date, credentials)
-        services = services + new_services
 
-    return services
+def calls_at(service: Service, station: Station) -> bool:
+    for (_, locs) in service.calls:
+        for loc in locs:
+            if loc.crs == station.crs:
+                return True
+            for associated_service in loc.split:
+                if calls_at(associated_service, station):
+                    return True
+    return False
+
+
+def search_for_services(origin: Station, destination: Station) -> list[Service]:
+    services_at_origin = origin.services
+    services_to_destination: list[Service] = []
+    for service in services_at_origin:
+        if calls_at(service, origin):
+            services_to_destination.append(service)
+    return services_to_destination
+
+
+def get_short_service_name(service: Service) -> str:
+    origin_string = get_multiple_location_string(service.origins)
+    destination_string = get_multiple_location_string(service.destinations)
+
+    return f"{service.headcode} {service.origins[0].time} {origin_string} to {destination_string}"

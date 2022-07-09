@@ -143,3 +143,24 @@ def get_duration(start: time, end: time) -> timedelta:
 
 def to_time(str: str):
     return time(int(str[0:2]), int(str[2:4]))
+
+
+def timedelta_from_string(str):
+    parts = str.split(":")
+    hour = int(parts[0])
+    minutes = int(parts[1])
+    return timedelta(hours=hour, minutes=minutes)
+
+
+def get_month_length(month, year):
+    """
+    Get the length of a month in days, for a given year
+    """
+    if month in [1, 3, 5, 7, 8, 10, 12]:
+        return 31
+    elif month in [4, 6, 9, 11]:
+        return 30
+    elif year % 4 == 0 and (year % 100 != 0 or year % 400 == 0):
+        return 29
+    else:
+        return 28

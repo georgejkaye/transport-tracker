@@ -2,63 +2,11 @@ import json
 from datetime import time, date, datetime, timedelta
 from api import Credentials
 
-from network import get_matching_station_names, get_station_crs_from_name, get_station_name_from_crs, station_codes, station_code_to_name, station_name_to_code, stock_dict
+from structs.network import get_matching_station_names, get_station_crs_from_name, get_station_name_from_crs
 from scraper import get_mileage_for_service_call
-from times import get_diff_struct, get_duration_string, pad_front, add, get_hourmin_string, get_diff_string, get_duration, to_time, get_status
+from structs.time import get_diff_struct, get_duration_string, pad_front, add, get_hourmin_string, get_diff_string, get_duration, to_time, get_status
 from structures import Journey, Leg, Mileage, PlanActDuration, PlanActTime, Price, Service, ShortLocation, Station, Location, add_durations, get_mph_string, new_duration
 from debug import debug_msg
-
-
-def timedelta_from_string(str):
-    parts = str.split(":")
-    hour = int(parts[0])
-    minutes = int(parts[1])
-    return timedelta(hours=hour, minutes=minutes)
-
-
-def get_month_length(month, year):
-    """
-    Get the length of a month in days, for a given year
-    """
-    if month in [1, 3, 5, 7, 8, 10, 12]:
-        return 31
-    elif month in [4, 6, 9, 11]:
-        return 30
-    elif year % 4 == 0 and (year % 100 != 0 or year % 400 == 0):
-        return 29
-    else:
-        return 28
-
-
-def get_input_no(prompt, upper=-1, default=-1):
-    """
-    Get a natural number of a given length from the user,
-    optionally with an upper bound and a default value to use if no input is given
-    """
-    while True:
-        prompt_string = prompt
-        # Tell the user the default option
-        if default != -1:
-            prompt_string = prompt_string + " (" + str(default) + ")"
-        prompt_string = prompt_string + ": "
-        # Get input from the user
-        string = input(prompt_string)
-        # If the user gives an empty input, use the default if it exists
-        if string == "" and default != -1:
-            return int(default)
-        try:
-            nat = int(string)
-            # Check the number is in the range
-            if nat >= 0 and (upper == -1 or nat <= upper):
-                return nat
-            else:
-                error_msg = "Expected number in range 0-"
-                if upper != -1:
-                    error_msg = error_msg + upper
-                error_msg = error_msg + " but got " + string
-                print(error_msg)
-        except:
-            print(f"Expected number but got '{string}'")
 
 
 def get_input_price(prompt):
@@ -116,41 +64,6 @@ def get_station_string(prompt: str, stn: Station | None = None):
                     return get_station_crs_from_name(choice)
         else:
             print("Search string must be at least three characters")
-
-
-def yes_or_no(prompt: str):
-    """
-    Let the user say yes or no
-    """
-    choice = input(prompt + " (Y/n) ")
-    if choice == "y" or choice == "Y" or choice == "":
-        return True
-    return False
-
-
-def pick_from_list(choices: list, prompt: str, cancel: bool, display=lambda x: x):
-    """
-    Let the user pick from a list of choices
-    """
-    for i, choice in enumerate(choices):
-        print(str(i+1) + ": " + display(choice))
-    if cancel:
-        max_choice = len(choices) + 1
-        # The last option is a cancel option, this returns None
-        print(str(max_choice) + ": Cancel")
-    else:
-        max_choice = len(choices)
-    while True:
-        resp = input(prompt + " (1-" + str(max_choice) + "): ")
-        try:
-            resp_no = int(resp)
-            if cancel and resp == len(choices) + 1:
-                return None
-            elif resp_no > 0 or resp_no < len(choices):
-                return choices[resp_no - 1]
-            print(f'Expected number 1-{max_choice} but got \'{resp_no}\'')
-        except:
-            print(f'Expected number 1-{max_choice} but got \'{resp_no}\'')
 
 
 def get_service(station: Station, destination_crs: str, creds: Credentials):
@@ -304,31 +217,6 @@ def make_journey_entry(journey: Journey):
     if journey.speed is not None:
         entry["speed"] = journey.speed
     return entry
-
-
-def get_date(start: datetime = None):
-    if start is None:
-        start = datetime.now()
-
-    year = get_input_no("Year", 2022, pad_front(start.year, 4))
-    month = get_input_no("Month", 12, pad_front(start.month, 2))
-    max_days = get_month_length(month, year)
-    day = get_input_no("Day", max_days, pad_front(start.day, 2))
-    return date(year, month, day)
-
-
-def get_time(start: datetime = None):
-    if start is None:
-        start = datetime.now()
-    tt = pad_front(get_input_no("Time", 2359, pad_front(
-        start.hour, 2) + pad_front(start.minute, 2)), 4)
-    return to_time(tt)
-
-
-def get_datetime(start: datetime | None = None):
-    date = get_date(start)
-    time = get_time(start)
-    return datetime(date.year, date.month, date.day, time.hour, time.minute)
 
 
 def record_new_leg(start: datetime | None, station: Station | None, creds: Credentials):

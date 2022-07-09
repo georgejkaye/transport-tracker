@@ -4,8 +4,6 @@ from datetime import date
 from bs4 import BeautifulSoup  # type: ignore
 from debug import error_msg
 
-from structures import Mileage, Service
-
 
 def soupify(doc: str) -> BeautifulSoup:
     return BeautifulSoup(doc, "html.parser")
@@ -25,22 +23,3 @@ def get_service_page(date: date, id: str) -> BeautifulSoup:
 
     html_doc = page.text
     return soupify(html_doc)
-
-
-def get_location_div(soup: BeautifulSoup, crs: str) -> BeautifulSoup:
-    calls = soup.find_all(class_="call")
-    for call in calls:
-        if crs in call.get_text():
-            return call
-
-
-def get_miles_and_chains(div: BeautifulSoup) -> Mileage:
-    miles = div.find(class_="miles")
-    chains = div.find(class_="chains")
-    return Mileage(int(miles.get_text()), int(chains.get_text()))
-
-
-def get_mileage_for_service_call(service: Service, crs: str) -> Mileage:
-    soup = get_service_page(service.date, service.uid)
-    div = get_location_div(soup, crs)
-    return get_miles_and_chains(div)

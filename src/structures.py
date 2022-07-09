@@ -2,8 +2,8 @@ from datetime import date, datetime, time, timedelta
 
 from api import Credentials, check_response, request, station_endpoint, service_endpoint
 from debug import error_msg
-from times import get_hourmin_string, get_url, pad_front, to_time, get_status
-from network import get_station_crs_from_name, get_station_name_from_crs, station_name_to_code, lnwr_destinations
+from structs.time import get_hourmin_string, get_url, pad_front, to_time, get_status
+from structs.network import get_station_crs_from_name, get_station_name_from_crs, station_name_to_code, lnwr_destinations
 
 
 def get_mph_string(speed: float):
@@ -78,15 +78,6 @@ class ShortLocation:
         self.crs = get_station_crs_from_name(self.name)
         timestr = loc["publicTime"]
         self.time = time(int(timestr[0:2]), int(timestr[2:4]))
-
-
-def get_multiple_location_string(locs: list[ShortLocation]):
-    for i, loc in enumerate(locs):
-        if i == 0:
-            string = loc.name
-        else:
-            string = string + " and " + loc.name
-    return string
 
 
 class ServiceAtStation:
