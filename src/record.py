@@ -404,11 +404,11 @@ def add_to_logfile(log_file: str, creds: Credentials):
     log["journeys"] = all_journeys
     log["no_journeys"] = no_journeys + 1
     log["no_legs"] = no_legs + journey.no_legs
-    if delay[0] == "+":
-        delay = int(delay[1:])
+    if delay["diff"][0] == "+":
+        delay_amount = int(delay["diff"][1:])
     else:
-        delay = int(delay)
-    log["delay"] = get_diff_struct(delay + journey.delay)
+        delay_amount = int(delay["diff"])
+    log["delay"] = get_diff_struct(delay_amount + journey.delay)
     new_duration_act = duration_act + journey.duration.act
     new_duration_plan = duration_plan + journey.duration.plan
     new_duration_diff = duration_diff + journey.duration.diff
