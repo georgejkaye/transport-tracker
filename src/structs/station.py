@@ -24,8 +24,9 @@ def make_station(crs: str, search_time: datetime, credentials: Credentials, netw
     services: list[Service] = []
 
     for service in station_json["services"]:
+        service_date = datetime.strptime(service["runDate"], "%Y-%m-%d")
         service_object = make_service(service["serviceUid"],
-                                      search_time.date(), credentials, network)
+                                      service_date, credentials, network)
         services.append(service_object)
 
     return Station(

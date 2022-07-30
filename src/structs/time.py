@@ -18,9 +18,9 @@ class OnTimeStatus(Enum):
 
 @dataclass
 class PlanActTime:
-    plan: datetime
+    plan: Optional[datetime]
     act: Optional[datetime]
-    diff: int
+    diff: Optional[int]
     status: OnTimeStatus
 
 
@@ -41,17 +41,25 @@ def get_status(diff: int) -> OnTimeStatus:
     return OnTimeStatus.VERY_LATE
 
 
-def make_planact(date: date, plan: str, act: Optional[str]):
-    plan_time = datetime.strptime(plan, "%H%M")
-    plan_datetime = datetime.combine(date, plan_time.time())
+def make_planact(date: date, plan: Optional[str], act: Optional[str]):
+
+    if plan is not None:
+        plan_time = datetime.strptime(plan, "%H%M")
+        plan_datetime = datetime.combine(date, plan_time.time())
+    else:
+        plan_datetime = None
 
     if act is not None:
         act_time = datetime.strptime(act, "%H%M")
         act_datetime = datetime.combine(date, act_time.time())
-        diff = get_diff(act_datetime, plan_datetime)
-        status = get_status(diff)
+        if plan_datetime is not None:
+            diff = get_diff(act_datetime, plan_datetime)
+            status = get_status(diff)
+        else:
+            diff = None
+            status = OnTimeStatus.UNKNOWN
     else:
-        diff = 0
+        diff = None
         status = OnTimeStatus.UNKNOWN
         act_datetime = None
     return PlanActTime(

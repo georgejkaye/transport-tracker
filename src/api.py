@@ -52,6 +52,8 @@ def request_service(uid: str, service_date: date, credentials: Credentials) -> D
 
 def request_station(crs: str, search_datetime: datetime, credentials: Credentials) -> Dict[str, Any]:
     date_string = search_datetime.strftime("%Y/%m/%d")
-    response = request(f"{station_endpoint}/{crs}/{date_string}", credentials)
+    time_string = search_datetime.strftime("%H%M")
+    response = request(
+        f"{station_endpoint}/{crs}/{date_string}/{time_string}", credentials)
     check_response(response)
     return response.json()

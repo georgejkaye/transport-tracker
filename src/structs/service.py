@@ -22,6 +22,18 @@ def get_allocation_list(units: str) -> list[int]:
     return list(map(lambda x: int(x), units.split(" + ")))
 
 
+def get_allocation(text: str, network: Network) -> Allocation:
+    allocation_regex = r"([0-9+ ]*) to ([A-Za-z ]*)"
+    matches = re.search(allocation_regex, text)
+    if matches is not None:
+        unit_match = matches.group(1)
+        units = get_allocation_list(unit_match)
+        until = matches.group(2)
+        allocation = Allocation(
+            units, get_station_crs_from_name(network, until))
+        return allocation
+
+
 def get_allocations(html: BeautifulSoup, network: Network) -> list[Allocation]:
     allocation_div = html.find(class_="allocation")
     # Some units don't have allocation info yet
@@ -30,25 +42,16 @@ def get_allocations(html: BeautifulSoup, network: Network) -> list[Allocation]:
         # If a service only has one allocation for its duration there
         # will be no lis
         if len(lis) == 0:
-            units = get_allocation_list(allocation_div.find("span").get_text())
-            allocation = Allocation(units, None)
+            allocation_text = allocation_div.find("span").get_text()
+            allocation = get_allocation(allocation_text, network)
             allocations = [allocation]
         else:
             allocations = []
             for li in lis:
-                allocation_regex = r"([0-9+ ]*) to ([A-Za-z ]*)"
-                matches = re.search(allocation_regex, li.get_text())
+                allocation_text = li.get_text()
+                allocation = get_allocation(allocation_text, network)
                 # Safety check!
-                if matches is not None:
-                    unit_match = matches.group(1)
-                    units = get_allocation_list(unit_match)
-                    until = matches.group(2)
-                    allocation = Allocation(
-                        units, get_station_crs_from_name(network, until))
-                    allocations.append(allocation)
-                else:
-                    debug_msg("Allocation div exists but no allocation")
-                    exit(1)
+                allocations.append(allocation)
         return allocations
     else:
         return []
@@ -227,13 +230,13 @@ def get_calls(date: date, json: Dict[str, Any], credentials: Credentials, networ
         # No arrival for first call
         if i != 0:
             arr = make_planact(
-                date, call["gbttBookedArrival"], call.get("realtimeArrival"))
+                date, call.get("gbttBookedArrival"), call.get("realtimeArrival"))
         else:
             arr = None
         # No departure for final call
         if i != len(calls) - 1:
             dep = make_planact(
-                date, call["gbttBookedDeparture"], call.get("realtimeDeparture"))
+                date, call.get("gbttBookedDeparture"), call.get("realtimeDeparture"))
         else:
             dep = None
         # Check if we have reached a call at which the service divides
