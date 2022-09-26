@@ -2206,13 +2206,11 @@
   name: Heath High Level
 - code: HLL
   name: Heath Low Level
-- code: HAF
-  name: Heathrow Terminal 4 (Rail Station Only)
 - code: HWV
-  name: Heathrow Terminal 5 (Rail Station Only)
+  name: Heathrow Airport Terminal 5
 - code: HXX
-  name: Heathrow Terminals 2 & 3 (Rail Station Only)
-- code: HTC
+  name: Heathrow Central
+- code: HXX
   name: Heaton Chapel
 - code: HBD
   name: Hebden Bridge
