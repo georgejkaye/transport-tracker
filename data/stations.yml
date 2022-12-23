@@ -4245,7 +4245,7 @@
 - code: SAA
   name: St Albans Abbey
 - code: SAC
-  name: St Albans City
+  name: St Albans
 - code: SAR
   name: St Andrews Road
 - code: SAS
@@ -4435,7 +4435,7 @@
 - code: SQE
   name: Surrey Quays
 - code: SUO
-  name: Sutton (London)
+  name: Sutton (Surrey)
 - code: SUT
   name: Sutton Coldfield
 - code: SUC
