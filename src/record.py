@@ -392,7 +392,10 @@ def add_to_logfile(log_file: str, creds: Credentials):
         all_journeys = []
         no_journeys = 0
         no_legs = 0
-        delay = 0
+        delay = {
+            "diff": "0",
+            "status": "on-time",
+        }
         duration_act = timedelta()
         duration_plan = timedelta()
         duration_diff = 0
