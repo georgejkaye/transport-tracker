@@ -47,4 +47,7 @@ def get_miles_and_chains(div: BeautifulSoup) -> Optional[Mileage]:
 def get_mileage_for_service_call(service: Service, crs: str) -> Mileage:
     soup = get_service_page(service.date, service.uid)
     div = get_location_div(soup, crs)
-    return get_miles_and_chains(div)
+    if div is not None:
+        return get_miles_and_chains(div)
+    else:
+        return None

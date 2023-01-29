@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
 from api import Credentials, check_response, request, station_endpoint, service_endpoint
@@ -97,9 +98,8 @@ class ServiceAtStation:
             x), service["locationDetail"].get("destination"))
         self.platform = service["locationDetail"].get("platform")
 
-        self.dep = service["locationDetail"].get("realtimeDeparture")
-        if self.dep is None:
-            self.dep = service["locationDetail"].get("gbttPlannedDeparture")
+        self.plan_dep = service["locationDetail"]["gbttBookedDeparture"]
+        self.act_dep = service["locationDetail"].get("realtimeDeparture")
 
         self.toc = service["atocName"]
         self.service_id = service["serviceUid"]
@@ -128,10 +128,9 @@ class Station:
     def filter_services_by_time(self, earliest: datetime, latest: datetime):
         filtered_services: list[ServiceAtStation] = []
         for service in self.services:
-            if service.dep is not None:
-                dep = datetime.combine(service.date, to_time(service.dep))
-                if dep >= earliest and dep <= latest:
-                    filtered_services.append(service)
+            dep = datetime.combine(service.date, to_time(service.plan_dep))
+            if dep >= earliest and dep <= latest:
+                filtered_services.append(service)
         return filtered_services
 
     def filter_services_by_time_and_stop(self, earliest: datetime, latest: datetime, origin_crs: str, destination_crs: str, creds: Credentials):
@@ -150,11 +149,14 @@ class PlanActTime:
             self.plan = datetime.combine(date, to_time(plan))
         else:
             self.plan = None
+
         if act is not None:
             self.act = datetime.combine(date, to_time(act))
+            if plan is not None:
+                if self.act < self.plan:
+                    self.act = self.act + timedelta(days=1)
         else:
             self.act = None
-
         if self.plan is not None and self.act is not None:
             self.diff = int((self.act - self.plan).total_seconds() // 60)
             self.status = get_status(self.diff)
@@ -190,7 +192,6 @@ class Location:
         self.name = loc["description"]
         self.crs = loc["crs"]
         self.tiploc = loc["tiploc"]
-
         self.arr = PlanActTime(date,
                                loc.get("gbttBookedArrival"), loc.get("realtimeArrival"))
         self.dep = PlanActTime(date,
@@ -198,6 +199,101 @@ class Location:
         self.platform = loc.get("platform")
         if self.platform is None:
             self.platform = "-"
+
+
+@dataclass
+class StopTree:
+    node: Location
+    nexts: list
+
+
+def get_calls(stop_tree, origin, dest, boarded=False):
+    node = stop_tree.node
+    if boarded:
+        if node.crs == dest:
+            return [node]
+        else:
+            new_boarded = True
+    elif node.crs == origin:
+        new_boarded = True
+    else:
+        new_boarded = False
+    for next in stop_tree.nexts:
+        next_chain = get_calls(next, origin, dest, new_boarded)
+        if next_chain is not None:
+            next_chain.insert(0, node)
+            return next_chain
+    return None
+
+
+def stops_at_station(stop_tree, origin, stn, reached=False):
+    if not reached:
+        if stop_tree.node.crs == origin:
+            new_reached = True
+        else:
+            new_reached = False
+    elif stop_tree.node.crs == stn:
+        return True
+    else:
+        new_reached = True
+    for next in stop_tree.nexts:
+        if stops_at_station(next, origin, stn, new_reached):
+            return True
+    return False
+
+
+def get_dep_from(stop_tree, crs, plan):
+    if stop_tree.node.crs == crs:
+        dep = stop_tree.node.dep
+        if dep.act is not None and not plan:
+            return dep.act
+        return dep.plan
+    else:
+        for next in stop_tree.nexts:
+            dep = get_dep_from(next, crs, plan)
+            if dep is not None:
+                return dep
+        return None
+
+
+def get_arr_at(stop_tree, crs):
+    if stop_tree.node.crs == crs:
+        arr = stop_tree.node.arr
+        if arr.act is not None:
+            return arr.act
+        return arr.plan
+
+
+def print_stop_tree(stop_tree, level=0):
+    print(f"{'-' * level} | {stop_tree.node.name} ({stop_tree.node.crs})")
+    for (i, next) in enumerate(stop_tree.nexts):
+        print_stop_tree(next, level+i)
+
+
+def get_stop_tree(locations, origin, date: datetime, credentials, current_id, parent_id=""):
+    boarded = False
+    current_nexts = []
+    for call in reversed(locations):
+        boarded = True
+        current_location = Location(date, call)
+        assocs = call.get("associations")
+        if assocs is not None:
+            for assoc in assocs:
+                if assoc["type"] == "divide" and not assoc["associatedUid"] == parent_id:
+                    assoc_uid = assoc["associatedUid"]
+                    assoc_date = datetime.strptime(
+                        assoc["associatedRunDate"], "%Y-%m-%d")
+                    assoc_date_url = assoc_date.strftime("%Y/%m/%d")
+                    endpoint = f"{service_endpoint}{assoc_uid}/{assoc_date_url}"
+                    response = request(endpoint, credentials)
+                    check_response(response)
+                    service_json = response.json()
+                    head_node = get_stop_tree(
+                        service_json["locations"], origin, assoc_date, credentials, assoc_uid, current_id)
+                    current_nexts.append(head_node)
+        current_node = StopTree(current_location, current_nexts)
+        current_nexts = [current_node]
+    return current_node
 
 
 class Service:
@@ -236,8 +332,9 @@ class Service:
             else:
                 self.toc = "West Midlands Railway"
 
-        self.calls = list(map(lambda x: Location(
-            self.date, x), service_json["locations"]))
+        self.calls = get_stop_tree(
+            service_json["locations"], service_json["origin"], d, credentials, self.uid)
+        print_stop_tree(self.calls)
 
     def origin(self):
         return self.calls[0]
@@ -246,30 +343,13 @@ class Service:
         return self.calls[-1]
 
     def stops_at_station(self, origin: str, stn: str):
-        reached = False
-        for loc in self.calls:
-            if not reached:
-                if loc.crs == origin:
-                    reached = True
-            elif loc.crs == stn:
-                return True
-        return False
+        return stops_at_station(self.calls, origin, stn)
 
     def get_arr_at(self, crs: str):
-        for loc in self.calls:
-            if loc.crs == crs:
-                arr = loc.arr
-                if arr.act is not None:
-                    return datetime.combine(self.date, arr.act.time())
-                return datetime.combine(self.date, arr.plan)
+        return get_arr_at(self.calls, crs)
 
     def get_dep_from(self, crs: str, plan: bool):
-        for loc in self.calls:
-            if loc.crs == crs:
-                dep = loc.dep
-                if dep.act is not None and not plan:
-                    return dep.act
-                return dep.plan
+        return get_dep_from(self.calls, crs, plan)
 
     def get_string(self, crs: str):
         string = f"{self.headcode} {get_hourmin_string(self.origins[0].time)} {get_multiple_location_string(self.origins)} to {get_multiple_location_string(self.destinations)}"
@@ -287,21 +367,11 @@ class Leg:
         self.toc = service.toc
         self.uid = service.uid
 
-        boarded = False
-        for (i, call) in enumerate(service.calls):
-            if not boarded:
-                if call.crs == origin_crs:
-                    boarded = True
-                    self.leg_origin = call
-                    origin_i = i+1
-
-            elif call.crs == dest_crs:
-                self.leg_destination = call
-                destination_i = i
-                break
-        self.calls = service.calls[origin_i:destination_i]
+        self.calls = get_calls(service.calls, origin_crs, dest_crs)
+        self.leg_origin = self.calls[0]
+        self.leg_destination = self.calls[-1]
         self.duration = duration_from_times(
-            self.leg_origin.dep.plan, self.leg_origin.dep.act, self.leg_destination.arr.plan, self.leg_destination.arr.act)
+            self.calls[0].dep.plan, self.calls[0].dep.act, self.calls[-1].arr.plan, self.calls[-1].arr.act)
         self.distance = distance
         self.stock = stock
         if self.duration.act is not None:

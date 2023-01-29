@@ -198,7 +198,10 @@ def compute_mileage(service: Service, origin: str, destination: str) -> Mileage:
     else:
         destination_mileage = get_mileage_for_service_call(
             service, destination)
-        return destination_mileage.subtract(origin_mileage)
+        if destination_mileage is None:
+            return get_mileage()
+        else:
+            return destination_mileage.subtract(origin_mileage)
 
 
 def get_mileage():
