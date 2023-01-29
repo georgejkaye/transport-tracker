@@ -153,7 +153,7 @@ class PlanActTime:
         if act is not None:
             self.act = datetime.combine(date, to_time(act))
             if plan is not None:
-                if self.act < self.plan:
+                if self.act < (self.plan - timedelta(hours=12)):
                     self.act = self.act + timedelta(days=1)
         else:
             self.act = None
