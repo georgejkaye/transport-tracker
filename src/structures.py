@@ -220,9 +220,10 @@ def get_calls(stop_tree, origin, dest, boarded=False):
         new_boarded = False
     for next in stop_tree.nexts:
         next_chain = get_calls(next, origin, dest, new_boarded)
-        if next_chain is not None:
+        if new_boarded and next_chain is not None:
             next_chain.insert(0, node)
-            return next_chain
+
+        return next_chain
     return None
 
 
@@ -371,7 +372,7 @@ class Leg:
         self.leg_origin = self.calls[0]
         self.leg_destination = self.calls[-1]
         self.duration = duration_from_times(
-            self.calls[0].dep.plan, self.calls[0].dep.act, self.calls[-1].arr.plan, self.calls[-1].arr.act)
+            self.leg_origin.dep.plan, self.leg_origin.dep.act, self.leg_destination.arr.plan, self.leg_destination.arr.act)
         self.distance = distance
         self.stock = stock
         if self.duration.act is not None:

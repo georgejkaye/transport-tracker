@@ -8,7 +8,7 @@
                 {%- if loop.last and not loop.first %}
                     and
                 {% elif not loop.first -%}
-                    , 
+                    ,
                 {%- endif -%}
                 {{- loc["name"] -}}
             {%- endfor %}
@@ -17,7 +17,7 @@
                 {%- if loop.last and not loop.first -%}
                     and
                 {%- elif not loop.first -%}
-                    , 
+                    ,
                 {%- endif -%}
                 {{- loc["name"] -}}
             {% endfor %}
@@ -48,7 +48,7 @@
     </div>
     <div id="performance-details-{{ i }}-{{ j }}" style="display: none" class="performance-details">
         <div class="performance-detail-row">
-            <div class="performance-detail-caption">Distance</div> 
+            <div class="performance-detail-caption">Distance</div>
             <div class="performance-detail-item">{{ leg["mileage"]["miles"] }}m {{ leg["mileage"]["chains"] }}ch</div>
             {% if leg["speed"] %}
                 <div class="performance-detail-caption">Avg speed</div>
@@ -58,15 +58,15 @@
             <div class="performance-detail-item">{{ leg["stock"] }}</div>
         </div>
         <div class="performance-detail-row">
-            <div class="performance-detail-caption">Plan duration</div> 
+            <div class="performance-detail-caption">Plan duration</div>
             <div class="performance-detail-item">{{ leg["duration"]["plan"] }}</div>
-            <div class="performance-detail-caption">Act duration</div> 
+            <div class="performance-detail-caption">Act duration</div>
             <div class="performance-detail-item">{{ leg["duration"]["act"] }}</div>
-            <div class="performance-detail-caption">Diff</div> 
+            <div class="performance-detail-caption">Diff</div>
             <div class="performance-detail-item">{{ leg["duration"]["diff"] }}</div>
-            <div class="performance-detail-caption">Delay</div> 
+            <div class="performance-detail-caption">Delay</div>
             <div class="performance-detail-item {{ leg["leg_destination"]["arr"]["status"] }}">{{ leg["leg_destination"]["arr"]["diff"] }}</div>
-        </div>    
+        </div>
     </div>
     <div class="divider">
         <div class="line"><hr></div>

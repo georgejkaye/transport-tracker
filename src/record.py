@@ -271,7 +271,7 @@ def make_leg_entry(leg: Leg):
         "service_destinations": list(map(lambda x: make_short_loc_entry(x, False), leg.service_destinations)),
         "leg_origin": make_loc_entry(leg.leg_origin, False, True),
         "leg_destination": make_loc_entry(leg.leg_destination, True, False),
-        "stops": list(map(lambda x: make_loc_entry(x), leg.calls)),
+        "stops": list(map(lambda x: make_loc_entry(x), leg.calls[1:-1])),
     }
 
     duration = {
