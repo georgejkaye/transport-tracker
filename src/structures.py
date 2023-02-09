@@ -309,7 +309,7 @@ class Service:
             map(ShortLocation, service_json["destination"]))
         self.uid = service_json["serviceUid"]
         self.headcode = service_json["trainIdentity"]
-        self.power = service_json["powerType"]
+        self.power = service_json.get("powerType")
         self.tocCode = service_json["atocCode"]
 
         lnwr = False
