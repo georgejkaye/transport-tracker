@@ -1576,6 +1576,8 @@
   name: Edge Hill
 - code: EDB
   name: Edinburgh
+- code: EDA
+  name: Edinburgh Airport
 - code: EGY
   name: Edinburgh Gateway
 - code: EDP
