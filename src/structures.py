@@ -289,9 +289,10 @@ def get_stop_tree(locations, origin, date: datetime, credentials, current_id, pa
                     response = request(endpoint, credentials)
                     check_response(response)
                     service_json = response.json()
-                    head_node = get_stop_tree(
-                        service_json["locations"], origin, assoc_date, credentials, assoc_uid, current_id)
-                    current_nexts.append(head_node)
+                    if service_json.get("locations") is not None:
+                        head_node = get_stop_tree(
+                            service_json["locations"], origin, assoc_date, credentials, assoc_uid, current_id)
+                        current_nexts.append(head_node)
         current_node = StopTree(current_location, current_nexts)
         current_nexts = [current_node]
     return current_node
