@@ -276,25 +276,26 @@ def get_stop_tree(locations, origin, date: datetime, credentials, current_id, pa
     current_nexts = []
     for call in reversed(locations):
         boarded = True
-        current_location = Location(date, call)
-        assocs = call.get("associations")
-        if assocs is not None:
-            for assoc in assocs:
-                if assoc["type"] == "divide" and not assoc["associatedUid"] == parent_id:
-                    assoc_uid = assoc["associatedUid"]
-                    assoc_date = datetime.strptime(
-                        assoc["associatedRunDate"], "%Y-%m-%d")
-                    assoc_date_url = assoc_date.strftime("%Y/%m/%d")
-                    endpoint = f"{service_endpoint}{assoc_uid}/{assoc_date_url}"
-                    response = request(endpoint, credentials)
-                    check_response(response)
-                    service_json = response.json()
-                    if service_json.get("locations") is not None:
-                        head_node = get_stop_tree(
-                            service_json["locations"], origin, assoc_date, credentials, assoc_uid, current_id)
-                        current_nexts.append(head_node)
-        current_node = StopTree(current_location, current_nexts)
-        current_nexts = [current_node]
+        if call.get("crs") is not None:
+            current_location = Location(date, call)
+            assocs = call.get("associations")
+            if assocs is not None:
+                for assoc in assocs:
+                    if assoc["type"] == "divide" and not assoc["associatedUid"] == parent_id:
+                        assoc_uid = assoc["associatedUid"]
+                        assoc_date = datetime.strptime(
+                            assoc["associatedRunDate"], "%Y-%m-%d")
+                        assoc_date_url = assoc_date.strftime("%Y/%m/%d")
+                        endpoint = f"{service_endpoint}{assoc_uid}/{assoc_date_url}"
+                        response = request(endpoint, credentials)
+                        check_response(response)
+                        service_json = response.json()
+                        if service_json.get("locations") is not None:
+                            head_node = get_stop_tree(
+                                service_json["locations"], origin, assoc_date, credentials, assoc_uid, current_id)
+                            current_nexts.append(head_node)
+            current_node = StopTree(current_location, current_nexts)
+            current_nexts = [current_node]
     return current_node
 
 
