@@ -341,8 +341,12 @@ def record_new_leg(start: datetime | None, station: Station | None, creds: Crede
     origin_crs = get_station_string("Origin", station)
     destination_crs = get_station_string("Destination")
     dt = get_datetime(start)
-    origin_station = Station(origin_crs, dt, creds)
-    service = get_service(origin_station, destination_crs, creds)
+    try:
+        origin_station = Station(origin_crs, dt, creds)
+        service = get_service(origin_station, destination_crs, creds)
+    except:
+        service_id = input("Service id: ")
+        service = Service(service_id, dt, creds)
     stock = get_stock(service)
     mileage = compute_mileage(service, origin_crs, destination_crs)
     leg = Leg(service, origin_crs, destination_crs, mileage, stock)

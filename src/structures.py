@@ -337,7 +337,6 @@ class Service:
 
         self.calls = get_stop_tree(
             service_json["locations"], service_json["origin"], d, credentials, self.uid)
-        print_stop_tree(self.calls)
 
     def origin(self):
         return self.calls[0]

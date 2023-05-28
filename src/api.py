@@ -37,5 +37,4 @@ def request(url: str, credentials: Credentials):
 def check_response(response):
     # Did it work okay?
     if response.status_code != 200:
-        print(f"{str(response.status_code)}: {response.content}")
-        exit(1)
+        raise Exception(f"{str(response.status_code)}: {response.content}")
