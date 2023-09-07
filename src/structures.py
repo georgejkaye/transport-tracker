@@ -230,7 +230,7 @@ class StopTree:
     nexts: list
 
 
-def get_calls(stop_tree, origin, dest, boarded=False):
+def get_calls(stop_tree, origin, dest, boarded=False) -> Optional[list[Location]]:
     node = stop_tree.node
     if boarded:
         if node.crs == dest:
@@ -245,7 +245,6 @@ def get_calls(stop_tree, origin, dest, boarded=False):
         next_chain = get_calls(next, origin, dest, new_boarded)
         if new_boarded and next_chain is not None:
             next_chain.insert(0, node)
-
         return next_chain
     return None
 
