@@ -1,11 +1,44 @@
 import json
 from datetime import time, date, datetime, timedelta
+from typing import Optional
 from api import Credentials
 
-from network import get_matching_station_names, get_station_crs_from_name, get_station_name_from_crs, station_codes, station_code_to_name, station_name_to_code, stock_dict
+from network import (
+    get_matching_station_names,
+    get_station_crs_from_name,
+    get_station_name_from_crs,
+    station_codes,
+    station_code_to_name,
+    station_name_to_code,
+    stock_dict,
+)
 from scraper import get_mileage_for_service_call
-from times import get_diff_struct, get_duration_string, pad_front, add, get_hourmin_string, get_diff_string, get_duration, to_time, get_status
-from structures import Journey, Leg, Mileage, PlanActDuration, PlanActTime, Price, Service, ShortLocation, Station, Location, add_durations, get_mph_string, new_duration
+from times import (
+    get_diff_struct,
+    get_duration_string,
+    pad_front,
+    add,
+    get_hourmin_string,
+    get_diff_string,
+    get_duration,
+    to_time,
+    get_status,
+)
+from structures import (
+    Journey,
+    Leg,
+    Mileage,
+    PlanActDuration,
+    PlanActTime,
+    Price,
+    Service,
+    ShortLocation,
+    Station,
+    Location,
+    add_durations,
+    get_mph_string,
+    new_duration,
+)
 from debug import debug_msg
 
 
@@ -86,7 +119,7 @@ def get_station_string(prompt: str, stn: Station | None = None):
     """
     if stn is not None:
         prompt = f"{prompt} ({get_station_name_from_crs(stn.crs)})"
-    prompt = f'{prompt}: '
+    prompt = f"{prompt}: "
     while True:
         string = input(prompt).upper()
         # We only search for strings of length at least three, otherwise there would be loads
@@ -133,7 +166,7 @@ def pick_from_list(choices: list, prompt: str, cancel: bool, display=lambda x: x
     Let the user pick from a list of choices
     """
     for i, choice in enumerate(choices):
-        print(str(i+1) + ": " + display(choice))
+        print(str(i + 1) + ": " + display(choice))
     if cancel:
         max_choice = len(choices) + 1
         # The last option is a cancel option, this returns None
@@ -148,9 +181,9 @@ def pick_from_list(choices: list, prompt: str, cancel: bool, display=lambda x: x
                 return None
             elif resp_no > 0 or resp_no < len(choices):
                 return choices[resp_no - 1]
-            print(f'Expected number 1-{max_choice} but got \'{resp_no}\'')
+            print(f"Expected number 1-{max_choice} but got '{resp_no}'")
         except:
-            print(f'Expected number 1-{max_choice} but got \'{resp_no}\'')
+            print(f"Expected number 1-{max_choice} but got '{resp_no}'")
 
 
 def get_service(station: Station, destination_crs: str, creds: Credentials):
@@ -175,7 +208,11 @@ def get_service(station: Station, destination_crs: str, creds: Credentials):
 
             debug_msg("Searching for services from " + station.name)
             choice = pick_from_list(
-                filtered_services, "Pick a service", True, lambda x: x.get_string(station.crs))
+                filtered_services,
+                "Pick a service",
+                True,
+                lambda x: x.get_string(station.crs),
+            )
 
             if choice is not None:
                 return choice
@@ -196,8 +233,7 @@ def compute_mileage(service: Service, origin: str, destination: str) -> Mileage:
     if origin_mileage is None:
         return get_mileage()
     else:
-        destination_mileage = get_mileage_for_service_call(
-            service, destination)
+        destination_mileage = get_mileage_for_service_call(service, destination)
         if destination_mileage is None:
             return get_mileage()
         else:
@@ -212,10 +248,7 @@ def get_mileage():
 
 
 def make_short_loc_entry(loc: ShortLocation, origin: bool):
-    entry = {
-        "name": loc.name,
-        "crs": loc.crs
-    }
+    entry = {"name": loc.name, "crs": loc.crs}
     time_string = get_hourmin_string(loc.time)
     if origin:
         entry["dep_plan"] = time_string
@@ -237,11 +270,7 @@ def make_planact_entry(planact: PlanActTime):
 
 
 def make_loc_entry(loc: Location, arr: bool = True, dep: bool = True):
-    entry = {
-        "name": loc.name,
-        "crs": loc.crs,
-        "platform": loc.platform
-    }
+    entry = {"name": loc.name, "crs": loc.crs, "platform": loc.platform}
     if arr:
         entry["arr"] = make_planact_entry(loc.arr)
     if dep:
@@ -250,7 +279,6 @@ def make_loc_entry(loc: Location, arr: bool = True, dep: bool = True):
 
 
 def make_leg_entry(leg: Leg):
-
     entry = {
         "date": {
             "year": leg.date.year,
@@ -258,25 +286,24 @@ def make_leg_entry(leg: Leg):
             "day": pad_front(leg.date.day, 2),
         },
         "operator": leg.toc,
-        "mileage": {
-            "miles": leg.distance.miles,
-            "chains": leg.distance.chains
-        },
+        "mileage": {"miles": leg.distance.miles, "chains": leg.distance.chains},
         "uid": leg.uid,
         "headcode": leg.headcode,
         "stock": leg.stock,
         "delay": get_diff_string(leg.duration.diff),
         "status": get_status(leg.duration.diff),
-        "service_origins": list(map(lambda x: make_short_loc_entry(x, True), leg.service_origins)),
-        "service_destinations": list(map(lambda x: make_short_loc_entry(x, False), leg.service_destinations)),
+        "service_origins": list(
+            map(lambda x: make_short_loc_entry(x, True), leg.service_origins)
+        ),
+        "service_destinations": list(
+            map(lambda x: make_short_loc_entry(x, False), leg.service_destinations)
+        ),
         "leg_origin": make_loc_entry(leg.leg_origin, False, True),
         "leg_destination": make_loc_entry(leg.leg_destination, True, False),
         "stops": list(map(lambda x: make_loc_entry(x), leg.calls[1:-1])),
     }
 
-    duration = {
-        "plan": get_duration_string(leg.duration.plan)
-    }
+    duration = {"plan": get_duration_string(leg.duration.plan)}
     if leg.duration.act is not None:
         duration["act"] = get_duration_string(leg.duration.act)
         duration["diff"] = leg.duration.diff
@@ -296,11 +323,9 @@ def make_journey_entry(journey: Journey):
             "miles": journey.distance.miles,
             "chains": journey.distance.chains,
         },
-        "duration": {
-            "plan": get_duration_string(journey.duration.plan)
-        },
+        "duration": {"plan": get_duration_string(journey.duration.plan)},
         "delay": get_diff_string(journey.delay),
-        "status": get_status(journey.delay)
+        "status": get_status(journey.delay),
     }
 
     if journey.duration.act is not None:
@@ -312,7 +337,7 @@ def make_journey_entry(journey: Journey):
     return entry
 
 
-def get_date(start: datetime = None):
+def get_date(start: Optional[datetime] = None):
     if start is None:
         start = datetime.now()
 
@@ -323,15 +348,19 @@ def get_date(start: datetime = None):
     return date(year, month, day)
 
 
-def get_time(start: datetime = None):
+def get_time(start: Optional[datetime] = None):
     if start is None:
         start = datetime.now()
-    tt = pad_front(get_input_no("Time", 2359, pad_front(
-        start.hour, 2) + pad_front(start.minute, 2)), 4)
+    tt = pad_front(
+        get_input_no(
+            "Time", 2359, pad_front(start.hour, 2) + pad_front(start.minute, 2)
+        ),
+        4,
+    )
     return to_time(tt)
 
 
-def get_datetime(start: datetime | None = None):
+def get_datetime(start: Optional[datetime] = None):
     date = get_date(start)
     time = get_time(start)
     return datetime(date.year, date.month, date.day, time.hour, time.minute)
@@ -426,12 +455,12 @@ def add_to_logfile(log_file: str, creds: Credentials):
     log["duration"] = {
         "act": get_duration_string(new_duration_act),
         "plan": get_duration_string(new_duration_plan),
-        "diff":  get_diff_string(new_duration_diff)
+        "diff": get_diff_string(new_duration_diff),
     }
     log["distance"] = {
         "miles": new_distance.miles,
         "chains": new_distance.chains,
-        "total": new_distance.all_miles
+        "total": new_distance.all_miles,
     }
     log["speed"] = get_mph_string(new_distance.speed(new_duration_act))
     new_cost = journey.cost.add(cost)
@@ -448,7 +477,7 @@ def read_logfile(log_file: str):
         if log is None:
             log = {}
     except:
-        debug_msg(f'Logfile {log_file} not found, making empty log')
+        debug_msg(f"Logfile {log_file} not found, making empty log")
     return log
 
 

@@ -21,7 +21,7 @@ def get_service_page_url(date: date, id: str) -> str:
 def get_service_page(date: date, id: str) -> BeautifulSoup:
     url = get_service_page_url(date, id)
     page = requests.get(url)
-    if (page.status_code != 200):
+    if page.status_code != 200:
         error_msg(f"Request {url} failed: {page.status_code}")
         exit(1)
 
@@ -44,7 +44,7 @@ def get_miles_and_chains(div: BeautifulSoup) -> Optional[Mileage]:
     return None
 
 
-def get_mileage_for_service_call(service: Service, crs: str) -> Mileage:
+def get_mileage_for_service_call(service: Service, crs: str) -> Optional[Mileage]:
     soup = get_service_page(service.date, service.uid)
     div = get_location_div(soup, crs)
     if div is not None:
