@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["George Kaye <georgejkaye@gmail.com>"]
 readme = "README.md"
-packages = []
+packages = [{include = "train_tracker", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -16,6 +16,9 @@ requests = "^2.31.0"
 pyyaml = "^6.0.1"
 types-pyyaml = "^6.0.12.11"
 types-requests = "^2.31.0.2"
+python-dotenv = "^1.0.1"
+psycopg2 = "^2.9.9"
+types-psycopg2 = "^2.9.21.20240417"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.5.1"
