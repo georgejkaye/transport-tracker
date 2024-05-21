@@ -2,7 +2,9 @@ import json
 from datetime import date, datetime, timedelta
 from typing import Optional
 from train_tracker.api import Credentials
+from psycopg2._psycopg import connection, cursor
 
+from train_tracker.data.stock import get_operator_stock, string_of_stock
 from train_tracker.network import (
     get_matching_station_names,
     get_station_crs_from_name,
@@ -217,11 +219,14 @@ def get_service(station: Station, destination_crs: str, creds: Credentials):
             print("No services found!")
 
 
-def get_stock(service: Service):
+def get_stock(cur: cursor, service: Service):
     # Currently getting this automatically isn't implemented
     # We could trawl wikipedia and make a map of which trains operate which services
     # Or if know your train becomes part of the api
-    stock = pick_from_list(stock_dict[service.toc], "Stock", False)
+    stock_list = get_operator_stock(cur, service.tocCode)
+    stock = pick_from_list(
+        stock_list, "Stock", False, display=lambda s: string_of_stock(s)
+    )
     if stock is None:
         print("Could not get stuck")
         exit(1)
@@ -374,7 +379,13 @@ def get_datetime(start: Optional[datetime] = None):
     )
 
 
-def record_new_leg(start: datetime | None, station: Station | None, creds: Credentials):
+def record_new_leg(
+    conn: connection,
+    cur: cursor,
+    start: datetime | None,
+    station: Station | None,
+    creds: Credentials,
+):
     origin_crs = get_station_string("Origin", station)
     destination_crs = get_station_string("Destination")
     dt = get_datetime(start)
@@ -385,21 +396,21 @@ def record_new_leg(start: datetime | None, station: Station | None, creds: Crede
         except:
             service_id = input("Service id: ")
             service = Service(service_id, dt, creds)
-        stock = get_stock(service)
+        stock = get_stock(cur, service)
         mileage = compute_mileage(service, origin_crs, destination_crs)
         leg = Leg(service, origin_crs, destination_crs, mileage, stock)
         return leg
     return None
 
 
-def record_new_journey(creds: Credentials):
+def record_new_journey(conn: connection, cur: cursor, creds: Credentials):
     legs = []
     dt = None
     distance = Mileage(0, 0)
     duration = new_duration()
     station = None
     while True:
-        leg = record_new_leg(dt, station, creds)
+        leg = record_new_leg(conn, cur, dt, station, creds)
         if leg is None:
             print("Error making leg")
             exit(1)
@@ -422,8 +433,8 @@ def record_new_journey(creds: Credentials):
     return journey
 
 
-def add_to_logfile(log_file: str, creds: Credentials):
-    journey = record_new_journey(creds)
+def add_to_logfile(conn: connection, cur: cursor, log_file: str, creds: Credentials):
+    journey = record_new_journey(conn, cur, creds)
     log = read_logfile(log_file)
     if log != {}:
         all_journeys = log["journeys"]

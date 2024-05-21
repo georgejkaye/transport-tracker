@@ -28,5 +28,6 @@ CREATE TABLE CurrentStock (
     subclass INT,
     FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
     FOREIGN KEY (brand_id) REFERENCES Brand(brand_id),
+    FOREIGN KEY (stock_class, subclass) REFERENCES Stock(stock_class, subclass),
     CONSTRAINT current_stock_classes_unique UNIQUE NULLS NOT DISTINCT (operator_id, brand_id, stock_class, subclass)
 );

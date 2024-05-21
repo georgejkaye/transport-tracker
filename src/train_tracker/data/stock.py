@@ -39,6 +39,15 @@ class Stock:
     brand: Optional[str]
 
 
+def string_of_stock(stock: Stock) -> str:
+    string = f"Class {stock.class_no}"
+    if stock.subclass_no is not None:
+        string = f"{string}/{stock.subclass_no}"
+    if stock.name is not None:
+        string = f"{string} ({stock.name})"
+    return string
+
+
 def stock_to_values(stock: Stock) -> list[str | None]:
     elem_0 = str(stock.class_no)
     if stock.subclass_no is None:
@@ -120,6 +129,25 @@ def insert_stock_interactive():
 
         else:
             exit(1)
+
+
+def get_operator_stock(cur: cursor, operator: str) -> list[Stock]:
+    query = """
+        SELECT
+            stock.stock_class, stock.subclass, stock.name,
+            currentstock.operator_id, currentstock.brand_id
+        FROM stock
+        INNER JOIN currentstock
+        ON
+            stock.stock_class = currentstock.stock_class AND
+            stock.subclass = currentstock.subclass
+        WHERE
+            currentstock.operator_id = %(id)s OR currentstock.brand_id = %(id)s
+    """
+    cur.execute(query, {"id": operator})
+    rows = cur.fetchall()
+    stock = [Stock(row[0], row[1], row[2], row[3], row[4]) for row in rows]
+    return stock
 
 
 if __name__ == "__main__":

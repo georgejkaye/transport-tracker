@@ -1,6 +1,7 @@
 import sys
 
 from train_tracker.api import authenticate
+from train_tracker.data.database import connect, disconnect
 from train_tracker.record import add_to_logfile
 from train_tracker.network import setup_network
 
@@ -13,4 +14,6 @@ if __name__ == "__main__":
 
     setup_network()
     creds = authenticate()
-    add_to_logfile(output_file, creds)
+    (conn, cur) = connect()
+    add_to_logfile(conn, cur, output_file, creds)
+    disconnect(conn, cur)
