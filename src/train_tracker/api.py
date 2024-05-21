@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import requests
 
-from debug import debug_msg
+from train_tracker.debug import debug_msg
 
 rtt_credentials_file = "rtt.credentials"
 rtt_endpoint = "https://api.rtt.io/api/v1/json/"

@@ -1,8 +1,8 @@
 import sys
 
-from api import authenticate
-from record import add_to_logfile
-from network import setup_network
+from train_tracker.api import authenticate
+from train_tracker.record import add_to_logfile
+from train_tracker.network import setup_network
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

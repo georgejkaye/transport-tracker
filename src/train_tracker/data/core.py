@@ -12,7 +12,7 @@ from dotenv import dotenv_values
 from requests import Response
 from requests.auth import HTTPBasicAuth
 
-from credentials import Credentials
+from train_tracker.data.credentials import Credentials
 
 T = TypeVar("T")
 

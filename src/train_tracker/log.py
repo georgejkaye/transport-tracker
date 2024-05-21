@@ -5,7 +5,7 @@ import os
 from shutil import copy
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pathlib import Path
-from dirs import templates_dir, assets_dir
+from train_tracker.dirs import templates_dir, assets_dir
 
 
 def slug(string):

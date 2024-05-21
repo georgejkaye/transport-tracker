@@ -1,4 +1,4 @@
-from credentials import Credentials
+from train_tracker.data.credentials import Credentials
 
 from train_tracker.data.core import (
     data_directory,

@@ -2,13 +2,24 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from typing import Optional
 
-from api import Credentials, check_response, request, station_endpoint, service_endpoint
-from debug import error_msg
-from times import get_hourmin_string, get_url, pad_front, to_time, get_status
-from network import (
+from train_tracker.api import (
+    Credentials,
+    check_response,
+    request,
+    station_endpoint,
+    service_endpoint,
+)
+from train_tracker.debug import error_msg
+from train_tracker.times import (
+    get_hourmin_string,
+    get_url,
+    pad_front,
+    to_time,
+    get_status,
+)
+from train_tracker.network import (
     get_station_crs_from_name,
     get_station_name_from_crs,
-    station_name_to_code,
     lnwr_dests,
 )
 
@@ -89,21 +100,24 @@ class ShortLocation:
 
 
 def get_multiple_location_string(locs: list[ShortLocation]):
+    string = ""
     for i, loc in enumerate(locs):
         if i == 0:
             string = loc.name
         else:
-            string = string + " and " + loc.name
+            string = f"{string} and {loc.name}"
     return string
 
 
 class ServiceAtStation:
     def __init__(self, service):
-        self.origins = map(
-            lambda x: ShortLocation(x), service["locationDetail"].get("origin")
+        self.origins = list(
+            map(lambda x: ShortLocation(x), service["locationDetail"].get("origin"))
         )
-        self.destinations = map(
-            lambda x: ShortLocation(x), service["locationDetail"].get("destination")
+        self.destinations = list(
+            map(
+                lambda x: ShortLocation(x), service["locationDetail"].get("destination")
+            )
         )
         self.platform = service["locationDetail"].get("platform")
 
@@ -117,7 +131,7 @@ class ServiceAtStation:
         self.date = date(int(run_date[0:4]), int(run_date[5:7]), int(run_date[8:10]))
 
     def get_string(self):
-        return f"{self.headcode} {self.origin[0].time} {get_multiple_location_string(self.origins)} to {get_multiple_location_string(self.destinations)}"
+        return f"{self.headcode} {self.origins[0].time} {get_multiple_location_string(self.origins)} to {get_multiple_location_string(self.destinations)}"
 
 
 class Station:
@@ -168,7 +182,7 @@ class PlanActTime:
 
         if act is not None:
             self.act = datetime.combine(date, to_time(act))
-            if plan is not None:
+            if self.plan is not None:
                 if self.act < (self.plan - timedelta(hours=12)):
                     self.act = self.act + timedelta(days=1)
         else:
@@ -186,12 +200,15 @@ def new_duration():
 
 
 def duration_from_times(
-    origin_plan: datetime,
-    origin_act: datetime,
-    destination_plan: datetime,
-    destination_act: datetime,
+    origin_plan: datetime | None,
+    origin_act: datetime | None,
+    destination_plan: datetime | None,
+    destination_act: datetime | None,
 ):
-    plan = destination_plan - origin_plan
+    if origin_plan is None or destination_plan is None:
+        plan = timedelta(0)
+    else:
+        plan = destination_plan - origin_plan
     if origin_act is not None and destination_act is not None:
         act = destination_act - origin_act
     else:
@@ -296,10 +313,8 @@ def print_stop_tree(stop_tree, level=0):
 def get_stop_tree(
     locations, origin, date: datetime, credentials, current_id, parent_id=""
 ):
-    boarded = False
     current_nexts = []
     for call in reversed(locations):
-        boarded = True
         if call.get("crs") is not None:
             current_location = Location(date, call)
             assocs = call.get("associations")
@@ -373,10 +388,10 @@ class Service:
         )
 
     def origin(self):
-        return self.calls[0]
+        return self.origins
 
     def destination(self):
-        return self.calls[-1]
+        return self.destinations
 
     def stops_at_station(self, origin: str, stn: str):
         return stops_at_station(self.calls, origin, stn)
@@ -389,9 +404,17 @@ class Service:
 
     def get_string(self, crs: str):
         string = f"{self.headcode} {get_hourmin_string(self.origins[0].time)} {get_multiple_location_string(self.origins)} to {get_multiple_location_string(self.destinations)}"
-        act = get_hourmin_string(self.get_dep_from(crs, False))
-        plan = get_hourmin_string(self.get_dep_from(crs, True))
-        return f"{string} plan {plan} act {act} ({self.toc})"
+        act_time = self.get_dep_from(crs, False)
+        if act_time is None:
+            act_string = ""
+        else:
+            act_string = get_hourmin_string(act_time)
+        plan_time = self.get_dep_from(crs, False)
+        if plan_time is None:
+            plan_string = ""
+        else:
+            plan_string = get_hourmin_string(plan_time)
+        return f"{string} plan {plan_string} act {act_string} ({self.toc})"
 
 
 class Leg:
@@ -411,6 +434,9 @@ class Leg:
         self.uid = service.uid
 
         self.calls = get_calls(service.calls, origin_crs, dest_crs)
+        if self.calls is None:
+            print("Could not get calls")
+            exit(1)
         self.leg_origin = self.calls[0]
         self.leg_destination = self.calls[-1]
         self.duration = duration_from_times(

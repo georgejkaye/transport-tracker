@@ -1,34 +1,31 @@
 import json
-from datetime import time, date, datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Optional
-from api import Credentials
+from train_tracker.api import Credentials
 
-from network import (
+from train_tracker.network import (
     get_matching_station_names,
     get_station_crs_from_name,
     get_station_name_from_crs,
     station_codes,
     station_code_to_name,
-    station_name_to_code,
     stock_dict,
 )
-from scraper import get_mileage_for_service_call
-from times import (
+from train_tracker.scraper import get_mileage_for_service_call
+from train_tracker.times import (
     get_diff_struct,
     get_duration_string,
     pad_front,
     add,
     get_hourmin_string,
     get_diff_string,
-    get_duration,
     to_time,
     get_status,
 )
-from structures import (
+from train_tracker.structures import (
     Journey,
     Leg,
     Mileage,
-    PlanActDuration,
     PlanActTime,
     Price,
     Service,
@@ -39,7 +36,7 @@ from structures import (
     get_mph_string,
     new_duration,
 )
-from debug import debug_msg
+from train_tracker.debug import debug_msg
 
 
 def timedelta_from_string(str):
@@ -63,7 +60,7 @@ def get_month_length(month, year):
         return 28
 
 
-def get_input_no(prompt, upper=-1, default=-1):
+def get_input_no(prompt, upper=-1, default=-1, default_pad=0):
     """
     Get a natural number of a given length from the user,
     optionally with an upper bound and a default value to use if no input is given
@@ -72,7 +69,7 @@ def get_input_no(prompt, upper=-1, default=-1):
         prompt_string = prompt
         # Tell the user the default option
         if default != -1:
-            prompt_string = prompt_string + " (" + str(default) + ")"
+            prompt_string = prompt_string + " (" + pad_front(default, default_pad) + ")"
         prompt_string = prompt_string + ": "
         # Get input from the user
         string = input(prompt_string)
@@ -87,7 +84,7 @@ def get_input_no(prompt, upper=-1, default=-1):
             else:
                 error_msg = "Expected number in range 0-"
                 if upper != -1:
-                    error_msg = error_msg + upper
+                    error_msg = f"{error_msg}{upper}"
                 error_msg = error_msg + " but got " + string
                 print(error_msg)
         except:
@@ -225,6 +222,9 @@ def get_stock(service: Service):
     # We could trawl wikipedia and make a map of which trains operate which services
     # Or if know your train becomes part of the api
     stock = pick_from_list(stock_dict[service.toc], "Stock", False)
+    if stock is None:
+        print("Could not get stuck")
+        exit(1)
     return stock
 
 
@@ -279,6 +279,10 @@ def make_loc_entry(loc: Location, arr: bool = True, dep: bool = True):
 
 
 def make_leg_entry(leg: Leg):
+    if leg.calls is None:
+        stops = []
+    else:
+        stops = list(map(lambda x: make_loc_entry(x), leg.calls[1:-1]))
     entry = {
         "date": {
             "year": leg.date.year,
@@ -300,13 +304,13 @@ def make_leg_entry(leg: Leg):
         ),
         "leg_origin": make_loc_entry(leg.leg_origin, False, True),
         "leg_destination": make_loc_entry(leg.leg_destination, True, False),
-        "stops": list(map(lambda x: make_loc_entry(x), leg.calls[1:-1])),
+        "stops": stops,
     }
 
     duration = {"plan": get_duration_string(leg.duration.plan)}
     if leg.duration.act is not None:
         duration["act"] = get_duration_string(leg.duration.act)
-        duration["diff"] = leg.duration.diff
+        duration["diff"] = str(leg.duration.diff)
         entry["speed"] = get_mph_string(leg.distance.speed(leg.duration.act))
     entry["duration"] = duration
 
@@ -341,10 +345,10 @@ def get_date(start: Optional[datetime] = None):
     if start is None:
         start = datetime.now()
 
-    year = get_input_no("Year", 2022, pad_front(start.year, 4))
-    month = get_input_no("Month", 12, pad_front(start.month, 2))
+    year = get_input_no("Year", 2022, start.year, 4)
+    month = get_input_no("Month", 12, start.month, 2)
     max_days = get_month_length(month, year)
-    day = get_input_no("Day", max_days, pad_front(start.day, 2))
+    day = get_input_no("Day", max_days, start.day, 2)
     return date(year, month, day)
 
 
@@ -352,34 +356,40 @@ def get_time(start: Optional[datetime] = None):
     if start is None:
         start = datetime.now()
     tt = pad_front(
-        get_input_no(
-            "Time", 2359, pad_front(start.hour, 2) + pad_front(start.minute, 2)
-        ),
+        get_input_no("Time", 2359, start.hour * 100 + start.minute, 4),
         4,
     )
     return to_time(tt)
 
 
 def get_datetime(start: Optional[datetime] = None):
-    date = get_date(start)
-    time = get_time(start)
-    return datetime(date.year, date.month, date.day, time.hour, time.minute)
+    start_date = get_date(start)
+    start_time = get_time(start)
+    return datetime(
+        start_date.year,
+        start_date.month,
+        start_date.day,
+        start_time.hour,
+        start_time.minute,
+    )
 
 
 def record_new_leg(start: datetime | None, station: Station | None, creds: Credentials):
     origin_crs = get_station_string("Origin", station)
     destination_crs = get_station_string("Destination")
     dt = get_datetime(start)
-    try:
-        origin_station = Station(origin_crs, dt, creds)
-        service = get_service(origin_station, destination_crs, creds)
-    except:
-        service_id = input("Service id: ")
-        service = Service(service_id, dt, creds)
-    stock = get_stock(service)
-    mileage = compute_mileage(service, origin_crs, destination_crs)
-    leg = Leg(service, origin_crs, destination_crs, mileage, stock)
-    return leg
+    if origin_crs is not None and destination_crs is not None:
+        try:
+            origin_station = Station(origin_crs, dt, creds)
+            service = get_service(origin_station, destination_crs, creds)
+        except:
+            service_id = input("Service id: ")
+            service = Service(service_id, dt, creds)
+        stock = get_stock(service)
+        mileage = compute_mileage(service, origin_crs, destination_crs)
+        leg = Leg(service, origin_crs, destination_crs, mileage, stock)
+        return leg
+    return None
 
 
 def record_new_journey(creds: Credentials):
@@ -387,10 +397,12 @@ def record_new_journey(creds: Credentials):
     dt = None
     distance = Mileage(0, 0)
     duration = new_duration()
-    delay = 0
     station = None
     while True:
         leg = record_new_leg(dt, station, creds)
+        if leg is None:
+            print("Error making leg")
+            exit(1)
         legs.append(leg)
         # update the running totals for distance and duration
         distance = distance.add(leg.distance)
@@ -448,7 +460,10 @@ def add_to_logfile(log_file: str, creds: Credentials):
     else:
         delay_amount = int(delay["diff"])
     log["delay"] = get_diff_struct(delay_amount + journey.delay)
-    new_duration_act = duration_act + journey.duration.act
+    if journey.duration.act is not None:
+        new_duration_act = duration_act + journey.duration.act
+    else:
+        new_duration_act = duration_act + journey.duration.plan
     new_duration_plan = duration_plan + journey.duration.plan
     new_duration_diff = duration_diff + journey.duration.diff
     new_distance = Mileage(miles, chains).add(journey.distance)
@@ -481,6 +496,6 @@ def read_logfile(log_file: str):
     return log
 
 
-def write_logfile(log: list, log_file: str):
+def write_logfile(log, log_file: str):
     with open(log_file, "w+") as output:
         json.dump(log, output)

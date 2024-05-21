@@ -7,7 +7,7 @@ from train_tracker.data.train import (
 from train_tracker.data.core import get_tag_text, make_get_request, prefix_namespace
 from train_tracker.data.credentials import get_api_credentials
 import xml.etree.ElementTree as ET
-from train_tracker.data.database import connect, insert
+from train_tracker.data.database import insert
 from train_tracker.data.schema import toc_table
 from psycopg2._psycopg import connection, cursor
 

@@ -4,9 +4,9 @@ from typing import Optional
 
 from datetime import date
 from bs4 import BeautifulSoup  # type: ignore
-from debug import error_msg
+from train_tracker.debug import error_msg
 
-from structures import Mileage, Service
+from train_tracker.structures import Mileage, Service
 
 
 def soupify(doc: str) -> BeautifulSoup:
@@ -34,12 +34,14 @@ def get_location_div(soup: BeautifulSoup, crs: str) -> BeautifulSoup:
     for call in calls:
         if crs in call.get_text():
             return call
+    print("Could not get location div")
+    exit(1)
 
 
 def get_miles_and_chains(div: BeautifulSoup) -> Optional[Mileage]:
     miles = div.find(class_="miles")
     chains = div.find(class_="chains")
-    if miles is not None:
+    if miles is not None and chains is not None:
         return Mileage(int(miles.get_text()), int(chains.get_text()))
     return None
 
