@@ -7,7 +7,7 @@ from train_tracker.data.train import (
 from train_tracker.data.core import get_tag_text, make_get_request, prefix_namespace
 from train_tracker.data.credentials import get_api_credentials
 import xml.etree.ElementTree as ET
-from train_tracker.data.database import insert
+from train_tracker.data.database import connect, disconnect, insert
 from train_tracker.data.schema import toc_table
 from psycopg2._psycopg import connection, cursor
 
@@ -88,3 +88,9 @@ def get_tocs(conn: connection, cur: cursor) -> list[TocWithBrand]:
         for row in rows
     ]
     return tocs
+
+
+if __name__ == "__main__":
+    (conn, cur) = connect()
+    populate_tocs(conn, cur)
+    disconnect(conn, cur)

@@ -4,6 +4,17 @@ from typing import Optional
 from train_tracker.api import Credentials
 from psycopg2._psycopg import connection, cursor
 
+from train_tracker.data.services import (
+    TrainService,
+    filter_services_by_time_and_stop,
+    string_of_service_at_station,
+)
+from train_tracker.data.stations import (
+    TrainStation,
+    get_services_at_station,
+    get_station_from_crs,
+    get_stations_from_substring,
+)
 from train_tracker.data.stock import get_operator_stock, string_of_stock
 from train_tracker.network import (
     get_matching_station_names,
@@ -25,14 +36,10 @@ from train_tracker.times import (
     get_status,
 )
 from train_tracker.structures import (
-    Journey,
-    Leg,
     Mileage,
     PlanActTime,
     Price,
-    Service,
     ShortLocation,
-    Station,
     Location,
     add_durations,
     get_mph_string,
@@ -110,44 +117,42 @@ def get_input_price(prompt):
             print(f"Expected price but got '{string}'")
 
 
-def get_station_string(prompt: str, stn: Station | None = None):
+def get_station_from_input(
+    cur: cursor, prompt: str, stn: TrainStation | None = None
+) -> Optional[TrainStation]:
     """
     Get a string specifying a station from a user.
     Can either be a three letter code (in which case confirmation will be asked for)
     or a full station name
     """
     if stn is not None:
-        prompt = f"{prompt} ({get_station_name_from_crs(stn.crs)})"
+        prompt = f"{prompt} ({stn.name})"
     prompt = f"{prompt}: "
     while True:
-        string = input(prompt).upper()
+        string = input(prompt).lower()
         # We only search for strings of length at least three, otherwise there would be loads
         if len(string) == 0 and stn is not None:
-            return stn.crs
-        if len(string) >= 3:
-            # Check the three letter codes first
-            if string in station_codes:
-                name = station_code_to_name[string]
-                # Just check that it's right, often the tlc is a guess
-                resp = yes_or_no(f"Did you mean {name}?")
+            return stn
+        if len(string) == 3:
+            crs_station = get_station_from_crs(cur, string)
+            if crs_station is not None:
+                resp = yes_or_no(f"Did you mean {crs_station.name}")
                 if resp:
-                    return get_station_crs_from_name(name)
-            # Otherwise search for substrings in the full names of stations
-            matches = get_matching_station_names(string.lower().strip())
-            if len(matches) == 0:
-                print("No matches found, try again")
-            elif len(matches) == 1:
-                match = matches[0]
-                resp = yes_or_no(f"Did you mean {match}?")
-                if resp:
-                    return get_station_crs_from_name(match)
-            else:
-                print("Multiple matches found: ")
-                choice = pick_from_list(matches, "Select a station", True)
-                if choice is not None:
-                    return get_station_crs_from_name(choice)
+                    return crs_station
+        # Otherwise search for substrings in the full names of stations
+        matches = get_stations_from_substring(cur, string)
+        if len(matches) == 0:
+            print("No matches found, try again")
+        elif len(matches) == 1:
+            match = matches[0]
+            resp = yes_or_no(f"Did you mean {match}?")
+            if resp:
+                return match
         else:
-            print("Search string must be at least three characters")
+            print("Multiple matches found: ")
+            choice = pick_from_list(matches, "Select a station", True)
+            if choice is not None:
+                return choice
 
 
 def yes_or_no(prompt: str):
@@ -185,45 +190,41 @@ def pick_from_list(choices: list, prompt: str, cancel: bool, display=lambda x: x
             print(f"Expected number 1-{max_choice} but got '{resp_no}'")
 
 
-def get_service(station: Station, destination_crs: str, creds: Credentials):
+def get_service(
+    origin: TrainStation, dt: datetime, destination: TrainStation, creds: Credentials
+):
     """
     Record a new journey in the logfile
     """
-
+    origin_services = get_services_at_station(origin, dt)
     while True:
-        services = station.services
-        if services is not None:
-            # We want to search within a smaller timeframe
-            timeframe = 15
+        # We want to search within a smaller timeframe
+        timeframe = 15
+        earliest_time = add(dt, -timeframe)
+        latest_time = add(dt, timeframe)
+        # The results encompass a ~1 hour period
+        # We only want to check our given timeframe
+        # We also only want services that stop at our destination
+        filtered_services = filter_services_by_time_and_stop(
+            earliest_time, latest_time, origin, destination, origin_services
+        )
+        debug_msg("Searching for services from " + origin.name)
+        choice = pick_from_list(
+            filtered_services,
+            "Pick a service",
+            True,
+            lambda x: string_of_service_at_station(x),
+        )
 
-            earliest_time = add(station.datetime, -timeframe)
-            latest_time = add(station.datetime, timeframe)
-            # The results encompass a ~1 hour period
-            # We only want to check our given timeframe
-            # We also only want services that stop at our destination
-            filtered_services = station.filter_services_by_time_and_stop(
-                earliest_time, latest_time, station.crs, destination_crs, creds
-            )
-
-            debug_msg("Searching for services from " + station.name)
-            choice = pick_from_list(
-                filtered_services,
-                "Pick a service",
-                True,
-                lambda x: x.get_string(station.crs),
-            )
-
-            if choice is not None:
-                return choice
-        else:
-            print("No services found!")
+        if choice is not None:
+            return choice
 
 
-def get_stock(cur: cursor, service: Service):
+def get_stock(cur: cursor, service: TrainService):
     # Currently getting this automatically isn't implemented
     # We could trawl wikipedia and make a map of which trains operate which services
     # Or if know your train becomes part of the api
-    stock_list = get_operator_stock(cur, service.tocCode)
+    stock_list = get_operator_stock(cur, service.operator_id)
     stock = pick_from_list(
         stock_list, "Stock", False, display=lambda s: string_of_stock(s)
     )
@@ -233,7 +234,7 @@ def get_stock(cur: cursor, service: Service):
     return stock
 
 
-def compute_mileage(service: Service, origin: str, destination: str) -> Mileage:
+def compute_mileage(service: TrainService, origin: str, destination: str) -> Mileage:
     origin_mileage = get_mileage_for_service_call(service, origin)
     if origin_mileage is None:
         return get_mileage()
@@ -253,8 +254,8 @@ def get_mileage():
 
 
 def make_short_loc_entry(loc: ShortLocation, origin: bool):
-    entry = {"name": loc.name, "crs": loc.crs}
-    time_string = get_hourmin_string(loc.time)
+    entry = {"name": loc.station.name, "crs": loc.station.crs}
+    time_string = get_hourmin_string(loc.dt)
     if origin:
         entry["dep_plan"] = time_string
     else:
@@ -383,22 +384,21 @@ def record_new_leg(
     conn: connection,
     cur: cursor,
     start: datetime | None,
-    station: Station | None,
+    default_station: TrainStation | None,
     creds: Credentials,
 ):
-    origin_crs = get_station_string("Origin", station)
-    destination_crs = get_station_string("Destination")
+    origin_station = get_station_from_input(cur, "Origin", default_station)
+    destination_station = get_station_from_input(cur, "Destination")
     dt = get_datetime(start)
-    if origin_crs is not None and destination_crs is not None:
+    if origin_station is not None and destination_station is not None:
         try:
-            origin_station = Station(origin_crs, dt, creds)
-            service = get_service(origin_station, destination_crs, creds)
+            service = get_service(origin_station, dt, destination_station, creds)
         except:
             service_id = input("Service id: ")
             service = Service(service_id, dt, creds)
         stock = get_stock(cur, service)
-        mileage = compute_mileage(service, origin_crs, destination_crs)
-        leg = Leg(service, origin_crs, destination_crs, mileage, stock)
+        mileage = compute_mileage(service, origin_station.crs, destination_station.crs)
+        leg = Leg(service, origin_station.crs, destination_station.crs, mileage, stock)
         return leg
     return None
 

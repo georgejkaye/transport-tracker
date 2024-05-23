@@ -9,6 +9,7 @@ from train_tracker.api import (
     station_endpoint,
     service_endpoint,
 )
+from train_tracker.data.stations import TrainStation
 from train_tracker.debug import error_msg
 from train_tracker.times import (
     get_hourmin_string,
@@ -91,86 +92,20 @@ class Price:
         return Price(self.all_pounds + other)
 
 
+@dataclass
 class ShortLocation:
-    def __init__(self, loc):
-        self.name = loc["description"]
-        self.crs = get_station_crs_from_name(self.name)
-        timestr = loc["publicTime"]
-        self.time = time(int(timestr[0:2]), int(timestr[2:4]))
+    station: TrainStation
+    dt: datetime
 
 
 def get_multiple_location_string(locs: list[ShortLocation]):
     string = ""
     for i, loc in enumerate(locs):
         if i == 0:
-            string = loc.name
+            string = loc.station.name
         else:
-            string = f"{string} and {loc.name}"
+            string = f"{string} and {loc.station.name}"
     return string
-
-
-class ServiceAtStation:
-    def __init__(self, service):
-        self.origins = list(
-            map(lambda x: ShortLocation(x), service["locationDetail"].get("origin"))
-        )
-        self.destinations = list(
-            map(
-                lambda x: ShortLocation(x), service["locationDetail"].get("destination")
-            )
-        )
-        self.platform = service["locationDetail"].get("platform")
-
-        self.plan_dep = service["locationDetail"]["gbttBookedDeparture"]
-        self.act_dep = service["locationDetail"].get("realtimeDeparture")
-
-        self.toc = service["atocName"]
-        self.service_id = service["serviceUid"]
-        self.headcode = service["trainIdentity"]
-        run_date = service["runDate"]
-        self.date = date(int(run_date[0:4]), int(run_date[5:7]), int(run_date[8:10]))
-
-    def get_string(self):
-        return f"{self.headcode} {self.origins[0].time} {get_multiple_location_string(self.origins)} to {get_multiple_location_string(self.destinations)}"
-
-
-class Station:
-    def __init__(self, crs: str, dt: datetime, creds: Credentials):
-        self.name = get_station_name_from_crs(crs)
-        self.crs = crs
-        self.datetime = dt
-        endpoint = f"{station_endpoint}{self.crs}/{get_url(dt)}"
-        response = request(endpoint, creds)
-        check_response(response)
-        station = response.json()
-        self.tiploc = station["location"]["tiploc"]
-        self.services = list(
-            map(lambda service: ServiceAtStation(service), station["services"])
-        )
-
-    def filter_services_by_time(self, earliest: datetime, latest: datetime):
-        filtered_services: list[ServiceAtStation] = []
-        for service in self.services:
-            dep = datetime.combine(service.date, to_time(service.plan_dep))
-            if dep >= earliest and dep <= latest:
-                filtered_services.append(service)
-        return filtered_services
-
-    def filter_services_by_time_and_stop(
-        self,
-        earliest: datetime,
-        latest: datetime,
-        origin_crs: str,
-        destination_crs: str,
-        creds: Credentials,
-    ):
-        time_filtered: list = self.filter_services_by_time(earliest, latest)
-        stop_filtered: list[Service] = []
-        for service in time_filtered:
-            full_service = Service(service.service_id, service.date, creds)
-            if full_service.stops_at_station(origin_crs, destination_crs):
-                stop_filtered.append(full_service)
-        return stop_filtered
 
 
 class PlanActTime:
@@ -346,128 +281,3 @@ def get_stop_tree(
             current_node = StopTree(current_location, current_nexts)
             current_nexts = [current_node]
     return current_node
-
-
-class Service:
-    def __init__(self, service: str, d: datetime, credentials: Credentials):
-        endpoint = f"{service_endpoint}{service}/{get_url(d, False)}"
-        response = request(endpoint, credentials)
-        check_response(response)
-        service_json = response.json()
-        self.date = d
-        self.origins = list(map(ShortLocation, service_json["origin"]))
-        self.destinations = list(map(ShortLocation, service_json["destination"]))
-        self.uid = service_json["serviceUid"]
-        self.headcode = service_json["trainIdentity"]
-        self.power = service_json.get("powerType")
-        self.tocCode = service_json["atocCode"]
-
-        lnwr = False
-
-        self.toc = service_json["atocName"]
-
-        if self.toc == "LNER":
-            self.toc = "London North Eastern Railway"
-
-        if self.toc == "West Midlands Trains":
-            for loc in self.origins:
-                if loc.crs in lnwr_dests:
-                    lnwr = True
-                    break
-            for loc in self.destinations:
-                if loc.crs in lnwr_dests:
-                    lnwr = True
-                    break
-            if lnwr:
-                self.toc = "London Northwestern Railway"
-            else:
-                self.toc = "West Midlands Railway"
-
-        self.calls = get_stop_tree(
-            service_json["locations"], service_json["origin"], d, credentials, self.uid
-        )
-
-    def origin(self):
-        return self.origins
-
-    def destination(self):
-        return self.destinations
-
-    def stops_at_station(self, origin: str, stn: str):
-        return stops_at_station(self.calls, origin, stn)
-
-    def get_arr_at(self, crs: str):
-        return get_arr_at(self.calls, crs)
-
-    def get_dep_from(self, crs: str, plan: bool):
-        return get_dep_from(self.calls, crs, plan)
-
-    def get_string(self, crs: str):
-        string = f"{self.headcode} {get_hourmin_string(self.origins[0].time)} {get_multiple_location_string(self.origins)} to {get_multiple_location_string(self.destinations)}"
-        act_time = self.get_dep_from(crs, False)
-        if act_time is None:
-            act_string = ""
-        else:
-            act_string = get_hourmin_string(act_time)
-        plan_time = self.get_dep_from(crs, False)
-        if plan_time is None:
-            plan_string = ""
-        else:
-            plan_string = get_hourmin_string(plan_time)
-        return f"{string} plan {plan_string} act {act_string} ({self.toc})"
-
-
-class Leg:
-    def __init__(
-        self,
-        service: Service,
-        origin_crs: str,
-        dest_crs: str,
-        distance: Mileage,
-        stock: str,
-    ):
-        self.date = service.date
-        self.service_origins = service.origins
-        self.service_destinations = service.destinations
-        self.headcode = service.headcode
-        self.toc = service.toc
-        self.uid = service.uid
-
-        self.calls = get_calls(service.calls, origin_crs, dest_crs)
-        if self.calls is None:
-            print("Could not get calls")
-            exit(1)
-        self.leg_origin = self.calls[0]
-        self.leg_destination = self.calls[-1]
-        self.duration = duration_from_times(
-            self.leg_origin.dep.plan,
-            self.leg_origin.dep.act,
-            self.leg_destination.arr.plan,
-            self.leg_destination.arr.act,
-        )
-        self.distance = distance
-        self.stock = stock
-        if self.duration.act is not None:
-            self.speed = self.distance.speed(self.duration.act)
-        else:
-            self.speed = self.distance.speed(self.duration.plan)
-
-
-class Journey:
-    def __init__(
-        self, legs: list[Leg], cost: Price, distance: Mileage, duration: PlanActDuration
-    ):
-        self.legs = legs
-        self.no_legs = len(legs)
-        self.cost = cost
-        self.cost_per_mile = cost.per_mile(distance)
-        self.distance = distance
-        self.duration = duration
-        if duration.act is not None:
-            self.speed = distance.speed(duration.act)
-        else:
-            self.speed = None
-        self.delay = 0
-        for leg in legs:
-            if leg.leg_destination.arr.diff is not None:
-                self.delay = self.delay + leg.leg_destination.arr.diff

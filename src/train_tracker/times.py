@@ -28,7 +28,9 @@ def pad_front(string, length):
     return "0" * (length - len(string)) + string
 
 
-def get_hourmin_string(datetime: datetime | time, colon: bool = False):
+def get_hourmin_string(datetime: datetime | time | None, colon: bool = False):
+    if datetime is None:
+        return "-"
     string = pad_front(datetime.hour, 2)
     if colon:
         string = string + " : "
@@ -61,10 +63,16 @@ def get_day(datetime: datetime | date):
 
 
 def get_url(datetime: datetime, long: bool = True):
-    string = get_year(datetime) + "/" + \
-        get_month(datetime) + "/" + get_day(datetime)
+    string = get_year(datetime) + "/" + get_month(datetime) + "/" + get_day(datetime)
     if long:
         string = string + "/" + get_hourmin_string(datetime)
+    return string
+
+
+def get_datetime_route(dt: datetime, include_time: bool) -> str:
+    string = get_year(dt) + "/" + get_month(dt) + "/" + get_day(dt)
+    if include_time:
+        string = string + "/" + get_hourmin_string(dt)
     return string
 
 
@@ -79,10 +87,7 @@ def get_diff_string(diff: int):
 def get_diff_struct(diff: int):
     string = get_diff_string(diff)
     status = get_status(diff)
-    return {
-        "diff": string,
-        "status": status
-    }
+    return {"diff": string, "status": status}
 
 
 def get_duration(start: time, end: time) -> timedelta:
