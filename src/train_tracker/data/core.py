@@ -4,6 +4,7 @@ import gzip
 import os
 import shutil
 import zipfile
+from bs4 import BeautifulSoup
 import requests
 
 from pathlib import Path
@@ -63,6 +64,14 @@ def get_tag_text(root: ET.Element, tag: str, namespace: Optional[str] = None) ->
     return get_or_throw(content.text)
 
 
+def soupify(doc: str) -> Optional[BeautifulSoup]:
+    try:
+        soup = BeautifulSoup(doc, "html.parser")
+    except:
+        return None
+    return soup
+
+
 def make_get_request(
     url: str,
     credentials: Optional[Credentials] = None,
@@ -86,6 +95,12 @@ def get_json(
     except JSONDecodeError:
         return None
     return json
+
+
+def get_soup(url: str) -> Optional[BeautifulSoup]:
+    response = make_get_request(url)
+    html = response.text
+    return soupify(html)
 
 
 def make_post_request(

@@ -41,7 +41,7 @@ CREATE TABLE Station (
     FOREIGN KEY (station_brand) REFERENCES Brand(brand_id)
 );
 
-CREATE TABLE Service (
+CREATE TABLE Leg (
     service_id TEXT NOT NULL,
     headcode TEXT NOT NULL,
     start_time TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -90,7 +90,7 @@ CREATE TABLE JourneyStock (
     stock_number INT,
     start_crs CHARACTER(3),
     end_crs CHARACTER(3),
-    FOREIGN KEY (stock_class, stock_subclass) REFERENCES Stock(stock_class, stock_subclass),
+    FOREIGN KEY (stock_class, stock_subclass) REFERENCES Stock(stock_class, subclass),
     FOREIGN KEY (start_crs) REFERENCES Station(station_crs),
-    FOREIGN KEY (end_crs) REFERENCES Station(end_crs)
-)
+    FOREIGN KEY (end_crs) REFERENCES Station(station_crs)
+);

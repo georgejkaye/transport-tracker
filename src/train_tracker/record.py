@@ -1,30 +1,28 @@
+from decimal import Decimal
+import decimal
 import json
 from datetime import date, datetime, timedelta
 from typing import Optional
 from train_tracker.api import Credentials
 from psycopg2._psycopg import connection, cursor
 
+from train_tracker.data.leg import Leg
+from train_tracker.data.network import miles_and_chains_to_miles
 from train_tracker.data.services import (
     TrainService,
     filter_services_by_time_and_stop,
-    string_of_service_at_station,
+    get_mileage_for_service_call,
+    get_service_from_id,
 )
 from train_tracker.data.stations import (
+    TrainServiceAtStation,
     TrainStation,
     get_services_at_station,
     get_station_from_crs,
     get_stations_from_substring,
+    string_of_service_at_station,
 )
 from train_tracker.data.stock import get_operator_stock, string_of_stock
-from train_tracker.network import (
-    get_matching_station_names,
-    get_station_crs_from_name,
-    get_station_name_from_crs,
-    station_codes,
-    station_code_to_name,
-    stock_dict,
-)
-from train_tracker.scraper import get_mileage_for_service_call
 from train_tracker.times import (
     get_diff_struct,
     get_duration_string,
@@ -34,16 +32,6 @@ from train_tracker.times import (
     get_diff_string,
     to_time,
     get_status,
-)
-from train_tracker.structures import (
-    Mileage,
-    PlanActTime,
-    Price,
-    ShortLocation,
-    Location,
-    add_durations,
-    get_mph_string,
-    new_duration,
 )
 from train_tracker.debug import debug_msg
 
@@ -104,16 +92,13 @@ def get_input_price(prompt):
     while True:
         string = input(f"{prompt} ")
         try:
-            parts = string.replace("£", "").split(".")
-            if len(parts) == 2 or len(parts) == 1:
-                if len(parts) == 1:
-                    pence = 0
-                else:
-                    pence = int(parts[1])
-                pounds = int(parts[0])
-                if pounds >= 0 and pence >= 0 and pence < 100:
-                    return Price(pounds, pence)
-        except:
+            price_text = string.replace("£", "")
+            price = Decimal(price_text)
+            if price < 0:
+                print(f"Expected positive price but got '{price}'")
+            else:
+                return price
+        except decimal.InvalidOperation:
             print(f"Expected price but got '{string}'")
 
 
@@ -165,7 +150,7 @@ def yes_or_no(prompt: str):
     return False
 
 
-def pick_from_list(choices: list, prompt: str, cancel: bool, display=lambda x: x):
+def pick_from_list[T](choices: list[T], prompt: str, cancel: bool, display=lambda x: x):
     """
     Let the user pick from a list of choices
     """
@@ -190,34 +175,34 @@ def pick_from_list(choices: list, prompt: str, cancel: bool, display=lambda x: x
             print(f"Expected number 1-{max_choice} but got '{resp_no}'")
 
 
-def get_service(
-    origin: TrainStation, dt: datetime, destination: TrainStation, creds: Credentials
-):
+def get_service_at_station(
+    cur: cursor,
+    origin: TrainStation,
+    dt: datetime,
+    destination: TrainStation,
+) -> Optional[TrainServiceAtStation]:
     """
     Record a new journey in the logfile
     """
-    origin_services = get_services_at_station(origin, dt)
-    while True:
-        # We want to search within a smaller timeframe
-        timeframe = 15
-        earliest_time = add(dt, -timeframe)
-        latest_time = add(dt, timeframe)
-        # The results encompass a ~1 hour period
-        # We only want to check our given timeframe
-        # We also only want services that stop at our destination
-        filtered_services = filter_services_by_time_and_stop(
-            earliest_time, latest_time, origin, destination, origin_services
-        )
-        debug_msg("Searching for services from " + origin.name)
-        choice = pick_from_list(
-            filtered_services,
-            "Pick a service",
-            True,
-            lambda x: string_of_service_at_station(x),
-        )
-
-        if choice is not None:
-            return choice
+    origin_services = get_services_at_station(cur, origin, dt)
+    # We want to search within a smaller timeframe
+    timeframe = 15
+    earliest_time = add(dt, -timeframe)
+    latest_time = add(dt, timeframe)
+    # The results encompass a ~1 hour period
+    # We only want to check our given timeframe
+    # We also only want services that stop at our destination
+    filtered_services = filter_services_by_time_and_stop(
+        cur, earliest_time, latest_time, origin, destination, origin_services
+    )
+    debug_msg("Searching for services from " + origin.name)
+    choice = pick_from_list(
+        filtered_services,
+        "Pick a service",
+        True,
+        lambda x: string_of_service_at_station(x),
+    )
+    return choice
 
 
 def get_stock(cur: cursor, service: TrainService):
@@ -234,7 +219,7 @@ def get_stock(cur: cursor, service: TrainService):
     return stock
 
 
-def compute_mileage(service: TrainService, origin: str, destination: str) -> Mileage:
+def compute_mileage(service: TrainService, origin: str, destination: str) -> Decimal:
     origin_mileage = get_mileage_for_service_call(service, origin)
     if origin_mileage is None:
         return get_mileage()
@@ -243,14 +228,14 @@ def compute_mileage(service: TrainService, origin: str, destination: str) -> Mil
         if destination_mileage is None:
             return get_mileage()
         else:
-            return destination_mileage.subtract(origin_mileage)
+            return destination_mileage - origin_mileage
 
 
-def get_mileage():
+def get_mileage() -> Decimal:
     # If we can get a good distance set this could be automated
     miles = get_input_no("Miles")
     chains = get_input_no("Chains", 79)
-    return Mileage(miles, chains)
+    return miles_and_chains_to_miles(miles, chains)
 
 
 def make_short_loc_entry(loc: ShortLocation, origin: bool):
@@ -347,60 +332,53 @@ def make_journey_entry(journey: Journey):
     return entry
 
 
-def get_date(start: Optional[datetime] = None):
+def get_datetime(start: Optional[datetime] = None):
     if start is None:
         start = datetime.now()
-
     year = get_input_no("Year", 2022, start.year, 4)
     month = get_input_no("Month", 12, start.month, 2)
     max_days = get_month_length(month, year)
     day = get_input_no("Day", max_days, start.day, 2)
-    return date(year, month, day)
-
-
-def get_time(start: Optional[datetime] = None):
-    if start is None:
-        start = datetime.now()
-    tt = pad_front(
-        get_input_no("Time", 2359, start.hour * 100 + start.minute, 4),
-        4,
-    )
-    return to_time(tt)
-
-
-def get_datetime(start: Optional[datetime] = None):
-    start_date = get_date(start)
-    start_time = get_time(start)
-    return datetime(
-        start_date.year,
-        start_date.month,
-        start_date.day,
-        start_time.hour,
-        start_time.minute,
-    )
+    time = get_input_no("Time", 2359, start.hour * 100 + start.minute, 4)
+    time_string = pad_front(time, 4)
+    hour = int(time_string[0:2])
+    minute = int(time_string[2:4])
+    return datetime(year, month, day, hour, minute)
 
 
 def record_new_leg(
-    conn: connection,
     cur: cursor,
     start: datetime | None,
     default_station: TrainStation | None,
-    creds: Credentials,
-):
+) -> Leg | None:
     origin_station = get_station_from_input(cur, "Origin", default_station)
+    if origin_station is None:
+        return None
     destination_station = get_station_from_input(cur, "Destination")
-    dt = get_datetime(start)
-    if origin_station is not None and destination_station is not None:
-        try:
-            service = get_service(origin_station, dt, destination_station, creds)
-        except:
+    if destination_station is None:
+        return None
+    run_date = get_datetime(start)
+    service_at_station = get_service_at_station(
+        cur, origin_station, run_date, destination_station
+    )
+    service = None
+    if service_at_station is None:
+        service_candidate = None
+        while service_candidate is None:
             service_id = input("Service id: ")
-            service = Service(service_id, dt, creds)
-        stock = get_stock(cur, service)
-        mileage = compute_mileage(service, origin_station.crs, destination_station.crs)
-        leg = Leg(service, origin_station.crs, destination_station.crs, mileage, stock)
-        return leg
-    return None
+            service_candidate = get_service_from_id(cur, service_id, run_date)
+            if service_candidate is None:
+                print("Invalid service id, try again")
+            else:
+                service = service_candidate
+    else:
+        service = get_service_from_id(cur, service_at_station.id, run_date)
+    if service is None:
+        raise RuntimeError("Service should not be none at this point")
+    stock = get_stock(cur, service)
+    mileage = compute_mileage(service, origin_station.crs, destination_station.crs)
+    leg = Leg(service, origin_station.crs, destination_station.crs, mileage, stock)
+    return leg
 
 
 def record_new_journey(conn: connection, cur: cursor, creds: Credentials):

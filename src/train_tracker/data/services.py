@@ -1,10 +1,14 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Optional
 
-from train_tracker.data.core import make_get_request
+from bs4 import BeautifulSoup
+
+from train_tracker.data.core import get_soup, make_get_request
 from train_tracker.data.credentials import get_api_credentials
 from train_tracker.data.database import connect, disconnect
+from train_tracker.data.network import miles_and_chains_to_miles
 from train_tracker.data.stations import (
     ShortTrainStation,
     TrainServiceAtStation,
@@ -33,10 +37,10 @@ class CallTree:
 
 def string_of_call_tree(call_tree: CallTree, level=0):
     string = (
-        f"{'-' * level} | {call_tree.node.station.name} ({call_tree.node.station.crs})"
+        f"{' |' * level} | {call_tree.node.station.name} ({call_tree.node.station.crs})"
     )
     for i, next in enumerate(call_tree.nexts):
-        string = f"{string}\n{string_of_call_tree(next, level + i)}"
+        string = f"{string}\n{string_of_call_tree(next, level + len(call_tree.nexts) - i - 1)}"
     return string
 
 
@@ -142,7 +146,7 @@ def get_call_tree(
     return current_node
 
 
-def get_service(
+def get_service_from_id(
     cur: cursor, service_id: str, run_date: datetime
 ) -> Optional[TrainService]:
     endpoint = f"{service_endpoint}/{service_id}/{get_datetime_route(run_date, False)}"
@@ -223,7 +227,7 @@ def filter_services_by_time_and_stop(
     time_filtered = filter_services_by_time(earliest, latest, services)
     stop_filtered = []
     for service in time_filtered:
-        full_service = get_service(cur, service.id, service.run_date)
+        full_service = get_service_from_id(cur, service.id, service.run_date)
         if full_service and stops_at_station(
             origin.crs, destination.crs, full_service.call_tree
         ):
@@ -231,9 +235,54 @@ def filter_services_by_time_and_stop(
     return stop_filtered
 
 
+def get_service_page_url(service_date: datetime, id: str) -> str:
+    date_string = service_date.strftime("%Y-%m-%d")
+    return f"https://www.realtimetrains.co.uk/service/gb-nr:{id}/{date_string}/detailed"
+
+
+def get_service_page(date: datetime, id: str) -> Optional[BeautifulSoup]:
+    url = get_service_page_url(date, id)
+    return get_soup(url)
+
+
+def get_location_div_from_service_page(
+    service_soup: BeautifulSoup, crs: str
+) -> BeautifulSoup:
+    calls = service_soup.find_all(class_="call")
+    for call in calls:
+        if crs in call.get_text():
+            return call
+    print("Could not get location div")
+    exit(1)
+
+
+def get_miles_and_chains_from_call_div(
+    call_div_soup: BeautifulSoup,
+) -> Optional[Decimal]:
+    miles = call_div_soup.find(class_="miles")
+    chains = call_div_soup.find(class_="chains")
+    if miles is None or chains is None:
+        return None
+    miles_text = miles.get_text()
+    miles_int = int(miles_text)
+    chains_text = chains.get_text()
+    chains_int = int(chains_text)
+    return miles_and_chains_to_miles(miles_int, chains_int)
+
+
+def get_mileage_for_service_call(service: TrainService, crs: str) -> Optional[Decimal]:
+    service_soup = get_service_page(service.run_date, service.id)
+    if service_soup is None:
+        return None
+    call_div = get_location_div_from_service_page(service_soup, crs)
+    if call_div is None:
+        return None
+    return get_miles_and_chains_from_call_div(call_div)
+
+
 if __name__ == "__main__":
     (conn, cur) = connect()
-    service = get_service(cur, "L15355", datetime(2024, 5, 23))
+    service = get_service_from_id(cur, "L39994", datetime(2024, 7, 9))
     if service is not None:
         print(f"Root is {service.call_tree.node.station}")
         print(string_of_call_tree(service.call_tree))
