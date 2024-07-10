@@ -13,7 +13,6 @@ if __name__ == "__main__":
     output_file = sys.argv[1]
 
     setup_network()
-    creds = authenticate()
     (conn, cur) = connect()
-    add_to_logfile(conn, cur, output_file, creds)
+    add_to_logfile(cur)
     disconnect(conn, cur)

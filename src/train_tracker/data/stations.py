@@ -98,7 +98,7 @@ def populate_train_stations(conn: connection, cur: cursor):
 
 def get_station_from_crs(cur: cursor, crs: str) -> Optional[TrainStation]:
     query = """
-        SELECT station_name, station_operator, station_brand FROM Station WHERE station_crs = %(crs)s
+        SELECT station_name, station_operator, station_brand FROM Station WHERE LOWER(station_crs) = LOWER(%(crs)s)
     """
     cur.execute(query, {"crs": crs})
     rows = cur.fetchall()
@@ -112,7 +112,7 @@ def get_station_from_name(cur: cursor, name: str) -> Optional[TrainStation]:
     query = """
         SELECT station_name, station_crs, station_operator, station_brand
         FROM Station
-        WHERE station_name = %(name)s
+        WHERE LOWER(station_name) = LOWER(%(name)s)
     """
     cur.execute(query, {"name": name})
     rows = cur.fetchall()
@@ -126,9 +126,9 @@ def get_stations_from_substring(cur: cursor, substring: str) -> list[TrainStatio
     query = """
         SELECT station_name, station_crs, station_operator, station_brand
         FROM Station
-        WHERE LOWER(station_name) LIKE '%' || LOWER(%(substring)s) || '%'
+        WHERE LOWER(station_name) LIKE '%%' || LOWER(%(subs)s) || '%%'
     """
-    cur.execute(query, {"substring": substring})
+    cur.execute(query, {"subs": substring})
     rows = cur.fetchall()
     return [TrainStation(row[0], row[1], row[2], row[3]) for row in rows]
 
@@ -172,14 +172,12 @@ def response_to_datetime(
 
 
 def response_to_service_at_station(cur: cursor, data: dict) -> TrainServiceAtStation:
+    print(data)
     id = data["serviceUid"]
     headcode = data["trainIdentity"]
     operator_id = data["atocCode"]
     operator_name = data["atocName"]
-    run_date_components = data["runDate"].split("-")
-    run_date = datetime(
-        run_date_components[0], run_date_components[1], run_date_components[2], 0, 0, 0
-    )
+    run_date = datetime.strptime(data["runDate"], "%Y-%m-%d")
     origins = [
         response_to_short_train_station(cur, origin)
         for origin in data["locationDetail"]["origin"]
@@ -210,11 +208,13 @@ def response_to_service_at_station(cur: cursor, data: dict) -> TrainServiceAtSta
 def get_services_at_station(
     cur: cursor, station: TrainStation, dt: datetime
 ) -> list[TrainServiceAtStation]:
-    endpoint = f"{station_endpoint}{station.crs}/{get_datetime_route(dt, True)}"
+    endpoint = f"{station_endpoint}/{station.crs}/{get_datetime_route(dt, True)}"
     rtt_credentials = get_api_credentials("RTT")
     response = make_get_request(endpoint, rtt_credentials)
     data = response.json()
-    services = [response_to_service_at_station(cur, service) for service in data]
+    services = [
+        response_to_service_at_station(cur, service) for service in data["services"]
+    ]
     return services
 
 

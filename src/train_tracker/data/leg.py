@@ -10,5 +10,5 @@ class Leg:
     service: TrainService
     origin_station: str
     destination_station: str
-    mileage: Decimal
-    stock: Stock
+    distance: Decimal
+    stock: list[Stock]

@@ -135,7 +135,7 @@ def get_station_from_input(
                 return match
         else:
             print("Multiple matches found: ")
-            choice = pick_from_list(matches, "Select a station", True)
+            choice = pick_from_list(matches, "Select a station", True, lambda x: x.name)
             if choice is not None:
                 return choice
 
@@ -238,100 +238,6 @@ def get_mileage() -> Decimal:
     return miles_and_chains_to_miles(miles, chains)
 
 
-def make_short_loc_entry(loc: ShortLocation, origin: bool):
-    entry = {"name": loc.station.name, "crs": loc.station.crs}
-    time_string = get_hourmin_string(loc.dt)
-    if origin:
-        entry["dep_plan"] = time_string
-    else:
-        entry["arr_plan"] = time_string
-    return entry
-
-
-def make_planact_entry(planact: PlanActTime):
-    entry = {}
-    if planact.plan is not None:
-        entry["plan"] = get_hourmin_string(planact.plan)
-    if planact.act is not None:
-        entry["act"] = get_hourmin_string(planact.act)
-    if planact.diff is not None:
-        entry["diff"] = get_diff_string(planact.diff)
-        entry["status"] = planact.status
-    return entry
-
-
-def make_loc_entry(loc: Location, arr: bool = True, dep: bool = True):
-    entry = {"name": loc.name, "crs": loc.crs, "platform": loc.platform}
-    if arr:
-        entry["arr"] = make_planact_entry(loc.arr)
-    if dep:
-        entry["dep"] = make_planact_entry(loc.dep)
-    return entry
-
-
-def make_leg_entry(leg: Leg):
-    if leg.calls is None:
-        stops = []
-    else:
-        stops = list(map(lambda x: make_loc_entry(x), leg.calls[1:-1]))
-    entry = {
-        "date": {
-            "year": leg.date.year,
-            "month": pad_front(leg.date.month, 2),
-            "day": pad_front(leg.date.day, 2),
-        },
-        "operator": leg.toc,
-        "mileage": {"miles": leg.distance.miles, "chains": leg.distance.chains},
-        "uid": leg.uid,
-        "headcode": leg.headcode,
-        "stock": leg.stock,
-        "delay": get_diff_string(leg.duration.diff),
-        "status": get_status(leg.duration.diff),
-        "service_origins": list(
-            map(lambda x: make_short_loc_entry(x, True), leg.service_origins)
-        ),
-        "service_destinations": list(
-            map(lambda x: make_short_loc_entry(x, False), leg.service_destinations)
-        ),
-        "leg_origin": make_loc_entry(leg.leg_origin, False, True),
-        "leg_destination": make_loc_entry(leg.leg_destination, True, False),
-        "stops": stops,
-    }
-
-    duration = {"plan": get_duration_string(leg.duration.plan)}
-    if leg.duration.act is not None:
-        duration["act"] = get_duration_string(leg.duration.act)
-        duration["diff"] = str(leg.duration.diff)
-        entry["speed"] = get_mph_string(leg.distance.speed(leg.duration.act))
-    entry["duration"] = duration
-
-    return entry
-
-
-def make_journey_entry(journey: Journey):
-    entry = {
-        "legs": list(map(make_leg_entry, journey.legs)),
-        "no_legs": journey.no_legs,
-        "cost": journey.cost.to_string(),
-        "cost_per_mile": journey.cost_per_mile.to_string(),
-        "distance": {
-            "miles": journey.distance.miles,
-            "chains": journey.distance.chains,
-        },
-        "duration": {"plan": get_duration_string(journey.duration.plan)},
-        "delay": get_diff_string(journey.delay),
-        "status": get_status(journey.delay),
-    }
-
-    if journey.duration.act is not None:
-        entry["duration"]["act"] = get_duration_string(journey.duration.act)
-        entry["duration"]["diff"] = get_diff_string(journey.duration.diff)
-
-    if journey.speed is not None:
-        entry["speed"] = journey.speed
-    return entry
-
-
 def get_datetime(start: Optional[datetime] = None):
     if start is None:
         start = datetime.now()
@@ -348,8 +254,8 @@ def get_datetime(start: Optional[datetime] = None):
 
 def record_new_leg(
     cur: cursor,
-    start: datetime | None,
-    default_station: TrainStation | None,
+    start: datetime | None = None,
+    default_station: TrainStation | None = None,
 ) -> Leg | None:
     origin_station = get_station_from_input(cur, "Origin", default_station)
     if origin_station is None:
@@ -381,96 +287,8 @@ def record_new_leg(
     return leg
 
 
-def record_new_journey(conn: connection, cur: cursor, creds: Credentials):
-    legs = []
-    dt = None
-    distance = Mileage(0, 0)
-    duration = new_duration()
-    station = None
-    while True:
-        leg = record_new_leg(conn, cur, dt, station, creds)
-        if leg is None:
-            print("Error making leg")
-            exit(1)
-        legs.append(leg)
-        # update the running totals for distance and duration
-        distance = distance.add(leg.distance)
-        duration = add_durations(duration, leg.duration)
-        # get the end of this leg since it potentially might be the start of the next
-        station = leg.leg_destination
-        if leg.leg_destination.arr.act is not None:
-            dt = leg.leg_destination.arr.act
-        else:
-            dt = leg.leg_destination.arr.plan
-        # do we want to go around again?
-        choice = yes_or_no("Add another leg?")
-        if not choice:
-            break
-    cost = get_input_price("Journey cost?")
-    journey = Journey(legs, cost, distance, duration)
-    return journey
-
-
-def add_to_logfile(conn: connection, cur: cursor, log_file: str, creds: Credentials):
-    journey = record_new_journey(conn, cur, creds)
-    log = read_logfile(log_file)
-    if log != {}:
-        all_journeys = log["journeys"]
-        no_journeys = log["no_journeys"]
-        no_legs = log["no_legs"]
-        delay = log["delay"]
-        duration_act = timedelta_from_string(log["duration"]["act"])
-        duration_plan = timedelta_from_string(log["duration"]["plan"])
-        duration_diff = int(log["duration"]["diff"])
-        miles = log["distance"]["miles"]
-        chains = log["distance"]["chains"]
-        cost = float(log["cost"])
-    else:
-        all_journeys = []
-        no_journeys = 0
-        no_legs = 0
-        delay = {
-            "diff": "0",
-            "status": "on-time",
-        }
-        duration_act = timedelta()
-        duration_plan = timedelta()
-        duration_diff = 0
-        miles = 0
-        chains = 0
-        cost = 0.0
-
-    all_journeys.append(make_journey_entry(journey))
-    log["journeys"] = all_journeys
-    log["no_journeys"] = no_journeys + 1
-    log["no_legs"] = no_legs + journey.no_legs
-    if delay["diff"][0] == "+":
-        delay_amount = int(delay["diff"][1:])
-    else:
-        delay_amount = int(delay["diff"])
-    log["delay"] = get_diff_struct(delay_amount + journey.delay)
-    if journey.duration.act is not None:
-        new_duration_act = duration_act + journey.duration.act
-    else:
-        new_duration_act = duration_act + journey.duration.plan
-    new_duration_plan = duration_plan + journey.duration.plan
-    new_duration_diff = duration_diff + journey.duration.diff
-    new_distance = Mileage(miles, chains).add(journey.distance)
-    log["duration"] = {
-        "act": get_duration_string(new_duration_act),
-        "plan": get_duration_string(new_duration_plan),
-        "diff": get_diff_string(new_duration_diff),
-    }
-    log["distance"] = {
-        "miles": new_distance.miles,
-        "chains": new_distance.chains,
-        "total": new_distance.all_miles,
-    }
-    log["speed"] = get_mph_string(new_distance.speed(new_duration_act))
-    new_cost = journey.cost.add(cost)
-    log["cost"] = new_cost.to_string()
-    log["cost_per_mile"] = new_cost.per_mile(new_distance).to_string()
-    write_logfile(log, log_file)
+def add_to_logfile(cur: cursor):
+    journey = record_new_leg(cur)
 
 
 def read_logfile(log_file: str):
