@@ -15,10 +15,18 @@ CREATE TABLE Brand (
 );
 
 CREATE TABLE Stock (
+    stock_id SERIAL PRIMARY KEY,
     stock_class INT NOT NULL,
     subclass INT,
     name TEXT,
     CONSTRAINT stock_classes_unique UNIQUE NULLS NOT DISTINCT (stock_class, subclass)
+);
+
+CREATE TABLE StockCars (
+    stock_id INT NOT NULL,
+    cars INT,
+    FOREIGN KEY (stock_id) REFERENCES Stock(stock_id),
+    CONSTRAINT stock_cars_unique UNIQUE (stock_id, cars)
 );
 
 CREATE TABLE CurrentStock (
@@ -82,15 +90,17 @@ CREATE TABLE ServiceDestination (
     FOREIGN KEY (station_crs) REFERENCES Station(station_crs)
 );
 
-CREATE TABLE JourneyStock (
+CREATE TABLE LegStock (
     service_id TEXT NOT NULL,
     start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    stock_class INT NOT NULL,
-    stock_subclass INT,
+    stock_id INT NOT NULL,
     stock_number INT,
-    start_crs CHARACTER(3),
-    end_crs CHARACTER(3),
-    FOREIGN KEY (stock_class, stock_subclass) REFERENCES Stock(stock_class, subclass),
+    cars INT,
+    start_crs CHARACTER(3) NOT NULL,
+    end_crs CHARACTER(3) NOT NULL,
+    FOREIGN KEY (service_id, start_time) REFERENCES Leg(service_id, start_time),
+    FOREIGN KEY (stock_id) REFERENCES Stock(stock_id),
+    FOREIGN KEY (stock_id, cars) REFERENCES StockCars(stock_id, cars),
     FOREIGN KEY (start_crs) REFERENCES Station(station_crs),
     FOREIGN KEY (end_crs) REFERENCES Station(station_crs)
 );
