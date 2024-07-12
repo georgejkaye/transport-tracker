@@ -15,29 +15,38 @@ CREATE TABLE Brand (
 );
 
 CREATE TABLE Stock (
-    stock_id SERIAL PRIMARY KEY,
+    stock_class INT PRIMARY KEY,
+    name TEXT
+);
+
+CREATE TABLE StockSubclass (
     stock_class INT NOT NULL,
-    subclass INT,
+    stock_subclass INT NOT NULL,
     name TEXT,
-    CONSTRAINT stock_classes_unique UNIQUE NULLS NOT DISTINCT (stock_class, subclass)
+    PRIMARY KEY (stock_class, stock_subclass),
+    FOREIGN KEY (stock_class) REFERENCES Stock(stock_class)
 );
 
-CREATE TABLE StockCars (
-    stock_id INT NOT NULL,
+CREATE TABLE StockFormation (
+    formation_id SERIAL PRIMARY KEY,
+    stock_class INT NOT NULL,
+    stock_subclass INT,
     cars INT,
-    FOREIGN KEY (stock_id) REFERENCES Stock(stock_id),
-    CONSTRAINT stock_cars_unique UNIQUE (stock_id, cars)
+    FOREIGN KEY (stock_class) REFERENCES Stock(stock_class),
+    FOREIGN KEY (stock_class, stock_subclass) REFERENCES StockSubclass(stock_class, stock_subclass),
+    CONSTRAINT stock_class_cars_unique UNIQUE NULLS NOT DISTINCT (stock_class, stock_subclass, cars)
 );
 
-CREATE TABLE CurrentStock (
+CREATE TABLE OperatorStock (
     operator_id CHARACTER(2) NOT NULL,
     brand_id CHARACTER(2),
     stock_class INT NOT NULL,
-    subclass INT,
+    stock_subclass INT,
     FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
     FOREIGN KEY (brand_id) REFERENCES Brand(brand_id),
-    FOREIGN KEY (stock_class, subclass) REFERENCES Stock(stock_class, subclass),
-    CONSTRAINT current_stock_classes_unique UNIQUE NULLS NOT DISTINCT (operator_id, brand_id, stock_class, subclass)
+    FOREIGN KEY (stock_class) REFERENCES Stock(stock_class),
+    FOREIGN KEY (stock_class, stock_subclass) REFERENCES StockSubclass(stock_class, stock_subclass),
+    CONSTRAINT operator_stock_classes_unique UNIQUE NULLS NOT DISTINCT (operator_id, brand_id, stock_class, stock_subclass)
 );
 
 CREATE TABLE Station (
@@ -93,14 +102,13 @@ CREATE TABLE ServiceDestination (
 CREATE TABLE LegStock (
     service_id TEXT NOT NULL,
     start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    stock_id INT NOT NULL,
+    stock_class INT,
+    stock_subclass INT,
     stock_number INT,
-    cars INT,
+    stock_cars INT,
     start_crs CHARACTER(3) NOT NULL,
     end_crs CHARACTER(3) NOT NULL,
     FOREIGN KEY (service_id, start_time) REFERENCES Leg(service_id, start_time),
-    FOREIGN KEY (stock_id) REFERENCES Stock(stock_id),
-    FOREIGN KEY (stock_id, cars) REFERENCES StockCars(stock_id, cars),
     FOREIGN KEY (start_crs) REFERENCES Station(station_crs),
     FOREIGN KEY (end_crs) REFERENCES Station(station_crs)
 );
