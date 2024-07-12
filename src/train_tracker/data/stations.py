@@ -21,6 +21,10 @@ class ShortTrainStation:
     crs: str
 
 
+def string_of_short_train_station(station: ShortTrainStation) -> str:
+    return f"{station.name} [{station.crs}]"
+
+
 @dataclass
 class TrainStation:
     name: str
@@ -43,7 +47,7 @@ class TrainServiceAtStation:
 
 
 def string_of_service_at_station(service: TrainServiceAtStation):
-    return f"{service.headcode} {service.origins[0]} {get_multiple_short_station_string(service.origins)} to {get_multiple_short_station_string(service.destinations)} plan {get_hourmin_string(service.plan_dep)} act {get_hourmin_string(service.act_dep)}"
+    return f"{service.headcode} {get_multiple_short_station_string(service.origins)} to {get_multiple_short_station_string(service.destinations)} plan {get_hourmin_string(service.plan_dep)} act {get_hourmin_string(service.act_dep)}"
 
 
 kb_stations_namespace = "http://nationalrail.co.uk/xml/station"
@@ -172,7 +176,6 @@ def response_to_datetime(
 
 
 def response_to_service_at_station(cur: cursor, data: dict) -> TrainServiceAtStation:
-    print(data)
     id = data["serviceUid"]
     headcode = data["trainIdentity"]
     operator_id = data["atocCode"]
@@ -216,6 +219,10 @@ def get_services_at_station(
         response_to_service_at_station(cur, service) for service in data["services"]
     ]
     return services
+
+
+def compare_crs(a: str, b: str) -> bool:
+    return a.upper() == b.upper()
 
 
 if __name__ == "__main__":

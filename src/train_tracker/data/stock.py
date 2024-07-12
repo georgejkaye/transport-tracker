@@ -33,8 +33,9 @@ def get_number(prompt: str, max: Optional[int] = None):
 @dataclass
 class Stock:
     class_no: int
+    class_name: Optional[str]
     subclass_no: Optional[int]
-    name: Optional[str]
+    subclass_name: Optional[str]
     operator: str
     brand: Optional[str]
 
@@ -43,8 +44,10 @@ def string_of_stock(stock: Stock) -> str:
     string = f"Class {stock.class_no}"
     if stock.subclass_no is not None:
         string = f"{string}/{stock.subclass_no}"
-    if stock.name is not None:
-        string = f"{string} ({stock.name})"
+    if stock.subclass_name is not None:
+        string = f"{string} ({stock.subclass_name})"
+    elif stock.class_name is not None:
+        string = f"{string} ({stock.class_name})"
     return string
 
 
@@ -82,7 +85,7 @@ def insert_stock(conn: connection, cur: cursor, stocks: list[Stock]):
     current_fields = ["operator_id", "brand_id", "stock_class", "subclass"]
     current_values = [stock_to_current(stock) for stock in stocks]
     insert(
-        cur, "CurrentStock", current_fields, current_values, "ON CONFLICT DO NOTHING"
+        cur, "OperatorStock", current_fields, current_values, "ON CONFLICT DO NOTHING"
     )
 
 
@@ -134,19 +137,22 @@ def insert_stock_interactive():
 def get_operator_stock(cur: cursor, operator: str) -> list[Stock]:
     query = """
         SELECT
-            stock.stock_class, stock.subclass, stock.name,
-            currentstock.operator_id, currentstock.brand_id
-        FROM stock
-        INNER JOIN currentstock
+            Stock.stock_class, Stock.name,
+            StockSubclass.stock_subclass, StockSubclass.name,
+            OperatorStock.operator_id, OperatorStock.brand_id
+        FROM Stock
+        LEFT JOIN StockSubclass
+        ON Stock.stock_class = StockSubclass.stock_class
+        INNER JOIN OperatorStock
         ON
-            stock.stock_class = currentstock.stock_class AND
-            stock.subclass = currentstock.subclass
+            Stock.stock_class = OperatorStock.stock_class AND
+            StockSubclass.stock_subclass = OperatorStock.stock_subclass
         WHERE
-            currentstock.operator_id = %(id)s OR currentstock.brand_id = %(id)s
+            OperatorStock.operator_id = %(id)s OR OperatorStock.brand_id = %(id)s
     """
     cur.execute(query, {"id": operator})
     rows = cur.fetchall()
-    stock = [Stock(row[0], row[1], row[2], row[3], row[4]) for row in rows]
+    stock = [Stock(row[0], row[1], row[2], row[3], row[4], row[5]) for row in rows]
     return stock
 
 

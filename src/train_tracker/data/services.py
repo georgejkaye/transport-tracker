@@ -13,6 +13,7 @@ from train_tracker.data.stations import (
     ShortTrainStation,
     TrainServiceAtStation,
     TrainStation,
+    compare_crs,
     response_to_short_train_station,
 )
 from train_tracker.times import get_datetime_route
@@ -98,7 +99,7 @@ def response_to_time(
 
 
 def response_to_call(run_date: datetime, data: dict) -> Call:
-    station = ShortTrainStation(data["crs"], data["description"])
+    station = ShortTrainStation(data["description"], data["crs"])
     plan_arr = response_to_time(run_date, "gbttBookedArrival", data)
     plan_dep = response_to_time(run_date, "gbttBookedDeparture", data)
     act_arr = response_to_time(run_date, "realtimeArrival", data)
@@ -202,11 +203,11 @@ def stops_at_station(
     origin_crs: str, destination_crs: str, call_tree: CallTree, reached=False
 ):
     if not reached:
-        if call_tree.node.station.crs == origin_crs:
+        if compare_crs(call_tree.node.station.crs, origin_crs):
             new_reached = True
         else:
             new_reached = False
-    elif call_tree.node.station.crs == destination_crs:
+    elif compare_crs(call_tree.node.station.crs, destination_crs):
         return True
     else:
         new_reached = True
@@ -225,13 +226,13 @@ def filter_services_by_time_and_stop(
     services: list[TrainServiceAtStation],
 ) -> list[TrainServiceAtStation]:
     time_filtered = filter_services_by_time(earliest, latest, services)
-    stop_filtered = []
+    stop_filtered: list[TrainServiceAtStation] = []
     for service in time_filtered:
         full_service = get_service_from_id(cur, service.id, service.run_date)
         if full_service and stops_at_station(
             origin.crs, destination.crs, full_service.call_tree
         ):
-            stop_filtered.append(full_service)
+            stop_filtered.append(service)
     return stop_filtered
 
 
