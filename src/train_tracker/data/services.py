@@ -50,9 +50,12 @@ service_endpoint = "https://api.rtt.io/api/v1/json/service"
 
 
 def get_calls(calls: list[Call], origin: str, dest: str) -> Optional[list[Call]]:
-    calls = []
+    call_chain = []
     boarded = False
     for call in calls:
+        if boarded and compare_crs(call.station.crs, dest):
+            call_chain.append(call)
+            return calls
         # Since divisions include the current call as their initial call,
         # we iterate into them first to see if there is a path from the origin
         # (if the origin has not been encountered) or the current station (if
@@ -64,14 +67,14 @@ def get_calls(calls: list[Call], origin: str, dest: str) -> Optional[list[Call]]
         for divide in call.divide:
             subcalls = get_calls(divide.calls, divide_start, dest)
             if subcalls is not None:
-                calls.extend(subcalls)
-                return calls
+                call_chain.extend(subcalls)
+                return call_chain
         # Otherwise we keep checking in this list
         if boarded:
-            calls.append(call)
+            call_chain.append(call)
             if compare_crs(call.station.crs, dest):
-                return calls
-        elif call.station.crs == origin:
+                return call_chain
+        elif compare_crs(call.station.crs, origin):
             boarded = True
     return None
 
@@ -122,7 +125,11 @@ def response_to_time(
 
 
 def response_to_call(
-    run_date: datetime, data: dict, current_uid: str, parent_uid: Optional[str] = None
+    cur: cursor,
+    run_date: datetime,
+    data: dict,
+    current_uid: str,
+    parent_uid: Optional[str] = None,
 ) -> Call:
     station = ShortTrainStation(data["description"], data["crs"])
     plan_arr = response_to_time(run_date, "gbttBookedArrival", data)
@@ -135,7 +142,11 @@ def response_to_call(
     if assocs is not None:
         for assoc in assocs:
             assoc_uid = assoc["associatedUid"]
-            if parent_uid is None or not parent_uid == assoc_uid:
+            if (
+                parent_uid is None
+                or not parent_uid == assoc_uid
+                and (assoc["type"] == "divide" or assoc["type"] == "join")
+            ):
                 assoc_date = datetime.strptime(assoc["associatedRunDate"], "%Y-%m-%d")
                 associated_service = get_service_from_id(
                     cur, assoc_uid, assoc_date, current_uid
@@ -154,35 +165,37 @@ def get_service_from_id(
     rtt_credentials = get_api_credentials("RTT")
     response = make_get_request(endpoint, rtt_credentials)
     data = response.json()
-    headcode = data["trainIdentity"]
-    power = data.get("powerType")
-    origins = [
-        response_to_short_train_station(cur, origin) for origin in data["origin"]
-    ]
-    destinations = [
-        response_to_short_train_station(cur, destination)
-        for destination in data["destination"]
-    ]
-    operator_name = data["atocName"]
-    operator_id = data["atocCode"]
-    calls: list[Call] = []
-    for loc in data["locations"]:
-        if loc.get("crs") is not None:
-            call = response_to_call(run_date, loc, service_id, parent)
-            calls.append(call)
-    brand_id = ""
-    return TrainService(
-        service_id,
-        headcode,
-        run_date,
-        origins,
-        destinations,
-        operator_name,
-        operator_id,
-        brand_id,
-        power,
-        calls,
-    )
+    if data["isPassenger"]:
+        headcode = data["trainIdentity"]
+        power = data.get("powerType")
+        origins = [
+            response_to_short_train_station(cur, origin) for origin in data["origin"]
+        ]
+        destinations = [
+            response_to_short_train_station(cur, destination)
+            for destination in data["destination"]
+        ]
+        operator_name = data["atocName"]
+        operator_id = data["atocCode"]
+        calls: list[Call] = []
+        for loc in data["locations"]:
+            if loc.get("crs") is not None:
+                call = response_to_call(cur, run_date, loc, service_id, parent)
+                calls.append(call)
+        brand_id = ""
+        return TrainService(
+            service_id,
+            headcode,
+            run_date,
+            origins,
+            destinations,
+            operator_name,
+            operator_id,
+            brand_id,
+            power,
+            calls,
+        )
+    return None
 
 
 def filter_services_by_time(
