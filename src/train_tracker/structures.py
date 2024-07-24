@@ -201,22 +201,6 @@ def get_calls(stop_tree, origin, dest, boarded=False) -> Optional[list[Location]
     return None
 
 
-def stops_at_station(stop_tree, origin, stn, reached=False):
-    if not reached:
-        if stop_tree.node.crs == origin:
-            new_reached = True
-        else:
-            new_reached = False
-    elif stop_tree.node.crs == stn:
-        return True
-    else:
-        new_reached = True
-    for next in stop_tree.nexts:
-        if stops_at_station(next, origin, stn, new_reached):
-            return True
-    return False
-
-
 def get_dep_from(stop_tree, crs, plan):
     if stop_tree.node.crs == crs:
         dep = stop_tree.node.dep

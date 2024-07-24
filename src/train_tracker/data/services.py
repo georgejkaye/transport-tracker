@@ -28,21 +28,8 @@ class Call:
     plan_dep: Optional[datetime]
     act_arr: Optional[datetime]
     act_dep: Optional[datetime]
-
-
-@dataclass
-class CallTree:
-    node: Call
-    nexts: list["CallTree"]
-
-
-def string_of_call_tree(call_tree: CallTree, level=0):
-    string = (
-        f"{' |' * level} | {call_tree.node.station.name} ({call_tree.node.station.crs})"
-    )
-    for i, next in enumerate(call_tree.nexts):
-        string = f"{string}\n{string_of_call_tree(next, level + len(call_tree.nexts) - i - 1)}"
-    return string
+    divide: list["TrainService"]
+    join: list["TrainService"]
 
 
 @dataclass
@@ -56,29 +43,65 @@ class TrainService:
     operator_id: str
     brand_id: str
     power: Optional[str]
-    call_tree: CallTree
+    calls: list[Call]
 
 
 service_endpoint = "https://api.rtt.io/api/v1/json/service"
 
 
-def get_calls(stop_tree: CallTree, origin, dest, boarded=False) -> Optional[list[Call]]:
-    node = stop_tree.node
-    if boarded:
-        if node.station.crs == dest:
-            return [node]
-        else:
-            new_boarded = True
-    elif node.station.crs == origin:
-        new_boarded = True
-    else:
-        new_boarded = False
-    for next in stop_tree.nexts:
-        next_chain = get_calls(next, origin, dest, new_boarded)
-        if new_boarded and next_chain is not None:
-            next_chain.insert(0, node)
-        return next_chain
+def get_calls(calls: list[Call], origin: str, dest: str) -> Optional[list[Call]]:
+    calls = []
+    boarded = False
+    for call in calls:
+        # Since divisions include the current call as their initial call,
+        # we iterate into them first to see if there is a path from the origin
+        # (if the origin has not been encountered) or the current station (if
+        # the origin has been encountered) to the destination.
+        # If there is, we concat this list to the existing list and return it.
+        divide_start = origin
+        if boarded:
+            divide_start = call.station.crs
+        for divide in call.divide:
+            subcalls = get_calls(divide.calls, divide_start, dest)
+            if subcalls is not None:
+                calls.extend(subcalls)
+                return calls
+        # Otherwise we keep checking in this list
+        if boarded:
+            calls.append(call)
+            if compare_crs(call.station.crs, dest):
+                return calls
+        elif call.station.crs == origin:
+            boarded = True
     return None
+
+
+def string_of_calls(calls: list[Call], branch: bool = True, level: int = 0) -> str:
+    string = ""
+    for i, call in enumerate(calls):
+        stop_symbol = "| " * level
+        if i == 0 or i == len(calls) - 1:
+            stop_symbol = f"{stop_symbol}* "
+        else:
+            stop_symbol = f"{stop_symbol}| "
+        call_string = f"{stop_symbol}{call.station.name} [{call.station.crs}]"
+        if string == "":
+            string = call_string
+        else:
+            string = f"{string}\n{call_string}"
+        assocs = False
+        if branch:
+            for join in call.join:
+                join_string = string_of_calls(join.calls, branch, level + 1)
+                string = f"{string}\n\n{join_string}\n{"|" * (level + 1)}/"
+                assocs = True
+            for divide in call.divide:
+                divide_string = string_of_calls(divide.calls, branch, level + 1)
+                string = f"{string}\n{"|" * (level + 1)}\\\n{divide_string}\n{"|" * (level + 1)}"
+                assocs = True
+        if assocs:
+            string = f"{string}\n{call_string}"
+    return string
 
 
 def response_to_time(
@@ -98,57 +121,34 @@ def response_to_time(
     return new_time
 
 
-def response_to_call(run_date: datetime, data: dict) -> Call:
+def response_to_call(
+    run_date: datetime, data: dict, current_uid: str, parent_uid: Optional[str] = None
+) -> Call:
     station = ShortTrainStation(data["description"], data["crs"])
     plan_arr = response_to_time(run_date, "gbttBookedArrival", data)
     plan_dep = response_to_time(run_date, "gbttBookedDeparture", data)
     act_arr = response_to_time(run_date, "realtimeArrival", data)
     act_dep = response_to_time(run_date, "realtimeDeparture", data)
-    return Call(station, plan_arr, plan_dep, act_arr, act_dep)
-
-
-def get_call_tree(
-    locations: list[dict],
-    run_date: datetime,
-    service_id: str,
-    parent_id="",
-):
-    current_nexts = []
-    for call in reversed(locations):
-        if call.get("crs") is not None:
-            current_location = response_to_call(run_date, call)
-            assocs = call.get("associations")
-            if assocs is not None:
-                for assoc in assocs:
-                    if (
-                        assoc["type"] == "divide"
-                        and not assoc["associatedUid"] == parent_id
-                    ):
-                        assoc_uid = assoc["associatedUid"]
-                        assoc_date = datetime.strptime(
-                            assoc["associatedRunDate"], "%Y-%m-%d"
-                        )
-                        assoc_date_url = get_datetime_route(assoc_date, False)
-                        endpoint = f"{service_endpoint}/{assoc_uid}/{assoc_date_url}"
-                        response = make_get_request(
-                            endpoint, get_api_credentials("RTT")
-                        )
-                        service_json = response.json()
-                        if service_json.get("locations") is not None:
-                            head_node = get_call_tree(
-                                service_json["locations"],
-                                assoc_date,
-                                assoc_uid,
-                                service_id,
-                            )
-                            current_nexts.append(head_node)
-            current_node = CallTree(current_location, current_nexts)
-            current_nexts = [current_node]
-    return current_node
+    divides = []
+    joins = []
+    assocs = data.get("associations")
+    if assocs is not None:
+        for assoc in assocs:
+            assoc_uid = assoc["associatedUid"]
+            if parent_uid is None or not parent_uid == assoc_uid:
+                assoc_date = datetime.strptime(assoc["associatedRunDate"], "%Y-%m-%d")
+                associated_service = get_service_from_id(
+                    cur, assoc_uid, assoc_date, current_uid
+                )
+                if assoc["type"] == "divide":
+                    divides.append(associated_service)
+                elif assoc["type"] == "join":
+                    joins.append(associated_service)
+    return Call(station, plan_arr, plan_dep, act_arr, act_dep, divides, joins)
 
 
 def get_service_from_id(
-    cur: cursor, service_id: str, run_date: datetime
+    cur: cursor, service_id: str, run_date: datetime, parent: Optional[str] = None
 ) -> Optional[TrainService]:
     endpoint = f"{service_endpoint}/{service_id}/{get_datetime_route(run_date, False)}"
     rtt_credentials = get_api_credentials("RTT")
@@ -165,7 +165,11 @@ def get_service_from_id(
     ]
     operator_name = data["atocName"]
     operator_id = data["atocCode"]
-    call_tree = get_call_tree(data["locations"], run_date, service_id)
+    calls: list[Call] = []
+    for loc in data["locations"]:
+        if loc.get("crs") is not None:
+            call = response_to_call(run_date, loc, service_id, parent)
+            calls.append(call)
     brand_id = ""
     return TrainService(
         service_id,
@@ -177,7 +181,7 @@ def get_service_from_id(
         operator_id,
         brand_id,
         power,
-        call_tree,
+        calls,
     )
 
 
@@ -200,21 +204,9 @@ def filter_services_by_time(
 
 
 def stops_at_station(
-    origin_crs: str, destination_crs: str, call_tree: CallTree, reached=False
-):
-    if not reached:
-        if compare_crs(call_tree.node.station.crs, origin_crs):
-            new_reached = True
-        else:
-            new_reached = False
-    elif compare_crs(call_tree.node.station.crs, destination_crs):
-        return True
-    else:
-        new_reached = True
-    for next_call_tree in call_tree.nexts:
-        if stops_at_station(origin_crs, destination_crs, next_call_tree, new_reached):
-            return True
-    return False
+    service: TrainService, origin_crs: str, destination_crs: str
+) -> bool:
+    return get_calls(service.calls, origin_crs, destination_crs) is not None
 
 
 def filter_services_by_time_and_stop(
@@ -229,9 +221,7 @@ def filter_services_by_time_and_stop(
     stop_filtered: list[TrainServiceAtStation] = []
     for service in time_filtered:
         full_service = get_service_from_id(cur, service.id, service.run_date)
-        if full_service and stops_at_station(
-            origin.crs, destination.crs, full_service.call_tree
-        ):
+        if full_service and stops_at_station(full_service, origin.crs, destination.crs):
             stop_filtered.append(service)
     return stop_filtered
 
@@ -283,8 +273,7 @@ def get_mileage_for_service_call(service: TrainService, crs: str) -> Optional[De
 
 if __name__ == "__main__":
     (conn, cur) = connect()
-    service = get_service_from_id(cur, "L39994", datetime(2024, 7, 9))
+    service = get_service_from_id(cur, "G38662", datetime(2024, 7, 24))
     if service is not None:
-        print(f"Root is {service.call_tree.node.station}")
-        print(string_of_call_tree(service.call_tree))
+        print(string_of_calls(service.calls))
     disconnect(conn, cur)
