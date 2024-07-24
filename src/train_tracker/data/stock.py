@@ -31,6 +31,52 @@ def get_number(prompt: str, max: Optional[int] = None):
 
 
 @dataclass
+class Class:
+    class_no: int
+    class_name: Optional[str]
+
+    def __hash__(self):
+        return hash(self.class_no)
+
+
+def string_of_class(stock_class: Class) -> str:
+    string = f"Class {stock_class.class_no}"
+    if stock_class.class_name is not None:
+        string = f"{string} ({stock_class.class_name})"
+    return string
+
+
+def sort_by_classes(stock: list[Class]) -> list[Class]:
+    return sorted(stock, key=lambda x: x.class_no)
+
+
+@dataclass
+class ClassAndSubclass:
+    class_no: int
+    class_name: Optional[str]
+    subclass_no: int
+    subclass_name: Optional[str]
+
+    def __hash__(self):
+        return hash(self.class_no * 10 + self.subclass_no)
+
+
+def string_of_class_and_subclass(stock: ClassAndSubclass) -> str:
+    string = f"Class {stock.class_no}"
+    if stock.subclass_no is not None:
+        string = f"{string}/{stock.subclass_no}"
+    if stock.subclass_name is not None:
+        string = f"{string} ({stock.subclass_name})"
+    elif stock.class_name is not None:
+        string = f"{string} ({stock.class_name})"
+    return string
+
+
+def sort_by_subclasses(stock: list[ClassAndSubclass]) -> list[ClassAndSubclass]:
+    return sorted(stock, key=lambda x: x.class_no * 10 + x.subclass_no)
+
+
+@dataclass
 class Stock:
     class_no: int
     class_name: Optional[str]
@@ -57,10 +103,10 @@ def stock_to_values(stock: Stock) -> list[str | None]:
         elem_1 = None
     else:
         elem_1 = str(stock.subclass_no)
-    if stock.name is None:
+    if stock.subclass_name is None:
         elem_2 = None
     else:
-        elem_2 = str(stock.name)
+        elem_2 = str(stock.subclass_name)
     return [elem_0, elem_1, elem_2]
 
 
@@ -110,22 +156,32 @@ def insert_stock_interactive():
             stock = ""
             while stock is not None:
                 class_no = input("Class no: ")
+                class_name = input("Class name: ")
+                if class_name == "":
+                    class_name_option = None
+                else:
+                    class_name_option = class_name
                 subclass_no = input("Subclass no: ")
                 if subclass_no == "":
                     subclass = None
                 else:
                     subclass = int(subclass_no)
-                stock_name = input("Stock name: ")
-                if stock_name == "":
-                    stock_namee = None
+                subclass_name = input("Subclass name: ")
+                if subclass_name == "":
+                    subclass_name_option = None
                 else:
-                    stock_namee = stock_name
+                    subclass_name_option = subclass_name
                 if brand is None:
                     brand_id = None
                 else:
                     brand_id = brand.atoc
                 stock = Stock(
-                    int(class_no), subclass, stock_namee, operator.atoc, brand_id
+                    int(class_no),
+                    class_name_option,
+                    subclass,
+                    subclass_name_option,
+                    operator.atoc,
+                    brand_id,
                 )
                 insert_stock(conn, cur, [stock])
                 conn.commit()
@@ -137,8 +193,8 @@ def insert_stock_interactive():
 def get_operator_stock(cur: cursor, operator: str) -> list[Stock]:
     query = """
         SELECT
-            Stock.stock_class, Stock.name,
-            StockSubclass.stock_subclass, StockSubclass.name,
+            Stock.stock_class, Stock.name AS stock_name,
+            StockSubclass.stock_subclass, StockSubclass.name AS stock_subclass,
             OperatorStock.operator_id, OperatorStock.brand_id
         FROM Stock
         LEFT JOIN StockSubclass
@@ -146,14 +202,37 @@ def get_operator_stock(cur: cursor, operator: str) -> list[Stock]:
         INNER JOIN OperatorStock
         ON
             Stock.stock_class = OperatorStock.stock_class AND
-            StockSubclass.stock_subclass = OperatorStock.stock_subclass
+            (StockSubclass.stock_subclass IS NULL OR StockSubclass.stock_subclass = OperatorStock.stock_subclass)
         WHERE
             OperatorStock.operator_id = %(id)s OR OperatorStock.brand_id = %(id)s
+        ORDER BY Stock.stock_class ASC, StockSubclass.stock_subclass ASC
     """
     cur.execute(query, {"id": operator})
     rows = cur.fetchall()
     stock = [Stock(row[0], row[1], row[2], row[3], row[4], row[5]) for row in rows]
     return stock
+
+
+def get_unique_classes(stock: list[Stock]) -> list[Class]:
+    stock_classes = set()
+    for item in stock:
+        stock_class = Class(item.class_no, item.class_name)
+        stock_classes.add(stock_class)
+    return list(stock_classes)
+
+
+def get_unique_subclasses(
+    stock: list[Stock], stock_class: Optional[Class] = None
+) -> list[ClassAndSubclass]:
+    stock_subclasses = set()
+    for item in stock:
+        if stock_class and item.class_no == stock_class.class_no:
+            if item.subclass_no:
+                stock_subclass = ClassAndSubclass(
+                    item.class_no, item.class_name, item.subclass_no, item.class_name
+                )
+                stock_subclasses.add(stock_subclass)
+    return list(stock_subclasses)
 
 
 if __name__ == "__main__":

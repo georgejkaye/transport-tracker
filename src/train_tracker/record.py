@@ -1,10 +1,11 @@
+from dataclasses import dataclass
 from decimal import Decimal
 import decimal
 import json
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
+from os import error
 from typing import Optional
-from train_tracker.api import Credentials
-from psycopg2._psycopg import connection, cursor
+from psycopg2._psycopg import cursor
 
 from train_tracker.data.leg import Leg
 from train_tracker.data.network import miles_and_chains_to_miles
@@ -22,16 +23,21 @@ from train_tracker.data.stations import (
     get_stations_from_substring,
     string_of_service_at_station,
 )
-from train_tracker.data.stock import get_operator_stock, string_of_stock
+from train_tracker.data.stock import (
+    Class,
+    ClassAndSubclass,
+    get_operator_stock,
+    get_unique_classes,
+    get_unique_subclasses,
+    sort_by_classes,
+    sort_by_subclasses,
+    string_of_class,
+    string_of_class_and_subclass,
+    string_of_stock,
+)
 from train_tracker.times import (
-    get_diff_struct,
-    get_duration_string,
     pad_front,
     add,
-    get_hourmin_string,
-    get_diff_string,
-    to_time,
-    get_status,
 )
 from train_tracker.debug import debug_msg
 
@@ -57,7 +63,14 @@ def get_month_length(month, year):
         return 28
 
 
-def get_input_no(prompt, upper=-1, default=-1, default_pad=0):
+def get_input_no(
+    prompt,
+    lower: Optional[int] = None,
+    upper: Optional[int] = None,
+    default: Optional[int] = None,
+    pad: int = 0,
+    unknown: bool = False,
+) -> Optional[int]:
     """
     Get a natural number of a given length from the user,
     optionally with an upper bound and a default value to use if no input is given
@@ -65,27 +78,39 @@ def get_input_no(prompt, upper=-1, default=-1, default_pad=0):
     while True:
         prompt_string = prompt
         # Tell the user the default option
-        if default != -1:
-            prompt_string = prompt_string + " (" + pad_front(default, default_pad) + ")"
+        if default is not None:
+            prompt_string = prompt_string + " (" + pad_front(default, pad) + ")"
         prompt_string = prompt_string + ": "
         # Get input from the user
         string = input(prompt_string)
         # If the user gives an empty input, use the default if it exists
-        if string == "" and default != -1:
-            return int(default)
-        try:
+        if string == "":
+            if default is not None:
+                return int(default)
+            elif unknown:
+                return None
+        if not string.isdigit():
+            print(f"Expected number but got '{string}'")
+        else:
             nat = int(string)
             # Check the number is in the range
-            if nat >= 0 and (upper == -1 or nat <= upper):
+            if (
+                nat >= 0
+                and (upper is None or nat <= upper)
+                and (lower is None or nat >= lower)
+            ):
                 return nat
             else:
-                error_msg = "Expected number in range 0-"
-                if upper != -1:
+                error_msg = "Expected number in range "
+                if lower is None:
+                    lower_string = "0"
+                else:
+                    lower_string = str(lower)
+                error_msg = f"{error_msg}{lower_string}-"
+                if upper is not None:
                     error_msg = f"{error_msg}{upper}"
                 error_msg = error_msg + " but got " + string
                 print(error_msg)
-        except:
-            print(f"Expected number but got '{string}'")
 
 
 def get_input_price(prompt):
@@ -100,6 +125,80 @@ def get_input_price(prompt):
                 return price
         except decimal.InvalidOperation:
             print(f"Expected price but got '{string}'")
+
+
+def yes_or_no(prompt: str):
+    """
+    Let the user say yes or no
+    """
+    choice = input(prompt + " (Y/n) ")
+    if choice == "y" or choice == "Y" or choice == "":
+        return True
+    return False
+
+
+@dataclass
+class PickSingle[T]:
+    choice: T
+
+
+@dataclass
+class PickMultiple[T]:
+    choices: list[T]
+
+
+@dataclass
+class PickUnknown:
+    pass
+
+
+@dataclass
+class PickCancel:
+    pass
+
+
+type PickChoice[T] = PickSingle[T] | PickMultiple[T] | PickUnknown | PickCancel
+
+
+def pick_from_list[
+    T
+](
+    choices: list[T],
+    prompt: str,
+    cancel: bool = False,
+    unknown: bool = False,
+    display=lambda x: x,
+) -> PickChoice[T]:
+    """
+    Let the user pick from a list of choices
+    """
+    for i, choice in enumerate(choices):
+        print(f"{i + 1}: {display(choice)}")
+    max_choice = len(choices)
+    if unknown:
+        max_choice = max_choice + 1
+        unknown_choice = max_choice
+        print(f"{max_choice}: Unknown")
+    if cancel:
+        max_choice = len(choices) + 1
+        cancel_choice = max_choice
+        # The last option is a cancel option, this returns None
+        print(f"{max_choice}: Cancel")
+    else:
+        max_choice = len(choices)
+    while True:
+        resp = input(prompt + " (1-" + str(max_choice) + "): ")
+        if not resp.isdigit():
+            print("Expected number")
+        else:
+            resp_no = int(resp)
+            if cancel and resp == cancel_choice:
+                return PickCancel()
+            elif unknown and resp == unknown_choice:
+                return PickUnknown()
+            elif resp_no > 0 or resp_no < len(choices):
+                return PickSingle(choices[resp_no - 1])
+            print(f"Expected number 1-{max_choice} but got '{resp_no}'")
 
 
 def get_station_from_input(
@@ -135,44 +234,14 @@ def get_station_from_input(
                 return match
         else:
             print("Multiple matches found: ")
-            choice = pick_from_list(matches, "Select a station", True, lambda x: x.name)
-            if choice is not None:
-                return choice
-
-
-def yes_or_no(prompt: str):
-    """
-    Let the user say yes or no
-    """
-    choice = input(prompt + " (Y/n) ")
-    if choice == "y" or choice == "Y" or choice == "":
-        return True
-    return False
-
-
-def pick_from_list[T](choices: list[T], prompt: str, cancel: bool, display=lambda x: x):
-    """
-    Let the user pick from a list of choices
-    """
-    for i, choice in enumerate(choices):
-        print(str(i + 1) + ": " + display(choice))
-    if cancel:
-        max_choice = len(choices) + 1
-        # The last option is a cancel option, this returns None
-        print(str(max_choice) + ": Cancel")
-    else:
-        max_choice = len(choices)
-    while True:
-        resp = input(prompt + " (1-" + str(max_choice) + "): ")
-        try:
-            resp_no = int(resp)
-            if cancel and resp == len(choices) + 1:
-                return None
-            elif resp_no > 0 or resp_no < len(choices):
-                return choices[resp_no - 1]
-            print(f"Expected number 1-{max_choice} but got '{resp_no}'")
-        except:
-            print(f"Expected number 1-{max_choice} but got '{resp_no}'")
+            choice = pick_from_list(
+                matches, "Select a station", cancel=True, display=lambda x: x.name
+            )
+            match choice:
+                case PickSingle(stn):
+                    return stn
+                case _:
+                    return None
 
 
 def get_service_at_station(
@@ -199,24 +268,73 @@ def get_service_at_station(
     choice = pick_from_list(
         filtered_services,
         "Pick a service",
-        True,
-        lambda x: string_of_service_at_station(x),
+        cancel=True,
+        display=lambda x: string_of_service_at_station(x),
     )
-    return choice
+    match choice:
+        case PickSingle(service):
+            return service
+        case _:
+            return None
 
 
-def get_stock(cur: cursor, service: TrainService):
+@dataclass
+class StockReport:
+    class_no: Optional[int]
+    subclass_no: Optional[int]
+    stock_no: Optional[int]
+
+
+def get_stock(cur: cursor, service: TrainService) -> StockReport:
     # Currently getting this automatically isn't implemented
-    # We could trawl wikipedia and make a map of which trains operate which services
-    # Or if know your train becomes part of the api
+    # First get all stock this operator has
     stock_list = get_operator_stock(cur, service.operator_id)
-    stock = pick_from_list(
-        stock_list, "Stock", False, display=lambda s: string_of_stock(s)
+    # Get the unique classes to pick from
+    operator_classes = get_unique_classes(stock_list)
+    chosen_class: PickChoice[Class] = pick_from_list(
+        sort_by_classes(operator_classes),
+        "Class number",
+        unknown=True,
+        display=string_of_class,
     )
-    if stock is None:
-        print("Could not get stuck")
-        exit(1)
-    return stock
+    match chosen_class:
+        case PickUnknown():
+            return StockReport(None, None, None)
+        case PickSingle(choice):
+            stock_class = choice
+        case _:
+            raise RuntimeError("This cannot happen")
+    operator_subclasses = get_unique_subclasses(stock_list, stock_class=stock_class)
+    # If there are no subclasses then we are done
+    if len(operator_subclasses) == 0:
+        stock_subclass = None
+    elif len(operator_subclasses) == 1:
+        stock_subclass = operator_subclasses[0].subclass_no
+    else:
+        chosen_subclass: PickChoice[ClassAndSubclass] = pick_from_list(
+            sort_by_subclasses(operator_subclasses),
+            "Subclass no",
+            False,
+            display=string_of_class_and_subclass,
+        )
+        match chosen_subclass:
+            case PickUnknown():
+                stock_subclass = None
+            case PickSingle(choice):
+                stock_subclass = choice.subclass_no
+    # Stock number input
+    minimum_stock_number = stock_class.class_no * 1000
+    maximum_stock_number = (stock_class.class_no + 1) * 1000 - 1
+    if stock_subclass is not None:
+        minimum_stock_number = minimum_stock_number + (stock_subclass * 100)
+        maximum_stock_number = minimum_stock_number + ((stock_subclass + 1) * 100) - 1
+    stock_number = get_input_no(
+        "Stock number",
+        lower=minimum_stock_number,
+        upper=maximum_stock_number,
+        unknown=True,
+    )
+    return StockReport(stock_class.class_no, stock_subclass, stock_number)
 
 
 def compute_mileage(service: TrainService, origin: str, destination: str) -> Decimal:
@@ -234,18 +352,24 @@ def compute_mileage(service: TrainService, origin: str, destination: str) -> Dec
 def get_mileage() -> Decimal:
     # If we can get a good distance set this could be automated
     miles = get_input_no("Miles")
-    chains = get_input_no("Chains", 79)
+    chains = get_input_no("Chains", upper=79)
+    if miles is None or chains is None:
+        raise RuntimeError("Cannot be None")
     return miles_and_chains_to_miles(miles, chains)
 
 
 def get_datetime(start: Optional[datetime] = None):
     if start is None:
         start = datetime.now()
-    year = get_input_no("Year", 2022, start.year, 4)
-    month = get_input_no("Month", 12, start.month, 2)
+    year = get_input_no("Year", upper=2022, default=start.year, pad=4)
+    month = get_input_no("Month", upper=12, default=start.month, pad=2)
     max_days = get_month_length(month, year)
-    day = get_input_no("Day", max_days, start.day, 2)
-    time = get_input_no("Time", 2359, start.hour * 100 + start.minute, 4)
+    day = get_input_no("Day", upper=max_days, default=start.day, pad=2)
+    time = get_input_no(
+        "Time", upper=2359, default=start.hour * 100 + start.minute, pad=4
+    )
+    if year is None or month is None or day is None or time is None:
+        raise RuntimeError("Cannot be None")
     time_string = pad_front(time, 4)
     hour = int(time_string[0:2])
     minute = int(time_string[2:4])
