@@ -82,7 +82,6 @@ CREATE TABLE Leg (
     leg_id SERIAL PRIMARY KEY,
     service_id TEXT NOT NULL,
     run_date TIMESTAMP WITH TIME ZONE NOT NULL,
-    headcode TEXT NOT NULL,
     distance NUMERIC NOT NULL,
     board_crs CHARACTER(3) NOT NULL,
     alight_crs CHARACTER(3) NOT NULL,
