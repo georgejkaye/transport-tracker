@@ -36,7 +36,7 @@ def list_of_str_and_none_to_postgres_str(values: list[str | None]) -> list[str]:
 
 
 def insert(
-    cur,
+    cur: cursor,
     table: str,
     fields: list[str],
     values: list[list[str | None]],
