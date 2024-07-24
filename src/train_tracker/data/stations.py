@@ -144,7 +144,7 @@ def response_to_short_train_station(cur: cursor, data) -> ShortTrainStation:
     name = data["description"]
     station = get_station_from_name(cur, name)
     if station is None:
-        print("No station with name {name} found. Please update the database")
+        print(f"No station with name {name} found. Please update the database.")
         exit(1)
     return ShortTrainStation(name, station.crs)
 
