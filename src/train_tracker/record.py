@@ -193,9 +193,9 @@ def pick_from_list[
             print("Expected number")
         else:
             resp_no = int(resp)
-            if cancel and resp == cancel_choice:
+            if cancel and resp_no == cancel_choice:
                 return PickCancel()
-            elif unknown and resp == unknown_choice:
+            elif unknown and resp_no == unknown_choice:
                 return PickUnknown()
             elif resp_no > 0 or resp_no < len(choices):
                 return PickSingle(choices[resp_no - 1])
@@ -259,13 +259,13 @@ def get_service_at_station(
     timeframe = 15
     earliest_time = add(dt, -timeframe)
     latest_time = add(dt, timeframe)
+    debug_msg("Searching for services from " + origin.name)
     # The results encompass a ~1 hour period
     # We only want to check our given timeframe
     # We also only want services that stop at our destination
     filtered_services = filter_services_by_time_and_stop(
         cur, earliest_time, latest_time, origin, destination, origin_services
     )
-    debug_msg("Searching for services from " + origin.name)
     choice = pick_from_list(
         filtered_services,
         "Pick a service",
@@ -316,10 +316,12 @@ def get_stock(cur: cursor, service: TrainService) -> list[StockReport]:
                 # If there are no subclasses then we are done
                 if len(operator_subclasses) == 0:
                     stock_subclass = None
-                    subheader(f"Class {stock_class} has no subclass variants")
+                    subheader(f"Class {stock_class.class_no} has no subclass variants")
                 elif len(operator_subclasses) == 1:
                     stock_subclass = operator_subclasses[0].subclass_no
-                    subheader(f"Class {stock_class} only has /{stock_subclass} variant")
+                    subheader(
+                        f"Class {stock_class.class_no} only has /{stock_subclass} variant for this operator"
+                    )
                 else:
                     subheader("Selecting unit subclass")
                     chosen_subclass: PickChoice[ClassAndSubclass] = pick_from_list(

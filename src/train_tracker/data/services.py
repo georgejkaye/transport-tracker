@@ -155,7 +155,7 @@ def get_service_from_id(
     response = make_get_request(endpoint, rtt_credentials)
     data = response.json()
     headcode = data["trainIdentity"]
-    power = data["powerType"]
+    power = data.get("powerType")
     origins = [
         response_to_short_train_station(cur, origin) for origin in data["origin"]
     ]
@@ -251,7 +251,7 @@ def get_location_div_from_service_page(
 ) -> BeautifulSoup:
     calls = service_soup.find_all(class_="call")
     for call in calls:
-        if crs in call.get_text():
+        if crs.upper() in call.get_text():
             return call
     print("Could not get location div")
     exit(1)

@@ -47,7 +47,7 @@ class TrainServiceAtStation:
 
 
 def string_of_service_at_station(service: TrainServiceAtStation):
-    return f"{service.headcode} {get_multiple_short_station_string(service.origins)} to {get_multiple_short_station_string(service.destinations)} plan {get_hourmin_string(service.plan_dep)} act {get_hourmin_string(service.act_dep)}"
+    return f"{service.headcode} {get_multiple_short_station_string(service.origins)} to {get_multiple_short_station_string(service.destinations)} plan {get_hourmin_string(service.plan_dep)} act {get_hourmin_string(service.act_dep)} ({service.operator_name})"
 
 
 kb_stations_namespace = "http://nationalrail.co.uk/xml/station"
@@ -144,7 +144,8 @@ def response_to_short_train_station(cur: cursor, data) -> ShortTrainStation:
     name = data["description"]
     station = get_station_from_name(cur, name)
     if station is None:
-        raise RuntimeError(f"No station with name {name} found")
+        print("No station with name {name} found. Please update the database")
+        exit(1)
     return ShortTrainStation(name, station.crs)
 
 
@@ -214,6 +215,8 @@ def get_services_at_station(
     endpoint = f"{station_endpoint}/{station.crs}/{get_datetime_route(dt, True)}"
     rtt_credentials = get_api_credentials("RTT")
     response = make_get_request(endpoint, rtt_credentials)
+    if not response.status_code == 200:
+        return []
     data = response.json()
     services = [
         response_to_service_at_station(cur, service) for service in data["services"]
