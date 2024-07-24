@@ -58,57 +58,58 @@ CREATE TABLE Station (
     FOREIGN KEY (station_brand) REFERENCES Brand(brand_id)
 );
 
-CREATE TABLE Leg (
+CREATE TABLE Service (
     service_id TEXT NOT NULL,
+    run_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    headcode CHARACTER(4) NOT NULL,
+    operator_id CHARACTER(2) NOT NULL,
+    brand_id CHARACTER(2),
+    PRIMARY KEY (service_id, run_date),
+    FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
+    FOREIGN KEY (brand_id) REFERENCES Brand(brand_id)
+);
+
+CREATE TABLE ServiceEndpoint (
+    service_id TEXT NOT NULL,
+    run_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    station_crs CHARACTER(3) NOT NULL,
+    origin BOOLEAN NOT NULL,
+    FOREIGN KEY (service_id, run_date) REFERENCES Service(service_id, run_date),
+    FOREIGN KEY (station_crs) REFERENCES Station(station_crs)
+);
+
+CREATE TABLE Leg (
+    leg_id SERIAL PRIMARY KEY,
+    service_id TEXT NOT NULL,
+    run_date TIMESTAMP WITH TIME ZONE NOT NULL,
     headcode TEXT NOT NULL,
-    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
     distance NUMERIC NOT NULL,
     board_crs CHARACTER(3) NOT NULL,
     alight_crs CHARACTER(3) NOT NULL,
-    PRIMARY KEY (service_id, start_time),
+    FOREIGN KEY (service_id, run_date) REFERENCES Service(service_id, run_date),
     FOREIGN KEY (board_crs) REFERENCES Station(station_crs),
     FOREIGN KEY (alight_crs) REFERENCES Station(station_crs)
 );
 
 CREATE TABLE Call (
-    service_id TEXT NOT NULL,
-    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    station_crs CHARACTER(2) NOT NULL,
+    leg_id SERIAL NOT NULL,
+    run_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    station_crs CHARACTER(3) NOT NULL,
     plan_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE,
-    FOREIGN KEY (station_crs) REFERENCES Station(station_crs)
-    FOREIGN KEY (service_id, start_time) REFERENCES Service(service_id, start_time)
-);
-
-
-CREATE TABLE ServiceOrigin (
-    service_id TEXT NOT NULL,
-    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    station_crs CHARACTER(3) NOT NULL,
-    FOREIGN KEY (service_id, start_time) REFERENCES Service(service_id, start_time),
-    FOREIGN KEY (station_crs) REFERENCES Station(station_crs)
-);
-
-CREATE TABLE ServiceDestination (
-    service_id TEXT NOT NULL,
-    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    station_crs CHARACTER(3) NOT NULL,
-    FOREIGN KEY (service_id, start_time) REFERENCES Service(service_id, start_time),
+    FOREIGN KEY (leg_id) REFERENCES Leg(leg_id),
     FOREIGN KEY (station_crs) REFERENCES Station(station_crs)
 );
 
 CREATE TABLE LegStock (
-    service_id TEXT NOT NULL,
-    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    stock_class INT,
-    stock_subclass INT,
-    stock_number INT,
-    stock_cars INT,
+    leg_id SERIAL NOT NULL,
+    formation_id SERIAL NOT NULL,
     start_crs CHARACTER(3) NOT NULL,
     end_crs CHARACTER(3) NOT NULL,
-    FOREIGN KEY (service_id, start_time) REFERENCES Leg(service_id, start_time),
+    FOREIGN KEY (leg_id) REFERENCES Leg(leg_id),
     FOREIGN KEY (start_crs) REFERENCES Station(station_crs),
-    FOREIGN KEY (end_crs) REFERENCES Station(station_crs)
+    FOREIGN KEY (end_crs) REFERENCES Station(station_crs),
+    FOREIGN KEY (formation_id) REFERENCES StockFormation(formation_id)
 );
