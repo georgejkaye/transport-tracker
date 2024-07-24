@@ -227,7 +227,7 @@ def get_unique_subclasses(
     stock_subclasses = set()
     for item in stock:
         if stock_class and item.class_no == stock_class.class_no:
-            if item.subclass_no:
+            if item.subclass_no is not None:
                 stock_subclass = ClassAndSubclass(
                     item.class_no, item.class_name, item.subclass_no, item.class_name
                 )

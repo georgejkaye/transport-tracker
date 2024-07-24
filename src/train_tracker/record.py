@@ -3,7 +3,6 @@ from decimal import Decimal
 import decimal
 import json
 from datetime import datetime, timedelta
-from os import error
 from typing import Optional
 from psycopg2._psycopg import cursor
 
@@ -35,6 +34,7 @@ from train_tracker.data.stock import (
     string_of_class_and_subclass,
     string_of_stock,
 )
+from train_tracker.interactive import header, option, space, subheader
 from train_tracker.times import (
     pad_front,
     add,
@@ -173,20 +173,21 @@ def pick_from_list[
     Let the user pick from a list of choices
     """
     for i, choice in enumerate(choices):
-        print(f"{i + 1}: {display(choice)}")
+        option(i + 1, display(choice))
     max_choice = len(choices)
     if unknown:
         max_choice = max_choice + 1
         unknown_choice = max_choice
-        print(f"{max_choice}: Unknown")
+        option(max_choice, "Unknown")
     if cancel:
         max_choice = len(choices) + 1
         cancel_choice = max_choice
         # The last option is a cancel option, this returns None
-        print(f"{max_choice}: Cancel")
+        option(max_choice, "Cancel")
     else:
         max_choice = len(choices)
     while True:
+        space()
         resp = input(prompt + " (1-" + str(max_choice) + "): ")
         if not resp.isdigit():
             print("Expected number")
@@ -285,56 +286,71 @@ class StockReport:
     stock_no: Optional[int]
 
 
-def get_stock(cur: cursor, service: TrainService) -> StockReport:
+def get_stock(cur: cursor, service: TrainService) -> list[StockReport]:
+    used_stock = []
     # Currently getting this automatically isn't implemented
     # First get all stock this operator has
     stock_list = get_operator_stock(cur, service.operator_id)
     # Get the unique classes to pick from
     operator_classes = get_unique_classes(stock_list)
-    chosen_class: PickChoice[Class] = pick_from_list(
-        sort_by_classes(operator_classes),
-        "Class number",
-        unknown=True,
-        display=string_of_class,
-    )
-    match chosen_class:
-        case PickUnknown():
-            return StockReport(None, None, None)
-        case PickSingle(choice):
-            stock_class = choice
-        case _:
-            raise RuntimeError("This cannot happen")
-    operator_subclasses = get_unique_subclasses(stock_list, stock_class=stock_class)
-    # If there are no subclasses then we are done
-    if len(operator_subclasses) == 0:
-        stock_subclass = None
-    elif len(operator_subclasses) == 1:
-        stock_subclass = operator_subclasses[0].subclass_no
-    else:
-        chosen_subclass: PickChoice[ClassAndSubclass] = pick_from_list(
-            sort_by_subclasses(operator_subclasses),
-            "Subclass no",
-            False,
-            display=string_of_class_and_subclass,
+    number_of_units = get_input_no("Number of units", default=1)
+    if number_of_units is None:
+        raise RuntimeError("Could not get number of units")
+    for i in range(0, number_of_units):
+        header(f"Selecting unit {i+1}")
+        subheader("Selecting unit class")
+        chosen_class: PickChoice[Class] = pick_from_list(
+            sort_by_classes(operator_classes),
+            "Class number",
+            unknown=True,
+            display=string_of_class,
         )
-        match chosen_subclass:
+        match chosen_class:
             case PickUnknown():
-                stock_subclass = None
+                used_stock.append(StockReport(None, None, None))
             case PickSingle(choice):
-                stock_subclass = choice.subclass_no
-    # Stock number input
-    minimum_stock_number = stock_class.class_no * 1000
-    maximum_stock_number = (stock_class.class_no + 1) * 1000 - 1
-    if stock_subclass is not None:
-        minimum_stock_number = minimum_stock_number + (stock_subclass * 100)
-        maximum_stock_number = minimum_stock_number + ((stock_subclass + 1) * 100) - 1
-    stock_number = get_input_no(
-        "Stock number",
-        lower=minimum_stock_number,
-        upper=maximum_stock_number,
-        unknown=True,
-    )
-    return StockReport(stock_class.class_no, stock_subclass, stock_number)
+                stock_class = choice
+                operator_subclasses = get_unique_subclasses(
+                    stock_list, stock_class=stock_class
+                )
+                # If there are no subclasses then we are done
+                if len(operator_subclasses) == 0:
+                    stock_subclass = None
+                    subheader(f"Class {stock_class} has no subclass variants")
+                elif len(operator_subclasses) == 1:
+                    stock_subclass = operator_subclasses[0].subclass_no
+                    subheader(f"Class {stock_class} only has /{stock_subclass} variant")
+                else:
+                    subheader("Selecting unit subclass")
+                    chosen_subclass: PickChoice[ClassAndSubclass] = pick_from_list(
+                        sort_by_subclasses(operator_subclasses),
+                        "Subclass no",
+                        False,
+                        display=string_of_class_and_subclass,
+                    )
+                    match chosen_subclass:
+                        case PickUnknown():
+                            stock_subclass = None
+                        case PickSingle(choice):
+                            stock_subclass = choice.subclass_no
+                # Stock number input
+                minimum_stock_number = stock_class.class_no * 1000
+                maximum_stock_number = (stock_class.class_no + 1) * 1000 - 1
+                if stock_subclass is not None:
+                    minimum_stock_number = minimum_stock_number + (stock_subclass * 100)
+                    maximum_stock_number = (
+                        minimum_stock_number + ((stock_subclass + 1) * 100) - 1
+                    )
+                stock_number = get_input_no(
+                    "Stock number",
+                    lower=minimum_stock_number,
+                    upper=maximum_stock_number,
+                    unknown=True,
+                )
+                used_stock.append(
+                    StockReport(stock_class.class_no, stock_subclass, stock_number)
+                )
+    return used_stock
 
 
 def compute_mileage(service: TrainService, origin: str, destination: str) -> Decimal:
