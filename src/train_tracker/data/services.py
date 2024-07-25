@@ -67,53 +67,64 @@ class LegCall:
     divide: Optional["TrainService"]
 
 
-def get_calls(calls: list[Call], origin: str, dest: str) -> Optional[list[LegCall]]:
+def get_calls(
+    calls: list[Call],
+    origin: str,
+    dest: str,
+) -> Optional[list[LegCall]]:
     call_chain = []
     boarded = False
     for call in calls:
-        if boarded and compare_crs(call.station.crs, dest):
-            call_chain.append(
-                LegCall(call.station, call.plan_arr, None, call.act_arr, None, None)
+        # Check if this call is the boarding call
+        # If it is, then following the divide is forbidden
+        # because the dividing service now has a completely
+        # different departure time
+        if not boarded and compare_crs(call.station.crs, origin):
+            boarded = True
+            board_call = LegCall(
+                call.station, None, call.plan_dep, None, call.act_dep, None
             )
+            call_chain.append(board_call)
+        elif boarded and compare_crs(call.station.crs, dest):
+            alight_call = LegCall(
+                call.station, call.plan_arr, None, call.act_arr, None, None
+            )
+            call_chain.append(alight_call)
             return call_chain
-        # Since divisions include the current call as their initial call,
-        # we iterate into them first to see if there is a path from the origin
-        # (if the origin has not been encountered) or the current station (if
-        # the origin has been encountered) to the destination.
-        # If there is, we concat this list to the existing list and return it.
-        divide_start = origin
-        if boarded:
-            divide_start = call.station.crs
-        for divide in call.divide:
-            subcalls = get_calls(divide.calls, divide_start, dest)
-            if subcalls is not None:
+        else:
+            # Since divisions include the current call as their initial call,
+            # we iterate into them first to see if there is a path from the origin
+            # (if the origin has not been encountered) or the current station (if
+            # the origin has been encountered) to the destination.
+            # If there is, we concat this list to the existing list and return it.
+            subservice_origin = origin
+            if boarded:
+                subservice_origin = call.station.crs
+            for divide in call.divide:
+                subcalls = get_calls(divide.calls, subservice_origin, dest)
+                if subcalls is not None:
+                    current_call = LegCall(
+                        call.station,
+                        call.plan_arr,
+                        subcalls[0].plan_dep,
+                        call.act_arr,
+                        subcalls[0].act_dep,
+                        divide,
+                    )
+                    call_chain.append(current_call)
+                    call_chain.extend(subcalls[1:])
+                    return call_chain
+            # Otherwise we keep checking in this list
+            if boarded:
                 current_call = LegCall(
                     call.station,
                     call.plan_arr,
-                    subcalls[0].plan_dep,
+                    call.plan_dep,
                     call.act_arr,
-                    subcalls[0].act_dep,
-                    divide,
+                    call.act_dep,
+                    None,
                 )
                 call_chain.append(current_call)
-                call_chain.extend(subcalls[1:])
-                return call_chain
-        # Otherwise we keep checking in this list
-        if boarded:
-            current_call = LegCall(
-                call.station,
-                call.plan_arr,
-                call.plan_dep,
-                call.act_arr,
-                call.act_dep,
-                None,
-            )
-            call_chain.append(current_call)
-        elif compare_crs(call.station.crs, origin):
-            boarded = True
-            call_chain.append(
-                LegCall(call.station, None, call.plan_dep, None, call.act_dep, None)
-            )
     return None
 
 
