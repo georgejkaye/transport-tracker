@@ -187,8 +187,6 @@ def pick_from_list[
         cancel_choice = max_choice
         # The last option is a cancel option, this returns None
         option(max_choice, "Cancel")
-    else:
-        max_choice = len(choices)
     while True:
         space()
         resp = input(prompt + " (1-" + str(max_choice) + "): ")
@@ -200,7 +198,7 @@ def pick_from_list[
                 return PickCancel()
             elif unknown and resp_no == unknown_choice:
                 return PickUnknown()
-            elif resp_no > 0 or resp_no < len(choices):
+            elif resp_no > 0 and resp_no <= len(choices):
                 return PickSingle(choices[resp_no - 1])
             print(f"Expected number 1-{max_choice} but got '{resp_no}'")
 
@@ -282,13 +280,6 @@ def get_service_at_station(
             return None
 
 
-@dataclass
-class StockReport:
-    class_no: Optional[int]
-    subclass_no: Optional[int]
-    stock_no: Optional[int]
-
-
 def get_stock(cur: cursor, service: TrainService) -> list[StockReport]:
     used_stock = []
     # Currently getting this automatically isn't implemented
@@ -330,7 +321,8 @@ def get_stock(cur: cursor, service: TrainService) -> list[StockReport]:
                     chosen_subclass: PickChoice[ClassAndSubclass] = pick_from_list(
                         sort_by_subclasses(operator_subclasses),
                         "Subclass no",
-                        False,
+                        unknown=True,
+                        cancel=False,
                         display=string_of_class_and_subclass,
                     )
                     match chosen_subclass:
@@ -340,12 +332,11 @@ def get_stock(cur: cursor, service: TrainService) -> list[StockReport]:
                             stock_subclass = choice.subclass_no
                 # Stock number input
                 minimum_stock_number = stock_class.class_no * 1000
-                maximum_stock_number = (stock_class.class_no + 1) * 1000 - 1
+                maximum_stock_number = minimum_stock_number + 999
                 if stock_subclass is not None:
                     minimum_stock_number = minimum_stock_number + (stock_subclass * 100)
-                    maximum_stock_number = (
-                        minimum_stock_number + ((stock_subclass + 1) * 100) - 1
-                    )
+                    maximum_stock_number = minimum_stock_number + 99
+                subheader("Selecting stock number")
                 stock_number = get_input_no(
                     "Stock number",
                     lower=minimum_stock_number,
@@ -423,12 +414,17 @@ def record_new_leg(
         raise RuntimeError("Service should not be none at this point")
     stock = get_stock(cur, service)
     mileage = compute_mileage(service, origin_station.crs, destination_station.crs)
+    information(f"Computed mileage as {string_of_miles_and_chains(mileage)}")
     leg = Leg(service, origin_station.crs, destination_station.crs, mileage, stock)
     return leg
 
 
 def add_to_logfile(cur: cursor):
-    journey = record_new_leg(cur)
+    leg = record_new_leg(cur)
+    if leg is None:
+        print("Could not get leg")
+        exit(1)
+    insert_leg(cur, leg)
 
 
 def read_logfile(log_file: str):
