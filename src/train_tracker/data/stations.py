@@ -102,14 +102,14 @@ def populate_train_stations(conn: connection, cur: cursor):
 
 def get_station_from_crs(cur: cursor, crs: str) -> Optional[TrainStation]:
     query = """
-        SELECT station_name, station_operator, station_brand FROM Station WHERE LOWER(station_crs) = LOWER(%(crs)s)
+        SELECT station_name, station_operator, station_brand FROM Station WHERE UPPER(station_crs) = UPPER(%(crs)s)
     """
     cur.execute(query, {"crs": crs})
     rows = cur.fetchall()
     if len(rows) == 0 or len(rows) > 1:
         return None
     row = rows[0]
-    return TrainStation(row[0], crs, row[1], row[2])
+    return TrainStation(row[0], crs.upper(), row[1], row[2])
 
 
 def get_station_from_name(cur: cursor, name: str) -> Optional[TrainStation]:
@@ -146,7 +146,7 @@ def response_to_short_train_station(cur: cursor, data) -> ShortTrainStation:
     if station is None:
         print(f"No station with name {name} found. Please update the database.")
         exit(1)
-    return ShortTrainStation(name, station.crs)
+    return ShortTrainStation(name, station.crs.upper())
 
 
 def get_multiple_short_station_string(locs: list[ShortTrainStation]):

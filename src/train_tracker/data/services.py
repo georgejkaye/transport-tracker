@@ -47,7 +47,7 @@ class TrainService:
     destinations: list[ShortTrainStation]
     operator_name: str
     operator_id: str
-    brand_id: str
+    brand_id: Optional[str]
     power: Optional[str]
     calls: list[Call]
     divides: list[AssociatedService]
@@ -239,7 +239,7 @@ def get_service_from_id(
                 for join in call_joins:
                     joins.append(AssociatedService(call.station, join))
                 calls.append(call)
-        brand_id = ""
+        brand_id = None
         return TrainService(
             service_id,
             headcode,

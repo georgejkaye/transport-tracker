@@ -1,3 +1,5 @@
+from datetime import datetime
+from typing import Optional
 from dotenv import load_dotenv
 from psycopg2 import connect as db_connect
 from psycopg2._psycopg import connection, cursor
@@ -31,8 +33,15 @@ def str_or_none_to_str(x: str | None) -> str:
         return f"$${replaced}$$"
 
 
+def datetime_or_none_to_str(x: datetime | None) -> Optional[str]:
+    if x is None:
+        return None
+    else:
+        return x.isoformat()
+
+
 def list_of_str_and_none_to_postgres_str(values: list[str | None]) -> list[str]:
-    return list(map(str_or_none_to_str, values))
+    return [str_or_none_to_str(value) for value in values]
 
 
 def insert(

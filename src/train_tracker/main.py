@@ -14,5 +14,5 @@ if __name__ == "__main__":
 
     setup_network()
     (conn, cur) = connect()
-    add_to_logfile(cur)
+    add_to_logfile(conn, cur)
     disconnect(conn, cur)

@@ -4,7 +4,7 @@ import decimal
 import json
 from datetime import datetime, timedelta
 from typing import Optional
-from psycopg2._psycopg import cursor
+from psycopg2._psycopg import connection, cursor
 
 from train_tracker.data.leg import Leg, StockReport, insert_leg
 from train_tracker.data.network import (
@@ -35,7 +35,6 @@ from train_tracker.data.stock import (
     sort_by_subclasses,
     string_of_class,
     string_of_class_and_subclass,
-    string_of_stock,
 )
 from train_tracker.interactive import header, information, option, space, subheader
 from train_tracker.times import (
@@ -419,12 +418,12 @@ def record_new_leg(
     return leg
 
 
-def add_to_logfile(cur: cursor):
+def add_to_logfile(conn: connection, cur: cursor):
     leg = record_new_leg(cur)
     if leg is None:
         print("Could not get leg")
         exit(1)
-    insert_leg(cur, leg)
+    insert_leg(conn, cur, leg)
 
 
 def read_logfile(log_file: str):
