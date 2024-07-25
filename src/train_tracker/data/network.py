@@ -21,3 +21,8 @@ def miles_and_chains_struct_to_miles(mac: MilesAndChains) -> Decimal:
 
 def miles_and_chains_to_miles(miles: int, chains: int) -> Decimal:
     return miles_and_chains_struct_to_miles(MilesAndChains(miles, chains))
+
+
+def string_of_miles_and_chains(miles: Decimal) -> str:
+    miles_and_chains = miles_to_miles_and_chains(miles)
+    return f"{miles_and_chains.miles}mi {miles_and_chains.chains}ch"

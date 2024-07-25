@@ -30,3 +30,8 @@ def subheader(msg: str, length: int = 80):
     message(msg)
     thin_line(length)
     space()
+
+
+def information(msg: str):
+    print(f">> {msg}")
+    print()

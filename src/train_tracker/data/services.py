@@ -33,6 +33,12 @@ class Call:
 
 
 @dataclass
+class AssociatedService:
+    station: ShortTrainStation
+    service: "TrainService"
+
+
+@dataclass
 class TrainService:
     id: str
     headcode: str
@@ -44,18 +50,32 @@ class TrainService:
     brand_id: str
     power: Optional[str]
     calls: list[Call]
+    divides: list[AssociatedService]
+    joins: list[AssociatedService]
 
 
 service_endpoint = "https://api.rtt.io/api/v1/json/service"
 
 
-def get_calls(calls: list[Call], origin: str, dest: str) -> Optional[list[Call]]:
+@dataclass
+class LegCall:
+    station: ShortTrainStation
+    plan_arr: Optional[datetime]
+    plan_dep: Optional[datetime]
+    act_arr: Optional[datetime]
+    act_dep: Optional[datetime]
+    divide: Optional["TrainService"]
+
+
+def get_calls(calls: list[Call], origin: str, dest: str) -> Optional[list[LegCall]]:
     call_chain = []
     boarded = False
     for call in calls:
         if boarded and compare_crs(call.station.crs, dest):
-            call_chain.append(call)
-            return calls
+            call_chain.append(
+                LegCall(call.station, call.plan_arr, None, call.act_arr, None, None)
+            )
+            return call_chain
         # Since divisions include the current call as their initial call,
         # we iterate into them first to see if there is a path from the origin
         # (if the origin has not been encountered) or the current station (if
@@ -67,15 +87,33 @@ def get_calls(calls: list[Call], origin: str, dest: str) -> Optional[list[Call]]
         for divide in call.divide:
             subcalls = get_calls(divide.calls, divide_start, dest)
             if subcalls is not None:
-                call_chain.extend(subcalls)
+                current_call = LegCall(
+                    call.station,
+                    call.plan_arr,
+                    subcalls[0].plan_dep,
+                    call.act_arr,
+                    subcalls[0].act_dep,
+                    divide,
+                )
+                call_chain.append(current_call)
+                call_chain.extend(subcalls[1:])
                 return call_chain
         # Otherwise we keep checking in this list
         if boarded:
-            call_chain.append(call)
-            if compare_crs(call.station.crs, dest):
-                return call_chain
+            current_call = LegCall(
+                call.station,
+                call.plan_arr,
+                call.plan_dep,
+                call.act_arr,
+                call.act_dep,
+                None,
+            )
+            call_chain.append(current_call)
         elif compare_crs(call.station.crs, origin):
             boarded = True
+            call_chain.append(
+                LegCall(call.station, None, call.plan_dep, None, call.act_dep, None)
+            )
     return None
 
 
@@ -178,9 +216,17 @@ def get_service_from_id(
         operator_name = data["atocName"]
         operator_id = data["atocCode"]
         calls: list[Call] = []
+        divides: list[AssociatedService] = []
+        joins: list[AssociatedService] = []
         for loc in data["locations"]:
             if loc.get("crs") is not None:
                 call = response_to_call(cur, run_date, loc, service_id, parent)
+                call_divides = call.divide
+                for divide in call_divides:
+                    divides.append(AssociatedService(call.station, divide))
+                call_joins = call.join
+                for join in call_joins:
+                    joins.append(AssociatedService(call.station, join))
                 calls.append(call)
         brand_id = ""
         return TrainService(
@@ -194,6 +240,8 @@ def get_service_from_id(
             brand_id,
             power,
             calls,
+            divides,
+            joins,
         )
     return None
 
@@ -244,20 +292,42 @@ def get_service_page_url(service_date: datetime, id: str) -> str:
     return f"https://www.realtimetrains.co.uk/service/gb-nr:{id}/{date_string}/detailed"
 
 
-def get_service_page(date: datetime, id: str) -> Optional[BeautifulSoup]:
-    url = get_service_page_url(date, id)
-    return get_soup(url)
+def get_service_page_url_from_service(service: TrainService) -> str:
+    return get_service_page_url(service.run_date, service.id)
+
+
+def get_service_pages(
+    service: TrainService, calls: list[LegCall]
+) -> Optional[list[BeautifulSoup]]:
+    initial_url = get_service_page_url(service.run_date, service.id)
+    initial_soup = get_soup(initial_url)
+    if initial_soup is None:
+        return None
+    soups = [initial_soup]
+    for call in calls:
+        if call.divide is not None:
+            call_url = get_service_page_url(call.divide.run_date, call.divide.id)
+            call_soup = get_soup(call_url)
+            if call_soup is None:
+                return None
+            soups.append(call_soup)
+    return soups
+
+
+def get_service_page(service: TrainService) -> Optional[BeautifulSoup]:
+    url = get_service_page_url_from_service(service)
+    soup = get_soup(url)
+    return soup
 
 
 def get_location_div_from_service_page(
     service_soup: BeautifulSoup, crs: str
-) -> BeautifulSoup:
+) -> Optional[BeautifulSoup]:
     calls = service_soup.find_all(class_="call")
     for call in calls:
         if crs.upper() in call.get_text():
             return call
-    print("Could not get location div")
-    exit(1)
+    return None
 
 
 def get_miles_and_chains_from_call_div(
@@ -274,14 +344,50 @@ def get_miles_and_chains_from_call_div(
     return miles_and_chains_to_miles(miles_int, chains_int)
 
 
-def get_mileage_for_service_call(service: TrainService, crs: str) -> Optional[Decimal]:
-    service_soup = get_service_page(service.run_date, service.id)
-    if service_soup is None:
+def get_distance_between_calls(service: TrainService, calls: list[LegCall]):
+    current_soup = get_service_page(service)
+    if current_soup is None:
         return None
-    call_div = get_location_div_from_service_page(service_soup, crs)
-    if call_div is None:
+    # We iterate through the calls, but we only care if we reach
+    # the final destination or a point of division, as the call divs
+    # contain cumulative distance
+    base_mileage = Decimal(0)
+    start_mileage = Decimal(0)
+    for i, call in enumerate(calls):
+        if i == 0 or i == len(calls) - 1 or call.divide:
+            call_div = get_location_div_from_service_page(
+                current_soup, call.station.crs
+            )
+            if call_div is None:
+                return None
+            call_mileage_opt = get_miles_and_chains_from_call_div(call_div)
+            if call_mileage_opt is None:
+                return None
+            call_mileage = call_mileage_opt + base_mileage
+            # If this is the first call, store the initial mileage
+            if i == 0:
+                start_mileage = call_mileage
+            # If this is the final call, return the difference between this
+            # and the start mileage
+            if i == len(calls) - 1:
+                return call_mileage - start_mileage
+            # If this is a division, the next page will start mileage from
+            # zero so we need to set the base mileage and repeat on the
+            # new page
+            if call.divide:
+                base_mileage = call_mileage
+                current_soup = get_service_page(call.divide)
+                if current_soup is None:
+                    return None
+
+
+def get_distance_between_stations(
+    service: TrainService, origin: str, destination: str
+) -> Optional[Decimal]:
+    calls = get_calls(service.calls, origin, destination)
+    if calls is None:
         return None
-    return get_miles_and_chains_from_call_div(call_div)
+    return get_distance_between_calls(service, calls)
 
 
 if __name__ == "__main__":

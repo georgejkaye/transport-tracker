@@ -6,12 +6,15 @@ from datetime import datetime, timedelta
 from typing import Optional
 from psycopg2._psycopg import cursor
 
-from train_tracker.data.leg import Leg
-from train_tracker.data.network import miles_and_chains_to_miles
+from train_tracker.data.leg import Leg, StockReport, insert_leg
+from train_tracker.data.network import (
+    miles_and_chains_to_miles,
+    string_of_miles_and_chains,
+)
 from train_tracker.data.services import (
     TrainService,
     filter_services_by_time_and_stop,
-    get_mileage_for_service_call,
+    get_distance_between_stations,
     get_service_from_id,
 )
 from train_tracker.data.stations import (
@@ -34,7 +37,7 @@ from train_tracker.data.stock import (
     string_of_class_and_subclass,
     string_of_stock,
 )
-from train_tracker.interactive import header, option, space, subheader
+from train_tracker.interactive import header, information, option, space, subheader
 from train_tracker.times import (
     pad_front,
     add,
@@ -355,18 +358,6 @@ def get_stock(cur: cursor, service: TrainService) -> list[StockReport]:
     return used_stock
 
 
-def compute_mileage(service: TrainService, origin: str, destination: str) -> Decimal:
-    origin_mileage = get_mileage_for_service_call(service, origin)
-    if origin_mileage is None:
-        return get_mileage()
-    else:
-        destination_mileage = get_mileage_for_service_call(service, destination)
-        if destination_mileage is None:
-            return get_mileage()
-        else:
-            return destination_mileage - origin_mileage
-
-
 def get_mileage() -> Decimal:
     # If we can get a good distance set this could be automated
     miles = get_input_no("Miles")
@@ -374,6 +365,13 @@ def get_mileage() -> Decimal:
     if miles is None or chains is None:
         raise RuntimeError("Cannot be None")
     return miles_and_chains_to_miles(miles, chains)
+
+
+def compute_mileage(service: TrainService, origin: str, destination: str) -> Decimal:
+    mileage = get_distance_between_stations(service, origin, destination)
+    if mileage is None:
+        return get_mileage()
+    return mileage
 
 
 def get_datetime(start: Optional[datetime] = None):
