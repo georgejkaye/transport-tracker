@@ -1,11 +1,9 @@
-from dataclasses import dataclass
 from decimal import Decimal
 import decimal
 import json
 from datetime import datetime, timedelta
 from typing import Optional
 from psycopg2._psycopg import connection, cursor
-
 from train_tracker.data.leg import Leg, StockReport, insert_leg
 from train_tracker.data.network import (
     miles_and_chains_to_miles,
@@ -28,15 +26,30 @@ from train_tracker.data.stations import (
 from train_tracker.data.stock import (
     Class,
     ClassAndSubclass,
+    Stock,
+    get_number,
     get_operator_stock,
     get_unique_classes,
+    get_unique_classes_from_subclasses,
     get_unique_subclasses,
     sort_by_classes,
     sort_by_subclasses,
     string_of_class,
     string_of_class_and_subclass,
 )
-from train_tracker.interactive import header, information, option, space, subheader
+from train_tracker.interactive import (
+    PickSingle,
+    PickUnknown,
+    information,
+    input_confirm,
+    input_day,
+    input_month,
+    input_number,
+    input_select,
+    input_text,
+    input_time,
+    input_year,
+)
 from train_tracker.times import (
     pad_front,
     add,
@@ -49,20 +62,6 @@ def timedelta_from_string(str):
     hour = int(parts[0])
     minutes = int(parts[1])
     return timedelta(hours=hour, minutes=minutes)
-
-
-def get_month_length(month, year):
-    """
-    Get the length of a month in days, for a given year
-    """
-    if month in [1, 3, 5, 7, 8, 10, 12]:
-        return 31
-    elif month in [4, 6, 9, 11]:
-        return 30
-    elif year % 4 == 0 and (year % 100 != 0 or year % 400 == 0):
-        return 29
-    else:
-        return 28
 
 
 def get_input_no(
@@ -129,79 +128,6 @@ def get_input_price(prompt):
             print(f"Expected price but got '{string}'")
 
 
-def yes_or_no(prompt: str):
-    """
-    Let the user say yes or no
-    """
-    choice = input(prompt + " (Y/n) ")
-    if choice == "y" or choice == "Y" or choice == "":
-        return True
-    return False
-
-
-@dataclass
-class PickSingle[T]:
-    choice: T
-
-
-@dataclass
-class PickMultiple[T]:
-    choices: list[T]
-
-
-@dataclass
-class PickUnknown:
-    pass
-
-
-@dataclass
-class PickCancel:
-    pass
-
-
-type PickChoice[T] = PickSingle[T] | PickMultiple[T] | PickUnknown | PickCancel
-
-
-def pick_from_list[
-    T
-](
-    choices: list[T],
-    prompt: str,
-    cancel: bool = False,
-    unknown: bool = False,
-    display=lambda x: x,
-) -> PickChoice[T]:
-    """
-    Let the user pick from a list of choices
-    """
-    for i, choice in enumerate(choices):
-        option(i + 1, display(choice))
-    max_choice = len(choices)
-    if unknown:
-        max_choice = max_choice + 1
-        unknown_choice = max_choice
-        option(max_choice, "Unknown")
-    if cancel:
-        max_choice = len(choices) + 1
-        cancel_choice = max_choice
-        # The last option is a cancel option, this returns None
-        option(max_choice, "Cancel")
-    while True:
-        space()
-        resp = input(prompt + " (1-" + str(max_choice) + "): ")
-        if not resp.isdigit():
-            print("Expected number")
-        else:
-            resp_no = int(resp)
-            if cancel and resp_no == cancel_choice:
-                return PickCancel()
-            elif unknown and resp_no == unknown_choice:
-                return PickUnknown()
-            elif resp_no > 0 and resp_no <= len(choices):
-                return PickSingle(choices[resp_no - 1])
-            print(f"Expected number 1-{max_choice} but got '{resp_no}'")
-
-
 def get_station_from_input(
     cur: cursor, prompt: str, stn: TrainStation | None = None
 ) -> Optional[TrainStation]:
@@ -211,32 +137,38 @@ def get_station_from_input(
     or a full station name
     """
     if stn is not None:
-        prompt = f"{prompt} ({stn.name})"
-    prompt = f"{prompt}: "
+        full_prompt = f"{prompt} ({stn.name})"
+        default = stn.crs
+    else:
+        full_prompt = prompt
+        default = ""
     while True:
-        string = input(prompt).lower()
+        input_string_opt = input_text(full_prompt, default=default)
+        if input_string_opt is None:
+            return None
+        input_string = input_string_opt.lower()
         # We only search for strings of length at least three, otherwise there would be loads
-        if len(string) == 0 and stn is not None:
+        if len(input_string) == 0 and stn is not None:
             return stn
-        if len(string) == 3:
-            crs_station = get_station_from_crs(cur, string)
+        if len(input_string) == 3:
+            crs_station = get_station_from_crs(cur, input_string)
             if crs_station is not None:
-                resp = yes_or_no(f"Did you mean {crs_station.name}")
+                resp = input_confirm(f"Did you mean {crs_station.name}")
                 if resp:
                     return crs_station
         # Otherwise search for substrings in the full names of stations
-        matches = get_stations_from_substring(cur, string)
+        matches = get_stations_from_substring(cur, input_string)
         if len(matches) == 0:
             print("No matches found, try again")
         elif len(matches) == 1:
             match = matches[0]
-            resp = yes_or_no(f"Did you mean {match}?")
+            resp = input_confirm(f"Did you mean {match}?")
             if resp:
                 return match
         else:
             print("Multiple matches found: ")
-            choice = pick_from_list(
-                matches, "Select a station", cancel=True, display=lambda x: x.name
+            choice = input_select(
+                "Select a station", matches, display=lambda x: x.name, cancel=True
             )
             match choice:
                 case PickSingle(stn):
@@ -259,16 +191,16 @@ def get_service_at_station(
     timeframe = 15
     earliest_time = add(dt, -timeframe)
     latest_time = add(dt, timeframe)
-    debug_msg("Searching for services from " + origin.name)
+    information("Searching for services from " + origin.name)
     # The results encompass a ~1 hour period
     # We only want to check our given timeframe
     # We also only want services that stop at our destination
     filtered_services = filter_services_by_time_and_stop(
         cur, earliest_time, latest_time, origin, destination, origin_services
     )
-    choice = pick_from_list(
-        filtered_services,
+    choice = input_select(
         "Pick a service",
+        filtered_services,
         cancel=True,
         display=lambda x: string_of_service_at_station(x),
     )
@@ -279,72 +211,89 @@ def get_service_at_station(
             return None
 
 
+def get_unit_class(operator_stock: list[Stock]) -> Optional[Class]:
+    valid_classes = get_unique_classes(operator_stock)
+    chosen_class = input_select(
+        "Class number",
+        sort_by_classes(valid_classes),
+        unknown=True,
+        display=string_of_class,
+    )
+    match chosen_class:
+        case None:
+            return None
+        case PickUnknown():
+            return None
+        case PickSingle(choice):
+            return choice
+
+
+def get_unit_subclass(
+    operator_stock: list[Stock], stock_class: Class
+) -> Optional[ClassAndSubclass]:
+    valid_subclasses = get_unique_subclasses(operator_stock, stock_class=stock_class)
+    # If there are no subclasses then we are done
+    if len(valid_subclasses) == 0:
+        stock_subclass = None
+        subclass = ClassAndSubclass(
+            stock_class.class_no, stock_class.class_name, None, None
+        )
+    elif len(valid_subclasses) == 1:
+        stock_subclass = valid_subclasses[0]
+        subclass = stock_subclass
+    else:
+        chosen_subclass = input_select(
+            "Subclass no",
+            sort_by_subclasses(valid_subclasses),
+            unknown=True,
+            cancel=False,
+            display=string_of_class_and_subclass,
+        )
+        match chosen_subclass:
+            case None:
+                return None
+            case PickUnknown():
+                subclass = None
+            case PickSingle(choice):
+                subclass = choice
+    return subclass
+
+
+def get_unit_no(stock_subclass: ClassAndSubclass) -> Optional[int]:
+    while True:
+        unit_no_opt = input_number(
+            "Stock number",
+            lower=stock_subclass.class_no * 1000,
+            upper=stock_subclass.class_no * 1000 + 999,
+            unknown=True,
+        )
+        return unit_no_opt
+
+
 def get_stock(cur: cursor, service: TrainService) -> list[StockReport]:
-    used_stock = []
+    used_stock: list[StockReport] = []
     # Currently getting this automatically isn't implemented
     # First get all stock this operator has
     stock_list = get_operator_stock(cur, service.operator_id)
-    # Get the unique classes to pick from
-    operator_classes = get_unique_classes(stock_list)
-    number_of_units = get_input_no("Number of units", default=1)
+    number_of_units = input_number("Number of units")
     if number_of_units is None:
         raise RuntimeError("Could not get number of units")
     for i in range(0, number_of_units):
-        header(f"Selecting unit {i+1}")
-        subheader("Selecting unit class")
-        chosen_class: PickChoice[Class] = pick_from_list(
-            sort_by_classes(operator_classes),
-            "Class number",
-            unknown=True,
-            display=string_of_class,
-        )
-        match chosen_class:
-            case PickUnknown():
-                used_stock.append(StockReport(None, None, None))
-            case PickSingle(choice):
-                stock_class = choice
-                operator_subclasses = get_unique_subclasses(
-                    stock_list, stock_class=stock_class
-                )
-                # If there are no subclasses then we are done
-                if len(operator_subclasses) == 0:
-                    stock_subclass = None
-                    subheader(f"Class {stock_class.class_no} has no subclass variants")
-                elif len(operator_subclasses) == 1:
-                    stock_subclass = operator_subclasses[0].subclass_no
-                    subheader(
-                        f"Class {stock_class.class_no} only has /{stock_subclass} variant for this operator"
-                    )
-                else:
-                    subheader("Selecting unit subclass")
-                    chosen_subclass: PickChoice[ClassAndSubclass] = pick_from_list(
-                        sort_by_subclasses(operator_subclasses),
-                        "Subclass no",
-                        unknown=True,
-                        cancel=False,
-                        display=string_of_class_and_subclass,
-                    )
-                    match chosen_subclass:
-                        case PickUnknown():
-                            stock_subclass = None
-                        case PickSingle(choice):
-                            stock_subclass = choice.subclass_no
-                # Stock number input
-                minimum_stock_number = stock_class.class_no * 1000
-                maximum_stock_number = minimum_stock_number + 999
-                if stock_subclass is not None:
-                    minimum_stock_number = minimum_stock_number + (stock_subclass * 100)
-                    maximum_stock_number = minimum_stock_number + 99
-                subheader("Selecting stock number")
-                stock_number = get_input_no(
-                    "Stock number",
-                    lower=minimum_stock_number,
-                    upper=maximum_stock_number,
-                    unknown=True,
-                )
-                used_stock.append(
-                    StockReport(stock_class.class_no, stock_subclass, stock_number)
-                )
+        information(f"Selecting unit {i+1}")
+        stock_class = get_unit_class(stock_list)
+        if stock_class is None:
+            stock_class_no = None
+            stock_subclass = None
+        else:
+            stock_class_no = stock_class.class_no
+            stock_subclass = get_unit_subclass(stock_list, stock_class)
+        if stock_subclass is None:
+            stock_subclass_no = None
+            stock_unit_no = None
+        else:
+            stock_subclass_no = stock_subclass.subclass_no
+            stock_unit_no = get_unit_no(stock_subclass)
+        used_stock.append(StockReport(stock_class_no, stock_subclass_no, stock_unit_no))
     return used_stock
 
 
@@ -364,22 +313,30 @@ def compute_mileage(service: TrainService, origin: str, destination: str) -> Dec
     return mileage
 
 
-def get_datetime(start: Optional[datetime] = None):
-    if start is None:
-        start = datetime.now()
-    year = get_input_no("Year", upper=2022, default=start.year, pad=4)
-    month = get_input_no("Month", upper=12, default=start.month, pad=2)
-    max_days = get_month_length(month, year)
-    day = get_input_no("Day", upper=max_days, default=start.day, pad=2)
-    time = get_input_no(
-        "Time", upper=2359, default=start.hour * 100 + start.minute, pad=4
-    )
-    if year is None or month is None or day is None or time is None:
-        raise RuntimeError("Cannot be None")
-    time_string = pad_front(time, 4)
-    hour = int(time_string[0:2])
-    minute = int(time_string[2:4])
-    return datetime(year, month, day, hour, minute)
+def get_datetime(start: Optional[datetime] = None) -> datetime:
+    if start is not None:
+        default_year = start.year
+        default_month = start.month
+        default_day = start.day
+        default_time = start
+    else:
+        default_year = None
+        default_month = None
+        default_day = None
+        default_time = None
+    year = input_year(default=default_year)
+    if year is None:
+        raise RuntimeError()
+    month = input_month(default=default_month)
+    if month is None:
+        raise RuntimeError()
+    date = input_day(month, year, default=default_day)
+    if date is None:
+        raise RuntimeError()
+    time = input_time(default=default_time)
+    if time is None:
+        raise RuntimeError()
+    return datetime(year, month, date, time.hour, time.minute)
 
 
 def record_new_leg(
@@ -401,7 +358,9 @@ def record_new_leg(
     if service_at_station is None:
         service_candidate = None
         while service_candidate is None:
-            service_id = input("Service id: ")
+            service_id = input_text("Service id")
+            if service_id is None:
+                return None
             service_candidate = get_service_from_id(cur, service_id, run_date)
             if service_candidate is None:
                 print("Invalid service id, try again")

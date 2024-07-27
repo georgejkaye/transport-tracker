@@ -14,6 +14,7 @@ from requests import Response
 from requests.auth import HTTPBasicAuth
 
 from train_tracker.data.credentials import Credentials
+from train_tracker.debug import debug_msg
 
 T = TypeVar("T")
 
@@ -82,7 +83,7 @@ def make_get_request(
         auth = HTTPBasicAuth(credentials.user, credentials.password)
     else:
         auth = None
-    print(f"Making request to {url}")
+    debug_msg(f"Making request to {url}")
     return requests.get(url, auth=auth, stream=stream, headers=headers)
 
 

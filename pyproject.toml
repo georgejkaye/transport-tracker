@@ -19,6 +19,7 @@ types-requests = "^2.31.0.2"
 python-dotenv = "^1.0.1"
 psycopg2 = "^2.9.9"
 types-psycopg2 = "^2.9.21.20240417"
+questionary = "^2.0.1"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.5.1"

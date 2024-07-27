@@ -54,11 +54,15 @@ def sort_by_classes(stock: list[Class]) -> list[Class]:
 class ClassAndSubclass:
     class_no: int
     class_name: Optional[str]
-    subclass_no: int
+    subclass_no: Optional[int]
     subclass_name: Optional[str]
 
     def __hash__(self):
-        return hash(self.class_no * 10 + self.subclass_no)
+        if self.subclass_no is None:
+            subclass_hash = 0
+        else:
+            subclass_hash = self.subclass_no
+        return hash(self.class_no * 10 + subclass_hash)
 
 
 def string_of_class_and_subclass(stock: ClassAndSubclass) -> str:
@@ -72,8 +76,33 @@ def string_of_class_and_subclass(stock: ClassAndSubclass) -> str:
     return string
 
 
+def subclass_sort_key(stock: ClassAndSubclass) -> int:
+    if stock.subclass_no is None:
+        return stock.class_no * 10
+    else:
+        return stock.class_no * 10 + stock.subclass_no
+
+
 def sort_by_subclasses(stock: list[ClassAndSubclass]) -> list[ClassAndSubclass]:
-    return sorted(stock, key=lambda x: x.class_no * 10 + x.subclass_no)
+    return sorted(stock, key=subclass_sort_key)
+
+
+def get_unique_classes_from_subclasses(stock: list[ClassAndSubclass]) -> list[Class]:
+    uniques: set[Class] = set()
+    for cas in stock:
+        if cas.class_no not in uniques:
+            current_class = Class(cas.class_no, cas.class_name)
+            uniques.add(current_class)
+    return list(uniques)
+
+
+@dataclass
+class StockUnit:
+    class_no: int
+    class_name: Optional[str]
+    subclass_no: int
+    subclass_name: Optional[str]
+    unit_no: int
 
 
 @dataclass

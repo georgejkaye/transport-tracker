@@ -15,7 +15,10 @@ from train_tracker.data.stations import (
     TrainStation,
     compare_crs,
     response_to_short_train_station,
+    short_string_of_service_at_station,
+    string_of_service_at_station,
 )
+from train_tracker.interactive import information
 from train_tracker.times import get_datetime_route
 
 from psycopg2._psycopg import cursor
@@ -291,10 +294,15 @@ def filter_services_by_time_and_stop(
 ) -> list[TrainServiceAtStation]:
     time_filtered = filter_services_by_time(earliest, latest, services)
     stop_filtered: list[TrainServiceAtStation] = []
-    for service in time_filtered:
+    max_string_length = 0
+    for i, service in enumerate(time_filtered):
+        string = f"Checking service {i}/{len(time_filtered)}: {short_string_of_service_at_station(service)}"
+        max_string_length = max(max_string_length, len(string))
+        information(string.ljust(max_string_length), end="\r")
         full_service = get_service_from_id(cur, service.id, service.run_date)
         if full_service and stops_at_station(full_service, origin.crs, destination.crs):
             stop_filtered.append(service)
+    information(" " * max_string_length, end="\r")
     return stop_filtered
 
 

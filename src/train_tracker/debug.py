@@ -1,6 +1,6 @@
 from termcolor import cprint
 
-debug = True
+debug = False
 
 
 def debug_msg(string) -> None:

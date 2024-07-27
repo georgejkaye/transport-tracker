@@ -46,6 +46,10 @@ class TrainServiceAtStation:
     operator_id: str
 
 
+def short_string_of_service_at_station(service: TrainServiceAtStation):
+    return f"{service.headcode} {get_multiple_short_station_string(service.origins)} to {get_multiple_short_station_string(service.destinations)}"
+
+
 def string_of_service_at_station(service: TrainServiceAtStation):
     return f"{service.headcode} {get_multiple_short_station_string(service.origins)} to {get_multiple_short_station_string(service.destinations)} plan {get_hourmin_string(service.plan_dep)} act {get_hourmin_string(service.act_dep)} ({service.operator_name})"
 
