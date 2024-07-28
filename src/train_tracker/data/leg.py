@@ -6,7 +6,7 @@ from psycopg2._psycopg import connection, cursor
 from train_tracker.data.database import datetime_or_none_to_str, insert
 from train_tracker.data.services import Call, LegCall, TrainService, get_calls
 from train_tracker.data.stations import ShortTrainStation
-from train_tracker.data.stock import Stock
+from train_tracker.data.stock import Formation, Stock
 
 
 @dataclass
@@ -14,6 +14,7 @@ class StockReport:
     class_no: Optional[int]
     subclass_no: Optional[int]
     stock_no: Optional[int]
+    cars: Optional[Formation]
 
 
 def string_of_stock_report(report: StockReport) -> str:
@@ -119,4 +120,27 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
         call_fields,
         call_values,
     )
+    legstock_fields = ["leg_id", "formation_id", "start_crs", "end_crs", "stock_number"]
+    legstock_values = []
+    for formation in leg.stock:
+        stocks = formation.stock
+        for stock in stocks:
+            if stock.cars:
+                formation_id = str(stock.cars.id)
+            else:
+                formation_id = "NULL"
+            if stock.stock_no:
+                stock_number = str(stock.stock_no)
+            else:
+                stock_number = "NULL"
+            legstock_values.append(
+                [
+                    str(leg_id),
+                    formation_id,
+                    formation.start.crs,
+                    formation.end.crs,
+                    stock_number,
+                ]
+            )
+    insert(cur, "LegStock", legstock_fields, legstock_values)
     conn.commit()
