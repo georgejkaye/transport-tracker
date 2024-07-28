@@ -4,7 +4,8 @@ from typing import Optional
 from psycopg2._psycopg import connection, cursor
 
 from train_tracker.data.database import datetime_or_none_to_str, insert
-from train_tracker.data.services import Call, TrainService, get_calls
+from train_tracker.data.services import Call, LegCall, TrainService, get_calls
+from train_tracker.data.stations import ShortTrainStation
 from train_tracker.data.stock import Stock
 
 
@@ -15,13 +16,29 @@ class StockReport:
     stock_no: Optional[int]
 
 
+def string_of_stock_report(report: StockReport) -> str:
+    if report.class_no is None:
+        return "Unknown"
+    if report.stock_no is not None:
+        return str(report.stock_no)
+    if report.subclass_no is None:
+        return f"Class {report.class_no}"
+    return f"Class {report.class_no}/{report.subclass_no}"
+
+
+@dataclass
+class LegSegmentStock:
+    stock: list[StockReport]
+    start: ShortTrainStation
+    end: ShortTrainStation
+
+
 @dataclass
 class Leg:
     service: TrainService
-    origin_station: str
-    destination_station: str
+    calls: list[LegCall]
     distance: Decimal
-    stock: list[StockReport]
+    stock: list[LegSegmentStock]
 
 
 def insert_leg(conn: connection, cur: cursor, leg: Leg):
@@ -58,8 +75,8 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
         VALUES (%(id)s, %(start)s, %(distance)s, %(board)s, %(alight)s)
         RETURNING leg_id
     """
-    origin = leg.origin_station
-    destination = leg.destination_station
+    origin = leg.calls[0].station.crs
+    destination = leg.calls[-1].station.crs
     cur.execute(
         insert_leg_statement,
         {

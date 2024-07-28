@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Callable, Optional
-from questionary import Choice, confirm, select, text
+from questionary import Choice, checkbox, confirm, select, text
 from termcolor import colored
 
 
@@ -242,3 +242,12 @@ def input_select[
     if unknown:
         choice_objects.append(Choice(title="Unknown", value=PickUnknown()))
     return select(message, choice_objects, use_shortcuts=True, instruction="").ask()
+
+
+def input_checkbox[
+    T
+](
+    message: str, choices: list[T], display: Optional[Callable[[T], str]] = None
+) -> Optional[PickMultiple[T]]:
+    choice_objects = [choice_from_object(choice, display) for choice in choices]
+    return checkbox(message, choice_objects).ask()
