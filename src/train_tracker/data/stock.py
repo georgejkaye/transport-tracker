@@ -264,9 +264,19 @@ def get_unique_subclasses(
     return list(stock_subclasses)
 
 
-def select_stock_cars(cur: cursor, stock: Stock) -> list[int]:
+@dataclass
+class Formation:
+    id: int
+    cars: int
+
+
+def string_of_formation(f: Formation) -> str:
+    return f"{f.cars} cars"
+
+
+def select_stock_cars(cur: cursor, stock: Stock) -> list[Formation]:
     statement = """
-        SELECT cars FROM StockFormation
+        SELECT formation_id, cars FROM StockFormation
         INNER JOIN (
             SELECT Stock.stock_class, StockSubclass.stock_subclass
             FROM stock
@@ -280,7 +290,6 @@ def select_stock_cars(cur: cursor, stock: Stock) -> list[int]:
         AND Stocks.stock_subclass = OperatorStock.stock_subclass
         WHERE Stocks.stock_class = %(class_no)s
         AND operator_id = %(operator)s
-        ORDER BY cars ASC
     """
     if stock.subclass_no is not None:
         statement = f"""
@@ -290,6 +299,7 @@ def select_stock_cars(cur: cursor, stock: Stock) -> list[int]:
         statement = f"""
             {statement} AND brand_id = %(brand)s
         """
+    statement = f"{statement} ORDER BY cars ASC"
     cur.execute(
         statement,
         {
@@ -300,7 +310,7 @@ def select_stock_cars(cur: cursor, stock: Stock) -> list[int]:
         },
     )
     rows = cur.fetchall()
-    car_list = [row[0] for row in rows]
+    car_list = [Formation(row[0], row[1]) for row in rows]
     return car_list
 
 
