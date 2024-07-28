@@ -255,4 +255,12 @@ def input_checkbox[
     message: str, choices: list[T], display: Optional[Callable[[T], str]] = None
 ) -> Optional[PickMultiple[T]]:
     choice_objects = [choice_from_object(choice, display) for choice in choices]
-    return checkbox(message, choice_objects).ask()
+    result = checkbox(message, choice_objects).ask()
+    if result is None:
+        return None
+    answers = []
+    for res in result:
+        match res:
+            case PickSingle(choice):
+                answers.append(choice)
+    return PickMultiple(answers)
