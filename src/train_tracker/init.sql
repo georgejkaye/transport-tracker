@@ -107,6 +107,7 @@ CREATE TABLE LegStock (
     formation_id SERIAL NOT NULL,
     start_crs CHARACTER(3) NOT NULL,
     end_crs CHARACTER(3) NOT NULL,
+    stock_number INT,
     FOREIGN KEY (leg_id) REFERENCES Leg(leg_id),
     FOREIGN KEY (start_crs) REFERENCES Station(station_crs),
     FOREIGN KEY (end_crs) REFERENCES Station(station_crs),
