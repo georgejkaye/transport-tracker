@@ -166,24 +166,29 @@ def input_day(
     )
 
 
+def string_is_time(x: str) -> bool:
+    if not len(x) == 4:
+        return False
+    if not x.isnumeric():
+        return False
+    num = int(x)
+    if num > 2359 or num < 0:
+        return False
+    if num % 100 > 59:
+        return False
+    return True
+
+
 def input_time(
     message: str = "Time",
     default: Optional[datetime] = None,
     unknown: bool = False,
 ) -> Optional[datetime]:
-    now = datetime.now()
     if default is None:
-        default_time = None
+        default_time = ""
     else:
-        default_time = int(default.strftime("%H%M"))
-    result = input_number(
-        message,
-        default=default_time,
-        lower=0,
-        upper=2359,
-        default_pad=4,
-        unknown=unknown,
-    )
+        default_time = str(int(default.strftime("%H%M"))).rjust(4, "0")
+    result = text(message, default=default_time, validate=string_is_time).ask()
     if result is None:
         return None
     else:
