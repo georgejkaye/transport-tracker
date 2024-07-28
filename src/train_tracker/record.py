@@ -38,16 +38,19 @@ from train_tracker.data.stations import (
 from train_tracker.data.stock import (
     Class,
     ClassAndSubclass,
+    Formation,
     Stock,
     get_number,
     get_operator_stock,
     get_unique_classes,
     get_unique_classes_from_subclasses,
     get_unique_subclasses,
+    select_stock_cars,
     sort_by_classes,
     sort_by_subclasses,
     string_of_class,
     string_of_class_and_subclass,
+    string_of_formation,
 )
 from train_tracker.interactive import (
     PickMultiple,
@@ -227,7 +230,9 @@ def get_service_at_station(
             return None
 
 
-def get_unit_class(operator_stock: list[Stock]) -> Optional[Class]:
+def get_unit_class(
+    operator_stock: list[Stock],
+) -> Optional[PickUnknown | PickSingle[Class]]:
     valid_classes = get_unique_classes(operator_stock)
     chosen_class = input_select(
         "Class number",
@@ -239,14 +244,14 @@ def get_unit_class(operator_stock: list[Stock]) -> Optional[Class]:
         case None:
             return None
         case PickUnknown():
-            return None
+            return chosen_class
         case PickSingle(choice):
-            return choice
+            return chosen_class
 
 
 def get_unit_subclass(
     operator_stock: list[Stock], stock_class: Class
-) -> Optional[ClassAndSubclass]:
+) -> Optional[PickUnknown | PickSingle[ClassAndSubclass]]:
     valid_subclasses = get_unique_subclasses(operator_stock, stock_class=stock_class)
     # If there are no subclasses then we are done
     if len(valid_subclasses) == 0:
@@ -254,9 +259,11 @@ def get_unit_subclass(
         subclass = ClassAndSubclass(
             stock_class.class_no, stock_class.class_name, None, None
         )
+        return PickSingle(subclass)
     elif len(valid_subclasses) == 1:
         stock_subclass = valid_subclasses[0]
         subclass = stock_subclass
+        return PickSingle(subclass)
     else:
         chosen_subclass = input_select(
             "Subclass no",
@@ -269,10 +276,9 @@ def get_unit_subclass(
             case None:
                 return None
             case PickUnknown():
-                subclass = None
-            case PickSingle(choice):
-                subclass = choice
-    return subclass
+                return chosen_subclass
+            case PickSingle(_):
+                return chosen_subclass
 
 
 def get_unit_no(stock_subclass: ClassAndSubclass) -> Optional[int]:
@@ -286,11 +292,38 @@ def get_unit_no(stock_subclass: ClassAndSubclass) -> Optional[int]:
         return unit_no_opt
 
 
+def get_unit_cars(
+    cur: cursor, stock_subclass: ClassAndSubclass, operator: str, brand: Optional[str]
+) -> PickUnknown | PickSingle[Formation] | None:
+    stock = Stock(
+        stock_subclass.class_no,
+        stock_subclass.class_name,
+        stock_subclass.subclass_no,
+        stock_subclass.subclass_name,
+        operator,
+        brand,
+    )
+    car_options = select_stock_cars(cur, stock)
+    result = input_select(
+        "Number of cars", car_options, string_of_formation, unknown=True
+    )
+    match result:
+        case None:
+            return None
+        case PickUnknown():
+            return result
+        case PickSingle(_):
+            return result
+        case _:
+            return None
+
+
 def get_station_from_calls(
+    current: ShortTrainStation,
     calls: list[LegCall],
 ) -> Optional[Tuple[ShortTrainStation, list[LegCall]]]:
     end_call = input_select(
-        "Stock formation until",
+        f"Stock formation from {current.name} until",
         [(i, call) for (i, call) in enumerate(calls)],
         display=lambda x: string_of_short_train_station(x[1].station),
         unknown=True,
@@ -315,21 +348,43 @@ def string_of_stock_change(change: StockChange) -> str:
             return "Lose units"
 
 
-def get_unit_report(stock_list: list[Stock]) -> StockReport:
-    stock_class = get_unit_class(stock_list)
-    if stock_class is None:
-        stock_class_no = None
-        stock_subclass = None
-    else:
-        stock_class_no = stock_class.class_no
-        stock_subclass = get_unit_subclass(stock_list, stock_class)
+def get_unit_report(
+    cur: cursor, stock_list: list[Stock], operator: str, brand: Optional[str]
+) -> Optional[StockReport]:
+    stock_class_res = get_unit_class(stock_list)
+    match stock_class_res:
+        case None:
+            return None
+        case PickUnknown():
+            stock_class_no = None
+            stock_subclass = None
+            stock_cars = None
+        case PickSingle(stock_class):
+            stock_class_no = stock_class.class_no
+            stock_subclass_res = get_unit_subclass(stock_list, stock_class)
+            match stock_subclass_res:
+                case None:
+                    return None
+                case PickUnknown():
+                    stock_subclass = None
+                case PickSingle(choice):
+                    stock_subclass = choice
     if stock_subclass is None:
         stock_subclass_no = None
         stock_unit_no = None
+        stock_cars = None
     else:
         stock_subclass_no = stock_subclass.subclass_no
         stock_unit_no = get_unit_no(stock_subclass)
-    return StockReport(stock_class_no, stock_subclass_no, stock_unit_no)
+        stock_cars_res = get_unit_cars(cur, stock_subclass, operator, brand)
+        match stock_cars_res:
+            case None:
+                return None
+            case PickUnknown():
+                stock_cars = None
+            case PickSingle(form):
+                stock_cars = form
+    return StockReport(stock_class_no, stock_subclass_no, stock_unit_no, stock_cars)
 
 
 def get_stock_change_reason() -> StockChange:
@@ -349,7 +404,7 @@ def get_stock(
     cur: cursor,
     calls: list[LegCall],
     service: TrainService,
-) -> list[LegSegmentStock]:
+) -> Optional[list[LegSegmentStock]]:
     information("Recording stock formations")
     used_stock: list[LegSegmentStock] = []
     # Currently getting this automatically isn't implemented
@@ -368,7 +423,7 @@ def get_stock(
         segment_start = current_station
         # Find out where this stock ends
         # If we don't know, then this will be the last report
-        stock_end_opt = get_station_from_calls(remaining_calls)
+        stock_end_opt = get_station_from_calls(segment_start, remaining_calls)
         if stock_end_opt is None:
             segment_end = last_station
         else:
@@ -386,10 +441,14 @@ def get_stock(
                 segment_stock = [s for s in previous_stock]
                 number_of_units = input_number("Number of new units")
                 if number_of_units is None:
-                    raise RuntimeError("Could not get number of units")
+                    return None
                 for i in range(0, number_of_units):
                     information(f"Selecting unit {i+1}")
-                    stock_report = get_unit_report(stock_list)
+                    stock_report = get_unit_report(
+                        cur, stock_list, service.operator_id, service.brand_id
+                    )
+                    if stock_report is None:
+                        return None
                     segment_stock.append(stock_report)
             case StockChange.LOSE:
                 result = input_checkbox(
@@ -397,7 +456,7 @@ def get_stock(
                 )
                 match result:
                     case None:
-                        raise RuntimeError()
+                        return None
                     case PickMultiple(choices):
                         segment_stock = choices
         used_stock.append(LegSegmentStock(segment_stock, segment_start, segment_end))
@@ -478,11 +537,13 @@ def record_new_leg(
     else:
         service = get_service_from_id(cur, service_at_station.id, run_date)
     if service is None:
-        raise RuntimeError("Service should not be none at this point")
+        return None
     calls = get_calls(service.calls, origin_station.crs, destination_station.crs)
     if calls is None:
-        raise RuntimeError()
+        return None
     stock = get_stock(cur, calls, service)
+    if stock is None:
+        return None
     mileage = compute_mileage(service, origin_station.crs, destination_station.crs)
     information(f"Computed mileage as {string_of_miles_and_chains(mileage)}")
     leg = Leg(service, calls, mileage, stock)
