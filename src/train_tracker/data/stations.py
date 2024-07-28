@@ -222,6 +222,8 @@ def get_services_at_station(
     if not response.status_code == 200:
         return []
     data = response.json()
+    if data.get("services") is None:
+        return []
     services = [
         response_to_service_at_station(cur, service) for service in data["services"]
     ]
