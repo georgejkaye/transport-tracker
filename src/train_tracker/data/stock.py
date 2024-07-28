@@ -264,5 +264,45 @@ def get_unique_subclasses(
     return list(stock_subclasses)
 
 
+def select_stock_cars(cur: cursor, stock: Stock) -> list[int]:
+    statement = """
+        SELECT cars FROM StockFormation
+        INNER JOIN (
+            SELECT Stock.stock_class, StockSubclass.stock_subclass
+            FROM stock
+            LEFT JOIN StockSubclass
+            ON Stock.stock_class = StockSubclass.stock_class
+        ) Stocks
+        ON StockFormation.stock_class = Stocks.stock_class
+        AND StockFormation.stock_subclass = Stocks.stock_subclass
+        INNER JOIN OperatorStock
+        ON Stocks.stock_class = OperatorStock.stock_class
+        AND Stocks.stock_subclass = OperatorStock.stock_subclass
+        WHERE Stocks.stock_class = %(class_no)s
+        AND operator_id = %(operator)s
+        ORDER BY cars ASC
+    """
+    if stock.subclass_no is not None:
+        statement = f"""
+            {statement} AND Stocks.stock_subclass = %(subclass_no)s
+        """
+    if stock.brand is not None:
+        statement = f"""
+            {statement} AND brand_id = %(brand)s
+        """
+    cur.execute(
+        statement,
+        {
+            "class_no": stock.class_no,
+            "operator": stock.operator,
+            "subclass_no": stock.subclass_no,
+            "brand": stock.brand,
+        },
+    )
+    rows = cur.fetchall()
+    car_list = [row[0] for row in rows]
+    return car_list
+
+
 if __name__ == "__main__":
     insert_stock_interactive()
