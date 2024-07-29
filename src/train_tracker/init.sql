@@ -74,7 +74,8 @@ CREATE TABLE ServiceEndpoint (
     run_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     station_crs CHARACTER(3) NOT NULL,
     origin BOOLEAN NOT NULL,
-    FOREIGN KEY (service_id, run_date) REFERENCES Service(service_id, run_date),
+    CONSTRAINT endpoint_unique UNIQUE (service_id, run_date, station_crs, origin),
+    FOREIGN KEY (service_id, run_date) REFERENCES Service(service_id, run_date) ON DELETE CASCADE,
     FOREIGN KEY (station_crs) REFERENCES Station(station_crs)
 );
 
@@ -85,21 +86,26 @@ CREATE TABLE Leg (
     distance NUMERIC NOT NULL,
     board_crs CHARACTER(3) NOT NULL,
     alight_crs CHARACTER(3) NOT NULL,
-    FOREIGN KEY (service_id, run_date) REFERENCES Service(service_id, run_date),
+    FOREIGN KEY (service_id, run_date) REFERENCES Service(service_id, run_date) ON DELETE CASCADE,
     FOREIGN KEY (board_crs) REFERENCES Station(station_crs),
     FOREIGN KEY (alight_crs) REFERENCES Station(station_crs)
 );
 
 CREATE TABLE Call (
+    call_id SERIAL PRIMARY KEY,
     leg_id SERIAL NOT NULL,
     run_date TIMESTAMP WITH TIME ZONE NOT NULL,
     station_crs CHARACTER(3) NOT NULL,
+    platform TEXT,
     plan_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE,
-    FOREIGN KEY (leg_id) REFERENCES Leg(leg_id),
-    FOREIGN KEY (station_crs) REFERENCES Station(station_crs)
+    divide_id TEXT,
+    divide_run_date TIMESTAMP WITH TIME ZONE,
+    FOREIGN KEY (leg_id) REFERENCES Leg(leg_id) ON DELETE CASCADE,
+    FOREIGN KEY (station_crs) REFERENCES Station(station_crs),
+    FOREIGN KEY (divide_id, divide_run_date) REFERENCES Service(service_id, run_date)
 );
 
 CREATE TABLE LegStock (
@@ -108,7 +114,7 @@ CREATE TABLE LegStock (
     start_crs CHARACTER(3) NOT NULL,
     end_crs CHARACTER(3) NOT NULL,
     stock_number INT,
-    FOREIGN KEY (leg_id) REFERENCES Leg(leg_id),
+    FOREIGN KEY (leg_id) REFERENCES Leg(leg_id) ON DELETE CASCADE,
     FOREIGN KEY (start_crs) REFERENCES Station(station_crs),
     FOREIGN KEY (end_crs) REFERENCES Station(station_crs),
     FOREIGN KEY (formation_id) REFERENCES StockFormation(formation_id)

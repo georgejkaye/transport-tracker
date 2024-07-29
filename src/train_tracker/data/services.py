@@ -27,6 +27,7 @@ from psycopg2._psycopg import cursor
 @dataclass
 class Call:
     station: ShortTrainStation
+    platform: str | None
     plan_arr: Optional[datetime]
     plan_dep: Optional[datetime]
     act_arr: Optional[datetime]
@@ -63,6 +64,7 @@ service_endpoint = "https://api.rtt.io/api/v1/json/service"
 @dataclass
 class LegCall:
     station: ShortTrainStation
+    platform: str | None
     plan_arr: Optional[datetime]
     plan_dep: Optional[datetime]
     act_arr: Optional[datetime]
@@ -85,12 +87,24 @@ def get_calls(
         if not boarded and compare_crs(call.station.crs, origin):
             boarded = True
             board_call = LegCall(
-                call.station, None, call.plan_dep, None, call.act_dep, None
+                call.station,
+                call.platform,
+                None,
+                call.plan_dep,
+                None,
+                call.act_dep,
+                None,
             )
             call_chain.append(board_call)
         elif boarded and compare_crs(call.station.crs, dest):
             alight_call = LegCall(
-                call.station, call.plan_arr, None, call.act_arr, None, None
+                call.station,
+                call.platform,
+                call.plan_arr,
+                None,
+                call.act_arr,
+                None,
+                None,
             )
             call_chain.append(alight_call)
             return call_chain
@@ -108,6 +122,7 @@ def get_calls(
                 if subcalls is not None:
                     current_call = LegCall(
                         call.station,
+                        call.platform,
                         call.plan_arr,
                         subcalls[0].plan_dep,
                         call.act_arr,
@@ -121,6 +136,7 @@ def get_calls(
             if boarded:
                 current_call = LegCall(
                     call.station,
+                    call.platform,
                     call.plan_arr,
                     call.plan_dep,
                     call.act_arr,
@@ -188,6 +204,7 @@ def response_to_call(
     plan_dep = response_to_time(run_date, "gbttBookedDeparture", data)
     act_arr = response_to_time(run_date, "realtimeArrival", data)
     act_dep = response_to_time(run_date, "realtimeDeparture", data)
+    platform = data.get("platform")
     divides = []
     joins = []
     assocs = data.get("associations")
@@ -207,7 +224,7 @@ def response_to_call(
                     divides.append(associated_service)
                 elif assoc["type"] == "join":
                     joins.append(associated_service)
-    return Call(station, plan_arr, plan_dep, act_arr, act_dep, divides, joins)
+    return Call(station, platform, plan_arr, plan_dep, act_arr, act_dep, divides, joins)
 
 
 def get_service_from_id(

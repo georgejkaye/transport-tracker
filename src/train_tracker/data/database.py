@@ -40,6 +40,16 @@ def datetime_or_none_to_str(x: datetime | None) -> Optional[str]:
         return x.isoformat()
 
 
+def str_or_null_to_datetime(x: str | None) -> datetime | None:
+    if x is None:
+        return None
+    try:
+        dt = datetime.fromisoformat(x)
+        return dt
+    except Exception:
+        return None
+
+
 def list_of_str_and_none_to_postgres_str(values: list[str | None]) -> list[str]:
     return [str_or_none_to_str(value) for value in values]
 
