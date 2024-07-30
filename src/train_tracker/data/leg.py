@@ -80,7 +80,7 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
         service_values.append(get_service_fields(join.service))
     for divide in leg.service.divides:
         service_values.append(get_service_fields(divide.service))
-    insert(cur, "Service", service_fields, service_values)
+    insert(cur, "Service", service_fields, service_values, "ON CONFLICT DO NOTHING")
     insert_service_statement = """
         INSERT INTO Service(service_id, run_date, headcode, operator_id, brand_id)
         VALUES (%(id)s, %(rundate)s, %(headcode)s, %(operator)s, %(brand)s)
@@ -172,11 +172,11 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
             if stock.cars:
                 formation_id = str(stock.cars.id)
             else:
-                formation_id = "NULL"
+                formation_id = None
             if stock.stock_no:
                 stock_number = str(stock.stock_no)
             else:
-                stock_number = "NULL"
+                stock_number = None
             legstock_values.append(
                 [
                     str(leg_id),

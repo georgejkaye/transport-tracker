@@ -197,17 +197,17 @@ def get_station_from_input(
 def get_service_at_station(
     cur: cursor,
     origin: TrainStation,
-    dt: datetime,
+    search_datetime: datetime,
     destination: TrainStation,
 ) -> Optional[TrainServiceAtStation]:
     """
     Record a new journey in the logfile
     """
-    origin_services = get_services_at_station(cur, origin, dt)
+    origin_services = get_services_at_station(cur, origin, search_datetime)
     # We want to search within a smaller timeframe
     timeframe = 15
-    earliest_time = add(dt, -timeframe)
-    latest_time = add(dt, timeframe)
+    earliest_time = add(search_datetime, -timeframe)
+    latest_time = add(search_datetime, timeframe)
     information("Searching for services from " + origin.name)
     # The results encompass a ~1 hour period
     # We only want to check our given timeframe
@@ -518,11 +518,14 @@ def record_new_leg(
     destination_station = get_station_from_input(cur, "Destination")
     if destination_station is None:
         return None
-    run_date = get_datetime(start)
+    search_datetime = get_datetime(start)
     service_at_station = get_service_at_station(
-        cur, origin_station, run_date, destination_station
+        cur, origin_station, search_datetime, destination_station
     )
     service = None
+    run_date = datetime(
+        search_datetime.year, search_datetime.month, search_datetime.day
+    )
     if service_at_station is None:
         service_candidate = None
         while service_candidate is None:
