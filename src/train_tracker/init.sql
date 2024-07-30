@@ -64,6 +64,7 @@ CREATE TABLE Service (
     headcode CHARACTER(4) NOT NULL,
     operator_id CHARACTER(2) NOT NULL,
     brand_id CHARACTER(2),
+    power TEXT,
     PRIMARY KEY (service_id, run_date),
     FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
     FOREIGN KEY (brand_id) REFERENCES Brand(brand_id)
@@ -79,21 +80,9 @@ CREATE TABLE ServiceEndpoint (
     FOREIGN KEY (station_crs) REFERENCES Station(station_crs)
 );
 
-CREATE TABLE Leg (
-    leg_id SERIAL PRIMARY KEY,
-    service_id TEXT NOT NULL,
-    run_date TIMESTAMP WITH TIME ZONE NOT NULL,
-    distance NUMERIC NOT NULL,
-    board_crs CHARACTER(3) NOT NULL,
-    alight_crs CHARACTER(3) NOT NULL,
-    FOREIGN KEY (service_id, run_date) REFERENCES Service(service_id, run_date) ON DELETE CASCADE,
-    FOREIGN KEY (board_crs) REFERENCES Station(station_crs),
-    FOREIGN KEY (alight_crs) REFERENCES Station(station_crs)
-);
-
 CREATE TABLE Call (
     call_id SERIAL PRIMARY KEY,
-    leg_id SERIAL NOT NULL,
+    service_id TEXT NOT NULL,
     run_date TIMESTAMP WITH TIME ZONE NOT NULL,
     station_crs CHARACTER(3) NOT NULL,
     platform TEXT,
@@ -101,21 +90,50 @@ CREATE TABLE Call (
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE,
-    divide_id TEXT,
-    divide_run_date TIMESTAMP WITH TIME ZONE,
-    FOREIGN KEY (leg_id) REFERENCES Leg(leg_id) ON DELETE CASCADE,
-    FOREIGN KEY (station_crs) REFERENCES Station(station_crs),
-    FOREIGN KEY (divide_id, divide_run_date) REFERENCES Service(service_id, run_date)
+    CONSTRAINT call_arr_unique UNIQUE (service_id, run_date, station_crs, plan_arr),
+    CONSTRAINT call_dep_unique UNIQUE (service_id, run_date, station_crs, plan_dep),
+    FOREIGN KEY (service_id, run_date) REFERENCES Service(service_id, run_date) ON DELETE CASCADE,
+    FOREIGN KEY (station_crs) REFERENCES Station(station_crs)
 );
 
-CREATE TABLE LegStock (
+CREATE TABLE AssociatedType (
+    associated_type TEXT PRIMARY KEY
+);
+
+INSERT INTO AssociatedType(associated_type) VALUES ('DIVIDES_TO');
+INSERT INTO AssociatedType(associated_type) VALUES ('DIVIDES_FROM');
+INSERT INTO AssociatedType(associated_type) VALUES ('JOINS_TO');
+INSERT INTO AssociatedType(associated_type) VALUES ('JOINS_WITH');
+
+CREATE TABLE AssociatedService (
+    call_id SERIAL NOT NULL,
+    associated_id TEXT NOT NULL,
+    associated_run_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    associated_type TEXT NOT NULL,
+    FOREIGN KEY (associated_type) REFERENCES AssociatedType(associated_type),
+    FOREIGN KEY (call_id) REFERENCES Call(call_id) ON DELETE CASCADE,
+    FOREIGN KEY (associated_id, associated_run_date) REFERENCES Service(service_id, run_date)
+);
+
+CREATE TABLE Leg (
+    leg_id SERIAL PRIMARY KEY,
+    distance NUMERIC NOT NULL
+);
+
+CREATE TABLE LegCall (
     leg_id SERIAL NOT NULL,
-    formation_id SERIAL NOT NULL,
-    start_crs CHARACTER(3) NOT NULL,
-    end_crs CHARACTER(3) NOT NULL,
-    stock_number INT,
+    call_id SERIAL NOT NULL,
+    CONSTRAINT leg_call_unique UNIQUE (leg_id, call_id),
     FOREIGN KEY (leg_id) REFERENCES Leg(leg_id) ON DELETE CASCADE,
-    FOREIGN KEY (start_crs) REFERENCES Station(station_crs),
-    FOREIGN KEY (end_crs) REFERENCES Station(station_crs),
+    FOREIGN KEY (call_id) REFERENCES Call(call_id) ON DELETE CASCADE
+);
+
+CREATE TABLE StockSegment (
+    formation_id SERIAL NOT NULL,
+    start_call SERIAL NOT NULL,
+    end_call SERIAL NOT NULL,
+    stock_number INT,
+    FOREIGN KEY (start_call) REFERENCES Call(call_id),
+    FOREIGN KEY (end_call) REFERENCES Call(call_id),
     FOREIGN KEY (formation_id) REFERENCES StockFormation(formation_id)
 );

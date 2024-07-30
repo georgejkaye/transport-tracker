@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 from dotenv import load_dotenv
@@ -25,12 +26,19 @@ def disconnect(conn, cur):
     cur.close()
 
 
-def str_or_none_to_str(x: str | None) -> str:
+@dataclass
+class NoEscape:
+    string: str
+
+
+def str_or_none_to_str(x: str | None | NoEscape) -> str:
     if x is None or x == "":
         return "NULL"
-    else:
-        replaced = x.replace("\u2019", "'")
-        return f"$${replaced}$$"
+    match x:
+        case NoEscape(string):
+            return string
+    replaced = x.replace("\u2019", "'")
+    return f"$${replaced}$$"
 
 
 def datetime_or_none_to_str(x: datetime | None) -> Optional[str]:
@@ -38,6 +46,13 @@ def datetime_or_none_to_str(x: datetime | None) -> Optional[str]:
         return None
     else:
         return x.isoformat()
+
+
+def datetime_or_none_to_raw_str(x: datetime | None) -> str:
+    if x is None:
+        return "NULL"
+    else:
+        return f"'{x.isoformat()}'"
 
 
 def str_or_null_to_datetime(x: str | None) -> datetime | None:
@@ -50,7 +65,9 @@ def str_or_null_to_datetime(x: str | None) -> datetime | None:
         return None
 
 
-def list_of_str_and_none_to_postgres_str(values: list[str | None]) -> list[str]:
+def list_of_str_and_none_to_postgres_str(
+    values: list[str | None | NoEscape],
+) -> list[str]:
     return [str_or_none_to_str(value) for value in values]
 
 
@@ -58,7 +75,7 @@ def insert(
     cur: cursor,
     table: str,
     fields: list[str],
-    values: list[list[str | None]],
+    values: list[list[str | None | NoEscape]],
     additional_query: str = "",
 ):
     partition_length = 500
@@ -79,4 +96,5 @@ def insert(
             VALUES {",".join(value_strings)}
             {additional_query}
         """
+        print(statement)
         cur.execute(statement)

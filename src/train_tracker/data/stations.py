@@ -87,7 +87,7 @@ def populate_train_station_table(
     conn: connection, cur: cursor, stations: list[TrainStation]
 ):
     fields = ["station_crs", "station_name", "station_operator", "station_brand"]
-    values: list[list[str | None]] = list(
+    values = list(
         map(
             lambda x: [x.crs, x.name, x.operator, x.brand],
             stations,

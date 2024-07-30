@@ -304,6 +304,12 @@ def get_unit_cars(
         brand,
     )
     car_options = select_stock_cars(cur, stock)
+    # If there is no choice we know the answer already
+    if len(car_options) == 1:
+        information(
+            f"{string_of_class_and_subclass(stock_subclass, name=False)} always has {car_options[0].cars} cars"
+        )
+        return PickSingle(car_options[0])
     result = input_select(
         "Number of cars", car_options, string_of_formation, unknown=True
     )
@@ -319,18 +325,18 @@ def get_unit_cars(
 
 
 def get_station_from_calls(
-    current: ShortTrainStation,
+    current: LegCall,
     calls: list[LegCall],
-) -> Optional[Tuple[ShortTrainStation, list[LegCall]]]:
+) -> Optional[Tuple[LegCall, list[LegCall]]]:
     end_call = input_select(
-        f"Stock formation from {current.name} until",
+        f"Stock formation from {current.station.name} until",
         [(i, call) for (i, call) in enumerate(calls)],
         display=lambda x: string_of_short_train_station(x[1].station),
         unknown=True,
     )
     match end_call:
         case PickSingle((i, call)):
-            return (call.station, calls[i + 1 :])
+            return (call, calls[i + 1 :])
         case PickUnknown():
             return None
         case _:
@@ -410,22 +416,22 @@ def get_stock(
     # Currently getting this automatically isn't implemented
     # First get all stock this operator has
     stock_list = get_operator_stock(cur, service.operator_id)
-    first_station = calls[0].station
-    current_station = first_station
-    last_station = calls[-1].station
+    first_call = calls[0]
+    current_call = first_call
+    last_call = calls[-1]
     # To determine when a particular stock formation lasts
     # we prompt the user to pick where it ends from a list
     # of stops excluding the start
     remaining_calls = calls[1:]
-    while not compare_crs(current_station.crs, last_station.crs):
-        information(f"Recording stock formation after {current_station.name}")
+    while not compare_crs(current_call.station.crs, last_call.station.crs):
+        information(f"Recording stock formation after {current_call.station.name}")
         segment_stock: list[StockReport] = []
-        segment_start = current_station
+        segment_start = current_call
         # Find out where this stock ends
         # If we don't know, then this will be the last report
         stock_end_opt = get_station_from_calls(segment_start, remaining_calls)
         if stock_end_opt is None:
-            segment_end = last_station
+            segment_end = last_call
         else:
             (stock_end, remaining_calls) = stock_end_opt
             segment_end = stock_end
@@ -461,7 +467,7 @@ def get_stock(
                         segment_stock = choices
         used_stock.append(LegSegmentStock(segment_stock, segment_start, segment_end))
         information(f"Stock formation {len(used_stock)} recorded")
-        current_station = segment_end
+        current_call = segment_end
     return used_stock
 
 
@@ -541,7 +547,7 @@ def record_new_leg(
         service = get_service_from_id(cur, service_at_station.id, run_date)
     if service is None:
         return None
-    calls = get_calls(service.calls, origin_station.crs, destination_station.crs)
+    calls = get_calls(service, service.calls, origin_station.crs, destination_station.crs)
     if calls is None:
         return None
     stock = get_stock(cur, calls, service)

@@ -1,13 +1,21 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
+from enum import Enum
 from typing import Optional
 
 from bs4 import BeautifulSoup
 
 from train_tracker.data.core import get_soup, make_get_request
 from train_tracker.data.credentials import get_api_credentials
-from train_tracker.data.database import connect, disconnect
+from train_tracker.data.database import (
+    NoEscape,
+    connect,
+    datetime_or_none_to_raw_str,
+    datetime_or_none_to_str,
+    disconnect,
+    insert,
+)
 from train_tracker.data.network import miles_and_chains_to_miles
 from train_tracker.data.stations import (
     ShortTrainStation,
@@ -21,7 +29,7 @@ from train_tracker.data.stations import (
 from train_tracker.interactive import information
 from train_tracker.times import get_datetime_route
 
-from psycopg2._psycopg import cursor
+from psycopg2._psycopg import cursor, connection
 
 
 @dataclass
@@ -32,14 +40,32 @@ class Call:
     plan_dep: Optional[datetime]
     act_arr: Optional[datetime]
     act_dep: Optional[datetime]
-    divide: list["TrainService"]
-    join: list["TrainService"]
+    divide: list["AssociatedService"]
+    join: list["AssociatedService"]
+
+
+AssociatedType = Enum(
+    "AssociatedType", ["JOINS_TO", "JOINS_WITH", "DIVIDES_TO", "DIVIDES_FROM"]
+)
+
+
+def string_of_associated_type(at: AssociatedType) -> str:
+    match at:
+        case AssociatedType.JOINS_TO:
+            return "JOINS_TO"
+        case AssociatedType.JOINS_WITH:
+            return "JOINS_WITH"
+        case AssociatedType.DIVIDES_TO:
+            return "DIVIDES_TO"
+        case AssociatedType.DIVIDES_FROM:
+            return "DIVIDES_FROM"
 
 
 @dataclass
 class AssociatedService:
     station: ShortTrainStation
     service: "TrainService"
+    association: AssociatedType
 
 
 @dataclass
@@ -63,16 +89,18 @@ service_endpoint = "https://api.rtt.io/api/v1/json/service"
 
 @dataclass
 class LegCall:
+    service: TrainService
     station: ShortTrainStation
     platform: str | None
     plan_arr: Optional[datetime]
     plan_dep: Optional[datetime]
     act_arr: Optional[datetime]
     act_dep: Optional[datetime]
-    divide: Optional["TrainService"]
+    divide: Optional["AssociatedService"]
 
 
 def get_calls(
+    service: TrainService,
     calls: list[Call],
     origin: str,
     dest: str,
@@ -80,33 +108,25 @@ def get_calls(
     call_chain = []
     boarded = False
     for call in calls:
+        current_call = LegCall(
+            service,
+            call.station,
+            call.platform,
+            call.plan_arr,
+            call.plan_dep,
+            call.act_arr,
+            call.act_dep,
+            None,
+        )
         # Check if this call is the boarding call
         # If it is, then following the divide is forbidden
         # because the dividing service now has a completely
         # different departure time
         if not boarded and compare_crs(call.station.crs, origin):
             boarded = True
-            board_call = LegCall(
-                call.station,
-                call.platform,
-                None,
-                call.plan_dep,
-                None,
-                call.act_dep,
-                None,
-            )
-            call_chain.append(board_call)
+            call_chain.append(current_call)
         elif boarded and compare_crs(call.station.crs, dest):
-            alight_call = LegCall(
-                call.station,
-                call.platform,
-                call.plan_arr,
-                None,
-                call.act_arr,
-                None,
-                None,
-            )
-            call_chain.append(alight_call)
+            call_chain.append(current_call)
             return call_chain
         else:
             # Since divisions include the current call as their initial call,
@@ -118,9 +138,16 @@ def get_calls(
             if boarded:
                 subservice_origin = call.station.crs
             for divide in call.divide:
-                subcalls = get_calls(divide.calls, subservice_origin, dest)
+                subcalls = get_calls(
+                    divide.service, divide.service.calls, subservice_origin, dest
+                )
                 if subcalls is not None:
+                    # If there is a divide that we are going to follow,
+                    # we make a new call with the arrival of the parent
+                    # and the departure of the child. This avoids duplicating
+                    # the call from the parent and the child
                     current_call = LegCall(
+                        divide.service,
                         call.station,
                         call.platform,
                         call.plan_arr,
@@ -134,15 +161,6 @@ def get_calls(
                     return call_chain
             # Otherwise we keep checking in this list
             if boarded:
-                current_call = LegCall(
-                    call.station,
-                    call.platform,
-                    call.plan_arr,
-                    call.plan_dep,
-                    call.act_arr,
-                    call.act_dep,
-                    None,
-                )
                 call_chain.append(current_call)
     return None
 
@@ -163,11 +181,11 @@ def string_of_calls(calls: list[Call], branch: bool = True, level: int = 0) -> s
         assocs = False
         if branch:
             for join in call.join:
-                join_string = string_of_calls(join.calls, branch, level + 1)
+                join_string = string_of_calls(join.service.calls, branch, level + 1)
                 string = f"{string}\n\n{join_string}\n{"|" * (level + 1)}/"
                 assocs = True
             for divide in call.divide:
-                divide_string = string_of_calls(divide.calls, branch, level + 1)
+                divide_string = string_of_calls(divide.service.calls, branch, level + 1)
                 string = f"{string}\n{"|" * (level + 1)}\\\n{divide_string}\n{"|" * (level + 1)}"
                 assocs = True
         if assocs:
@@ -197,12 +215,20 @@ def response_to_call(
     run_date: datetime,
     data: dict,
     current_uid: str,
+    first: bool,
+    last: bool,
     parent_uid: Optional[str] = None,
+    parent_plan_arr: Optional[datetime] = None,
+    parent_act_arr: Optional[datetime] = None,
 ) -> Call:
     station = ShortTrainStation(data["description"], data["crs"])
     plan_arr = response_to_time(run_date, "gbttBookedArrival", data)
+    if plan_arr is None:
+        plan_arr = parent_plan_arr
     plan_dep = response_to_time(run_date, "gbttBookedDeparture", data)
     act_arr = response_to_time(run_date, "realtimeArrival", data)
+    if act_arr is None:
+        act_arr = parent_act_arr
     act_dep = response_to_time(run_date, "realtimeDeparture", data)
     platform = data.get("platform")
     divides = []
@@ -218,17 +244,35 @@ def response_to_call(
             ):
                 assoc_date = datetime.strptime(assoc["associatedRunDate"], "%Y-%m-%d")
                 associated_service = get_service_from_id(
-                    cur, assoc_uid, assoc_date, current_uid
+                    cur, assoc_uid, assoc_date, current_uid, plan_arr, act_arr
                 )
-                if assoc["type"] == "divide":
-                    divides.append(associated_service)
-                elif assoc["type"] == "join":
-                    joins.append(associated_service)
+                if associated_service is not None:
+                    if assoc["type"] == "divide":
+                        if first:
+                            assoc_type = AssociatedType.DIVIDES_FROM
+                        else:
+                            assoc_type = AssociatedType.DIVIDES_TO
+                        divides.append(
+                            AssociatedService(station, associated_service, assoc_type)
+                        )
+                    elif assoc["type"] == "join":
+                        if last:
+                            assoc_type = AssociatedType.JOINS_TO
+                        else:
+                            assoc_type = AssociatedType.JOINS_WITH
+                        joins.append(
+                            AssociatedService(station, associated_service, assoc_type)
+                        )
     return Call(station, platform, plan_arr, plan_dep, act_arr, act_dep, divides, joins)
 
 
 def get_service_from_id(
-    cur: cursor, service_id: str, run_date: datetime, parent: Optional[str] = None
+    cur: cursor,
+    service_id: str,
+    run_date: datetime,
+    parent: Optional[str] = None,
+    plan_arr: Optional[datetime] = None,
+    act_arr: Optional[datetime] = None,
 ) -> Optional[TrainService]:
     endpoint = f"{service_endpoint}/{service_id}/{get_datetime_route(run_date, False)}"
     rtt_credentials = get_api_credentials("RTT")
@@ -249,15 +293,21 @@ def get_service_from_id(
         calls: list[Call] = []
         divides: list[AssociatedService] = []
         joins: list[AssociatedService] = []
-        for loc in data["locations"]:
+        for i, loc in enumerate(data["locations"]):
             if loc.get("crs") is not None:
-                call = response_to_call(cur, run_date, loc, service_id, parent)
-                call_divides = call.divide
-                for divide in call_divides:
-                    divides.append(AssociatedService(call.station, divide))
-                call_joins = call.join
-                for join in call_joins:
-                    joins.append(AssociatedService(call.station, join))
+                call = response_to_call(
+                    cur,
+                    run_date,
+                    loc,
+                    service_id,
+                    i == 0,
+                    i == len(data["locations"]) - 1,
+                    parent,
+                    plan_arr,
+                    act_arr,
+                )
+                divides.extend(call.divide)
+                joins.extend(call.join)
                 calls.append(call)
         brand_id = None
         return TrainService(
@@ -298,7 +348,7 @@ def filter_services_by_time(
 def stops_at_station(
     service: TrainService, origin_crs: str, destination_crs: str
 ) -> bool:
-    return get_calls(service.calls, origin_crs, destination_crs) is not None
+    return get_calls(service, service.calls, origin_crs, destination_crs) is not None
 
 
 def filter_services_by_time_and_stop(
@@ -342,7 +392,9 @@ def get_service_pages(
     soups = [initial_soup]
     for call in calls:
         if call.divide is not None:
-            call_url = get_service_page_url(call.divide.run_date, call.divide.id)
+            call_url = get_service_page_url(
+                call.divide.service.run_date, call.divide.service.id
+            )
             call_soup = get_soup(call_url)
             if call_soup is None:
                 return None
@@ -412,7 +464,7 @@ def get_distance_between_calls(service: TrainService, calls: list[LegCall]):
             # new page
             if call.divide:
                 base_mileage = call_mileage
-                current_soup = get_service_page(call.divide)
+                current_soup = get_service_page(call.divide.service)
                 if current_soup is None:
                     return None
 
@@ -420,10 +472,121 @@ def get_distance_between_calls(service: TrainService, calls: list[LegCall]):
 def get_distance_between_stations(
     service: TrainService, origin: str, destination: str
 ) -> Optional[Decimal]:
-    calls = get_calls(service.calls, origin, destination)
+    calls = get_calls(service, service.calls, origin, destination)
     if calls is None:
         return None
     return get_distance_between_calls(service, calls)
+
+
+def insert_services(conn: connection, cur: cursor, services: list[TrainService]):
+    service_fields = [
+        "service_id",
+        "run_date",
+        "headcode",
+        "operator_id",
+        "brand_id",
+        "power",
+    ]
+    endpoint_fields = ["service_id", "run_date", "station_crs", "origin"]
+    call_fields = [
+        "service_id",
+        "run_date",
+        "station_crs",
+        "platform",
+        "plan_arr",
+        "plan_dep",
+        "act_arr",
+        "act_dep",
+    ]
+    assoc_fields = [
+        "call_id",
+        "associated_id",
+        "associated_run_date",
+        "associated_type",
+    ]
+    service_values = []
+    endpoint_values = []
+    call_values = []
+    assoc_values = []
+    for service in services:
+        service_values.append(
+            [
+                str(service.id),
+                service.run_date.isoformat(),
+                service.headcode,
+                service.operator_id,
+                service.brand_id,
+                service.power,
+            ]
+        )
+        for origin in service.origins:
+            endpoint_values.append(
+                [str(service.id), service.run_date.isoformat(), origin.crs, str(True)]
+            )
+        for destination in service.destinations:
+            endpoint_values.append(
+                [
+                    str(service.id),
+                    service.run_date.isoformat(),
+                    destination.crs,
+                    str(False),
+                ]
+            )
+        for call in service.calls:
+            call_values.append(
+                [
+                    service.id,
+                    service.run_date.isoformat(),
+                    call.station.crs,
+                    call.platform,
+                    datetime_or_none_to_str(call.plan_arr),
+                    datetime_or_none_to_str(call.plan_dep),
+                    datetime_or_none_to_str(call.act_arr),
+                    datetime_or_none_to_str(call.act_dep),
+                ]
+            )
+            select_call_id_statement = f"""(
+                SELECT call_id FROM Call
+                WHERE service_id = '{service.id}'
+                AND run_date = '{service.run_date.isoformat()}'
+                AND station_crs = '{call.station.crs}'
+                AND plan_arr = {datetime_or_none_to_raw_str(call.plan_arr)}
+                AND plan_dep = {datetime_or_none_to_raw_str(call.plan_dep)}
+            )"""
+            for divide in call.divide + call.join:
+                assoc_values.append(
+                    [
+                        NoEscape(select_call_id_statement),
+                        divide.service.id,
+                        divide.service.run_date.isoformat(),
+                        string_of_associated_type(divide.association),
+                    ]
+                )
+    insert(
+        cur,
+        "Service",
+        service_fields,
+        service_values,
+        additional_query="ON CONFLICT DO NOTHING",
+    )
+    insert(
+        cur,
+        "ServiceEndpoint",
+        endpoint_fields,
+        endpoint_values,
+        additional_query="ON CONFLICT DO NOTHING",
+    )
+    insert(
+        cur, "Call", call_fields, call_values, additional_query="ON CONFLICT DO NOTHING"
+    )
+    insert(
+        cur,
+        "AssociatedService",
+        assoc_fields,
+        assoc_values,
+        additional_query="ON CONFLICT DO NOTHING",
+    )
+    conn.commit()
 
 
 if __name__ == "__main__":

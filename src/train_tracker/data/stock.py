@@ -1,7 +1,7 @@
 from typing import Optional
 
 from dataclasses import dataclass
-from train_tracker.data.database import connect, insert
+from train_tracker.data.database import NoEscape, connect, insert
 from train_tracker.data.toc import Toc, TocWithBrand, get_tocs
 from psycopg2._psycopg import connection, cursor
 
@@ -65,14 +65,15 @@ class ClassAndSubclass:
         return hash(self.class_no * 10 + subclass_hash)
 
 
-def string_of_class_and_subclass(stock: ClassAndSubclass) -> str:
+def string_of_class_and_subclass(stock: ClassAndSubclass, name: bool = True) -> str:
     string = f"Class {stock.class_no}"
     if stock.subclass_no is not None:
         string = f"{string}/{stock.subclass_no}"
-    if stock.subclass_name is not None:
-        string = f"{string} ({stock.subclass_name})"
-    elif stock.class_name is not None:
-        string = f"{string} ({stock.class_name})"
+    if name:
+        if stock.subclass_name is not None:
+            string = f"{string} ({stock.subclass_name})"
+        elif stock.class_name is not None:
+            string = f"{string} ({stock.class_name})"
     return string
 
 
@@ -126,7 +127,7 @@ def string_of_stock(stock: Stock) -> str:
     return string
 
 
-def stock_to_values(stock: Stock) -> list[str | None]:
+def stock_to_values(stock: Stock) -> list[str | None | NoEscape]:
     elem_0 = str(stock.class_no)
     if stock.subclass_no is None:
         elem_1 = None
@@ -139,7 +140,7 @@ def stock_to_values(stock: Stock) -> list[str | None]:
     return [elem_0, elem_1, elem_2]
 
 
-def stock_to_current(stock: Stock) -> list[str | None]:
+def stock_to_current(stock: Stock) -> list[str | None | NoEscape]:
     elem_0 = stock.operator
     if stock.brand is None:
         elem_1 = None

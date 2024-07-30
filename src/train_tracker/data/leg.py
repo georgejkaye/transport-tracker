@@ -6,7 +6,9 @@ from typing import Callable, Optional
 from psycopg2._psycopg import connection, cursor
 
 from train_tracker.data.database import (
+    NoEscape,
     connect,
+    datetime_or_none_to_raw_str,
     datetime_or_none_to_str,
     insert,
     str_or_none_to_str,
@@ -18,6 +20,7 @@ from train_tracker.data.services import (
     LegCall,
     TrainService,
     get_calls,
+    insert_services,
 )
 from train_tracker.data.stations import ShortTrainStation
 from train_tracker.data.stock import Formation, Stock
@@ -44,8 +47,8 @@ def string_of_stock_report(report: StockReport) -> str:
 @dataclass
 class LegSegmentStock:
     stock: list[StockReport]
-    start: ShortTrainStation
-    end: ShortTrainStation
+    start: LegCall
+    end: LegCall
 
 
 @dataclass
@@ -72,99 +75,48 @@ def get_service_fields(service: TrainService) -> list[str | None]:
     ]
 
 
+def select_call_id_from_leg_call(call: LegCall) -> str:
+    if call.plan_arr is None:
+        plan_arr_string = "AND plan_arr IS NULL"
+    else:
+        plan_arr_string = f"AND plan_arr = '{call.plan_arr.isoformat()}'"
+    if call.plan_dep is None:
+        plan_dep_string = "AND plan_dep IS NULL"
+    else:
+        plan_dep_string = f"AND plan_dep = '{call.plan_dep.isoformat()}'"
+    select_call_id_statement = f"""(
+        SELECT call_id FROM Call
+        WHERE service_id = '{call.service.id}'
+        AND run_date = '{call.service.run_date.isoformat()}'
+        AND station_crs = '{call.station.crs}'
+        {plan_arr_string}
+        {plan_dep_string}
+    )"""
+    return select_call_id_statement
+
+
 def insert_leg(conn: connection, cur: cursor, leg: Leg):
-    service_fields = ["service_id", "run_date", "headcode", "operator_id", "brand_id"]
-    service = leg.service
-    service_values = [get_service_fields(service)]
-    for join in leg.service.joins:
-        service_values.append(get_service_fields(join.service))
-    for divide in leg.service.divides:
-        service_values.append(get_service_fields(divide.service))
-    insert(cur, "Service", service_fields, service_values, "ON CONFLICT DO NOTHING")
-    insert_service_statement = """
-        INSERT INTO Service(service_id, run_date, headcode, operator_id, brand_id)
-        VALUES (%(id)s, %(rundate)s, %(headcode)s, %(operator)s, %(brand)s)
-        ON CONFLICT(service_id, run_date) DO UPDATE
-        SET headcode = EXCLUDED.headcode, operator_id = EXCLUDED.operator_id, brand_id = EXCLUDED.brand_id
+    services = [leg.service]
+    for assoc in leg.service.divides + leg.service.joins:
+        services.append(assoc.service)
+    insert_services(conn, cur, services)
+
+    leg_statement = """
+        INSERT INTO Leg(distance) VALUES (%(distance)s) RETURNING leg_id
     """
-    service = leg.service
-    cur.execute(
-        insert_service_statement,
-        {
-            "id": service.id,
-            "rundate": service.run_date,
-            "headcode": service.headcode,
-            "operator": service.operator_id,
-            "brand": service.brand_id,
-        },
-    )
-    service_endpoint_fields = ["service_id", "run_date", "station_crs", "origin"]
-    service_endpoint_values = []
-    for origin in service.origins:
-        service_endpoint_values.append(
-            [service.id, service.run_date.isoformat(), origin.crs.upper(), "true"]
-        )
-    for dest in service.destinations:
-        service_endpoint_values.append(
-            [service.id, service.run_date.isoformat(), dest.crs.upper(), "false"]
-        )
-    insert(cur, "ServiceEndpoint", service_endpoint_fields, service_endpoint_values)
-    insert_leg_statement = """
-        INSERT INTO Leg(service_id, run_date, distance, board_crs, alight_crs)
-        VALUES (%(id)s, %(start)s, %(distance)s, %(board)s, %(alight)s)
-        RETURNING leg_id
-    """
-    origin = leg.calls[0].station.crs
-    destination = leg.calls[-1].station.crs
-    cur.execute(
-        insert_leg_statement,
-        {
-            "id": service.id,
-            "headcode": service.headcode,
-            "start": service.run_date,
-            "distance": leg.distance,
-            "board": origin.upper(),
-            "alight": destination.upper(),
-        },
-    )
-    leg_id = cur.fetchall()[0][0]
-    calls = get_calls(service.calls, origin, destination)
-    if calls is None:
-        raise RuntimeError("Could not get calls")
-    call_fields = [
-        "leg_id",
-        "run_date",
-        "station_crs",
-        "platform",
-        "plan_arr",
-        "plan_dep",
-        "act_arr",
-        "act_dep",
-        "divide_id",
-        "divide_run_date",
+    cur.execute(leg_statement, {"distance": leg.distance})
+    leg_id: int = cur.fetchall()[0][0]
+    call_fields = ["leg_id", "call_id"]
+    call_values = []
+    for call in leg.calls:
+        call_values.append([str(leg_id), NoEscape(select_call_id_from_leg_call(call))])
+    insert(cur, "LegCall", call_fields, call_values)
+    legstock_fields = [
+        "formation_id",
+        "start_call",
+        "end_call",
+        "stock_number",
     ]
-    call_values: list[list[str | None]] = [
-        [
-            str(leg_id),
-            datetime_or_none_to_str(service.run_date),
-            call.station.crs.upper(),
-            call.platform,
-            datetime_or_none_to_str(call.plan_arr),
-            datetime_or_none_to_str(call.plan_dep),
-            datetime_or_none_to_str(call.act_arr),
-            datetime_or_none_to_str(call.act_dep),
-            get_value_or_none(lambda c: c.id, call.divide),
-            get_value_or_none(lambda c: c.run_date.isoformat(), call.divide),
-        ]
-        for call in calls
-    ]
-    insert(
-        cur,
-        "Call",
-        call_fields,
-        call_values,
-    )
-    legstock_fields = ["leg_id", "formation_id", "start_crs", "end_crs", "stock_number"]
     legstock_values = []
     for formation in leg.stock:
         stocks = formation.stock
@@ -179,14 +131,13 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
                 stock_number = None
             legstock_values.append(
                 [
-                    str(leg_id),
                     formation_id,
-                    formation.start.crs,
-                    formation.end.crs,
+                    NoEscape(select_call_id_from_leg_call(formation.start)),
+                    NoEscape(select_call_id_from_leg_call(formation.end)),
                     stock_number,
                 ]
             )
-    insert(cur, "LegStock", legstock_fields, legstock_values)
+    insert(cur, "StockSegment", legstock_fields, legstock_values)
     conn.commit()
 
 
@@ -269,8 +220,8 @@ def select_legs(cur: cursor, search_start: datetime, search_end: datetime) -> li
         ON Leg.leg_id = stock_details.leg_id
 
     """
-    return statement
-    #   WHERE leg.run_date >= %(start)s AND leg.run_date < %(end)s
+    print(statement)
+    #         WHERE leg.run_date >= %(start)s AND leg.run_date < %(end)s
     # cur.execute(statement, {"start": search_start, "end": search_end})
     # rows = cur.fetchall()
     # for row in rows:
