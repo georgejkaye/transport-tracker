@@ -158,85 +158,110 @@ def get_endpoint_statement(origin: bool, column_name: str) -> str:
 
 def select_legs(cur: cursor, search_start: datetime, search_end: datetime) -> list[Leg]:
     statement = f"""
-        SELECT Leg.service_id, headcode, Service.run_date, origins, destinations,
-                operator_id, brand_id, distance, call_details.calls, stock_details.stocks
+        SELECT leg_id, service_details.services, call_details.calls, stock_details.stocks, distance
         FROM Leg
-        INNER JOIN Service
-        ON Leg.service_id = Service.service_id
         INNER JOIN (
-            {get_endpoint_statement(True, "origins")}
-        ) origin_details
-        ON Leg.service_id = origin_details.service_id
-        AND Leg.run_date = origin_details.run_date
-        INNER JOIN (
-           {get_endpoint_statement(False, "destinations")}
-        ) destination_details
-        ON Leg.service_id = destination_details.service_id
-        AND Leg.run_date = destination_details.run_date
-        INNER JOIN (
-            WITH call_info AS (
-                SELECT leg_id, station_name, call.station_crs, platform, plan_arr,
-                        plan_dep, act_arr, act_dep, COALESCE(plan_arr, plan_dep) AS time,
-                        divide_id, divide_run_date, Service.headcode AS divide_headcode, divide_origins, divide_destinations
-                FROM call
-                INNER JOIN Station
-                ON call.station_crs = station.station_crs
-                LEFT JOIN Service
-                ON divide_id = Service.service_id AND divide_run_date = Service.run_date
-                LEFT JOIN (
-                    {get_endpoint_statement(True, "divide_origins")}
-                ) divide_origins
-                ON divide_id = divide_origins.service_id
-                AND divide_run_date = divide_origins.run_date
-                LEFT JOIN (
-                    {get_endpoint_statement(False, "divide_destinations")}
-                ) divide_destinations
-                ON divide_id = divide_destinations.service_id
-                AND divide_run_date = divide_destinations.run_date
-                ORDER BY time ASC
+            WITH service_info AS (
+                SELECT Service.service_id, Service.run_date, headcode, origins, destinations,
+                    operator_id, brand_id, power
+                FROM Service
+                INNER JOIN (
+                    {get_endpoint_statement(True, "origins")}
+                ) origin_details
+                On origin_details.service_id = Service.service_id
+                AND origin_details.run_date = Service.run_date
+                INNER JOIN (
+                    {get_endpoint_statement(False, "destinations")}
+                ) destination_details
+                On destination_details.service_id = Service.service_id
+                AND destination_details.run_date = Service.run_date
             )
-            SELECT call_info.leg_id, JSON_AGG(call_info.*) AS calls
-            FROM call_info
-            GROUP BY leg_id
-        ) call_details
-        ON Leg.leg_id = call_details.leg_id
-        INNER JOIN (
-            WITH stock_info AS (
-                SELECT leg_id, start_crs, start_station.station_name AS start_name,
-                        end_crs, end_station.station_name AS end_name, stock_number,
-                        stock_class, stock_subclass, cars
-                FROM legstock
-                INNER JOIN stockformation
-                ON legstock.formation_id = stockformation.formation_id
-                INNER JOIN station AS start_station
-                ON start_crs = start_station.station_crs
-                INNER JOIN station AS end_station
-                ON end_crs = end_station.station_crs
-            )
-            SELECT stock_info.leg_id, JSON_AGG(stock_info.*) AS stocks
-            FROM stock_info
-            GROUP BY leg_id
-        ) stock_details
-        ON Leg.leg_id = stock_details.leg_id
-
+            SELECT service_id, run_date, JSON_AGG(service_info.*) AS services
+            FROM service_info
+            GROUP BY (service_id, run_date)
+        )
     """
     print(statement)
-    #         WHERE leg.run_date >= %(start)s AND leg.run_date < %(end)s
-    # cur.execute(statement, {"start": search_start, "end": search_end})
-    # rows = cur.fetchall()
-    # for row in rows:
-    #     service_id, run_date, distance, calls, stocks = row
-    #     call_objects = []
-    #     for call in calls:
-    #         divide = call["divide"]
-    #         call_object = LegCall(
-    #             ShortTrainStation(call["station_name"], call["station_crs"]),
-    #             call["platform"],
-    #             str_or_null_to_datetime(call["plan_arr"]),
-    #             str_or_null_to_datetime(call["plan_dep"]),
-    #             str_or_null_to_datetime(call["act_arr"]),
-    #             str_or_null_to_datetime(call["act_dep"]),
+    # statement = f"""
+    #     SELECT , origins, destinations,
+    #             operator_id, brand_id, distance, call_details.calls, stock_details.stocks
+    #     FROM Leg
+    #     INNER JOIN Service
+    #     ON Leg.service_id = Service.service_id
+    #     INNER JOIN (
+    #         {get_endpoint_statement(True, "origins")}
+    #     ) origin_details
+    #     ON Leg.service_id = origin_details.service_id
+    #     AND Leg.run_date = origin_details.run_date
+    #     INNER JOIN (
+    #        {get_endpoint_statement(False, "destinations")}
+    #     ) destination_details
+    #     ON Leg.service_id = destination_details.service_id
+    #     AND Leg.run_date = destination_details.run_date
+    #     INNER JOIN (
+    #         WITH call_info AS (
+    #             SELECT leg_id, station_name, call.station_crs, platform, plan_arr,
+    #                     plan_dep, act_arr, act_dep, COALESCE(plan_arr, plan_dep) AS time,
+    #                     divide_id, divide_run_date, Service.headcode AS divide_headcode, divide_origins, divide_destinations
+    #             FROM call
+    #             INNER JOIN Station
+    #             ON call.station_crs = station.station_crs
+    #             LEFT JOIN Service
+    #             ON divide_id = Service.service_id AND divide_run_date = Service.run_date
+    #             LEFT JOIN (
+    #                 {get_endpoint_statement(True, "divide_origins")}
+    #             ) divide_origins
+    #             ON divide_id = divide_origins.service_id
+    #             AND divide_run_date = divide_origins.run_date
+    #             LEFT JOIN (
+    #                 {get_endpoint_statement(False, "divide_destinations")}
+    #             ) divide_destinations
+    #             ON divide_id = divide_destinations.service_id
+    #             AND divide_run_date = divide_destinations.run_date
+    #             ORDER BY time ASC
     #         )
+    #         SELECT call_info.leg_id, JSON_AGG(call_info.*) AS calls
+    #         FROM call_info
+    #         GROUP BY leg_id
+    #     ) call_details
+    #     ON Leg.leg_id = call_details.leg_id
+    #     INNER JOIN (
+    #         WITH stock_info AS (
+    #             SELECT leg_id, start_crs, start_station.station_name AS start_name,
+    #                     end_crs, end_station.station_name AS end_name, stock_number,
+    #                     stock_class, stock_subclass, cars
+    #             FROM legstock
+    #             INNER JOIN stockformation
+    #             ON legstock.formation_id = stockformation.formation_id
+    #             INNER JOIN station AS start_station
+    #             ON start_crs = start_station.station_crs
+    #             INNER JOIN station AS end_station
+    #             ON end_crs = end_station.station_crs
+    #         )
+    #         SELECT stock_info.leg_id, JSON_AGG(stock_info.*) AS stocks
+    #         FROM stock_info
+    #         GROUP BY leg_id
+    #     ) stock_details
+    #     ON Leg.leg_id = stock_details.leg_id
+
+    # """
+    # print(statement)
+    # #         WHERE leg.run_date >= %(start)s AND leg.run_date < %(end)s
+    # # cur.execute(statement, {"start": search_start, "end": search_end})
+    # # rows = cur.fetchall()
+    # # for row in rows:
+    # #     service_id, run_date, distance, calls, stocks = row
+    # #     call_objects = []
+    # #     for call in calls:
+    # #         divide = call["divide"]
+    # #         call_object = LegCall(
+    # #             ShortTrainStation(call["station_name"], call["station_crs"]),
+    # #             call["platform"],
+    # #             str_or_null_to_datetime(call["plan_arr"]),
+    # #             str_or_null_to_datetime(call["plan_dep"]),
+    # #             str_or_null_to_datetime(call["act_arr"]),
+    # #             str_or_null_to_datetime(call["act_dep"]),
+    # #         )
 
 
 if __name__ == "__main__":
