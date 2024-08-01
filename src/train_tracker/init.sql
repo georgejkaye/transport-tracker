@@ -89,10 +89,12 @@ CREATE TABLE Call (
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE,
+    mileage NUMERIC,
     CONSTRAINT call_arr_unique UNIQUE (service_id, run_date, station_crs, plan_arr),
     CONSTRAINT call_dep_unique UNIQUE (service_id, run_date, station_crs, plan_dep),
     FOREIGN KEY (service_id, run_date) REFERENCES Service(service_id, run_date) ON DELETE CASCADE,
-    FOREIGN KEY (station_crs) REFERENCES Station(station_crs)
+    FOREIGN KEY (station_crs) REFERENCES Station(station_crs),
+    CONSTRAINT mileage_positive CHECK (mileage >= 0)
 );
 
 CREATE TABLE AssociatedType (
@@ -105,26 +107,29 @@ INSERT INTO AssociatedType(associated_type) VALUES ('JOINS_TO');
 INSERT INTO AssociatedType(associated_type) VALUES ('JOINS_WITH');
 
 CREATE TABLE AssociatedService (
-    call_id SERIAL NOT NULL,
+    call_id INT NOT NULL,
     associated_id TEXT NOT NULL,
     associated_run_date TIMESTAMP WITH TIME ZONE NOT NULL,
     associated_type TEXT NOT NULL,
     FOREIGN KEY (associated_type) REFERENCES AssociatedType(associated_type),
     FOREIGN KEY (call_id) REFERENCES Call(call_id) ON DELETE CASCADE,
-    FOREIGN KEY (associated_id, associated_run_date) REFERENCES Service(service_id, run_date)
+    FOREIGN KEY (associated_id, associated_run_date) REFERENCES Service(service_id, run_date) ON DELETE CASCADE
 );
 
 CREATE TABLE Leg (
     leg_id SERIAL PRIMARY KEY,
-    distance NUMERIC NOT NULL
+    distance NUMERIC NOT NULL,
+    CONSTRAINT distance_positive CHECK (distance > 0)
 );
 
 CREATE TABLE LegCall (
-    leg_id SERIAL NOT NULL,
-    call_id SERIAL NOT NULL,
+    leg_id INT NOT NULL,
+    call_id INT NOT NULL,
+    mileage NUMERIC,
     CONSTRAINT leg_call_unique UNIQUE (leg_id, call_id),
     FOREIGN KEY (leg_id) REFERENCES Leg(leg_id) ON DELETE CASCADE,
-    FOREIGN KEY (call_id) REFERENCES Call(call_id) ON DELETE CASCADE
+    FOREIGN KEY (call_id) REFERENCES Call(call_id) ON DELETE CASCADE,
+    CONSTRAINT mileage_positive CHECK (mileage >= 0)
 );
 
 CREATE FUNCTION validStockFormation (
@@ -159,11 +164,13 @@ CREATE TABLE StockSegment (
     stock_subclass INT,
     stock_number INT,
     stock_cars INT,
-    start_call SERIAL NOT NULL,
-    end_call SERIAL NOT NULL,
+    start_call INT NOT NULL,
+    end_call INT NOT NULL,
+    distance NUMERIC,
     FOREIGN KEY (stock_class) REFERENCES Stock(stock_class),
     FOREIGN KEY (stock_class, stock_subclass) REFERENCES StockSubclass(stock_class, stock_subclass),
-    FOREIGN KEY (start_call) REFERENCES Call(call_id),
-    FOREIGN KEY (end_call) REFERENCES Call(call_id),
-    CONSTRAINT valid_stock CHECK (validStockFormation(stock_class, stock_subclass, stock_cars))
+    FOREIGN KEY (start_call) REFERENCES Call(call_id) ON DELETE CASCADE,
+    FOREIGN KEY (end_call) REFERENCES Call(call_id) ON DELETE CASCADE,
+    CONSTRAINT valid_stock CHECK (validStockFormation(stock_class, stock_subclass, stock_cars)),
+    CONSTRAINT distance_positive CHECK (distance > 0)
 );
