@@ -11,6 +11,7 @@ from train_tracker.data.database import (
     datetime_or_none_to_raw_str,
     datetime_or_none_to_str,
     insert,
+    int_or_none_to_str_or_none,
     str_or_none_to_str,
     str_or_null_to_datetime,
 )
@@ -112,29 +113,32 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
         call_values.append([str(leg_id), NoEscape(select_call_id_from_leg_call(call))])
     insert(cur, "LegCall", call_fields, call_values)
     legstock_fields = [
-        "formation_id",
+        "stock_class",
+        "stock_subclass",
+        "stock_number",
+        "stock_cars",
         "start_call",
         "end_call",
-        "stock_number",
     ]
     legstock_values = []
     for formation in leg.stock:
         stocks = formation.stock
         for stock in stocks:
-            if stock.cars:
-                formation_id = str(stock.cars.id)
+            stock_class = int_or_none_to_str_or_none(stock.class_no)
+            stock_subclass = int_or_none_to_str_or_none(stock.subclass_no)
+            if stock.cars is None:
+                stock_cars = None
             else:
-                formation_id = None
-            if stock.stock_no:
-                stock_number = str(stock.stock_no)
-            else:
-                stock_number = None
+                stock_cars = str(stock.cars.cars)
+            stock_number = int_or_none_to_str_or_none(stock.stock_no)
             legstock_values.append(
                 [
-                    formation_id,
+                    stock_class,
+                    stock_subclass,
+                    stock_number,
+                    stock_cars,
                     NoEscape(select_call_id_from_leg_call(formation.start)),
                     NoEscape(select_call_id_from_leg_call(formation.end)),
-                    stock_number,
                 ]
             )
     insert(cur, "StockSegment", legstock_fields, legstock_values)

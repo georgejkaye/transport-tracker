@@ -267,7 +267,6 @@ def get_unique_subclasses(
 
 @dataclass
 class Formation:
-    id: int
     cars: int
 
 
@@ -277,7 +276,7 @@ def string_of_formation(f: Formation) -> str:
 
 def select_stock_cars(cur: cursor, stock: Stock) -> list[Formation]:
     statement = """
-        SELECT formation_id, cars FROM StockFormation
+        SELECT cars FROM StockFormation
         INNER JOIN (
             SELECT Stock.stock_class, StockSubclass.stock_subclass
             FROM stock
@@ -311,7 +310,7 @@ def select_stock_cars(cur: cursor, stock: Stock) -> list[Formation]:
         },
     )
     rows = cur.fetchall()
-    car_list = [Formation(row[0], row[1]) for row in rows]
+    car_list = [Formation(row[0]) for row in rows]
     return car_list
 
 

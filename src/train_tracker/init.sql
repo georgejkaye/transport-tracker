@@ -28,13 +28,12 @@ CREATE TABLE StockSubclass (
 );
 
 CREATE TABLE StockFormation (
-    formation_id SERIAL PRIMARY KEY,
     stock_class INT NOT NULL,
-    stock_subclass INT,
-    cars INT,
+    stock_subclass INT NOT NULL,
+    cars INT NOT NULL,
     FOREIGN KEY (stock_class) REFERENCES Stock(stock_class),
     FOREIGN KEY (stock_class, stock_subclass) REFERENCES StockSubclass(stock_class, stock_subclass),
-    CONSTRAINT stock_class_cars_unique UNIQUE NULLS NOT DISTINCT (stock_class, stock_subclass, cars)
+    CONSTRAINT stock_class_cars_unique UNIQUE (stock_class, stock_subclass, cars)
 );
 
 CREATE TABLE OperatorStock (
@@ -128,12 +127,43 @@ CREATE TABLE LegCall (
     FOREIGN KEY (call_id) REFERENCES Call(call_id) ON DELETE CASCADE
 );
 
+CREATE FUNCTION validStockFormation (
+    stockclass INT,
+    stocksubclass INT,
+    stockcars INT
+) RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    IF stockclass IS NULL
+    THEN
+        RETURN TRUE;
+    END IF;
+    IF stocksubclass IS NULL
+    THEN
+        RETURN EXISTS(
+            SELECT * FROM StockFormation
+            WHERE stock_class = stockclass AND cars = stockcars
+        );
+    END IF;
+    RETURN EXISTS (
+        SELECT * FROM StockFormation
+        WHERE stock_class = stockclass AND stock_subclass = stocksubclass AND cars = stockcars
+    );
+END;
+$$;
+
 CREATE TABLE StockSegment (
-    formation_id SERIAL NOT NULL,
+    stock_class INT,
+    stock_subclass INT,
+    stock_number INT,
+    stock_cars INT,
     start_call SERIAL NOT NULL,
     end_call SERIAL NOT NULL,
-    stock_number INT,
+    FOREIGN KEY (stock_class) REFERENCES Stock(stock_class),
+    FOREIGN KEY (stock_class, stock_subclass) REFERENCES StockSubclass(stock_class, stock_subclass),
     FOREIGN KEY (start_call) REFERENCES Call(call_id),
     FOREIGN KEY (end_call) REFERENCES Call(call_id),
-    FOREIGN KEY (formation_id) REFERENCES StockFormation(formation_id)
+    CONSTRAINT valid_stock CHECK (validStockFormation(stock_class, stock_subclass, stock_cars))
 );

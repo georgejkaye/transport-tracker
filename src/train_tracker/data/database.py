@@ -31,6 +31,12 @@ class NoEscape:
     string: str
 
 
+def int_or_none_to_str_or_none(x: Optional[int]) -> Optional[str]:
+    if x is None:
+        return None
+    return str(x)
+
+
 def str_or_none_to_str(x: str | None | NoEscape) -> str:
     if x is None or x == "":
         return "NULL"
