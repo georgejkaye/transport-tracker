@@ -21,11 +21,9 @@ from train_tracker.data.services import (
     TrainService,
     filter_services_by_time_and_stop,
     get_calls,
-    get_distance_between_stations,
     get_service_from_id,
 )
 from train_tracker.data.stations import (
-    ShortTrainStation,
     TrainServiceAtStation,
     TrainStation,
     compare_crs,
@@ -40,10 +38,8 @@ from train_tracker.data.stock import (
     ClassAndSubclass,
     Formation,
     Stock,
-    get_number,
     get_operator_stock,
     get_unique_classes,
-    get_unique_classes_from_subclasses,
     get_unique_subclasses,
     select_stock_cars,
     sort_by_classes,
@@ -327,7 +323,7 @@ def get_unit_cars(
 def get_station_from_calls(
     current: LegCall,
     calls: list[LegCall],
-) -> Optional[Tuple[LegCall, list[LegCall]]]:
+) -> Optional[Tuple[LegCall, int, list[LegCall]]]:
     end_call = input_select(
         f"Stock formation from {current.station.name} until",
         [(i, call) for (i, call) in enumerate(calls)],
@@ -336,7 +332,7 @@ def get_station_from_calls(
     )
     match end_call:
         case PickSingle((i, call)):
-            return (call, calls[i + 1 :])
+            return (call, i, calls[i + 1 :])
         case PickUnknown():
             return None
         case _:
@@ -432,9 +428,12 @@ def get_stock(
         stock_end_opt = get_station_from_calls(segment_start, remaining_calls)
         if stock_end_opt is None:
             segment_end = last_call
+            segment_end_index = len(calls) - 1
         else:
-            (stock_end, remaining_calls) = stock_end_opt
-            segment_end = stock_end
+            (stock_end, segment_end_index, next_remaining_calls) = stock_end_opt
+        stock_calls = [current_call] + remaining_calls[0 : segment_end_index + 1]
+        remaining_calls = next_remaining_calls
+        segment_end = stock_calls[-1]
         # Now find out what reason for the change in stock is (or if we are just startin)
         if len(used_stock) == 0:
             stock_change = StockChange.GAIN
@@ -465,13 +464,17 @@ def get_stock(
                         return None
                     case PickMultiple(choices):
                         segment_stock = choices
-        used_stock.append(LegSegmentStock(segment_stock, segment_start, segment_end))
+        stock_mileage = compute_mileage(stock_calls)
+        used_stock.append(LegSegmentStock(segment_stock, stock_calls, stock_mileage))
         information(f"Stock formation {len(used_stock)} recorded")
         current_call = segment_end
     return used_stock
 
 
-def get_mileage() -> Decimal:
+def get_mileage(calls: list[LegCall]) -> Decimal:
+    information(
+        f"Manual mileage input between {calls[0].station.name} and {calls[-1].station.name} required"
+    )
     # If we can get a good distance set this could be automated
     miles = get_input_no("Miles")
     chains = get_input_no("Chains", upper=79)
@@ -480,11 +483,12 @@ def get_mileage() -> Decimal:
     return miles_and_chains_to_miles(miles, chains)
 
 
-def compute_mileage(service: TrainService, origin: str, destination: str) -> Decimal:
-    mileage = get_distance_between_stations(service, origin, destination)
-    if mileage is None:
-        return get_mileage()
-    return mileage
+def compute_mileage(calls: list[LegCall]) -> Decimal:
+    start_mileage = calls[0].mileage
+    end_mileage = calls[-1].mileage
+    if start_mileage is None or end_mileage is None:
+        return get_mileage(calls)
+    return end_mileage - start_mileage
 
 
 def get_datetime(start: Optional[datetime] = None) -> datetime:
@@ -538,22 +542,26 @@ def record_new_leg(
             service_id = input_text("Service id")
             if service_id is None:
                 return None
-            service_candidate = get_service_from_id(cur, service_id, run_date)
+            service_candidate = get_service_from_id(
+                cur, service_id, run_date, soup=True
+            )
             if service_candidate is None:
                 print("Invalid service id, try again")
             else:
                 service = service_candidate
     else:
-        service = get_service_from_id(cur, service_at_station.id, run_date)
+        service = get_service_from_id(cur, service_at_station.id, run_date, soup=True)
     if service is None:
         return None
-    calls = get_calls(service, service.calls, origin_station.crs, destination_station.crs)
+    calls = get_calls(
+        service, service.calls, origin_station.crs, destination_station.crs
+    )
     if calls is None:
         return None
     stock = get_stock(cur, calls, service)
     if stock is None:
         return None
-    mileage = compute_mileage(service, origin_station.crs, destination_station.crs)
+    mileage = compute_mileage(calls)
     information(f"Computed mileage as {string_of_miles_and_chains(mileage)}")
     leg = Leg(service, calls, mileage, stock)
     return leg

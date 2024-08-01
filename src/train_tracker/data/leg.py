@@ -12,6 +12,7 @@ from train_tracker.data.database import (
     datetime_or_none_to_str,
     insert,
     int_or_none_to_str_or_none,
+    number_or_none_to_str,
     str_or_none_to_str,
     str_or_null_to_datetime,
 )
@@ -48,8 +49,8 @@ def string_of_stock_report(report: StockReport) -> str:
 @dataclass
 class LegSegmentStock:
     stock: list[StockReport]
-    start: LegCall
-    end: LegCall
+    calls: list[LegCall]
+    mileage: Optional[Decimal]
 
 
 @dataclass
@@ -107,10 +108,16 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
     """
     cur.execute(leg_statement, {"distance": leg.distance})
     leg_id: int = cur.fetchall()[0][0]
-    call_fields = ["leg_id", "call_id"]
+    call_fields = ["leg_id", "call_id", "mileage"]
     call_values = []
     for call in leg.calls:
-        call_values.append([str(leg_id), NoEscape(select_call_id_from_leg_call(call))])
+        call_values.append(
+            [
+                str(leg_id),
+                NoEscape(select_call_id_from_leg_call(call)),
+                number_or_none_to_str(call.mileage),
+            ]
+        )
     insert(cur, "LegCall", call_fields, call_values)
     legstock_fields = [
         "stock_class",
@@ -119,6 +126,7 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
         "stock_cars",
         "start_call",
         "end_call",
+        "distance",
     ]
     legstock_values = []
     for formation in leg.stock:
@@ -137,8 +145,9 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
                     stock_subclass,
                     stock_number,
                     stock_cars,
-                    NoEscape(select_call_id_from_leg_call(formation.start)),
-                    NoEscape(select_call_id_from_leg_call(formation.end)),
+                    NoEscape(select_call_id_from_leg_call(formation.calls[0])),
+                    NoEscape(select_call_id_from_leg_call(formation.calls[-1])),
+                    number_or_none_to_str(formation.mileage),
                 ]
             )
     insert(cur, "StockSegment", legstock_fields, legstock_values)

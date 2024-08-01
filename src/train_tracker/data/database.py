@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 from dotenv import load_dotenv
 from psycopg2 import connect as db_connect
@@ -52,6 +53,13 @@ def datetime_or_none_to_str(x: datetime | None) -> Optional[str]:
         return None
     else:
         return x.isoformat()
+
+
+def number_or_none_to_str(x: int | float | Decimal | None) -> Optional[str]:
+    if x is None:
+        return None
+    else:
+        return str(x)
 
 
 def datetime_or_none_to_raw_str(x: datetime | None) -> str:
