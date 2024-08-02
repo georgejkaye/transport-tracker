@@ -258,12 +258,15 @@ def select_legs(
             WITH legcall_info AS (
                 SELECT
                     leg_id, LegCall.arr_call_id,
-                    ArrCall.service_id, ArrCall.run_date, ArrCall.plan_arr,
-                    ArrCall.station_crs, ArrStation.station_name,
+                    ArrCall.service_id AS arr_id, ArrCall.run_date AS arr_run_date,
+                    ArrCall.plan_arr,
                     LegCall.dep_call_id,
-                    DepCall.service_id, DepCall.run_date, DepCall.plan_dep,
-                    DepCall.station_crs, DepStation.station_name,
-                    ArrCall.platform, LegCall.mileage, associations, new_stock
+                    DepCall.service_id AS dep_id, DepCall.run_date AS dep_run_date,
+                    DepCall.plan_dep,
+                    COALESCE(ArrCall.station_crs, DepCall.station_crs) AS station_crs,
+                    COALESCE(ArrStation.station_name, DepStation.station_name) AS station_name,
+                    COALESCE(ArrCall.platform, DepCall.platform) AS platform,
+                    LegCall.mileage, associations, new_stock
                 FROM LegCall
                 LEFT JOIN Call ArrCall
                 ON LegCall.arr_call_id = ArrCall.call_id
