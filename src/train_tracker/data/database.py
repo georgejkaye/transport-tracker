@@ -110,5 +110,4 @@ def insert(
             VALUES {",".join(value_strings)}
             {additional_query}
         """
-        print(statement)
         cur.execute(statement)
