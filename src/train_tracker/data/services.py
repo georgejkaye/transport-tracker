@@ -1,3 +1,5 @@
+from collections import deque
+import copy
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -145,8 +147,9 @@ def get_calls_between_stations(
     origin: str,
     dest: str,
     base_mileage: Decimal = Decimal(0),
-) -> Optional[list[LegCall]]:
+) -> Optional[tuple[list[LegCall], deque[list[LegCall]]]]:
     call_chain: list[LegCall] = []
+    service_chains = deque()
     boarded = False
     for i, call in enumerate(calls):
         # Get the arrival call
@@ -194,11 +197,13 @@ def get_calls_between_stations(
         else:
             # First we check the divides
             for divide in call.divide:
-                subservice_calls = get_calls_between_stations(divide.service, divide.service.calls, subservice_origin, dest, divide_base_mileage)
-                if subservice_calls is not None:
+                subresult = get_calls_between_stations(divide.service, divide.service.calls, subservice_origin, dest, divide_base_mileage)
+                if subresult is not None:
+                    subservice_calls, subservice_chains = subresult
                     dep_call = subservice_calls[0].dep_call
                     remaining_calls = subservice_calls[1:]
                     assoc_type = AssociatedType.DIVIDES_FROM
+                    service_chains.extendleft(subservice_chains)
                     # No need to check the rest of the divides
                     break
             # If we haven't divided, perhaps we're about to join
@@ -214,21 +219,25 @@ def get_calls_between_stations(
                         join_base_mileage = Decimal(0)
                     else:
                         join_base_mileage = call_mileage
-                    subservice_calls = get_calls_between_stations(join.service, join.service.calls, subservice_origin, dest, join_base_mileage)
-                    if subservice_calls is not None:
+                    subresult = get_calls_between_stations(join.service, join.service.calls, subservice_origin, dest, join_base_mileage)
+                    if subresult is not None:
+                        subservice_calls, service_chains = subresult
                         dep_call = subservice_calls[0].dep_call
                         remaining_calls = subservice_calls[1:]
                         assoc_type = AssociatedType.JOINS_TO
+                        service_chains.extendleft(service_chains)
             if assoc_type is None and boarded:
                 dep_call = call
         if boarded:
             leg_call = LegCall(call.station, arr_call, dep_call, call_mileage, assoc_type)
             call_chain.append(leg_call)
             if len(remaining_calls) > 0:
+                service_chains.extendleft([copy.deepcopy(call_chain)])
                 call_chain.extend(remaining_calls)
-                return call_chain
+                return (call_chain, service_chains)
             if dep_call is None:
-                return call_chain
+                service_chains.extendleft([call_chain])
+                return (call_chain, service_chains)
     return None
 
 

@@ -65,10 +65,8 @@ class LegSegmentStock:
 @dataclass
 class ShortLegSegmentStock:
     stock: list[StockReport]
-    start_station_name: str
-    start_station_crs: str
-    end_station_name: str
-    end_station_crs: str
+    start_station: ShortTrainStation
+    end_station: ShortTrainStation
     mileage: Optional[Decimal]
 
 
@@ -78,14 +76,6 @@ class Leg:
     calls: list[LegCall]
     distance: Decimal
     stock: list[LegSegmentStock]
-
-@dataclass
-class LegOutput:
-    start_time: datetime
-    services: dict[str, TrainService]
-    calls: list[LegCall]
-    stock: list[LegSegmentStock]
-    distance: Decimal
 
 
 def get_value_or_none[T, U](get: Callable[[T], U | None], obj: T | None) -> U | None:
@@ -159,17 +149,29 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
         )
     insert(cur, "LegCall", call_fields, call_values)
     legstock_fields = [
-        "stock_class",
-        "stock_subclass",
-        "stock_number",
-        "stock_cars",
         "start_call",
         "end_call",
         "distance",
     ]
+    stockreport_fields = [
+        "start_call",
+        "end_call",
+        "stock_class",
+        "stock_subclass",
+        "stock_number",
+        "stock_cars",
+    ]
     legstock_values = []
+    stockreport_values = []
     for formation in leg.stock:
         stocks = formation.stock
+        start_call = select_call_id_from_leg_call(formation.calls[0].dep_call, False)
+        end_call = select_call_id_from_leg_call(formation.calls[-1].arr_call, True)
+        legstock_values.append([
+            start_call,
+            end_call,
+            number_or_none_to_str(formation.mileage)
+        ])
         for stock in stocks:
             stock_class = int_or_none_to_str_or_none(stock.class_no)
             stock_subclass = int_or_none_to_str_or_none(stock.subclass_no)
@@ -178,18 +180,18 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
             else:
                 stock_cars = str(stock.cars.cars)
             stock_number = int_or_none_to_str_or_none(stock.stock_no)
-            legstock_values.append(
+            stockreport_values.append(
                 [
+                    start_call,
+                    end_call,
                     stock_class,
                     stock_subclass,
                     stock_number,
                     stock_cars,
-                    select_call_id_from_leg_call(formation.calls[0].dep_call, False),
-                    select_call_id_from_leg_call(formation.calls[-1].arr_call, True),
-                    number_or_none_to_str(formation.mileage),
                 ]
             )
     insert(cur, "StockSegment", legstock_fields, legstock_values)
+    insert(cur, "StockReport", stockreport_fields, stockreport_values)
     conn.commit()
 
 
@@ -236,12 +238,13 @@ class ShortLegCall:
     act_arr: Optional[datetime]
     act_dep: Optional[datetime]
     associated_service: Optional[ShortAssociatedService]
-    leg_stock: Optional[ShortLegSegmentStock]
+    leg_stock: Optional[list[StockReport]]
     mileage: Optional[Decimal]
+
 @dataclass
 class ShortLeg:
     leg_start: datetime
-    services : list[ShortTrainService]
+    services : dict[str, ShortTrainService]
     calls: list[ShortLegCall]
     stocks: list[ShortLegSegmentStock]
     distance: Decimal
@@ -366,30 +369,36 @@ def select_legs(
         ) LegServices
         ON LegServices.leg_id = Leg.leg_id
         INNER JOIN (
-            WITH StockDetails AS (
-                SELECT
-                    Leg.leg_id, stock_class, stock_subclass, stock_number,
-                    stock_cars, stocksegment.distance,
-                    StartStation.station_crs AS start_crs,
-                    StartStation.station_name AS start_name,
-                    EndStation.station_crs AS end_crs,
-                    EndStation.station_name AS end_name
-                FROM StockSegment
-                INNER JOIN Call StartCall
-                ON StockSegment.start_call = StartCall.call_id
-                INNER JOIN Station StartStation
-                ON StartCall.station_crs = StartStation.station_crs
-                INNER JOIN Call EndCall
-                ON StockSegment.end_call = EndCall.call_id
-                INNER JOIN Station EndStation
-                ON EndCall.station_crs = EndStation.station_crs
-                INNER JOIN LegCall StartLegCall
-                On StartLegCall.dep_call_id = StartCall.call_id
-                INNER JOIN Leg
-                ON StartLegCall.leg_id = Leg.leg_id
+            WITH StockSegments AS (
+                WITH StockDetails AS (
+                    SELECT
+                        Leg.leg_id, stock_class, stock_subclass, stock_number,
+                        stock_cars, stocksegment.distance,
+                        StartStation.station_crs AS start_crs,
+                        StartStation.station_name AS start_name,
+                        EndStation.station_crs AS end_crs,
+                        EndStation.station_name AS end_name,
+                        StartCall.service_id, StartCall.run_date
+                    FROM StockSegment
+                    INNER JOIN Call StartCall
+                    ON StockSegment.start_call = StartCall.call_id
+                    INNER JOIN Station StartStation
+                    ON StartCall.station_crs = StartStation.station_crs
+                    INNER JOIN Call EndCall
+                    ON StockSegment.end_call = EndCall.call_id
+                    INNER JOIN Station EndStation
+                    ON EndCall.station_crs = EndStation.station_crs
+                    INNER JOIN LegCall StartLegCall
+                    On StartLegCall.dep_call_id = StartCall.call_id
+                    INNER JOIN Leg
+                    ON StartLegCall.leg_id = Leg.leg_id
+                )
+                SELECT leg_id, service_id, run_date, start_crs, start_name, end_crs, end_name, JSON_AGG(StockDetails.*) AS stocks
+                FROM StockDetails
+                GROUP BY leg_id, service_id, run_date, start_crs, start_name, end_crs, end_name
             )
-            SELECT leg_id, JSON_AGG(StockDetails.*) AS stocks
-            FROM StockDetails
+            SELECT leg_id, JSON_AGG(StockSegments.*) AS stocks
+            FROM StockSegments
             GROUP BY leg_id
         ) StockDetails
         ON StockDetails.leg_id = Leg.leg_id
@@ -410,7 +419,7 @@ def select_legs(
     cur.execute(full_statement, {"start": search_start, "end": search_end})
     rows = cur.fetchall()
     for row in rows:
-        leg_id, leg_start, services, calls, distance, stocks = row
+        leg_id, leg_start, services, calls, stocks, distance = row
         leg_start_time = datetime.fromisoformat(leg_start)
         services_dict = {}
         for service in services:
@@ -474,7 +483,7 @@ def select_legs(
             service_object = ShortTrainService(service_id, service_headcode, service_run_date, service_start, service_origins, service_destinations, service_operator_name, service_operator_id, service_brand_id, service_brand_name, service_power, service_calls, service_assocs)
             services_dict[service_id] = service_object
             leg_calls = []
-            print(calls)
+            # print(calls)
             for call in calls:
                 leg_call_station = ShortTrainStation(call["station_name"], call["station_crs"])
                 leg_call_platform = call["platform"]
@@ -482,12 +491,51 @@ def select_legs(
                 leg_call_plan_dep = str_or_null_to_datetime(call.get("plan_dep"))
                 leg_call_act_arr = str_or_null_to_datetime(call.get("act_arr"))
                 leg_call_act_dep = str_or_null_to_datetime(call.get("act_dep"))
+                leg_call_mileage = call.get("mileage")
                 if call.get("associations"):
-                    pass
-                leg_call = ShortLegCall(leg_call_station, leg_call_platform, leg_call_plan_arr, leg_call_plan_dep, leg_call_act_arr, leg_call_act_dep, leg_call_associated, leg_call_mileage, leg_new_stock)
+                    assoc = call["associations"][0]
+                    assoc_id = assoc["associated_id"]
+                    assoc_run_date = datetime.fromisoformat(assoc["associated_run_date"])
+                    assoc_type = get_or_throw(string_to_associated_type(assoc["associated_type"]))
+                    leg_call_assoc = ShortAssociatedService(assoc_id, assoc_run_date, assoc_type)
+                else:
+                    leg_call_assoc = None
+                if call.get("new_stock"):
+                    leg_call_stock = []
+                    for new_stock in call["new_stock"]:
+                        stock_class = new_stock.get("stock_class")
+                        stock_subclass = new_stock.get("stock_subclass")
+                        stock_number = new_stock.get("stock_number")
+                        stock_cars = new_stock.get("stock_cars")
+                        if stock_cars is None:
+                            stock_formation = None
+                        else:
+                            stock_formation = Formation(stock_cars)
+                        stock_obj = StockReport(stock_class, stock_subclass, stock_number, stock_formation)
+                        leg_call_stock.append(stock_obj)
+                else:
+                    leg_call_stock = None
+                leg_call = ShortLegCall(leg_call_station, leg_call_platform, leg_call_plan_arr, leg_call_plan_dep, leg_call_act_arr, leg_call_act_dep, leg_call_assoc, leg_call_stock, leg_call_mileage)
                 leg_calls.append(leg_call)
-
-            leg_object = LegOutput(leg_start_time, services_dict, leg_calls, leg_stock, leg_distance)
+            leg_stock = []
+            print(stocks)
+            for report in stocks:
+                segment_start_crs = report["start_crs"]
+                segment_start_name = report["start_name"]
+                segment_start = ShortTrainStation(segment_start_crs, segment_start_name)
+                segment_end_crs = report["end_crs"]
+                segment_end_name = report["end_name"]
+                segment_end = ShortTrainStation(segment_end_crs, segment_end_name)
+                segment_stocks = []
+                for item in report["stocks"]:
+                    segment_end_name = report["end_name"]
+                    stock_class = new_stock.get("stock_class")
+                    stock_subclass = new_stock.get("stock_subclass")
+                    stock_number = new_stock.get("stock_number")
+                    stock_cars = new_stock.get("stock_cars")
+                    stock_distance = new_stock.get("distance")
+                stock_report = ShortLegSegmentStock(segment_stocks, segment_start, segment_end, segment_mileage)
+            leg_object = ShortLeg(leg_start_time, services_dict, leg_calls, leg_stock, leg_distance)
         print(leg_id)
         print(leg_start)
         print(services)

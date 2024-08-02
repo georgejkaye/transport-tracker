@@ -3,7 +3,7 @@ import decimal
 from enum import Enum
 import json
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from typing import Iterable, Optional, Tuple
 from psycopg2._psycopg import connection, cursor
 from train_tracker.data.leg import (
     Leg,
@@ -418,9 +418,12 @@ def get_stock(
     cur: cursor,
     calls: list[LegCall],
     service: TrainService,
+    previous: Optional[LegSegmentStock] = None,
+    stock_number: int = 0,
 ) -> Optional[list[LegSegmentStock]]:
     information("Recording stock formations")
     used_stock: list[LegSegmentStock] = []
+    last_used_stock = previous
     # Currently getting this automatically isn't implemented
     # First get all stock this operator has
     stock_list = get_operator_stock(cur, service.operator_id)
@@ -447,13 +450,13 @@ def get_stock(
         remaining_calls = next_remaining_calls
         segment_end = stock_calls[-1]
         # Now find out what reason for the change in stock is (or if we are just startin)
-        if len(used_stock) == 0:
+        if last_used_stock is None:
             stock_change = StockChange.GAIN
             previous_stock = []
         else:
             stock_change = get_stock_change_reason()
             previous_stock = [
-                (i, stock) for (i, stock) in enumerate(used_stock[-1].stock)
+                (i, stock) for (i, stock) in enumerate(last_used_stock.stock)
             ]
         match stock_change:
             case StockChange.GAIN:
@@ -481,8 +484,10 @@ def get_stock(
                     case PickMultiple(choices):
                         segment_stock = [s for (i, s) in choices]
         stock_mileage = compute_mileage(stock_calls)
-        used_stock.append(LegSegmentStock(segment_stock, stock_calls, stock_mileage))
-        information(f"Stock formation {len(used_stock)} recorded")
+        segment = LegSegmentStock(segment_stock, stock_calls, stock_mileage)
+        used_stock.append(segment)
+        last_used_stock = segment
+        information(f"Stock formation {len(used_stock) + stock_number} recorded")
         current_call = segment_end
     return used_stock
 
@@ -574,12 +579,20 @@ def record_new_leg(
     )
     if calls is None:
         return None
-    stock = get_stock(cur, calls, service)
-    if stock is None:
-        return None
-    mileage = compute_mileage(calls)
+    call_chain, service_chains = calls
+    stock_segments = []
+    for chain in service_chains:
+        if len(stock_segments) > 0:
+            previous = stock_segments[-1]
+        else:
+            previous = None
+        chain_stock = get_stock(cur, chain, service, previous, len(stock_segments))
+        if chain_stock is None:
+            return None
+        stock_segments.extend(chain_stock)
+    mileage = compute_mileage(call_chain)
     information(f"Computed mileage as {string_of_miles_and_chains(mileage)}")
-    leg = Leg(service, calls, mileage, stock)
+    leg = Leg(service, call_chain, mileage, stock_segments)
     return leg
 
 

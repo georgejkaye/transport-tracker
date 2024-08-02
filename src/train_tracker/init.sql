@@ -174,17 +174,24 @@ END;
 $$;
 
 CREATE TABLE StockSegment (
+    start_call INT NOT NULL,
+    end_call INT NOT NULL,
+    distance NUMERIC,
+    PRIMARY KEY (start_call, end_call),
+    FOREIGN KEY (start_call) REFERENCES Call(call_id) ON DELETE CASCADE,
+    FOREIGN KEY (end_call) REFERENCES Call(call_id) ON DELETE CASCADE,
+    CONSTRAINT distance_positive CHECK (distance > 0)
+);
+
+CREATE TABLE StockReport (
+    start_call INT NOT NULL,
+    end_call INT NOT NULL,
     stock_class INT,
     stock_subclass INT,
     stock_number INT,
     stock_cars INT,
-    start_call INT NOT NULL,
-    end_call INT NOT NULL,
-    distance NUMERIC,
+    FOREIGN KEY (start_call, end_call) REFERENCES StockSegment(start_call, end_call) ON DELETE CASCADE,
     FOREIGN KEY (stock_class) REFERENCES Stock(stock_class),
     FOREIGN KEY (stock_class, stock_subclass) REFERENCES StockSubclass(stock_class, stock_subclass),
-    FOREIGN KEY (start_call) REFERENCES Call(call_id) ON DELETE CASCADE,
-    FOREIGN KEY (end_call) REFERENCES Call(call_id) ON DELETE CASCADE,
-    CONSTRAINT valid_stock CHECK (validStockFormation(stock_class, stock_subclass, stock_cars)),
-    CONSTRAINT distance_positive CHECK (distance > 0)
+    CONSTRAINT valid_stock CHECK (validStockFormation(stock_class, stock_subclass, stock_cars))
 );
