@@ -35,6 +35,9 @@ class StockReport:
     stock_no: Optional[int]
     cars: Optional[Formation]
 
+def string_of_enumerated_stock_report(report : tuple[int, StockReport]) -> str:
+    _, actual_report = report
+    return string_of_stock_report(actual_report)
 
 def string_of_stock_report(report: StockReport) -> str:
     if report.class_no is None:

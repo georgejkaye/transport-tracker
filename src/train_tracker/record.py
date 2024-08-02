@@ -10,7 +10,7 @@ from train_tracker.data.leg import (
     LegSegmentStock,
     StockReport,
     insert_leg,
-    string_of_stock_report,
+    string_of_enumerated_stock_report,
 )
 from train_tracker.data.network import (
     miles_and_chains_to_miles,
@@ -440,10 +440,12 @@ def get_stock(
             previous_stock = []
         else:
             stock_change = get_stock_change_reason()
-            previous_stock = used_stock[-1].stock
+            previous_stock = [
+                (i, stock) for (i, stock) in enumerate(used_stock[-1].stock)
+            ]
         match stock_change:
             case StockChange.GAIN:
-                segment_stock = [s for s in previous_stock]
+                segment_stock = [s for (i, s) in previous_stock]
                 number_of_units = input_number("Number of new units")
                 if number_of_units is None:
                     return None
@@ -457,13 +459,15 @@ def get_stock(
                     segment_stock.append(stock_report)
             case StockChange.LOSE:
                 result = input_checkbox(
-                    "Which units remain", previous_stock, string_of_stock_report
+                    "Which units remain",
+                    previous_stock,
+                    string_of_enumerated_stock_report,
                 )
                 match result:
                     case None:
                         return None
                     case PickMultiple(choices):
-                        segment_stock = choices
+                        segment_stock = [s for (i, s) in choices]
         stock_mileage = compute_mileage(stock_calls)
         used_stock.append(LegSegmentStock(segment_stock, stock_calls, stock_mileage))
         information(f"Stock formation {len(used_stock)} recorded")
