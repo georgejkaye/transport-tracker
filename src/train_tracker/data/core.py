@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 import requests
 
 from pathlib import Path
-from typing import Any, Optional, TypeVar
+from typing import Any, Optional
 from dotenv import dotenv_values
 from requests import Response
 from requests.auth import HTTPBasicAuth
@@ -16,18 +16,21 @@ from requests.auth import HTTPBasicAuth
 from train_tracker.data.credentials import Credentials
 from train_tracker.debug import debug_msg
 
-T = TypeVar("T")
 
-
-def get_or_throw(t: Optional[T]) -> T:
+def get_or_throw[T](t: Optional[T]) -> T:
     if t is None:
         raise RuntimeError("Expected Some but got None")
     return t
 
 
-env_values = dotenv_values()
-data_dir = get_or_throw(env_values.get("DATA_DIR"))
+def get_or_default[T](t: Optional[T], default: T) -> T:
+    if t is None:
+        return default
+    return t
 
+
+env_values = dotenv_values()
+data_dir = get_or_default(env_values.get("DATA_DIR"), "data")
 data_directory = Path(data_dir)
 
 
