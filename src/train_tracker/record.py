@@ -20,7 +20,7 @@ from train_tracker.data.services import (
     LegCall,
     TrainService,
     filter_services_by_time_and_stop,
-    get_calls,
+    get_calls_between_stations,
     get_service_from_id,
 )
 from train_tracker.data.stations import (
@@ -374,7 +374,19 @@ def get_unit_report(
     if stock_subclass is None:
         stock_subclass_no = None
         stock_unit_no = None
-        stock_cars = None
+        stock_cars_res = get_unit_cars(
+            cur,
+            ClassAndSubclass(stock_class.class_no, stock_class.class_name, None, None),
+            operator,
+            brand,
+        )
+        match stock_cars_res:
+            case None:
+                return None
+            case PickUnknown():
+                stock_cars = None
+            case PickSingle(form):
+                stock_cars = form
     else:
         stock_subclass_no = stock_subclass.subclass_no
         stock_unit_no = get_unit_no(stock_subclass)
@@ -557,7 +569,7 @@ def record_new_leg(
         service = get_service_from_id(cur, service_at_station.id, run_date, soup=True)
     if service is None:
         return None
-    calls = get_calls(
+    calls = get_calls_between_stations(
         service, service.calls, origin_station.crs, destination_station.crs
     )
     if calls is None:

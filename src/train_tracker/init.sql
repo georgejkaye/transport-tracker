@@ -113,7 +113,8 @@ CREATE TABLE AssociatedService (
     associated_type TEXT NOT NULL,
     FOREIGN KEY (associated_type) REFERENCES AssociatedType(associated_type),
     FOREIGN KEY (call_id) REFERENCES Call(call_id) ON DELETE CASCADE,
-    FOREIGN KEY (associated_id, associated_run_date) REFERENCES Service(service_id, run_date) ON DELETE CASCADE
+    FOREIGN KEY (associated_id, associated_run_date) REFERENCES Service(service_id, run_date) ON DELETE CASCADE,
+    CONSTRAINT assoc_unique UNIQUE (call_id, associated_id, associated_run_date, associated_type)
 );
 
 CREATE TABLE Leg (
@@ -124,15 +125,20 @@ CREATE TABLE Leg (
 
 CREATE TABLE LegCall (
     leg_id INT NOT NULL,
-    call_id INT NOT NULL,
+    arr_call_id INT,
+    dep_call_id INT,
     mileage NUMERIC,
-    CONSTRAINT leg_call_unique UNIQUE (leg_id, call_id),
+    assoc_type TEXT,
+    CONSTRAINT leg_call_unique UNIQUE (leg_id, arr_call_id, dep_call_id),
     FOREIGN KEY (leg_id) REFERENCES Leg(leg_id) ON DELETE CASCADE,
-    FOREIGN KEY (call_id) REFERENCES Call(call_id) ON DELETE CASCADE,
-    CONSTRAINT mileage_positive CHECK (mileage >= 0)
+    FOREIGN KEY (arr_call_id) REFERENCES Call(call_id) ON DELETE CASCADE,
+    FOREIGN KEY (dep_call_id) REFERENCES Call(call_id) ON DELETE CASCADE,
+    FOREIGN KEY (assoc_type) REFERENCES AssociatedType(associated_type),
+    CONSTRAINT mileage_positive CHECK (mileage >= 0),
+    CONSTRAINT arr_or_dep CHECK (num_nulls(arr_call_id, dep_call_id) <= 1)
 );
 
-CREATE FUNCTION validStockFormation (
+CREATE OR REPLACE FUNCTION validStockFormation (
     stockclass INT,
     stocksubclass INT,
     stockcars INT
@@ -147,10 +153,18 @@ BEGIN
     END IF;
     IF stocksubclass IS NULL
     THEN
-        RETURN EXISTS(
-            SELECT * FROM StockFormation
-            WHERE stock_class = stockclass AND cars = stockcars
-        );
+        IF stockcars IS NULL
+        THEN
+            RETURN EXISTS(
+                SELECT * FROM StockFormation
+                WHERE stock_class = stockclass
+            );
+        ELSE
+            RETURN EXISTS(
+                SELECT * FROM StockFormation
+                WHERE stock_class = stockclass AND cars = stockcars
+            );
+        END IF;
     END IF;
     RETURN EXISTS (
         SELECT * FROM StockFormation

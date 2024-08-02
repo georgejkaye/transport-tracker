@@ -276,7 +276,7 @@ def string_of_formation(f: Formation) -> str:
 
 def select_stock_cars(cur: cursor, stock: Stock) -> list[Formation]:
     statement = """
-        SELECT cars FROM StockFormation
+        SELECT DISTINCT cars FROM StockFormation
         INNER JOIN (
             SELECT Stock.stock_class, StockSubclass.stock_subclass
             FROM stock

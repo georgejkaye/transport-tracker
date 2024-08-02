@@ -34,8 +34,10 @@ from psycopg2._psycopg import cursor, connection
 
 @dataclass
 class Call:
+    service_id: str
+    run_date: datetime
     station: ShortTrainStation
-    platform: str | None
+    platform: Optional[str]
     plan_arr: Optional[datetime]
     plan_dep: Optional[datetime]
     act_arr: Optional[datetime]
@@ -43,7 +45,6 @@ class Call:
     divide: list["AssociatedService"]
     join: list["AssociatedService"]
     mileage: Optional[Decimal]
-
 
 AssociatedType = Enum(
     "AssociatedType", ["JOINS_TO", "JOINS_WITH", "DIVIDES_TO", "DIVIDES_FROM"]
@@ -61,12 +62,39 @@ def string_of_associated_type(at: AssociatedType) -> str:
         case AssociatedType.DIVIDES_FROM:
             return "DIVIDES_FROM"
 
+def string_to_associated_type(string : str) -> Optional[AssociatedType]:
+    if string == "JOINS_TO":
+        return AssociatedType.JOINS_TO
+    if string == "JOINS_WITH":
+        return AssociatedType.JOINS_WITH
+    if string == "DIVIDES_TO":
+        return AssociatedType.DIVIDES_TO
+    if string == "DIVIDES_FROM":
+        return AssociatedType.DIVIDES_FROM
+    return None
 
 @dataclass
 class AssociatedService:
     station: ShortTrainStation
     service: "TrainService"
     association: AssociatedType
+
+@dataclass
+class ShortAssociatedService:
+    service_id: str
+    service_run_date: datetime
+    association: AssociatedType
+
+@dataclass
+class ShortCall:
+    station: ShortTrainStation
+    platform: Optional[str]
+    plan_arr: Optional[datetime]
+    plan_dep: Optional[datetime]
+    act_arr: Optional[datetime]
+    act_dep: Optional[datetime]
+    assocs: list[ShortAssociatedService]
+    mileage: Optional[Decimal]
 
 
 @dataclass
@@ -84,24 +112,34 @@ class TrainService:
     divides: list[AssociatedService]
     joins: list[AssociatedService]
 
+@dataclass
+class ShortTrainService:
+    service_id: str
+    headcode: str
+    run_date: datetime
+    service_start: datetime
+    origins: list[ShortTrainStation]
+    destinations: list[ShortTrainStation]
+    operator_name: str
+    operator_id: str
+    brand_id: Optional[str]
+    brand_name: str
+    power: Optional[str]
+    calls: list[ShortCall]
+    assocs: list[ShortAssociatedService]
 
 service_endpoint = "https://api.rtt.io/api/v1/json/service"
 
 
 @dataclass
 class LegCall:
-    service: TrainService
     station: ShortTrainStation
-    platform: str | None
-    plan_arr: Optional[datetime]
-    plan_dep: Optional[datetime]
-    act_arr: Optional[datetime]
-    act_dep: Optional[datetime]
-    divide: Optional["AssociatedService"]
+    arr_call: Optional[Call]
+    dep_call: Optional[Call]
     mileage: Optional[Decimal]
+    change_type: Optional[AssociatedType]
 
-
-def get_calls(
+def get_calls_between_stations(
     service: TrainService,
     calls: list[Call],
     origin: str,
@@ -110,85 +148,86 @@ def get_calls(
 ) -> Optional[list[LegCall]]:
     call_chain: list[LegCall] = []
     boarded = False
-    for call in calls:
-        call_service = service
-        call_station = call.station
-        call_platform = call.platform
-        call_plan_arr = call.plan_arr
-        call_act_arr = call.act_arr
-        if call.mileage is None:
-            call_mileage = None
-        else:
-            call_mileage = base_mileage + call.mileage
-        # Check if this call is the boarding call
-        # If it is, then following the divide is forbidden
-        # because the dividing service now has a completely
-        # different departure time
-        if not boarded and compare_crs(call.station.crs, origin):
-            boarded = True
-            if call.mileage is None:
-                base_mileage = Decimal(0)
+    for i, call in enumerate(calls):
+        # Get the arrival call
+        # If this is the boarding point there is no arrival
+        if not boarded:
+            arr_call = None
+            if compare_crs(call.station.crs, origin):
+                boarded = True
+                if call.mileage is None:
+                    base_mileage = Decimal(0)
+                else:
+                    base_mileage = base_mileage - call.mileage
+                call_mileage = Decimal(0)
             else:
-                base_mileage = base_mileage - call.mileage
-        # Now we can compute the mileage of this stop relative to the leg
-        if call.mileage is None:
-            call_mileage = None
+                call_mileage = None
+
         else:
-            call_mileage = call.mileage + base_mileage
-        # Since divisions include the current call as their initial call,
-        # we iterate into them first to see if there is a path from the origin
-        # (if the origin has not been encountered) or the current station (if
-        # the origin has been encountered) to the destination.
-        # If there is, we concat this list to the existing list and return it.
-        subservice_origin = origin
+            arr_call = call
+            if call.mileage is None:
+                call_mileage = None
+            else:
+                call_mileage = base_mileage + call.mileage
+        # Get the departure call
+        # This might belong to a different service if there is a join or divide
+        # To check this we recurse into any associations to see if the
+        # destination is there, searching for the entire leg if we haven't
+        # boarded or the rest of the leg if we have
         if boarded:
             subservice_origin = call.station.crs
-        for divide in call.divide:
-            if call_mileage is None:
-                sub_base_mileage = Decimal(0)
-            else:
-                sub_base_mileage = call_mileage
-            subcalls = get_calls(
-                divide.service,
-                divide.service.calls,
-                subservice_origin,
-                dest,
-                base_mileage=sub_base_mileage,
-            )
-            if subcalls is not None:
-                # If there is a divide that we are going to follow,
-                # we make a new call with the arrival of the parent
-                # and the departure of the child. This avoids duplicating
-                # the call from the parent and the child
-                current_call = LegCall(
-                    divide.service,
-                    call.station,
-                    call.platform,
-                    call.plan_arr,
-                    subcalls[0].plan_dep,
-                    call.act_arr,
-                    subcalls[0].act_dep,
-                    divide,
-                    call_mileage,
-                )
-                call_chain.append(current_call)
-                call_chain.extend(subcalls[1:])
-                return call_chain
-        # Otherwise we keep checking in this list
+        else:
+            subservice_origin = origin
+        # If we branch off to a divided service, the mileage resets to 0, so we
+        # need to set the base mileage to the current call mileage
+        if call_mileage is None:
+            divide_base_mileage = Decimal(0)
+        else:
+            divide_base_mileage = call_mileage
+        # If we do change services, we keep track of the rest of the calls
+        remaining_calls = []
+        assoc_type = None
+        # If we have reached our destination then we don't care about departure
+        # calls
+        if compare_crs(call.station.crs, dest):
+            dep_call = None
+        else:
+            # First we check the divides
+            for divide in call.divide:
+                subservice_calls = get_calls_between_stations(divide.service, divide.service.calls, subservice_origin, dest, divide_base_mileage)
+                if subservice_calls is not None:
+                    dep_call = subservice_calls[0].dep_call
+                    remaining_calls = subservice_calls[1:]
+                    assoc_type = AssociatedType.DIVIDES_FROM
+                    # No need to check the rest of the divides
+                    break
+            # If we haven't divided, perhaps we're about to join
+            # We can only join if we're at the end of the service
+            if assoc_type is None and i == len(calls) - 1:
+                # This should always be the case
+                if len(call.join) == 1:
+                    join = call.join[0]
+                    # The mileage in the subservice will be relative to its own origin
+                    # We want the mileage to be relative to our
+                    # need to set the base mileage to the current call mileage
+                    if call_mileage is None:
+                        join_base_mileage = Decimal(0)
+                    else:
+                        join_base_mileage = call_mileage
+                    subservice_calls = get_calls_between_stations(join.service, join.service.calls, subservice_origin, dest, join_base_mileage)
+                    if subservice_calls is not None:
+                        dep_call = subservice_calls[0].dep_call
+                        remaining_calls = subservice_calls[1:]
+                        assoc_type = AssociatedType.JOINS_TO
+            if assoc_type is None and boarded:
+                dep_call = call
         if boarded:
-            current_call = LegCall(
-                service,
-                call.station,
-                call.platform,
-                call.plan_arr,
-                call.plan_dep,
-                call.act_arr,
-                call.act_dep,
-                None,
-                call_mileage,
-            )
-            call_chain.append(current_call)
-            if compare_crs(call_chain[-1].station.crs, dest):
+            leg_call = LegCall(call.station, arr_call, dep_call, call_mileage, assoc_type)
+            call_chain.append(leg_call)
+            if len(remaining_calls) > 0:
+                call_chain.extend(remaining_calls)
+                return call_chain
+            if dep_call is None:
                 return call_chain
     return None
 
@@ -240,6 +279,7 @@ def response_to_time(
 
 def response_to_call(
     cur: cursor,
+    service_id: str,
     service_soup: Optional[BeautifulSoup],
     run_date: datetime,
     data: dict,
@@ -311,7 +351,7 @@ def response_to_call(
         else:
             mileage = get_miles_and_chains_from_call_div(call_div)
     return Call(
-        station, platform, plan_arr, plan_dep, act_arr, act_dep, divides, joins, mileage
+        service_id, run_date, station, platform, plan_arr, plan_dep, act_arr, act_dep, divides, joins, mileage
     )
 
 
@@ -351,6 +391,7 @@ def get_service_from_id(
             if loc.get("crs") is not None:
                 call = response_to_call(
                     cur,
+                    service_id,
                     service_soup,
                     run_date,
                     loc,
@@ -403,7 +444,7 @@ def filter_services_by_time(
 def stops_at_station(
     service: TrainService, origin_crs: str, destination_crs: str
 ) -> bool:
-    return get_calls(service, service.calls, origin_crs, destination_crs) is not None
+    return get_calls_between_stations(service, service.calls, origin_crs, destination_crs) is not None
 
 
 def filter_services_by_time_and_stop(
@@ -437,27 +478,6 @@ def get_service_page_url(id: str, service_date: datetime) -> str:
 
 def get_service_page_url_from_service(service: TrainService) -> str:
     return get_service_page_url(service.id, service.run_date)
-
-
-def get_service_pages(
-    service: TrainService, calls: list[LegCall]
-) -> Optional[list[BeautifulSoup]]:
-    initial_url = get_service_page_url(service.id, service.run_date)
-    initial_soup = get_soup(initial_url)
-    if initial_soup is None:
-        return None
-    soups = [initial_soup]
-    for call in calls:
-        if call.divide is not None:
-            call_url = get_service_page_url(
-                call.divide.service.id, call.divide.service.run_date
-            )
-            call_soup = get_soup(call_url)
-            if call_soup is None:
-                return None
-            soups.append(call_soup)
-    return soups
-
 
 def get_service_page(service_id: str, run_date: datetime) -> Optional[BeautifulSoup]:
     url = get_service_page_url(service_id, run_date)
@@ -512,7 +532,7 @@ def insert_services(conn: connection, cur: cursor, services: list[TrainService])
         "plan_dep",
         "act_arr",
         "act_dep",
-        "mileage",
+        "mileage"
     ]
     assoc_fields = [
         "call_id",
@@ -567,8 +587,10 @@ def insert_services(conn: connection, cur: cursor, services: list[TrainService])
                 WHERE service_id = '{service.id}'
                 AND run_date = '{service.run_date.isoformat()}'
                 AND station_crs = '{call.station.crs}'
-                AND plan_arr = {datetime_or_none_to_raw_str(call.plan_arr)}
-                AND plan_dep = {datetime_or_none_to_raw_str(call.plan_dep)}
+                AND (
+                plan_arr = {datetime_or_none_to_raw_str(call.plan_arr)}
+                OR plan_dep = {datetime_or_none_to_raw_str(call.plan_dep)}
+                )
             )"""
             for divide in call.divide + call.join:
                 assoc_values.append(
