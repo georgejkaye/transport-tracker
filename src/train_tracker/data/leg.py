@@ -257,10 +257,10 @@ def select_legs(
                 SELECT
                     leg_id, LegCall.arr_call_id,
                     ArrCall.service_id AS arr_id, ArrCall.run_date AS arr_run_date,
-                    ArrCall.plan_arr,
+                    ArrCall.plan_arr, ArrCall.act_arr,
                     LegCall.dep_call_id,
                     DepCall.service_id AS dep_id, DepCall.run_date AS dep_run_date,
-                    DepCall.plan_dep,
+                    DepCall.plan_dep, DepCall.act_dep,
                     COALESCE(ArrCall.station_crs, DepCall.station_crs) AS station_crs,
                     COALESCE(ArrStation.station_name, DepStation.station_name) AS station_name,
                     COALESCE(ArrCall.platform, DepCall.platform) AS platform,
@@ -288,7 +288,7 @@ def select_legs(
                 { get_associations_statement("ArrCall") }
                 ORDER BY COALESCE(ArrCall.plan_arr, DepCall.plan_dep) ASC
             )
-            SELECT leg_id, JSON_AGG(legcall_info.*) as legcalls
+            SELECT leg_id, JSON_AGG(legcall_info.* ORDER BY COALESCE(plan_arr, plan_dep) ASC) as legcalls
             FROM legcall_info
             GROUP BY leg_id
         ) legcall_table
@@ -409,6 +409,7 @@ def select_legs(
             GROUP BY leg_id
         ) StockDetails
         ON StockDetails.leg_id = Leg.leg_id
+        ORDER BY leg_start ASC
     """
     if search_start is not None:
         start_string = "leg_start >= %(start)s"
@@ -594,7 +595,6 @@ def select_legs(
         leg_object = ShortLeg(
             leg_start_time, services_dict, leg_calls, leg_stock, distance
         )
-        print(leg_object)
         legs.append(leg_object)
     return legs
 
