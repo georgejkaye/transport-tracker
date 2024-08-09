@@ -131,7 +131,7 @@ class ShortTrainService:
     operator_name: str
     operator_id: str
     brand_id: Optional[str]
-    brand_name: str
+    brand_name: Optional[str]
     power: Optional[str]
     calls: list[ShortCall]
     assocs: list[ShortAssociatedService]
