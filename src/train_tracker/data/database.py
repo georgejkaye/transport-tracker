@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
-from decimal import Decimal
-from typing import Optional
+from decimal import Decimal, DecimalException
+from typing import Any, Optional
 from dotenv import load_dotenv
 from psycopg2 import connect as db_connect
 from psycopg2._psycopg import connection, cursor
@@ -36,6 +36,16 @@ def int_or_none_to_str_or_none(x: Optional[int]) -> Optional[str]:
     if x is None:
         return None
     return str(x)
+
+
+def optional_to_decimal(x: Optional[Any]) -> Optional[Decimal]:
+    if x is None:
+        return None
+    try:
+        dec = Decimal(str(x))
+        return dec
+    except DecimalException:
+        return None
 
 
 def str_or_none_to_str(x: str | None | NoEscape) -> str:
