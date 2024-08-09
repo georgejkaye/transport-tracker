@@ -48,6 +48,7 @@ class Call:
     join: list["AssociatedService"]
     mileage: Optional[Decimal]
 
+
 AssociatedType = Enum(
     "AssociatedType", ["JOINS_TO", "JOINS_WITH", "DIVIDES_TO", "DIVIDES_FROM"]
 )
@@ -64,7 +65,8 @@ def string_of_associated_type(at: AssociatedType) -> str:
         case AssociatedType.DIVIDES_FROM:
             return "DIVIDES_FROM"
 
-def string_to_associated_type(string : str) -> Optional[AssociatedType]:
+
+def string_to_associated_type(string: str) -> Optional[AssociatedType]:
     if string == "JOINS_TO":
         return AssociatedType.JOINS_TO
     if string == "JOINS_WITH":
@@ -117,6 +119,7 @@ class TrainService:
     divides: list[AssociatedService]
     joins: list[AssociatedService]
 
+
 @dataclass
 class ShortTrainService:
     service_id: str
@@ -133,6 +136,7 @@ class ShortTrainService:
     calls: list[ShortCall]
     assocs: list[ShortAssociatedService]
 
+
 service_endpoint = "https://api.rtt.io/api/v1/json/service"
 
 
@@ -143,6 +147,7 @@ class LegCall:
     dep_call: Optional[Call]
     mileage: Optional[Decimal]
     change_type: Optional[AssociatedType]
+
 
 def get_calls_between_stations(
     service: TrainService,
@@ -200,7 +205,13 @@ def get_calls_between_stations(
         else:
             # First we check the divides
             for divide in call.divide:
-                subresult = get_calls_between_stations(divide.service, divide.service.calls, subservice_origin, dest, divide_base_mileage)
+                subresult = get_calls_between_stations(
+                    divide.service,
+                    divide.service.calls,
+                    subservice_origin,
+                    dest,
+                    divide_base_mileage,
+                )
                 if subresult is not None:
                     subservice_calls, subservice_chains = subresult
                     dep_call = subservice_calls[0].dep_call
@@ -222,7 +233,13 @@ def get_calls_between_stations(
                         join_base_mileage = Decimal(0)
                     else:
                         join_base_mileage = call_mileage
-                    subresult = get_calls_between_stations(join.service, join.service.calls, subservice_origin, dest, join_base_mileage)
+                    subresult = get_calls_between_stations(
+                        join.service,
+                        join.service.calls,
+                        subservice_origin,
+                        dest,
+                        join_base_mileage,
+                    )
                     if subresult is not None:
                         subservice_calls, service_chains = subresult
                         dep_call = subservice_calls[0].dep_call
@@ -232,7 +249,9 @@ def get_calls_between_stations(
             if assoc_type is None and boarded:
                 dep_call = call
         if boarded:
-            leg_call = LegCall(call.station, arr_call, dep_call, call_mileage, assoc_type)
+            leg_call = LegCall(
+                call.station, arr_call, dep_call, call_mileage, assoc_type
+            )
             call_chain.append(leg_call)
             if len(remaining_calls) > 0:
                 service_chains.extendleft([copy.deepcopy(call_chain)])
@@ -363,7 +382,17 @@ def response_to_call(
         else:
             mileage = get_miles_and_chains_from_call_div(call_div)
     return Call(
-        service_id, run_date, station, platform, plan_arr, plan_dep, act_arr, act_dep, divides, joins, mileage
+        service_id,
+        run_date,
+        station,
+        platform,
+        plan_arr,
+        plan_dep,
+        act_arr,
+        act_dep,
+        divides,
+        joins,
+        mileage,
     )
 
 
@@ -456,7 +485,10 @@ def filter_services_by_time(
 def stops_at_station(
     service: TrainService, origin_crs: str, destination_crs: str
 ) -> bool:
-    return get_calls_between_stations(service, service.calls, origin_crs, destination_crs) is not None
+    return (
+        get_calls_between_stations(service, service.calls, origin_crs, destination_crs)
+        is not None
+    )
 
 
 def filter_services_by_time_and_stop(
@@ -490,6 +522,7 @@ def get_service_page_url(id: str, service_date: datetime) -> str:
 
 def get_service_page_url_from_service(service: TrainService) -> str:
     return get_service_page_url(service.id, service.run_date)
+
 
 def get_service_page(service_id: str, run_date: datetime) -> Optional[BeautifulSoup]:
     url = get_service_page_url(service_id, run_date)
@@ -544,7 +577,7 @@ def insert_services(conn: connection, cur: cursor, services: list[TrainService])
         "plan_dep",
         "act_arr",
         "act_dep",
-        "mileage"
+        "mileage",
     ]
     assoc_fields = [
         "call_id",
