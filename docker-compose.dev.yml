@@ -82,6 +82,8 @@ services:
       - api
     volumes:
       - ./client/src:/app/src
+    networks:
+      - internal
 secrets:
   rtt_secret:
     file: rtt.secret
