@@ -176,11 +176,9 @@ $$;
 CREATE TABLE StockSegment (
     start_call INT NOT NULL,
     end_call INT NOT NULL,
-    distance NUMERIC,
     PRIMARY KEY (start_call, end_call),
     FOREIGN KEY (start_call) REFERENCES Call(call_id) ON DELETE CASCADE,
     FOREIGN KEY (end_call) REFERENCES Call(call_id) ON DELETE CASCADE,
-    CONSTRAINT distance_positive CHECK (distance > 0)
 );
 
 CREATE TABLE StockReport (
