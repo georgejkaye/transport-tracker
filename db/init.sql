@@ -29,7 +29,7 @@ CREATE TABLE StockSubclass (
 
 CREATE TABLE StockFormation (
     stock_class INT NOT NULL,
-    stock_subclass INT NOT NULL,
+    stock_subclass INT,
     cars INT NOT NULL,
     FOREIGN KEY (stock_class) REFERENCES Stock(stock_class),
     FOREIGN KEY (stock_class, stock_subclass) REFERENCES StockSubclass(stock_class, stock_subclass),
@@ -178,7 +178,7 @@ CREATE TABLE StockSegment (
     end_call INT NOT NULL,
     PRIMARY KEY (start_call, end_call),
     FOREIGN KEY (start_call) REFERENCES Call(call_id) ON DELETE CASCADE,
-    FOREIGN KEY (end_call) REFERENCES Call(call_id) ON DELETE CASCADE,
+    FOREIGN KEY (end_call) REFERENCES Call(call_id) ON DELETE CASCADE
 );
 
 CREATE TABLE StockReport (

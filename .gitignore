@@ -153,3 +153,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Data
+
+db/populate.sql

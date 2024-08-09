@@ -1,0 +1,95 @@
+networks:
+  internal:
+    external: false
+services:
+  data:
+    build:
+      context: db
+      dockerfile: Dockerfile
+    volumes:
+      - ./db/populate.sql:/populate.sql
+    environment:
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_HOST: ${DB_HOST}
+      DATA_PASSWORD: /run/secrets/db_secret
+    secrets:
+      - db_secret
+  db:
+    image: postgres
+    restart: always
+    depends_on:
+      data:
+        condition: service_completed_successfully
+    environment:
+      POSTGRES_USER: transport
+      POSTGRES_DB: transport
+      POSTGRES_PASSWORD: transport
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./db/populate.sql:/docker-entrypoint-initdb.d/02-populate.sql
+    networks:
+      - internal
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8085:8080
+    networks:
+      - internal
+  api:
+    build:
+      context: api
+      dockerfile: Dockerfile.dev
+      args:
+        POETRY_VERSION: ${POETRY_VERSION}
+    ports:
+      - "${API_PORT}:${API_PORT}"
+    environment:
+      API_ENV: dev
+      API_PORT: ${API_PORT}
+      DATA_DIR: ${DATA_DIR}
+      RTT_USER: ${RTT_USER}
+      RTT_PASSWORD: /run/secrets/rtt_secret
+      NATRAIL_USER: ${NATRAIL_USER}
+      NATRAIL_PASSWORD: /run/secrets/natrail_secret
+      DB_HOST: db
+      DB_USER: transport
+      DB_PASSWORD: /run/secrets/db_secret
+      DB_NAME: transport
+    volumes:
+      - ./api/src:/app/src
+    secrets:
+      - rtt_secret
+      - natrail_secret
+    networks:
+      - internal
+  # client:
+  #   build:
+  #     context: client
+  #     dockerfile: Dockerfile.dev
+  #     args:
+  #       API_URL: "http://api:${API_PORT}"
+  #       CLIENT_PORT: ${CLIENT_PORT}
+  #       DEADLINE: ${DEADLINE}
+  #   ports:
+  #     - "${CLIENT_PORT}:${CLIENT_PORT}"
+  #   environment:
+  #     API_URL: "http://api:${API_PORT}"
+  #     CLIENT_PORT: ${CLIENT_PORT}
+  #   depends_on:
+  #     - api
+  #   volumes:
+  #     - ./client:/app
+secrets:
+  rtt_secret:
+    file: rtt.secret
+  db_secret:
+    file: db.secret
+  natrail_secret:
+    file: natrail.secret
+volumes:
+  pgdata:

@@ -1,0 +1,75 @@
+version: "3.9"
+
+networks:
+  web:
+    external: true
+  internal:
+    external: false
+
+services:
+  api:
+    build:
+      context: api
+      dockerfile: Dockerfile.prod
+      args:
+        POETRY_VERSION: ${POETRY_VERSION}
+    ports:
+      - "${API_PORT}:${API_PORT}"
+    env_file:
+      - ./.env
+    environment:
+      API_ENV: prod
+      API_PORT: ${API_PORT}
+      DATA_DIR: ${DATA_DIR}
+      RTT_USER: ${RTT_USER}
+      RTT_PASSWORD: /run/secrets/rtt_secret
+      NATRAIL_USER: ${NATRAIL_USER}
+      NATRAIL_PASSWORD: /run/secrets/natrail_secret
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: /run/secrets/db_secret
+      DB_NAME: ${DB_NAME}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.thesis_api.rule=Host(`${API_HOST}`)"
+      - "traefik.http.routers.thesis_api.tls=true"
+      - "traefik.http.routers.thesis_api.tls.certresolver=lets-encrypt"
+      - "traefik.http.services.thesis_api.loadbalancer.server.port=${API_PORT}"
+    networks:
+      - internal
+      - web
+    secrets:
+      - rtt_secret
+      - db_secret
+      - natrail_secret
+  client:
+    build:
+      context: client
+      dockerfile: Dockerfile.prod
+      args:
+        API_URL: "http://api:${API_PORT}"
+        CLIENT_PORT: ${CLIENT_PORT}
+        DEADLINE: ${DEADLINE}
+    ports:
+      - "${CLIENT_PORT}:${CLIENT_PORT}"
+    environment:
+      API_URL: "http://api:${API_PORT}"
+      CLIENT_PORT: ${CLIENT_PORT}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.thesis_client.rule=Host(`${CLIENT_HOST}`)"
+      - "traefik.http.routers.thesis_client.tls=true"
+      - "traefik.http.routers.thesis_client.tls.certresolver=lets-encrypt"
+      - "traefik.http.services.thesis_client.loadbalancer.server.port=${CLIENT_PORT}"
+    networks:
+      - internal
+      - web
+    depends_on:
+      - api
+secrets:
+  rtt_secret:
+    file: rtt.secret
+  db_secret:
+    file: db.secret
+  natrail_secret:
+    file: natrail.secret
