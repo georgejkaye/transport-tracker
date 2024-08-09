@@ -1,5 +1,27 @@
+export const mileageToMilesAndChains = (miles: number) => ({
+  miles: Math.floor(miles),
+  chains: (miles * 80) % 80,
+})
+
+export const getMilesAndChainsString = (mileage: number) => {
+  let { miles, chains } = mileageToMilesAndChains(mileage)
+  return `${miles}m ${chains}ch`
+}
+
 export const responseToDate = (data: any) =>
   data === null ? undefined : new Date(data)
+
+export const dateToShortString = (date: Date) =>
+  `${date.getFullYear()}/${date.getMonth().toString().padStart(2, "0")}/${date
+    .getDay()
+    .toString()
+    .padStart(2, "0")}`
+
+export const dateToTimeString = (date: Date) =>
+  `${date.getHours().toString().padStart(2, "0")}:${date
+    .getMinutes()
+    .toString()
+    .padStart(2, "0")}`
 
 export interface TrainStation {
   crs: string
