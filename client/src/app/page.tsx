@@ -10,9 +10,23 @@ import {
   getMilesAndChainsString,
   mileageToMilesAndChains,
   TrainLeg,
+  TrainStation,
 } from "./structs"
 import { getLegs } from "./data"
 import { Delay, Duration } from "./leg"
+import Link from "next/link"
+import { linkStyle } from "./styles"
+
+const StationLink = (props: { station: TrainStation }) => {
+  let { station } = props
+  return (
+    <div className="w-72">
+      <Link className={linkStyle} href={`/train/station/${station.crs}`}>
+        {station.name}
+      </Link>
+    </div>
+  )
+}
 
 const LegRow = (props: { leg: TrainLeg }) => {
   let { leg } = props
@@ -21,16 +35,24 @@ const LegRow = (props: { leg: TrainLeg }) => {
   let destination = getLegDestination(leg)
   return (
     <div className="flex flex-row gap-4">
-      <div>{dateToShortString(leg.start)}</div>
-      <div className="w-72">{origin.station.name}</div>
-      <div className="w-10">
-        {!origin.planDep ? "" : dateToTimeString(origin.planDep)}
+      <div className="w-6 text-center">
+        <Link
+          className={linkStyle}
+          href={`/train/leg/${leg.id}`}
+        >{`#${leg.id}`}</Link>
       </div>
-      <div className="w-10">
-        {!origin.actDep ? "" : dateToTimeString(origin.actDep)}
+      <div>{dateToShortString(leg.start)}</div>
+      <StationLink station={origin.station} />
+      <div className="hidden tablet:flex flex-row">
+        <div className="w-10">
+          {!origin.planDep ? "" : dateToTimeString(origin.planDep)}
+        </div>
+        <div className="w-10">
+          {!origin.actDep ? "" : dateToTimeString(origin.actDep)}
+        </div>
       </div>
       <Delay plan={origin.planDep} act={origin.actDep} />
-      <div className="w-72">{destination.station.name}</div>
+      <StationLink station={destination.station} />
       <div className="w-10">
         {!destination.planArr ? "" : dateToTimeString(destination.planArr)}
       </div>

@@ -236,6 +236,7 @@ class ShortLegCall:
 
 @dataclass
 class ShortLeg:
+    id: int
     leg_start: datetime
     services: dict[str, ShortTrainService]
     calls: list[ShortLegCall]
@@ -597,7 +598,7 @@ def select_legs(
             )
             leg_stock.append(segment)
         leg_object = ShortLeg(
-            leg_start_time, services_dict, leg_calls, leg_stock, Decimal(distance)
+            leg_id, leg_start_time, services_dict, leg_calls, leg_stock, Decimal(distance)
         )
         legs.append(leg_object)
     return legs

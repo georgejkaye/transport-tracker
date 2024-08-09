@@ -179,6 +179,7 @@ export const responseToTrainLegSegment = (data: any) => ({
 })
 
 export interface TrainLeg {
+  id: number
   start: Date
   services: Map<string, TrainService>
   calls: TrainLegCall[]
@@ -197,6 +198,7 @@ export const responseToLeg = (data: any) => {
     services.set(id, responseToTrainService(service))
   }
   return {
+    id: data["id"],
     start: new Date(data["leg_start"]),
     services,
     calls: data["calls"].map(responseToTrainLegCall),
