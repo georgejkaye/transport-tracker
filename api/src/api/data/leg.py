@@ -5,8 +5,8 @@ from re import L, search
 from typing import Callable, Optional
 from psycopg2._psycopg import connection, cursor
 
-from train_tracker.data.core import get_or_throw
-from train_tracker.data.database import (
+from api.data.core import get_or_throw
+from api.data.database import (
     NoEscape,
     connect,
     insert,
@@ -15,7 +15,7 @@ from train_tracker.data.database import (
     optional_to_decimal,
     str_or_null_to_datetime,
 )
-from train_tracker.data.services import (
+from api.data.services import (
     Call,
     LegCall,
     ShortAssociatedService,
@@ -26,8 +26,8 @@ from train_tracker.data.services import (
     string_of_associated_type,
     string_to_associated_type,
 )
-from train_tracker.data.stations import ShortTrainStation
-from train_tracker.data.stock import Formation
+from api.data.stations import ShortTrainStation
+from api.data.stock import Formation
 
 
 @dataclass

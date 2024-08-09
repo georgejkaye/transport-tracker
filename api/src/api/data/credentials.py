@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from train_tracker.data.environment import get_env_variable, get_secret
+from api.data.environment import get_env_variable, get_secret
 
 
 @dataclass

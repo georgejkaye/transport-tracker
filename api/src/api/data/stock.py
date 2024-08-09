@@ -1,8 +1,8 @@
 from typing import Optional
 
 from dataclasses import dataclass
-from train_tracker.data.database import NoEscape, connect, insert
-from train_tracker.data.toc import Toc, TocWithBrand, get_tocs
+from api.data.database import NoEscape, connect, insert
+from api.data.toc import Toc, TocWithBrand, get_tocs
 from psycopg2._psycopg import connection, cursor
 
 

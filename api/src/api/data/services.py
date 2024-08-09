@@ -8,9 +8,9 @@ from typing import Optional
 
 from bs4 import BeautifulSoup
 
-from train_tracker.data.core import get_soup, make_get_request
-from train_tracker.data.credentials import get_api_credentials
-from train_tracker.data.database import (
+from api.data.core import get_soup, make_get_request
+from api.data.credentials import get_api_credentials
+from api.data.database import (
     NoEscape,
     connect,
     datetime_or_none_to_raw_str,
@@ -19,8 +19,8 @@ from train_tracker.data.database import (
     insert,
     number_or_none_to_str,
 )
-from train_tracker.data.network import miles_and_chains_to_miles
-from train_tracker.data.stations import (
+from api.data.network import miles_and_chains_to_miles
+from api.data.stations import (
     ShortTrainStation,
     TrainServiceAtStation,
     TrainStation,
@@ -28,8 +28,8 @@ from train_tracker.data.stations import (
     response_to_short_train_station,
     short_string_of_service_at_station,
 )
-from train_tracker.interactive import information
-from train_tracker.times import get_datetime_route
+from api.interactive import information
+from api.times import get_datetime_route
 
 from psycopg2._psycopg import cursor, connection
 

@@ -1,6 +1,6 @@
 import yaml
-from train_tracker.debug import error_msg
-from train_tracker.dirs import stations_list, lnwr_file, stock_file
+from api.debug import error_msg
+from api.dirs import stations_list, lnwr_file, stock_file
 
 station_codes: list[str] = []
 station_names: list[str] = []

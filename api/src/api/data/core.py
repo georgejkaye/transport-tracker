@@ -13,8 +13,8 @@ from dotenv import dotenv_values
 from requests import Response
 from requests.auth import HTTPBasicAuth
 
-from train_tracker.data.credentials import Credentials
-from train_tracker.debug import debug_msg
+from api.data.credentials import Credentials
+from api.debug import debug_msg
 
 
 def get_or_throw[T](t: Optional[T]) -> T:

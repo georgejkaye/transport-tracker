@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from psycopg2 import connect as db_connect
 from psycopg2._psycopg import connection, cursor
 
-from train_tracker.data.environment import get_env_variable, get_secret
+from api.data.environment import get_env_variable, get_secret
 
 load_dotenv()
 

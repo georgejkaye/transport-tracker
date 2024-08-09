@@ -1,6 +1,6 @@
-from train_tracker.data.credentials import Credentials
+from api.data.credentials import Credentials
 
-from train_tracker.data.core import (
+from api.data.core import (
     data_directory,
     download_binary,
     extract_gz,

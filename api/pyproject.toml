@@ -4,10 +4,10 @@ version = "0.1.0"
 description = ""
 authors = ["George Kaye <georgejkaye@gmail.com>"]
 readme = "README.md"
-packages = [{include = "train_tracker", from = "src"}]
+packages = [{include = "api", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.12"
 Jinja2 = "^3.1.2"
 termcolor = "^2.3.0"
 libsass = "^0.22.0"

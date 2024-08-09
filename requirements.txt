@@ -1,6 +1,0 @@
-Jinja2
-termcolor
-libsass
-beautifulsoup4
-requests
-pyyaml

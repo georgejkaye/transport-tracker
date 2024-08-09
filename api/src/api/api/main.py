@@ -3,9 +3,9 @@ from typing import Optional
 
 from fastapi import FastAPI
 
-from train_tracker.data.database import connect, disconnect
-from train_tracker.data.environment import get_env_variable
-from train_tracker.data.leg import ShortLeg, select_legs
+from api.data.database import connect, disconnect
+from api.data.environment import get_env_variable
+from api.data.leg import ShortLeg, select_legs
 
 import uvicorn
 
@@ -50,7 +50,7 @@ def start():
     else:
         port = int(port_var)
     uvicorn.run(
-        "train_tracker.api.main:app",
+        "api.api.main:app",
         host="0.0.0.0",
         port=port,
         reload=reload,

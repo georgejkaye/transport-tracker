@@ -1,0 +1,16 @@
+# Build image
+FROM python:3.12-bookworm AS builder
+
+ARG POETRY_VERSION
+RUN pip install poetry==${POETRY_VERSION}
+
+WORKDIR /app
+COPY pyproject.toml poetry.lock mypy.ini ./
+# Poetry complains without a readme
+RUN touch README.md
+RUN poetry install --no-root
+
+COPY src ./src
+RUN poetry install
+
+ENTRYPOINT ["poetry", "run", "python", "src/api/api/main.py"]

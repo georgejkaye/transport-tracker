@@ -2,17 +2,17 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional
 import xml.etree.ElementTree as ET
-from train_tracker.data.core import get_tag_text, make_get_request, prefix_namespace
-from train_tracker.data.credentials import get_api_credentials
-from train_tracker.data.database import connect, disconnect, insert
-from train_tracker.data.train import (
+from api.data.core import get_tag_text, make_get_request, prefix_namespace
+from api.data.credentials import get_api_credentials
+from api.data.database import connect, disconnect, insert
+from api.data.train import (
     generate_natrail_token,
     get_kb_url,
     get_natrail_token_headers,
 )
 from psycopg2._psycopg import connection, cursor
 
-from train_tracker.times import get_datetime_route, get_hourmin_string
+from api.times import get_datetime_route, get_hourmin_string
 
 
 @dataclass
