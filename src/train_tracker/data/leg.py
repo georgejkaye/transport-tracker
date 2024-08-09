@@ -145,11 +145,7 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
             ]
         )
     insert(cur, "LegCall", call_fields, call_values)
-    legstock_fields = [
-        "start_call",
-        "end_call",
-        "distance",
-    ]
+    legstock_fields = ["start_call", "end_call"]
     stockreport_fields = [
         "start_call",
         "end_call",
@@ -164,9 +160,7 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
         stocks = formation.stock
         start_call = select_call_id_from_leg_call(formation.calls[0].dep_call, False)
         end_call = select_call_id_from_leg_call(formation.calls[-1].arr_call, True)
-        legstock_values.append(
-            [start_call, end_call, number_or_none_to_str(formation.mileage)]
-        )
+        legstock_values.append([start_call, end_call])
         for stock in stocks:
             stock_class = int_or_none_to_str_or_none(stock.class_no)
             stock_subclass = int_or_none_to_str_or_none(stock.subclass_no)
@@ -485,9 +479,7 @@ def select_legs(
                 call_assocs = []
                 if call.get("associations"):
                     for association in call["associations"]:
-                        associated_type = get_or_throw(
-                            string_to_associated_type(association["associated_type"])
-                        )
+                        associated_type = association["associated_type"]
                         associated_service = ShortAssociatedService(
                             association["associated_id"],
                             association["associated_run_date"],
@@ -538,9 +530,7 @@ def select_legs(
                 assoc = call["associations"][0]
                 assoc_id = assoc["associated_id"]
                 assoc_run_date = datetime.fromisoformat(assoc["associated_run_date"])
-                assoc_type = get_or_throw(
-                    string_to_associated_type(assoc["associated_type"])
-                )
+                assoc_type = assoc["associated_type"]
                 leg_call_assoc = ShortAssociatedService(
                     assoc_id, assoc_run_date, assoc_type
                 )

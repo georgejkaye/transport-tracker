@@ -75,17 +75,20 @@ def string_to_associated_type(string : str) -> Optional[AssociatedType]:
         return AssociatedType.DIVIDES_FROM
     return None
 
+
 @dataclass
 class AssociatedService:
     station: ShortTrainStation
     service: "TrainService"
     association: AssociatedType
 
+
 @dataclass
 class ShortAssociatedService:
     service_id: str
     service_run_date: datetime
-    association: AssociatedType
+    association: str
+
 
 @dataclass
 class ShortCall:
