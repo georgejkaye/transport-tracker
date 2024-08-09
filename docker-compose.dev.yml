@@ -67,23 +67,21 @@ services:
       - natrail_secret
     networks:
       - internal
-  # client:
-  #   build:
-  #     context: client
-  #     dockerfile: Dockerfile.dev
-  #     args:
-  #       API_URL: "http://api:${API_PORT}"
-  #       CLIENT_PORT: ${CLIENT_PORT}
-  #       DEADLINE: ${DEADLINE}
-  #   ports:
-  #     - "${CLIENT_PORT}:${CLIENT_PORT}"
-  #   environment:
-  #     API_URL: "http://api:${API_PORT}"
-  #     CLIENT_PORT: ${CLIENT_PORT}
-  #   depends_on:
-  #     - api
-  #   volumes:
-  #     - ./client:/app
+  client:
+    build:
+      context: client
+      dockerfile: Dockerfile.dev
+      args:
+        CLIENT_PORT: ${CLIENT_PORT}
+    ports:
+      - "${CLIENT_PORT}:${CLIENT_PORT}"
+    environment:
+      API_URL: "http://api:${API_PORT}"
+      CLIENT_PORT: ${CLIENT_PORT}
+    depends_on:
+      - api
+    volumes:
+      - ./client/src:/app/src
 secrets:
   rtt_secret:
     file: rtt.secret
