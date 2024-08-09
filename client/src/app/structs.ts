@@ -133,10 +133,12 @@ export const responseToTrainLegCall = (data: any) => ({
   planDep: responseToDate(data["plan_dep"]),
   actArr: responseToDate(data["act_arr"]),
   actDep: responseToDate(data["act_dep"]),
-  associatedService: responseToAssociatedTrainService(
-    data["associated_service"]
-  ),
-  newStock: data["leg_stock"].map(responseToTrainStockReport),
+  associatedService: !data["associated_service"]
+    ? undefined
+    : responseToAssociatedTrainService(data["associated_service"]),
+  newStock: !data["leg_stock"]
+    ? undefined
+    : data["leg_stock"].map(responseToTrainStockReport),
   mileage: !data["mileage"] ? null : parseFloat(data["mileage"]),
 })
 
@@ -162,10 +164,14 @@ export interface TrainLeg {
   distance?: number
 }
 
+export const getLegOrigin = (leg: TrainLeg) => leg.calls[0]
+export const getLegDestination = (leg: TrainLeg) =>
+  leg.calls[leg.calls.length - 1]
+
 export const responseToLeg = (data: any) => {
   let services = new Map()
-  for (const id in data) {
-    let service = data[id]
+  for (const id in data["services"]) {
+    let service = data["services"][id]
     services.set(id, responseToTrainService(service))
   }
   return {
