@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:latest-alpine
 
 ARG CLIENT_PORT
 ENV CLIENT_PORT ${CLIENT_PORT}

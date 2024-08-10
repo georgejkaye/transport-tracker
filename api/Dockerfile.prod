@@ -1,5 +1,5 @@
 # Build image
-FROM python:3.11-bookworm as builder
+FROM python:3.12-bookworm AS builder
 
 ARG POETRY_VERSION
 
@@ -19,7 +19,7 @@ RUN touch README.md
 RUN poetry install --without dev --no-root && rm -rf ${POETRY_CACHE_DIR}
 
 # Runtime image
-FROM python:3.11-slim-bookworm as runtime
+FROM python:3.11-slim-bookworm AS runtime
 
 ENV VIRTUAL_ENV=/app/.venv \
     PATH="/app/.venv/bin:$PATH" \
@@ -34,4 +34,4 @@ COPY src ./app/src
 
 WORKDIR /app
 
-ENTRYPOINT ["python", "src/api/main.py"]
+ENTRYPOINT ["python", "src/api/api/main.py"]

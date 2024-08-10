@@ -49,7 +49,6 @@ services:
       args:
         API_URL: "http://api:${API_PORT}"
         CLIENT_PORT: ${CLIENT_PORT}
-        DEADLINE: ${DEADLINE}
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
