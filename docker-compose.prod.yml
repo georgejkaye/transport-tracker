@@ -44,17 +44,17 @@ services:
       context: client
       dockerfile: Dockerfile.prod
       args:
-        API_URL: "http://api:${API_PORT}"
+        API_URL: ${SERVER_PROTOCOL}://${API_HOST}
         CLIENT_PORT: ${CLIENT_PORT}
         SERVER_URL: ${API_HOST}
         SERVER_HOST: ${API_HOST}
-        SERVER_PROTOCOL: https
+        SERVER_PROTOCOL: ${SERVER_PROTOCOL}
         CLIENT_HOST: ${CLIENT_HOST}
-        CLIENT_PROTOCOL: https
+        CLIENT_PROTOCOL: ${SERVER_PROTOCOL}
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
-      API_URL: "http://api:${API_PORT}"
+      API_URL: ${SERVER_PROTOCOL}://${API_HOST}
       CLIENT_PORT: ${CLIENT_PORT}
     labels:
       - "traefik.enable=true"
