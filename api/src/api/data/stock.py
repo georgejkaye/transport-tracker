@@ -284,10 +284,22 @@ def select_stock_cars(cur: cursor, stock: Stock) -> list[Formation]:
             ON Stock.stock_class = StockSubclass.stock_class
         ) Stocks
         ON StockFormation.stock_class = Stocks.stock_class
-        AND StockFormation.stock_subclass = Stocks.stock_subclass
+        AND (
+            (Stocks.stock_subclass = StockFormation.stock_subclass)
+            OR (
+                Stocks.stock_subclass IS NULL
+                AND StockFormation.stock_subclass IS NULL
+            )
+        )
         INNER JOIN OperatorStock
         ON Stocks.stock_class = OperatorStock.stock_class
-        AND Stocks.stock_subclass = OperatorStock.stock_subclass
+        AND (
+            (Stocks.stock_subclass = OperatorStock.stock_subclass)
+            OR (
+                Stocks.stock_subclass IS NULL
+                AND OperatorStock.stock_subclass IS NULL
+            )
+        )
         WHERE Stocks.stock_class = %(class_no)s
         AND operator_id = %(operator)s
     """
