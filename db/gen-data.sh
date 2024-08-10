@@ -12,4 +12,4 @@ PGPASSWORD=$PASSWORD pg_dump --column-inserts --data-only \
     --table=station \
     -h $DB_HOST \
     -d $DB_NAME \
-    -U $DB_USER > populate.sql
+    -U $DB_USER > /db/scripts/populate.sql
