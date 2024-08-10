@@ -371,7 +371,7 @@ def get_unit_report(
                     stock_subclass = None
                 case PickSingle(choice):
                     stock_subclass = choice
-    if stock_subclass is None:
+    if stock_class is not None and stock_subclass is None:
         stock_subclass_no = None
         stock_unit_no = None
         stock_cars_res = get_unit_cars(
@@ -387,7 +387,7 @@ def get_unit_report(
                 stock_cars = None
             case PickSingle(form):
                 stock_cars = form
-    else:
+    elif stock_class is not None and stock_subclass is not None:
         stock_subclass_no = stock_subclass.subclass_no
         stock_unit_no = get_unit_no(stock_subclass)
         stock_cars_res = get_unit_cars(cur, stock_subclass, operator, brand)
