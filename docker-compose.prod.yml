@@ -46,6 +46,11 @@ services:
       args:
         API_URL: "http://api:${API_PORT}"
         CLIENT_PORT: ${CLIENT_PORT}
+        SERVER_URL: ${API_HOST}
+        SERVER_HOST: ${API_HOST}
+        SERVER_PROTOCOL: https
+        CLIENT_HOST: ${CLIENT_HOST}
+        CLIENT_PROTOCOL: https
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
