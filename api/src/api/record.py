@@ -363,6 +363,7 @@ def get_unit_report(
             stock_subclass = None
             stock_subclass_no = None
             stock_cars = None
+            stock_unit_no = None
         case PickSingle(stock_class):
             stock_class_no = stock_class.class_no
             stock_subclass_res = get_unit_subclass(stock_list, stock_class)
