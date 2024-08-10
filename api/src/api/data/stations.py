@@ -224,9 +224,10 @@ def get_services_at_station(
     data = response.json()
     if data.get("services") is None:
         return []
-    services = [
-        response_to_service_at_station(cur, service) for service in data["services"]
-    ]
+    services = []
+    for service in data["services"]:
+        if service["serviceType"] == "train":
+            services.append(response_to_service_at_station(cur, service))
     return services
 
 
