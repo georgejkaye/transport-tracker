@@ -28,10 +28,10 @@ services:
       DB_NAME: ${DB_NAME}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.thesis_api.rule=Host(`${API_HOST}`)"
-      - "traefik.http.routers.thesis_api.tls=true"
-      - "traefik.http.routers.thesis_api.tls.certresolver=lets-encrypt"
-      - "traefik.http.services.thesis_api.loadbalancer.server.port=${API_PORT}"
+      - "traefik.http.routers.trains_api.rule=Host(`${API_HOST}`)"
+      - "traefik.http.routers.trains_api.tls=true"
+      - "traefik.http.routers.trains_api.tls.certresolver=lets-encrypt"
+      - "traefik.http.services.trains_api.loadbalancer.server.port=${API_PORT}"
     networks:
       - internal
       - web
@@ -57,10 +57,10 @@ services:
       CLIENT_PORT: ${CLIENT_PORT}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.thesis_client.rule=Host(`${CLIENT_HOST}`)"
-      - "traefik.http.routers.thesis_client.tls=true"
-      - "traefik.http.routers.thesis_client.tls.certresolver=lets-encrypt"
-      - "traefik.http.services.thesis_client.loadbalancer.server.port=${CLIENT_PORT}"
+      - "traefik.http.routers.trains_client.rule=Host(`${CLIENT_HOST}`)"
+      - "traefik.http.routers.trains_client.tls=true"
+      - "traefik.http.routers.trains_client.tls.certresolver=lets-encrypt"
+      - "traefik.http.services.trains_client.loadbalancer.server.port=${CLIENT_PORT}"
     networks:
       - internal
       - web
