@@ -358,8 +358,10 @@ def get_unit_report(
         case None:
             return None
         case PickUnknown():
+            stock_class = None
             stock_class_no = None
             stock_subclass = None
+            stock_subclass_no = None
             stock_cars = None
         case PickSingle(stock_class):
             stock_class_no = stock_class.class_no
