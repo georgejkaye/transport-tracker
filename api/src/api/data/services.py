@@ -409,7 +409,7 @@ def get_service_from_id(
     rtt_credentials = get_api_credentials("RTT")
     response = make_get_request(endpoint, rtt_credentials)
     data = response.json()
-    if data.get("isPassenger"):
+    if data.get("isPassenger") and data.get("serviceType") == "train":
         headcode = data["trainIdentity"]
         power = data.get("powerType")
         origins = [
