@@ -54,16 +54,16 @@ const LegRow = (props: { leg: TrainLeg }) => {
   let destination = getLegDestination(leg)
   return (
     <div className="flex flex-row gap-4">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-row gap-2 items-center">
+      <div className="flex flex-col lg:flex-row gap-2">
+        <div className="flex flex-row gap-2 lg:w-72 items-center">
           <Link
             className={linkStyle}
             href={`/train/leg/${leg.id}`}
           >{`#${leg.id}`}</Link>
           <div className="flex-1">{dateToShortString(leg.start)}</div>
           <Duration origin={origin.actDep} destination={destination.actArr} />
-          <div className="text-xs">•</div>
-          <div className="text-right">{mileString}</div>
+          <div className="text-xs lg:hidden">•</div>
+          <div className="text-right lg:w-28">{mileString}</div>
         </div>
         <div className="flex flex-col md:flex-row gap-2">
           <div className="flex flex-row gap-2 items-center">
