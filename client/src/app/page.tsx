@@ -47,8 +47,8 @@ const EndpointSection = (props: { call: TrainLegCall; origin: boolean }) => {
   )
 }
 
-const LegRow = (props: { leg: TrainLeg; last: boolean }) => {
-  let { leg, last } = props
+const LegRow = (props: { leg: TrainLeg }) => {
+  let { leg } = props
   let mileString = !leg.distance ? "" : getMilesAndChainsString(leg.distance)
   let origin = getLegOrigin(leg)
   let destination = getLegDestination(leg)
