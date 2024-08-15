@@ -64,7 +64,7 @@ const LegRow = (props: { leg: TrainLeg; last: boolean }) => {
           <div className="text-xs">•</div>
           <div className="text-right">{mileString}</div>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col md:flex-row gap-2">
           <div className="flex flex-row gap-2 items-center">
             <div className="text-right w-10 text-xs">from</div>
             <EndpointSection call={origin} origin={true} />
