@@ -99,7 +99,7 @@ export default function Home() {
           : legs.map((leg, i) => (
               <>
                 <LegRow leg={leg} key={i} />{" "}
-                {i === legs.size - 1 ? (
+                {i === legs.length - 1 ? (
                   ""
                 ) : (
                   <hr className="h-px border-0 bg-gray-600" />
