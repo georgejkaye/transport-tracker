@@ -49,7 +49,7 @@ export const Duration = (props: {
   let { origin, destination } = props
   let durationString =
     !origin || !destination ? "" : getDurationString(origin, destination)
-  return <div className="lg:w-24">{durationString}</div>
+  return <div className="lg:w-32">{durationString}</div>
 }
 
 export const Delay = (props: {

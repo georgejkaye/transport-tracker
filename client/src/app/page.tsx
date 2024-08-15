@@ -63,7 +63,7 @@ const LegRow = (props: { leg: TrainLeg }) => {
           <div className="flex-1">{dateToShortString(leg.start)}</div>
           <Duration origin={origin.actDep} destination={destination.actArr} />
           <div className="text-xs lg:hidden">•</div>
-          <div className="text-right lg:w-28">{mileString}</div>
+          <div className="text-right lg:w-32  ">{mileString}</div>
         </div>
         <div className="flex flex-col md:flex-row gap-2">
           <div className="flex flex-row gap-2 items-center">
