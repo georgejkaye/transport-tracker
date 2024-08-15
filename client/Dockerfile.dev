@@ -3,6 +3,12 @@ FROM node:22-alpine
 ARG CLIENT_PORT
 ENV CLIENT_PORT ${CLIENT_PORT}
 
+ARG SERVER_HOST
+ENV SERVER_HOST ${SERVER_HOST}
+
+ARG SERVER_PROTOCOL
+ENV SERVER_PROTOCOL ${SERVER_PROTOCOL}
+
 WORKDIR /app
 COPY ./package.json .
 COPY ./yarn.lock .
@@ -12,4 +18,3 @@ COPY ./tailwind.config.ts .
 COPY ./tsconfig.json .
 RUN yarn
 CMD yarn dev -p ${CLIENT_PORT}
-

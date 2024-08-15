@@ -45,7 +45,6 @@ services:
       dockerfile: Dockerfile.prod
       args:
         CLIENT_PORT: ${CLIENT_PORT}
-        SERVER_URL: ${API_HOST}
         SERVER_HOST: ${API_HOST}
         SERVER_PROTOCOL: ${SERVER_PROTOCOL}
         CLIENT_HOST: ${CLIENT_HOST}

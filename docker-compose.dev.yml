@@ -72,6 +72,8 @@ services:
       dockerfile: Dockerfile.dev
       args:
         CLIENT_PORT: ${CLIENT_PORT}
+        SERVER_HOST: api:${API_PORT}
+        SERVER_PROTOCOL: http
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
