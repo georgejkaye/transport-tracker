@@ -20,7 +20,7 @@ import { linkStyle } from "./styles"
 const StationLink = (props: { station: TrainStation }) => {
   let { station } = props
   return (
-    <div className="w-72">
+    <div className="w-56 flex-wrap">
       <Link className={linkStyle} href={`/train/station/${station.crs}`}>
         {station.name}
       </Link>
@@ -28,42 +28,55 @@ const StationLink = (props: { station: TrainStation }) => {
   )
 }
 
-const LegRow = (props: { leg: TrainLeg }) => {
-  let { leg } = props
+const EndpointSection = (props: { call: TrainLegCall; origin: boolean }) => {
+  let { call, origin } = props
+  let planTime = origin ? call.planDep : call.planArr
+  let actTime = origin ? call.actDep : call.actArr
+  return (
+    <div className="flex flex-row">
+      <StationLink station={call.station} />
+      <div className="flex flex-row gap-2">
+        <div className="w-10 hidden">
+          {!planTime ? "" : dateToTimeString(planTime)}
+        </div>
+        <div className="w-10">{!actTime ? "" : dateToTimeString(actTime)}</div>
+        <Delay plan={planTime} act={actTime} />
+      </div>
+    </div>
+  )
+}
+
+const LegRow = (props: { leg: TrainLeg; last: boolean }) => {
+  let { leg, last } = props
   let mileString = !leg.distance ? "" : getMilesAndChainsString(leg.distance)
   let origin = getLegOrigin(leg)
   let destination = getLegDestination(leg)
   return (
     <div className="flex flex-row gap-4">
-      <div className="w-6 text-center">
-        <Link
-          className={linkStyle}
-          href={`/train/leg/${leg.id}`}
-        >{`#${leg.id}`}</Link>
-      </div>
-      <div>{dateToShortString(leg.start)}</div>
-      <StationLink station={origin.station} />
-      <div className="hidden tablet:flex flex-row">
-        <div className="w-10">
-          {!origin.planDep ? "" : dateToTimeString(origin.planDep)}
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-row gap-2 items-center">
+          <Link
+            className={linkStyle}
+            href={`/train/leg/${leg.id}`}
+          >{`#${leg.id}`}</Link>
+          <div className="flex-1">{dateToShortString(leg.start)}</div>
+          <Duration origin={origin.actDep} destination={destination.actArr} />
+          <div className="text-xs">•</div>
+          <div className="text-right">{mileString}</div>
         </div>
-        <div className="w-10">
-          {!origin.actDep ? "" : dateToTimeString(origin.actDep)}
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-row gap-2 items-center">
+            <div className="text-right w-10 text-xs">from</div>
+            <EndpointSection call={origin} origin={true} />
+          </div>
+          <div className="flex flex-row gap-2 items-center">
+            <div className="text-right w-10 text-xs">to</div>
+            <EndpointSection call={destination} origin={false} />
+          </div>
         </div>
       </div>
-      <Delay plan={origin.planDep} act={origin.actDep} />
-      <StationLink station={destination.station} />
-      <div className="w-10">
-        {!destination.planArr ? "" : dateToTimeString(destination.planArr)}
-      </div>
-      <div className="w-10">
-        {!destination.actArr ? "" : dateToTimeString(destination.actArr)}
-      </div>
-      <Delay plan={destination.planArr} act={destination.actArr} />
-      <Duration origin={origin.planDep} destination={destination.planArr} />
-      <Duration origin={origin.actDep} destination={destination.actArr} />
-      <div>{mileString}</div>
-      <div></div>
+      {/* <Duration origin={origin.planDep} destination={destination.planArr} />
+       */}
     </div>
   )
 }
@@ -78,9 +91,20 @@ export default function Home() {
     getLegData()
   }, [])
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="flex flex-col gap-2">
-        {!legs ? "" : legs.map((leg, i) => <LegRow leg={leg} key={i} />)}
+    <main className="flex min-h-screen flex-col items-center justify-between">
+      <div className="flex flex-col gap-4">
+        {!legs
+          ? ""
+          : legs.map((leg, i) => (
+              <>
+                <LegRow leg={leg} key={i} />{" "}
+                {i === legs.size - 1 ? (
+                  ""
+                ) : (
+                  <hr className="h-px border-0 bg-gray-600" />
+                )}
+              </>
+            ))}
       </div>
     </main>
   )

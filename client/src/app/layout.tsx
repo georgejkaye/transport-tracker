@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 }
 
 const TopBar = () => (
-  <div className="bg-accent p-4">
+  <div className="bg-accent p-4 mb-4">
     <h1 className="font-bold text-2xl">Train Journey Tracker</h1>
   </div>
 )
