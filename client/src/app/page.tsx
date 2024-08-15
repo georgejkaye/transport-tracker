@@ -11,6 +11,7 @@ import {
   mileageToMilesAndChains,
   TrainLeg,
   TrainStation,
+  TrainLegCall,
 } from "./structs"
 import { getLegs } from "./data"
 import { Delay, Duration } from "./leg"
