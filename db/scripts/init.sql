@@ -156,18 +156,18 @@ BEGIN
         IF stockcars IS NULL
         THEN
             RETURN EXISTS(
-                SELECT * FROM StockFormation
+                SELECT * FROM public.StockFormation
                 WHERE stock_class = stockclass
             );
         ELSE
             RETURN EXISTS(
-                SELECT * FROM StockFormation
+                SELECT * FROM public.StockFormation
                 WHERE stock_class = stockclass AND cars = stockcars
             );
         END IF;
     END IF;
     RETURN EXISTS (
-        SELECT * FROM StockFormation
+        SELECT * FROM public.StockFormation
         WHERE stock_class = stockclass AND stock_subclass = stocksubclass AND cars = stockcars
     );
 END;
