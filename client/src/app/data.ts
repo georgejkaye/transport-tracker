@@ -34,3 +34,19 @@ export const getTrainLeg = async (
     return undefined
   }
 }
+
+export const getTrainStation = async (
+  stationCrs: string
+): Promise<TrainStation | undefined> => {
+  let endpoint = `/api/train/station/${stationCrs}`
+  try {
+    let response = await axios.get(endpoint)
+    let data = response.data
+    console.log(data)
+    let station = responseToTrainStation(data)
+    return station
+  } catch (e) {
+    console.log(e)
+    return undefined
+  }
+}
