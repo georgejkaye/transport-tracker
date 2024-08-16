@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from re import L, search
 from typing import Callable, Optional
@@ -242,6 +242,7 @@ class ShortLeg:
     calls: list[ShortLegCall]
     stocks: list[ShortLegSegment]
     distance: Optional[Decimal]
+    duration: Optional[timedelta]
 
 
 def select_legs(
@@ -252,7 +253,11 @@ def select_legs(
     statement = f"""
         SELECT
             Leg.leg_id, (legcalls -> 0 ->> 'plan_dep') AS leg_start,
-            services, legcalls, stocks, Leg.distance
+            services, legcalls, stocks, Leg.distance,
+            COALESCE(legcalls -> -1 ->> 'act_arr', legcalls -> -1 ->> 'plan_arr')::TIMESTAMP
+            -
+            COALESCE(legcalls -> 0 ->> 'act_dep', legcalls -> 0 ->> 'plan_dep')::TIMESTAMP
+            AS duration
         FROM Leg
         INNER JOIN (
             WITH legcall_info AS (
@@ -387,6 +392,8 @@ def select_legs(
                     EndStation.station_name AS end_name,
                     Service.service_id, Service.run_date,
                     EndCall.mileage - StartCall.mileage AS distance,
+                    COALESCE(EndCall.act_arr, EndCall.plan_arr) -
+                    COALESCE(StartCall.act_dep, StartCall.plan_dep) AS duration,
                     JSON_AGG(StockSegmentDetail.*) AS stocks
                 FROM StockSegmentDetail
                 INNER JOIN Call StartCall
@@ -404,7 +411,7 @@ def select_legs(
                 AND StartCall.run_date = Service.run_date
                 GROUP BY
                     leg_id, start_crs, start_name, end_crs, end_name,
-                    Service.service_id, Service.run_date, distance
+                    Service.service_id, Service.run_date, distance, duration
             )
             SELECT leg_id, JSON_AGG(StockSegment.*) AS stocks
             FROM StockSegment
@@ -430,7 +437,7 @@ def select_legs(
     rows = cur.fetchall()
     legs = []
     for row in rows:
-        leg_id, leg_start, services, calls, stocks, distance = row
+        leg_id, leg_start, services, calls, stocks, distance, duration = row
         leg_start_time = datetime.fromisoformat(leg_start)
         services_dict = {}
         for service in services:
@@ -598,7 +605,7 @@ def select_legs(
             )
             leg_stock.append(segment)
         leg_object = ShortLeg(
-            leg_id, leg_start_time, services_dict, leg_calls, leg_stock, Decimal(distance)
+            leg_id, leg_start_time, services_dict, leg_calls, leg_stock, Decimal(distance), duration
         )
         legs.append(leg_object)
     return legs
