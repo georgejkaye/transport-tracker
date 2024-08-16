@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import { useEffect, useState } from "react"
 import {
   dateToShortString,
@@ -19,6 +18,7 @@ import { getLegs } from "./data"
 import { Delay, Duration } from "./leg"
 import Link from "next/link"
 import { linkStyle } from "./styles"
+import TrainOutlinedIcon from "@mui/icons-material/TrainOutlined"
 
 const StationLink = (props: { station: TrainStation }) => {
   let { station } = props
@@ -58,10 +58,9 @@ const LegRow = (props: { leg: TrainLeg }) => {
     <div className="flex flex-row gap-4">
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex flex-row gap-2 lg:w-80 items-center">
-          <Link
-            className={linkStyle}
-            href={`/train/leg/${leg.id}`}
-          >{`#${leg.id}`}</Link>
+          <Link className={linkStyle} href={`/train/leg/${leg.id}`}>
+            <TrainOutlinedIcon />
+          </Link>
           <div className="text-xs lg:hidden">•</div>
           <div className="lg:px-2">{dateToShortString(leg.start)}</div>
           <div className="text-xs lg:hidden">•</div>
