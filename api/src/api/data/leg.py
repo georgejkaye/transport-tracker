@@ -418,7 +418,7 @@ def select_legs(
             GROUP BY leg_id
         ) StockDetails
         ON StockDetails.leg_id = Leg.leg_id
-        ORDER BY leg_start ASC
+        ORDER BY leg_start DESC
     """
     if search_start is not None:
         start_string = "leg_start >= %(start)s"
