@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from api.data.database import connect, disconnect
 from api.data.environment import get_env_variable
@@ -33,6 +33,16 @@ async def get_legs(
     legs = select_legs(cur, start_date, end_date)
     disconnect(conn, cur)
     return legs
+
+
+@app.get("/leg", summary="Get leg")
+async def get_leg(leg_id: int) -> ShortLeg:
+    (conn, cur) = connect()
+    legs = select_legs(cur, search_leg_id=leg_id)
+    disconnect(conn, cur)
+    if len(legs) != 1:
+        raise HTTPException(status_code=404, detail="Leg not found")
+    return legs[0]
 
 
 def start():

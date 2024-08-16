@@ -1,11 +1,9 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
-from re import L, search
 from typing import Callable, Optional
 from psycopg2._psycopg import connection, cursor
 
-from api.data.core import get_or_throw
 from api.data.database import (
     NoEscape,
     connect,
@@ -249,6 +247,7 @@ def select_legs(
     cur: cursor,
     search_start: Optional[datetime] = None,
     search_end: Optional[datetime] = None,
+    search_leg_id: Optional[int] = None,
 ) -> list[ShortLeg]:
     statement = f"""
         SELECT
@@ -418,22 +417,21 @@ def select_legs(
             GROUP BY leg_id
         ) StockDetails
         ON StockDetails.leg_id = Leg.leg_id
-        ORDER BY leg_start DESC
     """
+    wheres = []
     if search_start is not None:
-        start_string = "leg_start >= %(start)s"
-    else:
-        start_string = ""
+        wheres.append("leg_start >= %(start)s")
     if search_end is not None:
-        end_string = "leg_start < %(end)s"
-    else:
-        end_string = ""
-    if search_start is not None or search_end is not None:
-        where_string = f"\nWHERE {" AND ".join([start_string, end_string])}"
+        wheres.append("leg_start < %(end)s")
+    if search_leg_id is not None:
+        wheres.append("Leg.leg_id = %(leg)s")
+    if len(wheres) != 0:
+        where_string = f"\nWHERE {" AND ".join(wheres)}"
     else:
         where_string = ""
-    full_statement = f"{statement}{where_string}"
-    cur.execute(full_statement, {"start": search_start, "end": search_end})
+    order_string = "ORDER BY leg_start DESC"
+    full_statement = f"{statement}\n{where_string}\n{order_string}"
+    cur.execute(full_statement, {"start": search_start, "end": search_end, "leg": search_leg_id})
     rows = cur.fetchall()
     legs = []
     for row in rows:
