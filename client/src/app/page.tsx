@@ -128,7 +128,7 @@ export default function Home() {
     getLegData()
   }, [])
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between">
+    <div>
       {legs === undefined ? (
         <Loader />
       ) : (
@@ -148,6 +148,6 @@ export default function Home() {
               ))}
         </div>
       )}
-    </main>
+    </div>
   )
 }

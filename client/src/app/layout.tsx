@@ -24,7 +24,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <TopBar />
-        {children}
+        <main className="min-h-screen items-center flex flex-col justify-between py-4 px-2 lg:px-0">
+          {children}
+        </main>
       </body>
     </html>
   )
