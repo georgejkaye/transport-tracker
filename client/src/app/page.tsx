@@ -63,7 +63,7 @@ const LegRow = (props: { leg: TrainLeg }) => {
             href={`/train/leg/${leg.id}`}
           >{`#${leg.id}`}</Link>
           <div className="text-xs lg:hidden">•</div>
-          <div className="">{dateToShortString(leg.start)}</div>
+          <div className="lg:px-2">{dateToShortString(leg.start)}</div>
           <div className="text-xs lg:hidden">•</div>
           <div className="lg:w-28">{getDurationString(leg.duration)}</div>
           <div className="text-xs lg:hidden">•</div>
@@ -71,11 +71,11 @@ const LegRow = (props: { leg: TrainLeg }) => {
         </div>
         <div className="flex flex-col md:flex-row gap-2">
           <div className="flex flex-row gap-2 items-center">
-            <div className="text-right w-10 text-xs">from</div>
+            <div className="text-right w-10 text-xs lg:hidden">from</div>
             <EndpointSection call={origin} origin={true} />
           </div>
           <div className="flex flex-row gap-2 items-center">
-            <div className="text-right w-10 text-xs">to</div>
+            <div className="text-right w-10 text-xs lg:hidden">to</div>
             <EndpointSection call={destination} origin={false} />
           </div>
         </div>
