@@ -6,7 +6,7 @@ import { TrainLeg } from "@/app/structs"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
-export const Page = ({ params }: { params: { legId: string } }) => {
+const Page = ({ params }: { params: { legId: string } }) => {
   let { legId } = params
   let router = useRouter()
   let [leg, setLeg] = useState<TrainLeg | undefined>(undefined)

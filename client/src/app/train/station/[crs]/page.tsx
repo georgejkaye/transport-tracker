@@ -6,7 +6,7 @@ import { TrainStation } from "@/app/structs"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
-export const Page = ({ params }: { params: { crs: string } }) => {
+const Page = ({ params }: { params: { crs: string } }) => {
   let { crs } = params
   let router = useRouter()
   let [station, setStation] = useState<TrainStation | undefined>(undefined)

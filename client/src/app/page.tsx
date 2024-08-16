@@ -118,7 +118,7 @@ const TotalLegStats = (props: { legs: TrainLeg[] }) => {
   )
 }
 
-export default function Home() {
+const Page = () => {
   const [legs, setLegs] = useState<TrainLeg[] | undefined>(undefined)
   useEffect(() => {
     const getLegData = async () => {
@@ -151,3 +151,5 @@ export default function Home() {
     </div>
   )
 }
+
+export default Page
