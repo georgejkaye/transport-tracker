@@ -28,7 +28,7 @@ from api.data.stations import (
     TrainStation,
     compare_crs,
     get_services_at_station,
-    get_station_from_crs,
+    select_station_from_crs,
     get_stations_from_substring,
     string_of_service_at_station,
     string_of_short_train_station,
@@ -164,7 +164,7 @@ def get_station_from_input(
         if len(input_string) == 0 and stn is not None:
             return stn
         if len(input_string) == 3:
-            crs_station = get_station_from_crs(cur, input_string)
+            crs_station = select_station_from_crs(cur, input_string)
             if crs_station is not None:
                 resp = input_confirm(f"Did you mean {crs_station.name}")
                 if resp:

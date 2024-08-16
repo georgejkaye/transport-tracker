@@ -104,7 +104,7 @@ def populate_train_stations(conn: connection, cur: cursor):
     populate_train_station_table(conn, cur, stations)
 
 
-def get_station_from_crs(cur: cursor, crs: str) -> Optional[TrainStation]:
+def select_station_from_crs(cur: cursor, crs: str) -> Optional[TrainStation]:
     query = """
         SELECT station_name, station_operator, station_brand FROM Station WHERE UPPER(station_crs) = UPPER(%(crs)s)
     """
@@ -116,7 +116,7 @@ def get_station_from_crs(cur: cursor, crs: str) -> Optional[TrainStation]:
     return TrainStation(row[0], crs.upper(), row[1], row[2])
 
 
-def get_station_from_name(cur: cursor, name: str) -> Optional[TrainStation]:
+def select_station_from_name(cur: cursor, name: str) -> Optional[TrainStation]:
     query = """
         SELECT station_name, station_crs, station_operator, station_brand
         FROM Station
@@ -146,7 +146,7 @@ station_endpoint = "https://api.rtt.io/api/v1/json/search"
 
 def response_to_short_train_station(cur: cursor, data) -> ShortTrainStation:
     name = data["description"]
-    station = get_station_from_name(cur, name)
+    station = select_station_from_name(cur, name)
     if station is None:
         print(f"No station with name {name} found. Please update the database.")
         exit(1)

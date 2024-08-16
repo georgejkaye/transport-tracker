@@ -9,6 +9,8 @@ from api.data.leg import ShortLeg, select_legs
 
 import uvicorn
 
+from api.data.stations import ShortTrainStation, select_station_from_crs
+
 app = FastAPI(
     title="Train tracker API",
     summary="API for interacting with the train tracker",
@@ -35,7 +37,7 @@ async def get_legs(
     return legs
 
 
-@app.get("/leg", summary="Get leg")
+@app.get("/train/leg", summary="Get train leg")
 async def get_leg(leg_id: int) -> ShortLeg:
     (conn, cur) = connect()
     legs = select_legs(cur, search_leg_id=leg_id)
@@ -43,6 +45,16 @@ async def get_leg(leg_id: int) -> ShortLeg:
     if len(legs) != 1:
         raise HTTPException(status_code=404, detail="Leg not found")
     return legs[0]
+
+
+@app.get("/train/station/{station_crs}", summary="Get train station")
+async def get_train_station(station_crs: str) -> ShortTrainStation:
+    (conn, cur) = connect()
+    station = select_station_from_crs(cur, station_crs)
+    disconnect(conn, cur)
+    if station is None:
+        raise HTTPException(status_code=404, detail="Station not found")
+    return ShortTrainStation(station.name, station.crs)
 
 
 def start():
