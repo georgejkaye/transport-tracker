@@ -19,6 +19,8 @@ import { Delay, Duration } from "./leg"
 import Link from "next/link"
 import { linkStyle } from "./styles"
 import TrainOutlinedIcon from "@mui/icons-material/TrainOutlined"
+import { ColorRing } from "react-loader-spinner"
+import { Loader } from "./loader"
 
 const StationLink = (props: { station: TrainStation }) => {
   let { station } = props
@@ -119,7 +121,7 @@ const TotalLegStats = (props: { legs: TrainLeg[] }) => {
 }
 
 export default function Home() {
-  const [legs, setLegs] = useState<TrainLeg[]>([])
+  const [legs, setLegs] = useState<TrainLeg[] | undefined>(undefined)
   useEffect(() => {
     const getLegData = async () => {
       let legData = await getLegs()
@@ -129,21 +131,25 @@ export default function Home() {
   }, [])
   return (
     <main className="flex min-h-screen flex-col items-center justify-between">
-      <div className="flex flex-col gap-4">
-        <TotalLegStats legs={legs} />
-        {!legs
-          ? ""
-          : legs.map((leg, i) => (
-              <>
-                <LegRow leg={leg} key={i} />{" "}
-                {i === legs.length - 1 ? (
-                  ""
-                ) : (
-                  <hr className="h-px border-0 bg-gray-600" />
-                )}
-              </>
-            ))}
-      </div>
+      {legs === undefined ? (
+        <Loader />
+      ) : (
+        <div className="flex flex-col gap-4">
+          <TotalLegStats legs={legs} />
+          {!legs
+            ? ""
+            : legs.map((leg, i) => (
+                <>
+                  <LegRow leg={leg} key={i} />{" "}
+                  {i === legs.length - 1 ? (
+                    ""
+                  ) : (
+                    <hr className="h-px border-0 bg-gray-600" />
+                  )}
+                </>
+              ))}
+        </div>
+      )}
     </main>
   )
 }
