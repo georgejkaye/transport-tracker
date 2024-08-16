@@ -37,7 +37,7 @@ async def get_legs(
     return legs
 
 
-@app.get("/train/leg", summary="Get train leg")
+@app.get("/train/leg/{leg_id}", summary="Get train leg")
 async def get_leg(leg_id: int) -> ShortLeg:
     (conn, cur) = connect()
     legs = select_legs(cur, search_leg_id=leg_id)
