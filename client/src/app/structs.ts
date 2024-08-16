@@ -24,10 +24,9 @@ export const responseToDate = (data: any) =>
   data === null ? undefined : new Date(data)
 
 export const dateToShortString = (date: Date) =>
-  `${date.getFullYear()}-${date.getMonth().toString().padStart(2, "0")}-${date
-    .getDay()
+  `${date.getFullYear()}-${(date.getMonth() + 1)
     .toString()
-    .padStart(2, "0")}`
+    .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`
 
 export const dateToTimeString = (date: Date) =>
   `${date.getHours().toString().padStart(2, "0")}:${date
