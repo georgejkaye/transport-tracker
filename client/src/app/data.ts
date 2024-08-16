@@ -22,10 +22,9 @@ export const getLegs = async (): Promise<TrainLeg[]> => {
 export const getTrainLeg = async (
   legId: number
 ): Promise<TrainLeg | undefined> => {
-  let endpoint = "/api/train/leg"
+  let endpoint = `/api/train/leg/${legId}`
   try {
-    let params = { leg_id: legId }
-    let response = await axios.get(endpoint, { params })
+    let response = await axios.get(endpoint)
     let data = response.data
     let leg = responseToLeg(data)
     return leg
