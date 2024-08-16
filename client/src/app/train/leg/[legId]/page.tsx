@@ -1,6 +1,6 @@
 "use client"
 
-import { getLeg } from "@/app/data"
+import { getTrainLeg } from "@/app/data"
 import { Loader } from "@/app/loader"
 import { TrainLeg } from "@/app/structs"
 import { useRouter } from "next/navigation"
@@ -18,7 +18,7 @@ export const Page = ({ params }: { params: { legId: string } }) => {
       router.push("/")
     } else {
       const getLegData = async () => {
-        let legData = await getLeg(legIdNumber)
+        let legData = await getTrainLeg(legIdNumber)
         if (!legData) {
           router.push("/")
         } else {

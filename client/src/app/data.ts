@@ -1,5 +1,10 @@
 import axios, { AxiosError } from "axios"
-import { responseToLeg, TrainLeg } from "./structs"
+import {
+  responseToLeg,
+  responseToTrainStation,
+  TrainLeg,
+  TrainStation,
+} from "./structs"
 
 export const getLegs = async (): Promise<TrainLeg[]> => {
   let endpoint = "/api/legs"
@@ -14,13 +19,14 @@ export const getLegs = async (): Promise<TrainLeg[]> => {
   }
 }
 
-export const getLeg = async (legId: number): Promise<TrainLeg | undefined> => {
-  let endpoint = "/api/leg"
+export const getTrainLeg = async (
+  legId: number
+): Promise<TrainLeg | undefined> => {
+  let endpoint = "/api/train/leg"
   try {
     let params = { leg_id: legId }
     let response = await axios.get(endpoint, { params })
     let data = response.data
-    console.log(data)
     let leg = responseToLeg(data)
     return leg
   } catch (e) {
