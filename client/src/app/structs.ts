@@ -17,7 +17,7 @@ export const mileageToMilesAndChains = (miles: number) => ({
 
 export const getMilesAndChainsString = (mileage: number) => {
   let { miles, chains } = mileageToMilesAndChains(mileage)
-  return `${miles}m ${chains}ch`
+  return `${miles}m ${Math.round(chains)}ch`
 }
 
 export const responseToDate = (data: any) =>
