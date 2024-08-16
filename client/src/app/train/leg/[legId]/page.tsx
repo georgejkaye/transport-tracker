@@ -34,7 +34,7 @@ const Page = ({ params }: { params: { legId: string } }) => {
     <div>
       <h1>
         {`${leg.calls[0].station.name} to ${
-          leg.calls[leg.calls.length - 2].station.name
+          leg.calls[leg.calls.length - 1].station.name
         }`}
       </h1>
     </div>
