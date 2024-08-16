@@ -12,6 +12,8 @@ import {
   TrainLeg,
   TrainStation,
   TrainLegCall,
+  durationToHoursAndMinutes,
+  getDurationString,
 } from "./structs"
 import { getLegs } from "./data"
 import { Delay, Duration } from "./leg"
@@ -54,16 +56,18 @@ const LegRow = (props: { leg: TrainLeg }) => {
   let destination = getLegDestination(leg)
   return (
     <div className="flex flex-row gap-4">
-      <div className="flex flex-col lg:flex-row gap-2">
+      <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex flex-row gap-2 lg:w-80 items-center">
           <Link
             className={linkStyle}
             href={`/train/leg/${leg.id}`}
           >{`#${leg.id}`}</Link>
-          <div className="flex-1">{dateToShortString(leg.start)}</div>
-          <Duration origin={origin.actDep} destination={destination.actArr} />
           <div className="text-xs lg:hidden">•</div>
-          <div className="text-right lg:w-32  ">{mileString}</div>
+          <div className="">{dateToShortString(leg.start)}</div>
+          <div className="text-xs lg:hidden">•</div>
+          <div className="lg:w-28">{getDurationString(leg.duration)}</div>
+          <div className="text-xs lg:hidden">•</div>
+          <div className="lg:w-32">{mileString}</div>
         </div>
         <div className="flex flex-col md:flex-row gap-2">
           <div className="flex flex-row gap-2 items-center">
@@ -82,6 +86,39 @@ const LegRow = (props: { leg: TrainLeg }) => {
   )
 }
 
+const TotalStat = (props: { title: string; value: string }) => {
+  let { title, value } = props
+  return (
+    <div className="flex flex-row">
+      <div className="border-r border-gray-600 pr-2">{title}</div>
+      <div className="pl-2">{value}</div>
+    </div>
+  )
+}
+
+const TotalLegStats = (props: { legs: TrainLeg[] }) => {
+  let { legs } = props
+  let { distance, duration } = legs.reduce(
+    ({ distance, duration }, cur) => {
+      let newDistance = !cur.distance ? 0 : cur.distance
+      let newDuration = cur.duration
+      return {
+        distance: distance + newDistance,
+        duration: duration + newDuration,
+      }
+    },
+    { distance: 0, duration: 0 }
+  )
+  let { hours, minutes } = durationToHoursAndMinutes(duration)
+  return (
+    <div className="flex flex-row flex-wrap gap-4">
+      <TotalStat title="Legs" value={`${legs.length}`} />
+      <TotalStat title="Distance" value={getMilesAndChainsString(distance)} />
+      <TotalStat title="Duration" value={getDurationString(duration)} />
+    </div>
+  )
+}
+
 export default function Home() {
   const [legs, setLegs] = useState<TrainLeg[]>([])
   useEffect(() => {
@@ -94,6 +131,7 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-between">
       <div className="flex flex-col gap-4">
+        <TotalLegStats legs={legs} />
         {!legs
           ? ""
           : legs.map((leg, i) => (

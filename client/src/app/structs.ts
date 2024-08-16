@@ -1,3 +1,15 @@
+import { parse } from "tinyduration"
+
+export const durationToHoursAndMinutes = (duration: number) => ({
+  hours: Math.floor(duration / 60),
+  minutes: duration % 60,
+})
+
+export const getDurationString = (duration: number) => {
+  let { hours, minutes } = durationToHoursAndMinutes(duration)
+  return `${hours}h ${minutes}m`
+}
+
 export const mileageToMilesAndChains = (miles: number) => ({
   miles: Math.floor(miles),
   chains: (miles * 80) % 80,
@@ -12,7 +24,7 @@ export const responseToDate = (data: any) =>
   data === null ? undefined : new Date(data)
 
 export const dateToShortString = (date: Date) =>
-  `${date.getFullYear()}/${date.getMonth().toString().padStart(2, "0")}/${date
+  `${date.getFullYear()}-${date.getMonth().toString().padStart(2, "0")}-${date
     .getDay()
     .toString()
     .padStart(2, "0")}`
@@ -161,7 +173,7 @@ export const responseToTrainLegCall = (data: any) => ({
   newStock: !data["leg_stock"]
     ? undefined
     : data["leg_stock"].map(responseToTrainStockReport),
-  mileage: !data["mileage"] ? null : parseFloat(data["mileage"]),
+  mileage: !data["mileage"] ? undefined : parseFloat(data["mileage"]),
 })
 
 export interface TrainLegSegment {
@@ -174,7 +186,7 @@ export interface TrainLegSegment {
 export const responseToTrainLegSegment = (data: any) => ({
   start: responseToTrainStation(data["start"]),
   end: responseToTrainStation(data["end"]),
-  mileage: data["mileage"] ? parseFloat(data["mileage"]) : undefined,
+  mileage: !data["mileage"] ? undefined : parseFloat(data["mileage"]),
   stocks: data["stocks"].map(responseToTrainStockReport),
 })
 
@@ -185,6 +197,8 @@ export interface TrainLeg {
   calls: TrainLegCall[]
   stock: TrainLegSegment[]
   distance?: number
+  // duration in minutes
+  duration: number
 }
 
 export const getLegOrigin = (leg: TrainLeg) => leg.calls[0]
@@ -197,12 +211,15 @@ export const responseToLeg = (data: any) => {
     let service = data["services"][id]
     services.set(id, responseToTrainService(service))
   }
+  let { hours, minutes } = parse(data["duration"])
+  let duration = (hours ? hours * 60 : 0) + (minutes ? minutes : 0)
   return {
     id: data["id"],
     start: new Date(data["leg_start"]),
     services,
     calls: data["calls"].map(responseToTrainLegCall),
     stock: data["stocks"].map(responseToTrainLegSegment),
-    distance: data["distance"] ? data["distance"] : undefined,
+    distance: !data["distance"] ? undefined : parseFloat(data["distance"]),
+    duration,
   }
 }

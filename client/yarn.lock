@@ -2597,6 +2597,11 @@ thenify-all@^1.0.0:
   dependencies:
     any-promise "^1.0.0"
 
+tinyduration@^3.3.1:
+  version "3.3.1"
+  resolved "https://registry.yarnpkg.com/tinyduration/-/tinyduration-3.3.1.tgz#876710c4a314de63e2b81415106ed8860768ecfd"
+  integrity sha512-39iO6CyHMFTPv9PKFxXPXa1DDc2JHog4oGK6x3fG75T+chRO+SKmuEPT00myYs3aGFIq3nQ6U5J5c5hR0PMKjw==
+
 to-regex-range@^5.0.1:
   version "5.0.1"
   resolved "https://registry.yarnpkg.com/to-regex-range/-/to-regex-range-5.0.1.tgz#1648c44aae7c8d988a326018ed72f5b4dd0392e4"
