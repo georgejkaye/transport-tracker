@@ -7,7 +7,6 @@ import {
   getLegDestination,
   getLegOrigin,
   getMilesAndChainsString,
-  mileageToMilesAndChains,
   TrainLeg,
   TrainStation,
   TrainLegCall,
@@ -19,7 +18,6 @@ import { Delay, Duration } from "./leg"
 import Link from "next/link"
 import { linkStyle } from "./styles"
 import TrainOutlinedIcon from "@mui/icons-material/TrainOutlined"
-import { ColorRing } from "react-loader-spinner"
 import { Loader } from "./loader"
 
 const StationLink = (props: { station: TrainStation }) => {
