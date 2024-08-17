@@ -7,6 +7,7 @@ from psycopg2 import connect as db_connect
 from psycopg2._psycopg import connection, cursor
 
 from api.data.environment import get_env_variable, get_secret
+import pytz
 
 load_dotenv()
 
@@ -79,11 +80,13 @@ def datetime_or_none_to_raw_str(x: datetime | None) -> str:
         return f"'{x.isoformat()}'"
 
 
-def str_or_null_to_datetime(x: str | None) -> datetime | None:
+def str_or_null_to_datetime(x: str | None, tz=None) -> datetime | None:
     if x is None:
         return None
     try:
         dt = datetime.fromisoformat(x)
+        if tz:
+            dt = dt.astimezone(tz)
         return dt
     except Exception:
         return None
