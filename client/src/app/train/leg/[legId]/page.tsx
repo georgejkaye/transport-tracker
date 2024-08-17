@@ -42,10 +42,12 @@ const Page = ({ params }: { params: { legId: string } }) => {
         }`}
       </h1>
       <div>
-        {leg.calls.map((call) => (
-          <div>{`${call.station.name} P${call.platform} ${maybeDateToTimeString(
-            call.actArr
-          )} ${maybeDateToTimeString(call.actDep)}`}</div>
+        {leg.calls.map((call, i) => (
+          <div key={i}>{`${call.station.name} P${
+            call.platform
+          } ${maybeDateToTimeString(call.actArr)} ${maybeDateToTimeString(
+            call.actDep
+          )}`}</div>
         ))}
       </div>
     </div>
