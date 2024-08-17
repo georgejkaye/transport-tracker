@@ -55,7 +55,7 @@ const LegRow = (props: { leg: TrainLeg }) => {
   let origin = getLegOrigin(leg)
   let destination = getLegDestination(leg)
   return (
-    <div className="flex flex-row gap-4">
+    <div className="flex flex-row gap-4 justify-center">
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex flex-row gap-2 lg:w-80 items-center">
           <Link className={linkStyle} href={`/train/leg/${leg.id}`}>
