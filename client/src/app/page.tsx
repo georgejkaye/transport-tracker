@@ -110,7 +110,7 @@ const TotalLegStats = (props: { legs: TrainLeg[] }) => {
   )
   let { hours, minutes } = durationToHoursAndMinutes(duration)
   return (
-    <div className="flex flex-row flex-wrap gap-4">
+    <div className="flex flex-row flex-wrap gap-4 justify-center">
       <TotalStat title="Legs" value={`${legs.length}`} />
       <TotalStat title="Distance" value={getMilesAndChainsString(distance)} />
       <TotalStat title="Duration" value={getDurationString(duration)} />
