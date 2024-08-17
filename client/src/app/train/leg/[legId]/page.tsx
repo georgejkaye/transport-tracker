@@ -2,7 +2,11 @@
 
 import { getTrainLeg } from "@/app/data"
 import { Loader } from "@/app/loader"
-import { TrainLeg } from "@/app/structs"
+import {
+  dateToTimeString,
+  maybeDateToTimeString,
+  TrainLeg,
+} from "@/app/structs"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
@@ -37,6 +41,13 @@ const Page = ({ params }: { params: { legId: string } }) => {
           leg.calls[leg.calls.length - 1].station.name
         }`}
       </h1>
+      <div>
+        {leg.calls.map((call) => (
+          <div>{`${call.station.name} P${call.platform} ${maybeDateToTimeString(
+            call.actArr
+          )} ${maybeDateToTimeString(call.actDep)}`}</div>
+        ))}
+      </div>
     </div>
   )
 }
