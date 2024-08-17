@@ -12,6 +12,7 @@ import {
   TrainLegCall,
   durationToHoursAndMinutes,
   getDurationString,
+  getMaybeDurationString,
 } from "./structs"
 import { getLegs } from "./data"
 import { Delay, Duration } from "./leg"
@@ -64,7 +65,7 @@ const LegRow = (props: { leg: TrainLeg }) => {
           <div className="text-xs lg:hidden">•</div>
           <div className="lg:px-2">{dateToShortString(leg.start)}</div>
           <div className="text-xs lg:hidden">•</div>
-          <div className="lg:w-28">{getDurationString(leg.duration)}</div>
+          <div className="lg:w-28">{getMaybeDurationString(leg.duration)}</div>
           <div className="text-xs lg:hidden">•</div>
           <div className="lg:w-32">{mileString}</div>
         </div>
@@ -100,7 +101,7 @@ const TotalLegStats = (props: { legs: TrainLeg[] }) => {
   let { distance, duration } = legs.reduce(
     ({ distance, duration }, cur) => {
       let newDistance = !cur.distance ? 0 : cur.distance
-      let newDuration = cur.duration
+      let newDuration = !cur.duration ? 0 : cur.duration
       return {
         distance: distance + newDistance,
         duration: duration + newDuration,

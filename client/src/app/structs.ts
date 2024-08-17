@@ -10,6 +10,9 @@ export const getDurationString = (duration: number) => {
   return `${hours}h ${minutes}m`
 }
 
+export const getMaybeDurationString = (duration: number | undefined) =>
+  !duration ? "" : getDurationString(duration)
+
 export const mileageToMilesAndChains = (miles: number) => ({
   miles: Math.floor(miles),
   chains: (miles * 80) % 80,
@@ -33,6 +36,9 @@ export const dateToTimeString = (date: Date) =>
     .getMinutes()
     .toString()
     .padStart(2, "0")}`
+
+export const maybeDateToTimeString = (date: Date | undefined) =>
+  !date ? "-" : dateToTimeString(date)
 
 export interface TrainStation {
   crs: string
@@ -197,7 +203,7 @@ export interface TrainLeg {
   stock: TrainLegSegment[]
   distance?: number
   // duration in minutes
-  duration: number
+  duration?: number
 }
 
 export const getLegOrigin = (leg: TrainLeg) => leg.calls[0]
@@ -210,8 +216,13 @@ export const responseToLeg = (data: any) => {
     let service = data["services"][id]
     services.set(id, responseToTrainService(service))
   }
-  let { hours, minutes } = parse(data["duration"])
-  let duration = (hours ? hours * 60 : 0) + (minutes ? minutes : 0)
+  var duration
+  try {
+    let { hours, minutes } = parse(data["duration"])
+    duration = (hours ? hours * 60 : 0) + (minutes ? minutes : 0)
+  } catch {
+    duration = undefined
+  }
   return {
     id: data["id"],
     start: new Date(data["leg_start"]),
