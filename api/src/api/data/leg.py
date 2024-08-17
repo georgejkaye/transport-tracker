@@ -90,15 +90,14 @@ def get_service_fields(service: TrainService) -> list[str | None]:
     ]
 
 
-def select_call_id_from_leg_call(call: Optional[Call], arr: bool) -> Optional[NoEscape]:
-    if call is None:
-        return None
+
+def select_call_id(service_id: str, run_date: datetime, station_crs: str, plan_arr : Optional[datetime], plan_dep: Optional[datetime], arr: bool) -> Optional[NoEscape]:
     if arr:
         field_stub = "arr"
-        plan = call.plan_arr
+        plan = plan_arr
     else:
         field_stub = "dep"
-        plan = call.plan_dep
+        plan = plan_dep
     column = f"plan_{field_stub}"
     if plan is None:
         condition = f"{column} IS NULL"
@@ -106,13 +105,17 @@ def select_call_id_from_leg_call(call: Optional[Call], arr: bool) -> Optional[No
         condition = f"{column} = '{plan.isoformat()}'"
     select_call_id_statement = f"""(
         SELECT call_id FROM Call
-        WHERE service_id = '{call.service_id}'
-        AND run_date = '{call.run_date.isoformat()}'
-        AND station_crs = '{call.station.crs}'
+        WHERE service_id = '{service_id}'
+        AND run_date = '{run_date.isoformat()}'
+        AND station_crs = '{station_crs}'
         AND {condition}
     )"""
     return NoEscape(select_call_id_statement)
 
+def select_call_id_from_leg_call(call: Optional[Call], arr: bool) -> Optional[NoEscape]:
+    if call is None:
+        return None
+    select_call_id(call.service_id, call.run_date, call.station.crs, call.plan_arr, call.plan_dep, arr)
 
 def insert_leg(conn: connection, cur: cursor, leg: Leg):
     services = [leg.service]
@@ -390,7 +393,7 @@ def select_legs(
                     EndStation.station_crs AS end_crs,
                     EndStation.station_name AS end_name,
                     Service.service_id, Service.run_date,
-                    EndCall.mileage - StartCall.mileage AS distance,
+                    EndLegCall.mileage - StartLegCall.mileage AS distance,
                     COALESCE(EndCall.act_arr, EndCall.plan_arr) -
                     COALESCE(StartCall.act_dep, StartCall.plan_dep) AS duration,
                     JSON_AGG(StockSegmentDetail.*) AS stocks
@@ -405,11 +408,13 @@ def select_legs(
                 ON EndCall.station_crs = EndStation.station_crs
                 INNER JOIN LegCall StartLegCall
                 ON StartLegCall.dep_call_id = StartCall.call_id
+                INNER JOIN LegCall EndLegCall
+                ON EndLegCall.arr_call_id = EndCall.call_id
                 INNER JOIN Service
                 ON StartCall.service_id = Service.service_id
                 AND StartCall.run_date = Service.run_date
                 GROUP BY
-                    leg_id, start_crs, start_name, end_crs, end_name,
+                    StartLegCall.leg_id, start_crs, start_name, end_crs, end_name,
                     Service.service_id, Service.run_date, distance, duration
             )
             SELECT leg_id, JSON_AGG(StockSegment.*) AS stocks
@@ -582,7 +587,7 @@ def select_legs(
             segment_end = ShortTrainStation(segment_end_crs, segment_end_name)
             segment_distance = optional_to_decimal(segment["distance"])
             segment_stocks: list[StockReport] = []
-            for stock in segment["stocks"]:
+            for stock in segment["stocks"][0]["stocks"]:
                 stock_class: Optional[int] = stock.get("stock_class")
                 stock_subclass: Optional[int] = stock.get("stock_subclass")
                 stock_number: Optional[int] = stock.get("stock_number")
