@@ -31,6 +31,14 @@ export const dateToShortString = (date: Date) =>
     .toString()
     .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`
 
+export const dateToLongString = (date: Date) =>
+  `${date.toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  })}`
+
 export const dateToTimeString = (date: Date) =>
   `${date.getHours().toString().padStart(2, "0")}:${date
     .getMinutes()
@@ -38,7 +46,7 @@ export const dateToTimeString = (date: Date) =>
     .padStart(2, "0")}`
 
 export const maybeDateToTimeString = (date: Date | undefined) =>
-  !date ? "-" : dateToTimeString(date)
+  !date ? "" : dateToTimeString(date)
 
 export interface TrainStation {
   crs: string
@@ -135,6 +143,29 @@ export const responseToTrainService = (data: any) => ({
   assocs: data["assocs"].map(responseToAssociatedTrainService),
 })
 
+const getServiceEndpointString = (stations: TrainStation[]) => {
+  var returnString = ""
+  for (let i = 0; i < stations.length; i++) {
+    let station = stations[i]
+    let stationName = station.name
+    if (i == 0) {
+      returnString = stationName
+    } else if (i == stations.length - 2) {
+      returnString = `& ${stationName}`
+    } else {
+      returnString = `, ${stationName}`
+    }
+  }
+  return returnString
+}
+
+export const getTrainServiceString = (service: TrainService) =>
+  `${service.headcode} ${dateToTimeString(
+    service.serviceStart
+  )} ${getServiceEndpointString(service.origins)} to ${getServiceEndpointString(
+    service.destinations
+  )}`
+
 export interface TrainStockReport {
   classNo?: number
   subclassNo?: number
@@ -188,17 +219,20 @@ export interface TrainLegSegment {
   stocks: TrainStockReport[]
 }
 
-export const responseToTrainLegSegment = (data: any) => ({
-  start: responseToTrainStation(data["start"]),
-  end: responseToTrainStation(data["end"]),
-  mileage: !data["mileage"] ? undefined : parseFloat(data["mileage"]),
-  stocks: data["stocks"].map(responseToTrainStockReport),
-})
+export const responseToTrainLegSegment = (data: any) => {
+  console.log(data)
+  return {
+    start: responseToTrainStation(data["start"]),
+    end: responseToTrainStation(data["end"]),
+    mileage: !data["mileage"] ? undefined : parseFloat(data["mileage"]),
+    stocks: data["stocks"].map(responseToTrainStockReport),
+  }
+}
 
 export interface TrainLeg {
   id: number
   start: Date
-  services: Map<string, TrainService>
+  services: TrainService[]
   calls: TrainLegCall[]
   stock: TrainLegSegment[]
   distance?: number
@@ -211,10 +245,10 @@ export const getLegDestination = (leg: TrainLeg) =>
   leg.calls[leg.calls.length - 1]
 
 export const responseToLeg = (data: any) => {
-  let services = new Map()
+  let services = []
   for (const id in data["services"]) {
     let service = data["services"][id]
-    services.set(id, responseToTrainService(service))
+    services.push(responseToTrainService(service))
   }
   var duration
   try {
