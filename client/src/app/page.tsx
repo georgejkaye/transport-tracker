@@ -21,7 +21,7 @@ import { linkStyle } from "./styles"
 import TrainOutlinedIcon from "@mui/icons-material/TrainOutlined"
 import { Loader } from "./loader"
 
-const StationLink = (props: { station: TrainStation }) => {
+export const StationLink = (props: { station: TrainStation }) => {
   let { station } = props
   return (
     <div className="w-56 flex-wrap">
@@ -86,7 +86,7 @@ const LegRow = (props: { leg: TrainLeg }) => {
   )
 }
 
-const TotalStat = (props: { title: string; value: string }) => {
+export const TotalStat = (props: { title: string; value: string }) => {
   let { title, value } = props
   return (
     <div className="flex flex-row">
@@ -138,14 +138,10 @@ const Page = () => {
           {!legs
             ? ""
             : legs.map((leg, i) => (
-                <>
-                  <LegRow leg={leg} key={i} />{" "}
-                  {i === legs.length - 1 ? (
-                    ""
-                  ) : (
-                    <hr className="h-px border-0 bg-gray-600" />
-                  )}
-                </>
+                <div className="flex flex-col gap-2" key={i}>
+                  <hr className="h-px border-0 bg-gray-600" />
+                  <LegRow leg={leg} />
+                </div>
               ))}
         </div>
       )}
