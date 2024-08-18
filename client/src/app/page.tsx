@@ -15,22 +15,11 @@ import {
   getMaybeDurationString,
 } from "./structs"
 import { getLegs } from "./data"
-import { Delay, Duration } from "./leg"
+import { Delay, Duration, StationLink, TotalStat } from "./leg"
 import Link from "next/link"
 import { linkStyle } from "./styles"
 import TrainOutlinedIcon from "@mui/icons-material/TrainOutlined"
 import { Loader } from "./loader"
-
-export const StationLink = (props: { station: TrainStation }) => {
-  let { station } = props
-  return (
-    <div className="w-56 flex-wrap">
-      <Link className={linkStyle} href={`/train/station/${station.crs}`}>
-        {station.name}
-      </Link>
-    </div>
-  )
-}
 
 const EndpointSection = (props: { call: TrainLegCall; origin: boolean }) => {
   let { call, origin } = props
@@ -82,16 +71,6 @@ const LegRow = (props: { leg: TrainLeg }) => {
       </div>
       {/* <Duration origin={origin.planDep} destination={destination.planArr} />
        */}
-    </div>
-  )
-}
-
-export const TotalStat = (props: { title: string; value: string }) => {
-  let { title, value } = props
-  return (
-    <div className="flex flex-row">
-      <div className="border-r border-gray-600 pr-2">{title}</div>
-      <div className="pl-2">{value}</div>
     </div>
   )
 }

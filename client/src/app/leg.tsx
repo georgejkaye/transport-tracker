@@ -1,4 +1,6 @@
-import { TrainLegCall } from "./structs"
+import Link from "next/link"
+import { TrainLegCall, TrainStation } from "./structs"
+import { linkStyle } from "./styles"
 
 export const getDelay = (plan: Date, act: Date) => {
   let delay = (act.getTime() - plan.getTime()) / 1000 / 60
@@ -60,4 +62,25 @@ export const Delay = (props: {
   let { delay, text } = getDelayOrUndefined(plan, act)
   let style = getDelayStyle(delay)
   return <div className={`${style} w-10 text-center`}>{text}</div>
+}
+
+export const StationLink = (props: { station: TrainStation }) => {
+  let { station } = props
+  return (
+    <div className="w-56 flex-wrap">
+      <Link className={linkStyle} href={`/train/station/${station.crs}`}>
+        {station.name}
+      </Link>
+    </div>
+  )
+}
+
+export const TotalStat = (props: { title: string; value: string }) => {
+  let { title, value } = props
+  return (
+    <div className="flex flex-row">
+      <div className="border-r border-gray-600 pr-2">{title}</div>
+      <div className="pl-2">{value}</div>
+    </div>
+  )
 }
