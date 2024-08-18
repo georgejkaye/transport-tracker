@@ -1,9 +1,8 @@
 "use client"
 
 import { getTrainLeg } from "@/app/data"
-import { Delay, getDelayOrUndefined } from "@/app/leg"
+import { Delay, getDelayOrUndefined, StationLink } from "@/app/leg"
 import { Loader } from "@/app/loader"
-import { StationLink, TotalStat } from "@/app/page"
 import {
   dateToLongString,
   dateToTimeString,
