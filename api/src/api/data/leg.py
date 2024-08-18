@@ -258,7 +258,7 @@ def select_legs(
 ) -> list[ShortLeg]:
     statement = f"""
         SELECT
-            Leg.leg_id, (legcalls -> 0 ->> 'plan_dep') AS leg_start,
+            Leg.leg_id, COALESCE(legcalls -> 0 ->> 'plan_dep', legcalls -> 0 ->> 'act_dep') AS leg_start,
             services, legcalls, stocks, Leg.distance,
             COALESCE(legcalls -> -1 ->> 'act_arr', legcalls -> -1 ->> 'plan_arr')::TIMESTAMP
             -
@@ -299,9 +299,9 @@ def select_legs(
                 ) StockDetails
                 ON LegCall.dep_call_id = StockDetails.start_call
                 { get_associations_statement("ArrCall") }
-                ORDER BY COALESCE(ArrCall.plan_arr, DepCall.plan_dep) ASC
+                ORDER BY COALESCE(ArrCall.plan_arr, ArrCall.act_arr, DepCall.plan_dep, DepCall.act_arr) ASC
             )
-            SELECT leg_id, JSON_AGG(legcall_info.* ORDER BY COALESCE(plan_arr, plan_dep) ASC) as legcalls
+            SELECT leg_id, JSON_AGG(legcall_info.* ORDER BY COALESCE(plan_arr, act_arr, plan_dep, act_dep) ASC) as legcalls
             FROM legcall_info
             GROUP BY leg_id
         ) legcall_table
@@ -330,7 +330,7 @@ def select_legs(
                         Service.service_id, Service.run_date, headcode, origins,
                         destinations, calls, Service.operator_id, operator_name,
                         Service.brand_id, brand_name, power,
-                        COALESCE(calls -> 0 ->> 'plan_arr', calls -> 0 ->> 'plan_dep') AS service_start
+                        COALESCE(calls -> 0 ->> 'plan_arr', calls -> 0 ->> 'act_arr', calls -> 0 ->> 'plan_dep', calls -> 0 ->> 'act_dep') AS service_start
                     FROM Service
                     INNER JOIN (
                         {get_endpoint_statement(True, "origins")}
@@ -352,7 +352,7 @@ def select_legs(
                             INNER JOIN Station
                             ON Call.station_crs = Station.station_crs
                             {get_associations_statement("Call")}
-                            ORDER BY COALESCE(plan_arr, plan_dep) ASC
+                            ORDER BY COALESCE(plan_arr, act_arr, plan_dep, act_dep) ASC
                         )
                         SELECT service_id, run_date, JSON_AGG(call_info.*) AS calls
                         FROM call_info
