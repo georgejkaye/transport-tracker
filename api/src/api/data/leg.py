@@ -585,10 +585,10 @@ def select_legs(
         for segment in stocks:
             segment_start_crs: str = segment["start_crs"]
             segment_start_name: str = segment["start_name"]
-            segment_start = ShortTrainStation(segment_start_crs, segment_start_name)
+            segment_start = ShortTrainStation(segment_start_name, segment_start_crs)
             segment_end_crs: str = segment["end_crs"]
             segment_end_name: str = segment["end_name"]
-            segment_end = ShortTrainStation(segment_end_crs, segment_end_name)
+            segment_end = ShortTrainStation(segment_end_name, segment_end_crs)
             segment_distance = optional_to_decimal(segment["distance"])
             segment_stocks: list[StockReport] = []
             for stock in segment["stocks"][0]["stocks"]:
