@@ -63,7 +63,7 @@ const LegCallRow = (props: { call: TrainLegCall }) => {
     <div className="flex flex-row gap-2 items-center">
       <div className="w-12">{call.station.crs}</div>
       <StationLink station={call.station} />
-      <div>{platformString}</div>
+      <div className="w-6 text-center">{platformString}</div>
       <div className="flex flex-col md:flex-row">
         <PlanActTime plan={call.planArr} act={call.actArr} />
         <PlanActTime plan={call.planDep} act={call.actDep} />
