@@ -292,6 +292,8 @@ def select_legs(
                         SELECT start_call, stock_class, stock_subclass,
                             stock_number, stock_cars
                         FROM StockReport
+                        INNER JOIN Call
+                        ON start_call = call_id
                     )
                     SELECT start_call, JSON_AGG(StockInfo.*) AS new_stock
                     FROM StockInfo
@@ -392,6 +394,7 @@ def select_legs(
                 )
                 SELECT
                     StartLegCall.leg_id,
+                    COALESCE(StartCall.plan_dep, StartCall.plan_arr, StartCall.act_dep, StartCall.act_arr) AS segment_start,
                     StartStation.station_crs AS start_crs,
                     StartStation.station_name AS start_name,
                     EndStation.station_crs AS end_crs,
@@ -418,10 +421,11 @@ def select_legs(
                 ON StartCall.service_id = Service.service_id
                 AND StartCall.run_date = Service.run_date
                 GROUP BY
-                    StartLegCall.leg_id, start_crs, start_name, end_crs, end_name,
-                    Service.service_id, Service.run_date, distance, duration
+                    StartLegCall.leg_id, segment_start, start_crs, start_name,
+                    end_crs, end_name, Service.service_id, Service.run_date,
+                    distance, duration
             )
-            SELECT leg_id, JSON_AGG(StockSegment.*) AS stocks
+            SELECT leg_id, JSON_AGG(StockSegment.* ORDER BY segment_start ASC) AS stocks
             FROM StockSegment
             GROUP BY leg_id
         ) StockDetails
@@ -582,6 +586,7 @@ def select_legs(
             )
             leg_calls.append(leg_call)
         leg_stock = []
+        print(stocks)
         for segment in stocks:
             segment_start_crs: str = segment["start_crs"]
             segment_start_name: str = segment["start_name"]
