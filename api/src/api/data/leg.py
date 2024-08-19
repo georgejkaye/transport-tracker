@@ -586,7 +586,6 @@ def select_legs(
             )
             leg_calls.append(leg_call)
         leg_stock = []
-        print(stocks)
         for segment in stocks:
             segment_start_crs: str = segment["start_crs"]
             segment_start_name: str = segment["start_name"]
