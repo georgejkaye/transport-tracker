@@ -67,7 +67,7 @@ export const Delay = (props: {
 export const ShortStationLink = (props: { station: TrainStation }) => {
   let { station } = props
   return (
-    <div className="w-36 md:w-48 lg:w-60 flex-wrap">
+    <div className="flex-1 flex-wrap">
       <Link className={linkStyle} href={`/train/station/${station.crs}`}>
         {station.name}
       </Link>

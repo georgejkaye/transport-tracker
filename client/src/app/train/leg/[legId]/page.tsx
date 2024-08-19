@@ -7,6 +7,7 @@ import {
   ShortStationLink,
   StationLink,
 } from "@/app/leg"
+import { Line } from "@/app/line"
 import { Loader } from "@/app/loader"
 import {
   dateToLongString,
@@ -38,6 +39,7 @@ const TrainLegServices = (props: { services: TrainService[] }) => {
   let { services } = props
   return (
     <div>
+      <h2 className="font-bold text-lg mb-2">Services</h2>
       <div className="flex flex-row">
         {services.map((service, i) => (
           <TrainLegService key={i} service={service} />
@@ -80,7 +82,7 @@ const LegCallRow = (props: { call: TrainLegCall }) => {
 const TrainLegStats = (props: { leg: TrainLeg }) => {
   let { leg } = props
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-row gap-2">
       <div>
         {!leg.distance ? (
           ""
@@ -88,6 +90,7 @@ const TrainLegStats = (props: { leg: TrainLeg }) => {
           <div>{getMilesAndChainsString(leg.distance)}</div>
         )}
       </div>
+      <div>•</div>
       <div>
         {!leg.duration ? "" : <div>{getDurationString(leg.duration)}</div>}
       </div>
@@ -99,13 +102,12 @@ const TrainLegCalls = (props: { calls: TrainLegCall[] }) => {
   let { calls } = props
   return (
     <div>
-      <h2>Calls</h2>
-
+      <h2 className="text-xl font-bold pb-2">Calls</h2>
       <div className="flex flex-col gap-2">
         {calls.map((call, i) => {
           return (
             <div className="flex flex-col gap-2" key={i}>
-              <hr className="h-px border-0 bg-gray-600" />
+              <Line />
               <LegCallRow call={call} />
             </div>
           )
@@ -141,14 +143,14 @@ const TrainStockReportLine = (props: { stock: TrainStockReport }) => {
   )
   let stockCarsText = !stock.cars ? "" : `${stock.cars} cars`
   return (
-    <div className="flex flex-row gap-2">
+    <li className="flex flex-row gap-2">
       <div className="">{stockDescriptionElements}</div>
       {stockCarsText === "" ? (
         ""
       ) : (
         <div className="px-1 border">{stockCarsText}</div>
       )}
-    </div>
+    </li>
   )
 }
 
@@ -156,14 +158,14 @@ const TrainLegStockSegment = (props: { segment: TrainLegSegment }) => {
   let { segment } = props
   return (
     <div>
-      <div>
+      <h3 className="font-bold text-lg pb-2">
         {segment.start.name} to {segment.end.name}
-      </div>
-      <div className="flex flex-col gap-2">
+      </h3>
+      <ul className="flex flex-col gap-2 list-disc">
         {segment.stocks.map((stock, i) => (
           <TrainStockReportLine key={i} stock={stock} />
         ))}
-      </div>
+      </ul>
     </div>
   )
 }
@@ -172,8 +174,8 @@ const TrainLegStockSegments = (props: { segments: TrainLegSegment[] }) => {
   let { segments } = props
   return (
     <div>
-      <h2>Rolling stock</h2>
-      <div className="flex flex-row">
+      <h2 className="font-bold text-xl pb-2">Rolling stock</h2>
+      <div className="flex flex-col gap-4">
         {segments.map((segment, i) => (
           <TrainLegStockSegment segment={segment} key={i} />
         ))}
@@ -206,15 +208,19 @@ const Page = ({ params }: { params: { legId: string } }) => {
     <Loader />
   ) : (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-bold">
+      <h1 className="text-2xl font-bold">
         {`${leg.calls[0].station.name} to ${
           leg.calls[leg.calls.length - 1].station.name
         }`}
       </h1>
-      <div>{dateToLongString(leg.start)}</div>
-      <TrainLegServices services={leg.services} />
+      <div className="text-xl">{dateToLongString(leg.start)}</div>
+      <Line />
       <TrainLegStats leg={leg} />
+      <Line />
+      <TrainLegServices services={leg.services} />
+      <Line />
       <TrainLegStockSegments segments={leg.stock} />
+      <Line />
       <TrainLegCalls calls={leg.calls} />
     </div>
   )
