@@ -1,7 +1,12 @@
 "use client"
 
 import { getTrainLeg } from "@/app/data"
-import { Delay, getDelayOrUndefined, StationLink } from "@/app/leg"
+import {
+  Delay,
+  getDelayOrUndefined,
+  ShortStationLink,
+  StationLink,
+} from "@/app/leg"
 import { Loader } from "@/app/loader"
 import {
   dateToLongString,
@@ -61,8 +66,8 @@ const LegCallRow = (props: { call: TrainLegCall }) => {
   let platformString = !call.platform ? "-" : call.platform
   return (
     <div className="flex flex-row gap-2 items-center">
-      <div className="w-12">{call.station.crs}</div>
-      <StationLink station={call.station} />
+      <div className="w-10 hidden lg:block">{call.station.crs}</div>
+      <ShortStationLink station={call.station} />
       <div className="w-6 text-center">{platformString}</div>
       <div className="flex flex-col md:flex-row">
         <PlanActTime plan={call.planArr} act={call.actArr} />
