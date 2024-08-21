@@ -122,7 +122,7 @@ const TrainStockReportLine = (props: { stock: TrainStockReport }) => {
   let stockDescription = !stock.classNo ? (
     ""
   ) : (
-    <Link href={`trains/stock/${stock.classNo}`}>
+    <Link href={`/train/stock/${stock.classNo}`}>
       {`Class ${stock.classNo}${
         !stock.subclassNo ? "" : `/${stock.subclassNo}`
       }`}
@@ -131,7 +131,7 @@ const TrainStockReportLine = (props: { stock: TrainStockReport }) => {
   let stockNumber = !stock.stockNo ? (
     ""
   ) : (
-    <Link href={`trains/stock/unit/${stock.stockNo}`}>{stock.stockNo}</Link>
+    <Link href={`/train/stock/unit/${stock.stockNo}`}>{stock.stockNo}</Link>
   )
   let stockDescriptionElements = stock.stockNo ? (
     <div className="flex flex-row gap-2">
