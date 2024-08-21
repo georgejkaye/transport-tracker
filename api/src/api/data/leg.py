@@ -119,7 +119,7 @@ def select_call_id(service_id: str, run_date: datetime, station_crs: str, plan_a
 def select_call_id_from_leg_call(call: Optional[Call], arr: bool) -> Optional[NoEscape]:
     if call is None:
         return None
-    select_call_id(call.service_id, call.run_date, call.station.crs, call.plan_arr, call.plan_dep, arr)
+    return select_call_id(call.service_id, call.run_date, call.station.crs, call.plan_arr, call.plan_dep, arr)
 
 def insert_leg(conn: connection, cur: cursor, leg: Leg):
     services = [leg.service]
