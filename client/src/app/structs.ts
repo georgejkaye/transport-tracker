@@ -58,6 +58,48 @@ export const responseToTrainStation = (data: any) => ({
   name: data["name"],
 })
 
+export interface OperatorData {
+  name: string
+  code: string
+}
+
+export const responseToOperatorData = (data: any) => ({
+  name: data["name"],
+  code: data["code"],
+})
+
+export interface BrandData {
+  name: string
+  code: string
+}
+
+export const responseToBrandData = (data: any) => ({
+  name: data["name"],
+  code: data["code"],
+})
+
+export interface TrainStationData {
+  crs: string
+  name: string
+  operator: OperatorData
+  brand?: BrandData
+  starts: number
+  finishes: number
+  intermediates: number
+  img?: string
+}
+
+export const responseToTrainStationData = (data: any) => ({
+  name: data["name"],
+  crs: data["crs"],
+  operator: responseToOperatorData(data["operator"]),
+  brand: !data["brand"] ? undefined : responseToBrandData(data["brand"]),
+  starts: data["starts"],
+  finishes: data["finishes"],
+  intermediates: data["passes"],
+  img: !data["img"] ? undefined : data["img"],
+})
+
 export const enum AssociationType {
   DIVIDES_TO,
   DIVIDES_FROM,

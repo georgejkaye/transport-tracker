@@ -2,8 +2,10 @@ import axios, { AxiosError } from "axios"
 import {
   responseToLeg,
   responseToTrainStation,
+  responseToTrainStationData,
   TrainLeg,
   TrainStation,
+  TrainStationData,
 } from "./structs"
 
 export const getLegs = async (): Promise<TrainLeg[]> => {
@@ -41,9 +43,23 @@ export const getTrainStation = async (
   try {
     let response = await axios.get(endpoint)
     let data = response.data
-    console.log(data)
     let station = responseToTrainStation(data)
     return station
+  } catch (e) {
+    console.log(e)
+    return undefined
+  }
+}
+
+export const getTrainStations = async (): Promise<
+  TrainStationData[] | undefined
+> => {
+  let endpoint = `/api/train/stations`
+  try {
+    let response = await axios.get(endpoint)
+    let data = response.data
+    let stations = data.map(responseToTrainStationData)
+    return stations
   } catch (e) {
     console.log(e)
     return undefined

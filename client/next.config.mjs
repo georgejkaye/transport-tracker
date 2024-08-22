@@ -9,6 +9,14 @@ const nextConfig = {
     ]
   },
   output: "standalone",
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "www.georgejkaye.com",
+      },
+    ],
+  },
 }
 
 export default nextConfig
