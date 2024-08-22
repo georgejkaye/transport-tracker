@@ -447,6 +447,7 @@ def get_stock(
         if stock_end_opt is None:
             segment_end = last_call
             segment_end_index = len(calls) - 1
+            next_remaining_calls = []
         else:
             (stock_end, segment_end_index, next_remaining_calls) = stock_end_opt
         stock_calls = [current_call] + remaining_calls[0 : segment_end_index + 1]

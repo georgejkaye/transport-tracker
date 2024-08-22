@@ -235,6 +235,73 @@ def compare_crs(a: str, b: str) -> bool:
     return a.upper() == b.upper()
 
 
+@dataclass
+class StationData:
+    name: str
+    crs: str
+    starts: int
+    finishes: int
+    passes: int
+
+
+def select_stations() -> list[StationData]:
+    statement = """
+        SELECT
+            Station.station_crs, Station.station_name,
+            COALESCE(starts, 0) AS starts, COALESCE(finishes, 0) AS finishes,
+            COALESCE(COALESCE(calls, 0) - COALESCE(starts, 0) - COALESCE(finishes, 0), 0) AS intermediates
+        FROM Station
+        LEFT JOIN (
+            SELECT station_crs, COALESCE(COUNT(*), '0') AS starts
+            FROM Leg
+            INNER JOIN (
+                SELECT
+                    Leg.leg_id,
+                    MIN(COALESCE(call.plan_dep, call.act_dep)) as last
+                FROM Leg
+                INNER JOIN LegCall
+                ON Leg.leg_id = LegCall.leg_id
+                INNER JOIN Call
+                ON Call.call_id = LegCall.arr_call_id
+                OR Call.call_id = LegCall.dep_call_id
+                GROUP BY Leg.leg_id
+            ) LegFirstCall
+            ON LegFirstCall.leg_id = Leg.leg_id
+            INNER JOIN Call
+            ON LegFirstCall.last = COALESCE(Call.plan_dep, Call.act_dep)
+            GROUP BY Call.station_crs
+        ) StationStart
+        ON Station.station_crs = StationStart.station_crs
+        LEFT JOIN (
+            SELECT station_crs, COUNT(*) AS finishes
+            FROM Leg
+            INNER JOIN (
+                SELECT
+                    Leg.leg_id,
+                    MAX(COALESCE(call.plan_arr, call.act_arr)) as last
+                FROM Leg
+                INNER JOIN LegCall
+                ON Leg.leg_id = LegCall.leg_id
+                INNER JOIN Call
+                ON Call.call_id = LegCall.arr_call_id
+                OR Call.call_id = LegCall.dep_call_id
+                GROUP BY Leg.leg_id
+            ) LegLastCall
+            ON LegLastCall.leg_id = Leg.leg_id
+            INNER JOIN Call
+            ON LegLastCall.last = COALESCE(Call.plan_arr, Call.act_arr)
+            GROUP BY Call.station_crs
+        ) StationFinish
+        ON Station.station_crs = StationFinish.station_crs
+        LEFT JOIN (
+            SELECT station_crs, COUNT(*) AS calls
+            FROM Call
+            GROUP BY station_crs
+        ) StationCall
+        ON Station.station_crs = StationCall.station_crs
+"""
+
+
 if __name__ == "__main__":
     (conn, cur) = connect()
     populate_train_stations(conn, cur)
