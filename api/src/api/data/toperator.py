@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Optional
 from psycopg2._psycopg import cursor
 
@@ -14,3 +15,15 @@ def select_operator_id(cur: cursor, operator_name: str) -> Optional[str]:
         return None
     row = rows[0]
     return row[0]
+
+
+@dataclass
+class OperatorData:
+    code: str
+    name: str
+
+
+@dataclass
+class BrandData:
+    code: str
+    name: str

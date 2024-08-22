@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 from api.data.core import get_tag_text, make_get_request, prefix_namespace
 from api.data.credentials import get_api_credentials
 from api.data.database import connect, disconnect, insert
+from api.data.toperator import BrandData, OperatorData
 from api.data.train import (
     generate_natrail_token,
     get_kb_url,
@@ -239,15 +240,20 @@ def compare_crs(a: str, b: str) -> bool:
 class StationData:
     name: str
     crs: str
+    operator: OperatorData
+    brand: Optional[BrandData]
+    img: str
     starts: int
     finishes: int
     passes: int
 
 
-def select_stations() -> list[StationData]:
+def select_stations(cur: cursor) -> list[StationData]:
     statement = """
         SELECT
-            Station.station_crs, Station.station_name,
+            Station.station_name, Station.station_crs, Operator.operator_id,
+            Operator.operator_name, Brand.brand_id, Brand.brand_name,
+            Station.station_img,
             COALESCE(starts, 0) AS starts, COALESCE(finishes, 0) AS finishes,
             COALESCE(COALESCE(calls, 0) - COALESCE(starts, 0) - COALESCE(finishes, 0), 0) AS intermediates
         FROM Station
@@ -299,7 +305,30 @@ def select_stations() -> list[StationData]:
             GROUP BY station_crs
         ) StationCall
         ON Station.station_crs = StationCall.station_crs
-"""
+        LEFT JOIN Operator ON Operator.operator_id = Station.station_operator
+        LEFT JOIN Brand ON Brand.brand_id = Station.station_brand
+        ORDER BY Station.station_name ASC
+    """
+    cur.execute(statement)
+    rows = cur.fetchall()
+    stations = []
+    for row in rows:
+        if row[4] is None:
+            brand_data = None
+        else:
+            brand_data = BrandData(row[4], row[5])
+        data = StationData(
+            row[0],
+            row[1],
+            OperatorData(row[2], row[3]),
+            brand_data,
+            row[6],
+            int(row[7]),
+            int(row[8]),
+            int(row[9]),
+        )
+        stations.append(data)
+    return stations
 
 
 if __name__ == "__main__":
