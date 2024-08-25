@@ -331,6 +331,82 @@ def select_stations(cur: cursor) -> list[StationData]:
     return stations
 
 
+@dataclass
+class LegAtStation:
+    id: str
+    run_date: datetime
+    origin: ShortTrainStation
+    destination: ShortTrainStation
+    plan_arr: Optional[datetime]
+    act_arr: Optional[datetime]
+    plan_dep: Optional[datetime]
+    act_dep: Optional[datetime]
+
+
+@dataclass
+class DetailedStationData:
+    name: str
+    crs: str
+    legs: list[LegAtStation]
+    starts: int
+    finishes: int
+    passes: int
+
+
+def select_station(station_crs: str) -> DetailedStationData:
+    statement = """
+        SELECT
+            Station.station_crs, station_name,
+            Operator.operator_id, Operator.operator_name,
+            Brand.brand_id, Brand.brand_name
+            StationLeg.legs,
+            starts, finishes, calls
+        FROM Station
+        INNER JOIN Operator
+        ON Station.station_operator = Operator.operator_id
+        LEFT JOIN Brand
+        ON Station.station_brand = Brand.brand_id
+        LEFT JOIN (
+            SELECT leg.leg_id, startdetails.station_crs AS start_crs, enddetails.station_crs AS end_crs, calls.calls FROM leg INNER JOIN (SELECT leg.leg_id, call.station_crs
+        FROM leg
+        INNER JOIN (
+            SELECT leg.leg_id, MAX(COALESCE(plan_dep, plan_arr, act_dep, act_arr))
+            FROM station
+            INNER JOIN call
+            ON call.station_crs = station.station_crs
+            INNER JOIN legcall
+            ON call.call_id = legcall.arr_call_id
+            OR call.call_id = legcall.dep_call_id
+            INNER JOIN leg
+            ON legcall.leg_id = leg.leg_id
+            GROUP BY leg.leg_id
+        ) lasts
+        ON leg.leg_id = lasts.leg_id
+        INNER JOIN Call
+        ON lasts.max = COALESCE(call.plan_dep, plan_arr, act_dep, act_arr)) enddetails ON leg.leg_id = enddetails.leg_id INNER JOIN (SELECT leg.leg_id, call.station_crs
+        FROM leg
+        INNER JOIN (
+            SELECT leg.leg_id, MIN(COALESCE(plan_dep, plan_arr, act_dep, act_arr))
+            FROM station
+            INNER JOIN call
+            ON call.station_crs = station.station_crs
+            INNER JOIN legcall
+            ON call.call_id = legcall.arr_call_id
+            OR call.call_id = legcall.dep_call_id
+            INNER JOIN leg
+            ON legcall.leg_id = leg.leg_id
+            GROUP BY leg.leg_id
+        ) firsts
+        ON leg.leg_id = firsts.leg_id
+        INNER JOIN Call
+        ON firsts.min = COALESCE(call.plan_dep, plan_arr, act_dep, act_arr)) startdetails ON leg.leg_id = startdetails.leg_id
+INNER JOIN (SELECT leg_id, ARRAY_AGG(call.station_crs) AS calls FROM call INNER JOIN legcall ON legcall.arr_call_id = call.call_id OR legcall.dep_call_id = call.call_id GROUP BY legcall.leg_id) calls ON calls.leg_id = leg.leg_id WHERE 'WYT' = ANY(calls.calls);
+
+        )
+        WHERE station_crs = %(crs)s
+    """
+
+
 if __name__ == "__main__":
     (conn, cur) = connect()
     populate_train_stations(conn, cur)
