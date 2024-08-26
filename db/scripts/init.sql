@@ -53,6 +53,7 @@ CREATE TABLE Station (
     station_name TEXT NOT NULL,
     station_operator CHARACTER(2) NOT NULL,
     station_brand CHARACTER(2),
+    station_img TEXT,
     FOREIGN KEY (station_operator) REFERENCES Operator(operator_id),
     FOREIGN KEY (station_brand) REFERENCES Brand(brand_id)
 );
