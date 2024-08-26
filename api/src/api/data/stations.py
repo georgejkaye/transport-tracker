@@ -241,6 +241,7 @@ class LegAtStation:
     id: int
     origin: ShortTrainStation
     destination: ShortTrainStation
+    stop_time: datetime
     plan_arr: Optional[datetime]
     act_arr: Optional[datetime]
     plan_dep: Optional[datetime]
@@ -332,6 +333,7 @@ def select_stations(
                     StartDetails.station_crs AS start_crs,
                     EndDetails.station_name AS end_name,
                     EndDetails.station_crs AS end_crs,
+                    COALESCE(plan_arr, plan_dep, act_arr, act_dep) AS stop_time,
                     plan_arr, act_arr, plan_dep, act_dep
                 FROM Call
                 INNER JOIN LegCall
@@ -380,7 +382,8 @@ def select_stations(
                 ) EndDetails
                 ON LegCall.leg_id = EndDetails.leg_id
                 INNER JOIN (
-                    SELECT leg_id, ARRAY_AGG(call.station_crs) AS calls
+                    SELECT
+                        leg_id, ARRAY_AGG(call.station_crs) AS calls
                     FROM Call
                     INNER JOIN LegCall
                     ON LegCall.arr_call_id = Call.call_id
@@ -416,6 +419,7 @@ def select_stations(
                     leg_row["leg_id"],
                     ShortTrainStation(leg_row["start_name"], leg_row["start_crs"]),
                     ShortTrainStation(leg_row["end_name"], leg_row["end_crs"]),
+                    datetime.fromisoformat(leg_row["stop_time"]),
                     str_or_null_to_datetime(leg_row["plan_arr"]),
                     str_or_null_to_datetime(leg_row["act_arr"]),
                     str_or_null_to_datetime(leg_row["plan_dep"]),
