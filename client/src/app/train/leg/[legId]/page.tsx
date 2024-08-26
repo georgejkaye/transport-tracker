@@ -4,6 +4,7 @@ import { getTrainLeg } from "@/app/data"
 import {
   Delay,
   getDelayOrUndefined,
+  PlanActTime,
   ShortStationLink,
   StationLink,
 } from "@/app/leg"
@@ -45,20 +46,6 @@ const TrainLegServices = (props: { services: TrainService[] }) => {
           <TrainLegService key={i} service={service} />
         ))}
       </div>
-    </div>
-  )
-}
-
-const PlanActTime = (props: { plan?: Date; act?: Date }) => {
-  let { plan, act } = props
-  let { delay, text } = getDelayOrUndefined(plan, act)
-  return (
-    <div className="flex flex-row">
-      <div className="w-14 text-center">{maybeDateToTimeString(plan)}</div>
-      <div className="w-14 text-center font-bold">
-        {maybeDateToTimeString(act)}
-      </div>
-      <Delay plan={plan} act={act} />
     </div>
   )
 }

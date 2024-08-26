@@ -15,29 +15,17 @@ import {
   getMaybeDurationString,
 } from "./structs"
 import { getLegs } from "./data"
-import { Delay, Duration, StationLink, TotalStat } from "./leg"
+import {
+  Delay,
+  Duration,
+  EndpointSection,
+  LegIconLink,
+  StationLink,
+  TotalStat,
+} from "./leg"
 import Link from "next/link"
 import { linkStyle } from "./styles"
-import TrainOutlinedIcon from "@mui/icons-material/TrainOutlined"
 import { Loader } from "./loader"
-
-const EndpointSection = (props: { call: TrainLegCall; origin: boolean }) => {
-  let { call, origin } = props
-  let planTime = origin ? call.planDep : call.planArr
-  let actTime = origin ? call.actDep : call.actArr
-  return (
-    <div className="flex flex-row">
-      <StationLink station={call.station} />
-      <div className="flex flex-row gap-2">
-        <div className="w-10 hidden">
-          {!planTime ? "" : dateToTimeString(planTime)}
-        </div>
-        <div className="w-10">{!actTime ? "" : dateToTimeString(actTime)}</div>
-        <Delay plan={planTime} act={actTime} />
-      </div>
-    </div>
-  )
-}
 
 const LegRow = (props: { leg: TrainLeg }) => {
   let { leg } = props
@@ -48,9 +36,7 @@ const LegRow = (props: { leg: TrainLeg }) => {
     <div className="flex flex-row gap-4 justify-center">
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex flex-row gap-2 lg:w-80 items-center">
-          <Link className={linkStyle} href={`/train/leg/${leg.id}`}>
-            <TrainOutlinedIcon />
-          </Link>
+          <LegIconLink id={leg.id} />
           <div className="text-xs lg:hidden">•</div>
           <div className="lg:px-2">{dateToShortString(leg.start)}</div>
           <div className="text-xs lg:hidden">•</div>

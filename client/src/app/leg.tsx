@@ -1,6 +1,43 @@
 import Link from "next/link"
-import { TrainLegCall, TrainStation } from "./structs"
+import {
+  dateToTimeString,
+  maybeDateToTimeString,
+  TrainLeg,
+  TrainLegCall,
+  TrainStation,
+} from "./structs"
 import { linkStyle } from "./styles"
+import TrainOutlinedIcon from "@mui/icons-material/TrainOutlined"
+
+export const LegIconLink = (props: { id: number }) => {
+  let { id } = props
+  return (
+    <Link className={linkStyle} href={`/train/leg/${id}`}>
+      <TrainOutlinedIcon />
+    </Link>
+  )
+}
+
+export const EndpointSection = (props: {
+  call: TrainLegCall
+  origin: boolean
+}) => {
+  let { call, origin } = props
+  let planTime = origin ? call.planDep : call.planArr
+  let actTime = origin ? call.actDep : call.actArr
+  return (
+    <div className="flex flex-row">
+      <StationLink station={call.station} />
+      <div className="flex flex-row gap-2">
+        <div className="w-10 hidden">
+          {!planTime ? "" : dateToTimeString(planTime)}
+        </div>
+        <div className="w-10">{!actTime ? "" : dateToTimeString(actTime)}</div>
+        <Delay plan={planTime} act={actTime} />
+      </div>
+    </div>
+  )
+}
 
 export const getDelay = (plan: Date, act: Date) => {
   let delay = (act.getTime() - plan.getTime()) / 1000 / 60
@@ -10,6 +47,19 @@ export const getDelay = (plan: Date, act: Date) => {
     delay,
     text: delayString,
   }
+}
+
+export const PlanActTime = (props: { plan?: Date; act?: Date }) => {
+  let { plan, act } = props
+  return (
+    <div className="flex flex-row">
+      <div className="w-14 text-center">{maybeDateToTimeString(plan)}</div>
+      <div className="w-14 text-center font-bold">
+        {maybeDateToTimeString(act)}
+      </div>
+      <Delay plan={plan} act={act} />
+    </div>
+  )
 }
 
 export const getDelayOrUndefined = (
@@ -54,6 +104,8 @@ export const Duration = (props: {
   return <div className="lg:w-32">{durationString}</div>
 }
 
+export const delayWidth = "w-10"
+
 export const Delay = (props: {
   plan: Date | undefined
   act: Date | undefined
@@ -61,7 +113,7 @@ export const Delay = (props: {
   let { plan, act } = props
   let { delay, text } = getDelayOrUndefined(plan, act)
   let style = getDelayStyle(delay)
-  return <div className={`${style} w-10 text-center`}>{text}</div>
+  return <div className={`${style} ${delayWidth} text-center`}>{text}</div>
 }
 
 export const ShortStationLink = (props: { station: TrainStation }) => {
