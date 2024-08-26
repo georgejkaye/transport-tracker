@@ -391,7 +391,10 @@ def select_stations(
                     GROUP BY LegCall.leg_id
                 ) Calls
                 ON Calls.leg_id = LegCall.leg_id
-            ) SELECT station_crs, JSON_AGG(legdetails.*) AS legs FROM legdetails
+            ) SELECT
+                station_crs,
+                JSON_AGG(legdetails.* ORDER BY stop_time DESC) AS legs
+            FROM legdetails
             GROUP BY station_crs
         ) LegDetails
         ON LegDetails.station_crs = station.station_crs
