@@ -12,6 +12,7 @@ import uvicorn
 from api.data.stations import (
     ShortTrainStation,
     StationData,
+    select_station,
     select_station_from_crs,
     select_stations,
 )
@@ -61,13 +62,13 @@ async def get_train_stations() -> list[StationData]:
 
 
 @app.get("/train/station/{station_crs}", summary="Get train station")
-async def get_train_station(station_crs: str) -> ShortTrainStation:
+async def get_train_station(station_crs: str) -> StationData:
     (conn, cur) = connect()
-    station = select_station_from_crs(cur, station_crs)
+    station = select_station(cur, station_crs)
     disconnect(conn, cur)
     if station is None:
         raise HTTPException(status_code=404, detail="Station not found")
-    return ShortTrainStation(station.name, station.crs)
+    return station
 
 
 def start():
