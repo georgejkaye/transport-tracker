@@ -11,11 +11,11 @@ station_values = []
 (conn, cur) = connect()
 statement = "UPDATE Station SET station_img = %(img)s WHERE station_crs = %(crs)s"
 for file in files:
-    print(file)
     if "webp" in file:
         file_name = os.path.basename(file).split(".")[0]
         crs = file_name.upper()
         url = f"{sys.argv[2]}/{file}"
+        print(f"Inserting image for {crs}...")
         cur.execute(statement, {"img": url, "crs": crs})
 conn.commit()
 disconnect(conn, cur)
