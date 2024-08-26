@@ -55,7 +55,7 @@ const LegCallRow = (props: { call: TrainLegCall }) => {
   let platformString = !call.platform ? "-" : call.platform
   return (
     <div className="flex flex-row gap-2 items-center">
-      <div className="w-10 hidden lg:block">{call.station.crs}</div>
+      <div className="w-14 hidden md:block">{call.station.crs}</div>
       <ShortStationLink station={call.station} />
       <div className="w-6 text-center">{platformString}</div>
       <div className="flex flex-col md:flex-row">
