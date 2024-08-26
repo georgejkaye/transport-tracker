@@ -36,14 +36,14 @@ export const getTrainLeg = async (
   }
 }
 
-export const getTrainStation = async (
+export const getTrainStationData = async (
   stationCrs: string
-): Promise<TrainStation | undefined> => {
+): Promise<TrainStationData | undefined> => {
   let endpoint = `/api/train/station/${stationCrs}`
   try {
     let response = await axios.get(endpoint)
     let data = response.data
-    let station = responseToTrainStation(data)
+    let station = responseToTrainStationData(data)
     return station
   } catch (e) {
     console.log(e)

@@ -78,11 +78,34 @@ export const responseToBrandData = (data: any) => ({
   code: data["code"],
 })
 
+export interface TrainStationLegData {
+  id: number
+  origin: TrainStation
+  destination: TrainStation
+  stopTime: Date
+  planArr?: Date
+  actArr?: Date
+  planDep?: Date
+  actDep?: Date
+}
+
+export const responseToTrainStationLegData = (data: any) => ({
+  id: data["id"],
+  origin: responseToTrainStation(data["origin"]),
+  destination: responseToTrainStation(data["destination"]),
+  stopTime: responseToDate(data["stop_time"]),
+  planArr: responseToDate(data["plan_arr"]),
+  actArr: responseToDate(data["act_arr"]),
+  planDep: responseToDate(data["plan_dep"]),
+  actDep: responseToDate(data["act_dep"]),
+})
+
 export interface TrainStationData {
   crs: string
   name: string
   operator: OperatorData
   brand?: BrandData
+  legs: TrainStationLegData[]
   starts: number
   finishes: number
   intermediates: number
@@ -94,6 +117,7 @@ export const responseToTrainStationData = (data: any) => ({
   crs: data["crs"],
   operator: responseToOperatorData(data["operator"]),
   brand: !data["brand"] ? undefined : responseToBrandData(data["brand"]),
+  legs: data["legs"].map(responseToTrainStationLegData),
   starts: data["starts"],
   finishes: data["finishes"],
   intermediates: data["passes"],
@@ -262,7 +286,6 @@ export interface TrainLegSegment {
 }
 
 export const responseToTrainLegSegment = (data: any) => {
-  console.log(data)
   return {
     start: responseToTrainStation(data["start"]),
     end: responseToTrainStation(data["end"]),
