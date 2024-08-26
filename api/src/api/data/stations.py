@@ -238,7 +238,7 @@ def compare_crs(a: str, b: str) -> bool:
 
 @dataclass
 class LegAtStation:
-    id: str
+    id: int
     origin: ShortTrainStation
     destination: ShortTrainStation
     plan_arr: Optional[datetime]
