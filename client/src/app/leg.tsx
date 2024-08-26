@@ -127,11 +127,18 @@ export const ShortStationLink = (props: { station: TrainStation }) => {
   )
 }
 
-export const StationLink = (props: { station: TrainStation }) => {
-  let { station } = props
+export const StationLink = (props: {
+  station: TrainStation
+  style?: string
+}) => {
+  let { station, style } = props
+  let styleText = !style ? "" : style
   return (
     <div className="w-56 flex-wrap">
-      <Link className={linkStyle} href={`/train/station/${station.crs}`}>
+      <Link
+        className={`${linkStyle} ${styleText}`}
+        href={`/train/station/${station.crs}`}
+      >
         {station.name}
       </Link>
     </div>
