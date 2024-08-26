@@ -7,6 +7,7 @@ import { Loader } from "@/app/loader"
 import {
   dateToShortString,
   dateToTimeString,
+  maybeDateToTimeString,
   TrainStation,
   TrainStationData,
   TrainStationLegData,
@@ -20,9 +21,16 @@ import {
   EndpointSection,
   LegIconLink,
   PlanActTime,
+  StationLink,
 } from "@/app/leg"
 import { linkStyle } from "@/app/styles"
 import Link from "next/link"
+import {
+  LineDashed,
+  StartTerminusSymbol,
+  StationSymbol,
+  EndTerminusSymbol,
+} from "@/app/svgs"
 
 const StationLegEndpoint = (props: {
   crs: string
@@ -64,8 +72,11 @@ const StationLegEndpoint = (props: {
   )
 }
 
-const StationLeg = (props: { crs: string; leg: TrainStationLegData }) => {
-  let { crs, leg } = props
+const StationLeg = (props: {
+  station: TrainStation
+  leg: TrainStationLegData
+}) => {
+  let { station, leg } = props
   return (
     <div className="flex flex-col md:flex-row gap-2 justify-center items-center">
       <div className="flex flex-row gap-2 items-center">
@@ -74,35 +85,72 @@ const StationLeg = (props: { crs: string; leg: TrainStationLegData }) => {
           {dateToShortString(leg.stopTime)}
         </div>
       </div>
-      <div className="flex flex-col md:flex-row gap-2">
-        <StationLegEndpoint
-          crs={crs}
-          station={leg.origin}
-          origin={true}
-          plan={leg.planArr}
-          act={leg.actArr}
-        />
-        <StationLegEndpoint
-          crs={crs}
-          station={leg.destination}
-          origin={false}
-          plan={leg.planDep}
-          act={leg.actDep}
-        />
+      <div className="flex flex-col md:flex-row">
+        {leg.origin.crs === station.crs ? (
+          ""
+        ) : (
+          <>
+            <div className="flex flex-row items-center gap-2">
+              <StartTerminusSymbol lineColour="#000000" />
+              <StationLink station={leg.origin} />
+            </div>
+            <div className="flex flex-row items-center gap-2">
+              <LineDashed lineColour="#000000" />
+              <div className="text-xs">Some stops...</div>
+            </div>
+          </>
+        )}
+        <div className="flex flex-row items-center gap-2">
+          {leg.origin.crs === station.crs ? (
+            <StartTerminusSymbol lineColour="#000000" />
+          ) : leg.destination.crs === station.crs ? (
+            <EndTerminusSymbol lineColour="#000000" />
+          ) : (
+            <StationSymbol lineColour="#000000" />
+          )}
+          <StationLink style="font-bold" station={station} />
+          <div className="flex flex-col">
+            <div className="flex flex-row">
+              <div className="w-16">{maybeDateToTimeString(leg.planArr)}</div>
+              <div className="w-16">{maybeDateToTimeString(leg.actArr)}</div>
+            </div>
+            <div className="flex flex-row">
+              <div className="w-16">{maybeDateToTimeString(leg.planDep)}</div>
+              <div className="w-16">{maybeDateToTimeString(leg.actDep)}</div>
+            </div>
+          </div>
+        </div>
+        {leg.destination.crs === station.crs ? (
+          ""
+        ) : (
+          <>
+            <div className="flex flex-row items-center gap-2">
+              <LineDashed lineColour="#000000" />
+              <div className="text-xs">Some stops...</div>
+            </div>
+            <div className="flex flex-row items-center gap-2">
+              <EndTerminusSymbol lineColour="#000000" />
+              <StationLink station={leg.destination} />
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
 }
 
-const StationLegs = (props: { crs: string; legs: TrainStationLegData[] }) => {
-  let { crs, legs } = props
+const StationLegs = (props: {
+  station: TrainStation
+  legs: TrainStationLegData[]
+}) => {
+  let { station, legs } = props
   return (
     <div className="flex flex-col gap-2">
       <h2 className="font-bold text-xl">Leg calls</h2>
       {legs.map((leg, i) => (
         <div key={i} className="flex flex-col gap-2">
           <Line />
-          <StationLeg crs={crs} leg={leg} />
+          <StationLeg station={station} leg={leg} />
         </div>
       ))}
     </div>
@@ -146,7 +194,7 @@ const Page = ({ params }: { params: { crs: string } }) => {
           />
         </>
       )}
-      <StationLegs crs={station.crs} legs={station.legs} />
+      <StationLegs station={station} legs={station.legs} />
     </div>
   )
 }
