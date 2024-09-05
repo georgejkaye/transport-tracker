@@ -96,7 +96,9 @@ const StationLeg = (props: {
             </div>
             <div className="flex flex-row items-center gap-2">
               <LineDashed lineColour="#000000" />
-              <div className="text-xs">Some stops...</div>
+              <div className="text-xs">
+                {!leg.before ? "Some stops" : `${leg.before - 1} stops`}
+              </div>
             </div>
           </>
         )}
@@ -126,7 +128,9 @@ const StationLeg = (props: {
           <>
             <div className="flex flex-row items-center gap-2">
               <LineDashed lineColour="#000000" />
-              <div className="text-xs">Some stops...</div>
+              <div className="text-xs">
+                {!leg.after ? "Some stops" : `${leg.after - 1} stops`}
+              </div>
             </div>
             <div className="flex flex-row items-center gap-2">
               <EndTerminusSymbol lineColour="#000000" />

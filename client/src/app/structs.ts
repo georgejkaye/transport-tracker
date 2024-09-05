@@ -87,6 +87,8 @@ export interface TrainStationLegData {
   actArr?: Date
   planDep?: Date
   actDep?: Date
+  before?: number
+  after?: number
 }
 
 export const responseToTrainStationLegData = (data: any) => ({
@@ -98,6 +100,8 @@ export const responseToTrainStationLegData = (data: any) => ({
   actArr: responseToDate(data["act_arr"]),
   planDep: responseToDate(data["plan_dep"]),
   actDep: responseToDate(data["act_dep"]),
+  before: data["calls_before"],
+  after: data["calls_after"],
 })
 
 export interface TrainStationData {
