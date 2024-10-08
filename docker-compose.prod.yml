@@ -26,6 +26,7 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: /run/secrets/db_secret
       DB_NAME: ${DB_NAME}
+      TIMEZONE: ${TIMEZONE}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.trains_api.rule=Host(`${API_HOST}`)"
