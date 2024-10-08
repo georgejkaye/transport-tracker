@@ -258,7 +258,13 @@ def select_legs(
 ) -> list[ShortLeg]:
     statement = f"""
         SELECT
-            Leg.leg_id, COALESCE(legcalls -> 0 ->> 'plan_dep', legcalls -> 0 ->> 'act_dep') AS leg_start,
+            Leg.leg_id,
+            COALESCE(
+                legcalls -> 0 ->> 'plan_dep',
+                legcalls -> 0 ->> 'act_dep',
+                legcalls -> 0 ->> 'plan_arr',
+                legcalls-> 0 ->> 'act_arr'
+            ) AS leg_start,
             services, legcalls, stocks, Leg.distance,
             COALESCE(legcalls -> -1 ->> 'act_arr', legcalls -> -1 ->> 'plan_arr')::TIMESTAMP
             -
