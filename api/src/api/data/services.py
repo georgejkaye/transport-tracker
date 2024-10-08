@@ -5,7 +5,9 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 from typing import Optional
+import zoneinfo
 
+from api.data.environment import get_env_variable
 from bs4 import BeautifulSoup
 
 from api.data.core import get_soup, make_get_request
@@ -290,6 +292,10 @@ def string_of_calls(calls: list[Call], branch: bool = True, level: int = 0) -> s
             string = f"{string}\n{call_string}"
     return string
 
+timezone_variable = get_env_variable("TIMEZONE")
+if timezone_variable is None:
+    timezone_variable = "Europe/London"
+timezone = zoneinfo.ZoneInfo(timezone_variable)
 
 def response_to_time(
     run_date: datetime, time_field: str, data: dict
@@ -305,7 +311,7 @@ def response_to_time(
     new_time = run_date + timedelta(
         days=days_offset, hours=int(time_string[0:2]), minutes=int(time_string[2:4])
     )
-    return new_time
+    return new_time.replace(tzinfo=timezone)
 
 
 def response_to_call(

@@ -185,8 +185,8 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
                     stock_cars,
                 ]
             )
-    insert(cur, "StockSegment", legstock_fields, legstock_values)
-    insert(cur, "StockReport", stockreport_fields, stockreport_values)
+    insert(cur, "StockSegment", legstock_fields, legstock_values, "ON CONFLICT DO NOTHING")
+    insert(cur, "StockReport", stockreport_fields, stockreport_values, "ON CONFLICT DO NOTHING")
     conn.commit()
 
 

@@ -59,6 +59,7 @@ services:
       DB_USER: transport
       DB_PASSWORD: /run/secrets/db_secret
       DB_NAME: transport
+      TIMEZONE: ${TIMEZONE}
     volumes:
       - ./api/src:/app/src
     secrets:
