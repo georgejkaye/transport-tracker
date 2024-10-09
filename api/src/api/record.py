@@ -1,10 +1,12 @@
-from decimal import Decimal
 import decimal
-from enum import Enum
 import json
+
+from decimal import Decimal
+from enum import Enum
 from datetime import datetime, timedelta
-from typing import Iterable, Optional, Tuple
+from typing import Optional, Tuple
 from psycopg2._psycopg import connection, cursor
+
 from api.data.leg import (
     Leg,
     LegSegmentStock,
@@ -501,8 +503,8 @@ def get_mileage(calls: list[LegCall]) -> Decimal:
         f"Manual mileage input between {calls[0].station.name} and {calls[-1].station.name} required"
     )
     # If we can get a good distance set this could be automated
-    miles = get_input_no("Miles")
-    chains = get_input_no("Chains", upper=79)
+    miles = input_number("Miles")
+    chains = input_number("Chains", upper=79)
     if miles is None or chains is None:
         raise RuntimeError("Cannot be None")
     return miles_and_chains_to_miles(miles, chains)
