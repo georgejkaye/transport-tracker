@@ -19,6 +19,7 @@ import {
   Delay,
   delayWidth,
   EndpointSection,
+  getDelay,
   LegIconLink,
   PlanActTime,
   StationLink,
@@ -72,68 +73,74 @@ const StationLegEndpoint = (props: {
   )
 }
 
+const StationLegPlanActTime = (props: { plan?: Date; act?: Date }) => {
+  let { plan, act } = props
+  return (
+    <div className="flex flex-row">
+      <div className="w-16 text-center">{maybeDateToTimeString(plan)}</div>
+      <div className="w-16 text-center">{maybeDateToTimeString(act)}</div>
+      <Delay plan={plan} act={act} />
+    </div>
+  )
+}
+
 const StationLeg = (props: {
   station: TrainStation
   leg: TrainStationLegData
 }) => {
   let { station, leg } = props
+  let startsAtThisStation = leg.origin.crs === station.crs
+  let terminatesAtThisStation = leg.destination.crs === station.crs
   return (
-    <div className="flex flex-col md:flex-row gap-2 justify-center items-center">
-      <div className="flex flex-row gap-2 items-center">
+    <div className="flex flex-col md:flex-row gap-2 w-full">
+      <div className="flex flex-row gap-2 items-center py-2">
         <LegIconLink id={leg.id} />
-        <div className="w-28 text-center">
+        <div className="w-28 text-center flex-1 text-left">
           {dateToShortString(leg.stopTime)}
         </div>
+        <div className="w-16 text-center">
+          {maybeDateToTimeString(leg.actArr ?? leg.planArr)}
+        </div>
+        <div className="w-16 text-center">
+          {maybeDateToTimeString(leg.actDep ?? leg.planDep)}
+        </div>
       </div>
-      <div className="flex flex-col md:flex-row">
+      <div className="flex flex-col md:flex-row w-full">
         {leg.origin.crs === station.crs ? (
           ""
         ) : (
           <>
             <div className="flex flex-row items-center gap-2">
-              <StartTerminusSymbol lineColour="#000000" />
               <StationLink station={leg.origin} />
             </div>
             <div className="flex flex-row items-center gap-2">
-              <LineDashed lineColour="#000000" />
-              <div className="text-xs">
-                {!leg.before ? "Some stops" : `${leg.before - 1} stops`}
+              <div className="text-xs py-2">
+                {!leg.before
+                  ? "Some stops"
+                  : leg.before === 2
+                  ? `${leg.before - 1} stop`
+                  : `${leg.before - 1} stops`}
               </div>
             </div>
           </>
         )}
         <div className="flex flex-row items-center gap-2">
-          {leg.origin.crs === station.crs ? (
-            <StartTerminusSymbol lineColour="#000000" />
-          ) : leg.destination.crs === station.crs ? (
-            <EndTerminusSymbol lineColour="#000000" />
-          ) : (
-            <StationSymbol lineColour="#000000" />
-          )}
           <StationLink style="font-bold" station={station} />
-          <div className="flex flex-col">
-            <div className="flex flex-row">
-              <div className="w-16">{maybeDateToTimeString(leg.planArr)}</div>
-              <div className="w-16">{maybeDateToTimeString(leg.actArr)}</div>
-            </div>
-            <div className="flex flex-row">
-              <div className="w-16">{maybeDateToTimeString(leg.planDep)}</div>
-              <div className="w-16">{maybeDateToTimeString(leg.actDep)}</div>
-            </div>
-          </div>
         </div>
         {leg.destination.crs === station.crs ? (
           ""
         ) : (
           <>
             <div className="flex flex-row items-center gap-2">
-              <LineDashed lineColour="#000000" />
-              <div className="text-xs">
-                {!leg.after ? "Some stops" : `${leg.after - 1} stops`}
+              <div className="text-xs py-2">
+                {!leg.after
+                  ? "Some stops"
+                  : leg.after === 2
+                  ? `${leg.after - 1} stop`
+                  : `${leg.after - 1} stops`}
               </div>
             </div>
             <div className="flex flex-row items-center gap-2">
-              <EndTerminusSymbol lineColour="#000000" />
               <StationLink station={leg.destination} />
             </div>
           </>
