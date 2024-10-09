@@ -1,5 +1,15 @@
-from dataclasses import dataclass
+import zoneinfo
+import pytz
 from datetime import date, datetime, time, timedelta
+
+from api.data.environment import get_env_variable
+
+
+timezone_variable = get_env_variable("TIMEZONE")
+if timezone_variable is None or timezone_variable not in pytz.all_timezones_set:
+    timezone_variable = "Europe/London"
+timezone = zoneinfo.ZoneInfo(timezone_variable)
+
 
 very = 5
 

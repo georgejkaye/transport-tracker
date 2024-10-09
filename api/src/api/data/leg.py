@@ -1,5 +1,3 @@
-import pytz
-
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -28,9 +26,7 @@ from api.data.services import (
 )
 from api.data.stations import ShortTrainStation
 from api.data.stock import Formation
-
-tzutc = pytz.timezone("UTC")
-tzlondon = pytz.timezone("Europe/London")
+from api.times import timezone
 
 @dataclass
 class StockReport:
@@ -455,7 +451,7 @@ def select_legs(
     legs = []
     for row in rows:
         leg_id, leg_start, services, calls, stocks, distance, duration = row
-        leg_start_time = datetime.fromisoformat(leg_start).astimezone(tzlondon)
+        leg_start_time = datetime.fromisoformat(leg_start).astimezone(timezone)
         services_dict = {}
         for service in services:
             service = service[0]
@@ -488,19 +484,19 @@ def select_legs(
                 )
                 call_platform: str = call["platform"]
                 if call.get("plan_arr"):
-                    call_plan_arr = datetime.fromisoformat(call["plan_arr"]).astimezone(tzlondon)
+                    call_plan_arr = datetime.fromisoformat(call["plan_arr"]).astimezone(timezone)
                 else:
                     call_plan_arr = None
                 if call.get("plan_dep"):
-                    call_plan_dep = datetime.fromisoformat(call["plan_dep"]).astimezone(tzlondon)
+                    call_plan_dep = datetime.fromisoformat(call["plan_dep"]).astimezone(timezone)
                 else:
                     call_plan_dep = None
                 if call.get("act_arr"):
-                    call_act_arr = datetime.fromisoformat(call["act_arr"]).astimezone(tzlondon)
+                    call_act_arr = datetime.fromisoformat(call["act_arr"]).astimezone(timezone)
                 else:
                     call_act_arr = None
                 if call.get("act_dep"):
-                    call_act_dep = datetime.fromisoformat(call["act_dep"]).astimezone(tzlondon)
+                    call_act_dep = datetime.fromisoformat(call["act_dep"]).astimezone(timezone)
                 else:
                     call_act_dep = None
                 call_assocs: list[ShortAssociatedService] = []
@@ -548,10 +544,10 @@ def select_legs(
                 call["station_name"], call["station_crs"]
             )
             leg_call_platform: str = call["platform"]
-            leg_call_plan_arr = str_or_null_to_datetime(call.get("plan_arr"), tzlondon)
-            leg_call_plan_dep = str_or_null_to_datetime(call.get("plan_dep"), tzlondon)
-            leg_call_act_arr = str_or_null_to_datetime(call.get("act_arr"), tzlondon)
-            leg_call_act_dep = str_or_null_to_datetime(call.get("act_dep"), tzlondon)
+            leg_call_plan_arr = str_or_null_to_datetime(call.get("plan_arr"), timezone)
+            leg_call_plan_dep = str_or_null_to_datetime(call.get("plan_dep"), timezone)
+            leg_call_act_arr = str_or_null_to_datetime(call.get("act_arr"), timezone)
+            leg_call_act_dep = str_or_null_to_datetime(call.get("act_dep"), timezone)
             leg_call_mileage = optional_to_decimal(call.get("mileage"))
             if call.get("associations"):
                 assoc = call["associations"][0]

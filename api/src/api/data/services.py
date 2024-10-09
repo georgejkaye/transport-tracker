@@ -1,14 +1,13 @@
-from collections import deque
 import copy
+
+from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 from typing import Optional
-import zoneinfo
-
-from api.data.environment import get_env_variable
 from bs4 import BeautifulSoup
+from psycopg2._psycopg import cursor, connection
 
 from api.data.core import get_soup, make_get_request
 from api.data.credentials import get_api_credentials
@@ -31,9 +30,8 @@ from api.data.stations import (
     short_string_of_service_at_station,
 )
 from api.interactive import information
-from api.times import get_datetime_route
+from api.times import get_datetime_route, timezone
 
-from psycopg2._psycopg import cursor, connection
 
 
 @dataclass
@@ -292,10 +290,6 @@ def string_of_calls(calls: list[Call], branch: bool = True, level: int = 0) -> s
             string = f"{string}\n{call_string}"
     return string
 
-timezone_variable = get_env_variable("TIMEZONE")
-if timezone_variable is None:
-    timezone_variable = "Europe/London"
-timezone = zoneinfo.ZoneInfo(timezone_variable)
 
 def response_to_time(
     run_date: datetime, time_field: str, data: dict
