@@ -93,59 +93,39 @@ const StationLeg = (props: {
   let terminatesAtThisStation = leg.destination.crs === station.crs
   return (
     <div className="flex flex-col md:flex-row gap-2 w-full">
-      <div className="flex flex-row gap-2 items-center py-2">
-        <LegIconLink id={leg.id} />
-        <div className="w-28 text-center flex-1 text-left">
-          {dateToShortString(leg.stopTime)}
+      <div className="px-4">
+        <div className="flex flex-row gap-2 items-center">
+          <LegIconLink id={leg.id} />
+          <div className="w-28 text-center text-left">
+            {dateToShortString(leg.stopTime)}
+          </div>
         </div>
-        <div className="w-16 text-center">
-          {maybeDateToTimeString(leg.actArr ?? leg.planArr)}
-        </div>
-        <div className="w-16 text-center">
-          {maybeDateToTimeString(leg.actDep ?? leg.planDep)}
-        </div>
-      </div>
-      <div className="flex flex-col md:flex-row w-full">
-        {leg.origin.crs === station.crs ? (
-          ""
-        ) : (
-          <>
+        <div className="flex flex-col md:flex-row w-full px-1">
+          {leg.origin.crs === station.crs ? (
+            ""
+          ) : (
             <div className="flex flex-row items-center gap-2">
+              <div className="w-14 text-left">
+                {maybeDateToTimeString(leg.actArr ?? leg.planArr)}
+              </div>
+              <div className="w-8 text-sm text-right">from</div>
               <StationLink station={leg.origin} />
             </div>
+          )}
+          {leg.destination.crs === station.crs ? (
+            ""
+          ) : (
             <div className="flex flex-row items-center gap-2">
-              <div className="text-xs py-2">
-                {!leg.before
-                  ? "Some stops"
-                  : leg.before === 2
-                  ? `${leg.before - 1} stop`
-                  : `${leg.before - 1} stops`}
+              <div className="w-14 text-left">
+                {maybeDateToTimeString(leg.actDep ?? leg.planDep)}
               </div>
-            </div>
-          </>
-        )}
-        <div className="flex flex-row items-center gap-2">
-          <StationLink style="font-bold" station={station} />
-        </div>
-        {leg.destination.crs === station.crs ? (
-          ""
-        ) : (
-          <>
-            <div className="flex flex-row items-center gap-2">
-              <div className="text-xs py-2">
-                {!leg.after
-                  ? "Some stops"
-                  : leg.after === 2
-                  ? `${leg.after - 1} stop`
-                  : `${leg.after - 1} stops`}
-              </div>
-            </div>
-            <div className="flex flex-row items-center gap-2">
+              <div className="w-8 text-sm text-right">to</div>
               <StationLink station={leg.destination} />
             </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
+      <div className="bg-red-300 text-white px-4">West Midlands Railway</div>
     </div>
   )
 }
@@ -157,11 +137,11 @@ const StationLegs = (props: {
   let { station, legs } = props
   return (
     <div className="flex flex-col gap-2">
-      <h2 className="font-bold text-xl">Leg calls</h2>
+      <Line />
       {legs.map((leg, i) => (
-        <div key={i} className="flex flex-col gap-2">
-          <Line />
+        <div key={i} className="flex flex-col">
           <StationLeg station={station} leg={leg} />
+          <Line />
         </div>
       ))}
     </div>
@@ -187,24 +167,26 @@ const Page = ({ params }: { params: { crs: string } }) => {
     <Loader />
   ) : (
     <div className="flex flex-col gap-2">
-      <h1 className="text-2xl font-bold flex gap-2">
-        <span className="text-gray-700">{station.crs}</span>
-        <span>{station.name}</span>
-      </h1>
-      <div>{station.brand ? station.brand.name : station.operator.name}</div>
-      {!station.img ? (
-        ""
-      ) : (
-        <>
-          <Image
-            className="my-2 rounded"
-            src={station.img}
-            height={500}
-            width={500}
-            alt={`Station sign for ${station.name}`}
-          />
-        </>
-      )}
+      <div className="px-4">
+        <h1 className="text-3xl font-bold flex gap-2">
+          <span className="text-gray-700">{station.crs}</span>
+          <span>{station.name}</span>
+        </h1>
+        <div>{station.brand ? station.brand.name : station.operator.name}</div>
+        {!station.img ? (
+          ""
+        ) : (
+          <>
+            <Image
+              className="my-2 rounded"
+              src={station.img}
+              height={500}
+              width={500}
+              alt={`Station sign for ${station.name}`}
+            />
+          </>
+        )}
+      </div>
       <StationLegs station={station} legs={station.legs} />
     </div>
   )
