@@ -1,17 +1,30 @@
-CREATE TABLE Operator (
-    operator_id CHARACTER(2) PRIMARY KEY,
-    operator_name TEXT NOT NULL,
-    bg_colour TEXT,
-    fg_colour TEXT
+CREATE TABLE OperatorCode (
+    operator_code CHARACTER(2) PRIMARY KEY
 );
 
-CREATE TABLE Brand (
-    brand_id CHARACTER(2) PRIMARY KEY,
-    brand_name TEXT NOT NULL,
-    parent_operator CHARACTER(2) NOT NULL,
+CREATE TABLE Operator (
+    operator_id SERIAL PRIMARY KEY,
+    operator_code CHARACTER(2),
+    operator_name TEXT NOT NULL,
     bg_colour TEXT,
     fg_colour TEXT,
-    FOREIGN KEY (parent_operator) REFERENCES Operator(operator_id)
+    operation_range DATERANGE NOT NULL,
+    FOREIGN KEY (operator_code) REFERENCES OperatorCode(operator_code),
+    CONSTRAINT no_overlapping_operators
+    exclude USING gist (
+        operator_code WITH =, operation_range WITH &&
+    )
+);
+
+
+CREATE TABLE Brand (
+    brand_id SERIAL PRIMARY KEY,
+    brand_code CHARACTER(2),
+    brand_name TEXT NOT NULL,
+    parent_operator INTEGER NOT NULL,
+    bg_colour TEXT,
+    fg_colour TEXT,
+    FOREIGN KEY (parent_operator) REFERENCES Operator(operator_id),
 );
 
 CREATE TABLE Stock (
@@ -37,8 +50,8 @@ CREATE TABLE StockFormation (
 );
 
 CREATE TABLE OperatorStock (
-    operator_id CHARACTER(2) NOT NULL,
-    brand_id CHARACTER(2),
+    operator_id INTEGER NOT NULL,
+    brand_id INTEGER,
     stock_class INT NOT NULL,
     stock_subclass INT,
     FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
@@ -51,8 +64,8 @@ CREATE TABLE OperatorStock (
 CREATE TABLE Station (
     station_crs CHARACTER(3) PRIMARY KEY,
     station_name TEXT NOT NULL,
-    station_operator CHARACTER(2) NOT NULL,
-    station_brand CHARACTER(2),
+    station_operator INTEGER NOT NULL,
+    station_brand INTEGER,
     station_img TEXT,
     FOREIGN KEY (station_operator) REFERENCES Operator(operator_id),
     FOREIGN KEY (station_brand) REFERENCES Brand(brand_id)
@@ -62,8 +75,8 @@ CREATE TABLE Service (
     service_id TEXT NOT NULL,
     run_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     headcode CHARACTER(4) NOT NULL,
-    operator_id CHARACTER(2) NOT NULL,
-    brand_id CHARACTER(2),
+    operator_id INTEGER NOT NULL,
+    brand_id INTEGER,
     power TEXT,
     PRIMARY KEY (service_id, run_date),
     FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
