@@ -87,7 +87,7 @@ def pull_stations(natrail_token: str) -> list[TrainStation]:
 def populate_train_station_table(
     conn: connection, cur: cursor, stations: list[TrainStation]
 ):
-    fields = ["station_crs", "station_name", "station_operator", "station_brand"]
+    fields = ["station_crs", "station_name", "operator_id", "brand_id"]
     values = list(
         map(
             lambda x: [x.crs, x.name, x.operator, x.brand],
@@ -107,7 +107,7 @@ def populate_train_stations(conn: connection, cur: cursor):
 
 def select_station_from_crs(cur: cursor, crs: str) -> Optional[TrainStation]:
     query = """
-        SELECT station_name, station_operator, station_brand FROM Station WHERE UPPER(station_crs) = UPPER(%(crs)s)
+        SELECT station_name, operator_id, brand_id FROM Station WHERE UPPER(station_crs) = UPPER(%(crs)s)
     """
     cur.execute(query, {"crs": crs})
     rows = cur.fetchall()
@@ -119,7 +119,7 @@ def select_station_from_crs(cur: cursor, crs: str) -> Optional[TrainStation]:
 
 def select_station_from_name(cur: cursor, name: str) -> Optional[TrainStation]:
     query = """
-        SELECT station_name, station_crs, station_operator, station_brand
+        SELECT station_name, station_crs, operator_id, brand_id
         FROM Station
         WHERE LOWER(station_name) = LOWER(%(name)s)
     """
@@ -133,7 +133,7 @@ def select_station_from_name(cur: cursor, name: str) -> Optional[TrainStation]:
 
 def get_stations_from_substring(cur: cursor, substring: str) -> list[TrainStation]:
     query = """
-        SELECT station_name, station_crs, station_operator, station_brand
+        SELECT station_name, station_crs, operator_id, brand_id
         FROM Station
         WHERE LOWER(station_name) LIKE '%%' || LOWER(%(subs)s) || '%%'
     """
@@ -274,9 +274,9 @@ def select_stations(
             COALESCE(calls, 0) AS calls
         FROM Station
         INNER JOIN Operator
-        ON Station.station_operator = Operator.operator_id
+        ON Station.operator_id = Operator.operator_id
         LEFT JOIN Brand
-        ON Station.station_brand = Brand.brand_id
+        ON Station.brand_id = Brand.brand_id
         LEFT JOIN (
             SELECT station_crs, COALESCE(COUNT(*), '0') AS starts
             FROM Leg

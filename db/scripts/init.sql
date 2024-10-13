@@ -1,3 +1,5 @@
+CREATE EXTENSION btree_gist;
+
 CREATE TABLE OperatorCode (
     operator_code CHARACTER(2) PRIMARY KEY
 );
@@ -12,10 +14,9 @@ CREATE TABLE Operator (
     FOREIGN KEY (operator_code) REFERENCES OperatorCode(operator_code),
     CONSTRAINT no_overlapping_operators
     exclude USING gist (
-        operator_code WITH =, operation_range WITH &&
+        operator_id WITH =, operation_range WITH &&
     )
 );
-
 
 CREATE TABLE Brand (
     brand_id SERIAL PRIMARY KEY,
@@ -24,7 +25,7 @@ CREATE TABLE Brand (
     parent_operator INTEGER NOT NULL,
     bg_colour TEXT,
     fg_colour TEXT,
-    FOREIGN KEY (parent_operator) REFERENCES Operator(operator_id),
+    FOREIGN KEY (parent_operator) REFERENCES Operator(operator_id)
 );
 
 CREATE TABLE Stock (
@@ -64,11 +65,11 @@ CREATE TABLE OperatorStock (
 CREATE TABLE Station (
     station_crs CHARACTER(3) PRIMARY KEY,
     station_name TEXT NOT NULL,
-    station_operator INTEGER NOT NULL,
-    station_brand INTEGER,
+    operator_id INTEGER NOT NULL,
+    brand_id INTEGER,
     station_img TEXT,
-    FOREIGN KEY (station_operator) REFERENCES Operator(operator_id),
-    FOREIGN KEY (station_brand) REFERENCES Brand(brand_id)
+    FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
+    FOREIGN KEY (brand_id) REFERENCES Brand(brand_id)
 );
 
 CREATE TABLE Service (

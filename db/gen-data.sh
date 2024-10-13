@@ -3,6 +3,7 @@
 PASSWORD=$(cat /run/secrets/db_secret)
 
 PGPASSWORD=$PASSWORD pg_dump --column-inserts --data-only \
+    --table=operatorcode \
     --table=operator \
     --table=brand \
     --table=stock \
