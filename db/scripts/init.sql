@@ -28,6 +28,20 @@ CREATE TABLE Brand (
     FOREIGN KEY (parent_operator) REFERENCES Operator(operator_id)
 );
 
+CREATE OR REPLACE FUNCTION validBrand(
+    p_brand_id INT,
+    p_operator_id INT
+) RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN p_brand_id IS NULL
+        OR (p_brand_id IS NULL AND p_operator_id IS NULL)
+        OR (SELECT parent_operator FROM brand WHERE brand_id = p_brand_id) = p_operator_id;
+END;
+$$;
+
 CREATE TABLE Stock (
     stock_class INT PRIMARY KEY,
     name TEXT
@@ -59,7 +73,8 @@ CREATE TABLE OperatorStock (
     FOREIGN KEY (brand_id) REFERENCES Brand(brand_id),
     FOREIGN KEY (stock_class) REFERENCES Stock(stock_class),
     FOREIGN KEY (stock_class, stock_subclass) REFERENCES StockSubclass(stock_class, stock_subclass),
-    CONSTRAINT operator_stock_classes_unique UNIQUE NULLS NOT DISTINCT (operator_id, brand_id, stock_class, stock_subclass)
+    CONSTRAINT operator_stock_classes_unique UNIQUE NULLS NOT DISTINCT (operator_id, brand_id, stock_class, stock_subclass),
+    CONSTRAINT valid_brand CHECK (validBrand(brand_id, operator_id))
 );
 
 CREATE TABLE Station (
@@ -70,6 +85,7 @@ CREATE TABLE Station (
     station_img TEXT,
     FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
     FOREIGN KEY (brand_id) REFERENCES Brand(brand_id)
+    CONSTRAINT valid_brand CHECK (validBrand(brand_id, operator_id))
 );
 
 CREATE TABLE Service (
@@ -82,6 +98,7 @@ CREATE TABLE Service (
     PRIMARY KEY (service_id, run_date),
     FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
     FOREIGN KEY (brand_id) REFERENCES Brand(brand_id)
+    CONSTRAINT valid_brand CHECK (validBrand(brand_id, operator_id))
 );
 
 CREATE TABLE ServiceEndpoint (
