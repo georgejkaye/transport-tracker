@@ -377,7 +377,10 @@ def select_legs(
                         Service.service_id, Service.run_date, headcode, origins,
                         destinations, calls, Operator.operator_id,
                         Operator.operator_code, Operator.operator_name,
-                        Brand.brand_id, Brand.brand_code, Brand.brand_name,
+                        Operator.bg_colour AS operator_bg,
+                        Operator.fg_colour AS operator_fg, Brand.brand_id,
+                        Brand.brand_code, Brand.brand_name,
+                        Brand.bg_colour AS brand_bg, Brand.fg_colour AS brand_fg,
                         power,
                         COALESCE(calls -> 0 ->> 'plan_arr', calls -> 0 ->> 'act_arr', calls -> 0 ->> 'plan_dep', calls -> 0 ->> 'act_dep') AS service_start
                     FROM Service
@@ -510,9 +513,13 @@ def select_legs(
             service_operator_id: int = service["operator_id"]
             service_operator_code: str = service["operator_code"]
             service_operator_name: str = service["operator_name"]
+            service_operator_bg: str = service["operator_bg"]
+            service_operator_fg: str = service["operator_fg"]
             service_brand_id: int = service["brand_id"]
             service_brand_code: str = service["brand_code"]
             service_brand_name: str = service["brand_name"]
+            service_brand_bg: str = service["brand_bg"]
+            service_brand_fg: str = service["brand_fg"]
             service_power: str = service["power"]
             service_origins = []
             for origin in service["origins"]:
@@ -588,12 +595,18 @@ def select_legs(
                 service_operator_id,
                 service_operator_code,
                 service_operator_name,
+                service_operator_bg,
+                service_operator_fg,
             )
             if service_brand_id is None:
                 service_brand = None
             else:
                 service_brand = BrandData(
-                    service_brand_id, service_brand_code, service_brand_name
+                    service_brand_id,
+                    service_brand_code,
+                    service_brand_name,
+                    service_brand_bg,
+                    service_brand_fg,
                 )
             service_object = ShortTrainService(
                 service_id,
