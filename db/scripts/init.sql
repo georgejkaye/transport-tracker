@@ -38,7 +38,7 @@ $$
 BEGIN
     RETURN p_brand_id IS NULL
         OR (p_brand_id IS NULL AND p_operator_id IS NULL)
-        OR (SELECT parent_operator FROM brand WHERE brand_id = p_brand_id) = p_operator_id;
+        OR (SELECT parent_operator FROM public.brand WHERE brand_id = p_brand_id) = p_operator_id;
 END;
 $$;
 
@@ -84,7 +84,7 @@ CREATE TABLE Station (
     brand_id INTEGER,
     station_img TEXT,
     FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
-    FOREIGN KEY (brand_id) REFERENCES Brand(brand_id)
+    FOREIGN KEY (brand_id) REFERENCES Brand(brand_id),
     CONSTRAINT valid_brand CHECK (validBrand(brand_id, operator_id))
 );
 
@@ -97,7 +97,7 @@ CREATE TABLE Service (
     power TEXT,
     PRIMARY KEY (service_id, run_date),
     FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
-    FOREIGN KEY (brand_id) REFERENCES Brand(brand_id)
+    FOREIGN KEY (brand_id) REFERENCES Brand(brand_id),
     CONSTRAINT valid_brand CHECK (validBrand(brand_id, operator_id))
 );
 
