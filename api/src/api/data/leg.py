@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Callable, Optional
+from api.data.toperator import BrandData, OperatorData
 from psycopg2._psycopg import connection, cursor
 
 from api.data.database import (
@@ -27,6 +28,7 @@ from api.data.services import (
 from api.data.stations import ShortTrainStation
 from api.data.stock import Formation
 from api.times import timezone
+
 
 @dataclass
 class StockReport:
@@ -74,7 +76,9 @@ class Leg:
     stock: list[LegSegmentStock]
 
 
-def get_value_or_none[T, U](get: Callable[[T], U | None], obj: T | None) -> U | None:
+def get_value_or_none[
+    T, U
+](get: Callable[[T], U | None], obj: T | None) -> U | None:
     if obj is None:
         return None
     return get(obj)
@@ -90,8 +94,14 @@ def get_service_fields(service: TrainService) -> list[str | None]:
     ]
 
 
-
-def select_call_id(service_id: str, run_date: datetime, station_crs: str, plan_arr : Optional[datetime], plan_dep: Optional[datetime], arr: bool) -> Optional[NoEscape]:
+def select_call_id(
+    service_id: str,
+    run_date: datetime,
+    station_crs: str,
+    plan_arr: Optional[datetime],
+    plan_dep: Optional[datetime],
+    arr: bool,
+) -> Optional[NoEscape]:
     if arr:
         field_stub = "arr"
         plan = plan_arr
@@ -112,10 +122,21 @@ def select_call_id(service_id: str, run_date: datetime, station_crs: str, plan_a
     )"""
     return NoEscape(select_call_id_statement)
 
-def select_call_id_from_leg_call(call: Optional[Call], arr: bool) -> Optional[NoEscape]:
+
+def select_call_id_from_leg_call(
+    call: Optional[Call], arr: bool
+) -> Optional[NoEscape]:
     if call is None:
         return None
-    return select_call_id(call.service_id, call.run_date, call.station.crs, call.plan_arr, call.plan_dep, arr)
+    return select_call_id(
+        call.service_id,
+        call.run_date,
+        call.station.crs,
+        call.plan_arr,
+        call.plan_dep,
+        arr,
+    )
+
 
 def insert_leg(conn: connection, cur: cursor, leg: Leg):
     services = [leg.service]
@@ -128,7 +149,13 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
     """
     cur.execute(leg_statement, {"distance": leg.distance})
     leg_id: int = cur.fetchall()[0][0]
-    call_fields = ["leg_id", "arr_call_id", "dep_call_id", "mileage", "assoc_type"]
+    call_fields = [
+        "leg_id",
+        "arr_call_id",
+        "dep_call_id",
+        "mileage",
+        "assoc_type",
+    ]
     call_values = []
     for call in leg.calls:
         arr_call = call.arr_call
@@ -160,8 +187,12 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
     stockreport_values = []
     for formation in leg.stock:
         stocks = formation.stock
-        start_call = select_call_id_from_leg_call(formation.calls[0].dep_call, False)
-        end_call = select_call_id_from_leg_call(formation.calls[-1].arr_call, True)
+        start_call = select_call_id_from_leg_call(
+            formation.calls[0].dep_call, False
+        )
+        end_call = select_call_id_from_leg_call(
+            formation.calls[-1].arr_call, True
+        )
         legstock_values.append([start_call, end_call])
         for stock in stocks:
             stock_class = int_or_none_to_str_or_none(stock.class_no)
@@ -181,8 +212,20 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
                     stock_cars,
                 ]
             )
-    insert(cur, "StockSegment", legstock_fields, legstock_values, "ON CONFLICT DO NOTHING")
-    insert(cur, "StockReport", stockreport_fields, stockreport_values, "ON CONFLICT DO NOTHING")
+    insert(
+        cur,
+        "StockSegment",
+        legstock_fields,
+        legstock_values,
+        "ON CONFLICT DO NOTHING",
+    )
+    insert(
+        cur,
+        "StockReport",
+        stockreport_fields,
+        stockreport_values,
+        "ON CONFLICT DO NOTHING",
+    )
     conn.commit()
 
 
@@ -332,8 +375,10 @@ def select_legs(
                 WITH service_info AS (
                     SELECT
                         Service.service_id, Service.run_date, headcode, origins,
-                        destinations, calls, Service.operator_id, operator_name,
-                        Service.brand_id, brand_name, power,
+                        destinations, calls, Operator.operator_id,
+                        Operator.operator_code, Operator.operator_name,
+                        Brand.brand_id, Brand.brand_code, Brand.brand_name,
+                        power,
                         COALESCE(calls -> 0 ->> 'plan_arr', calls -> 0 ->> 'act_arr', calls -> 0 ->> 'plan_dep', calls -> 0 ->> 'act_dep') AS service_start
                     FROM Service
                     INNER JOIN (
@@ -446,7 +491,10 @@ def select_legs(
         where_string = ""
     order_string = "ORDER BY leg_start DESC"
     full_statement = f"{statement}\n{where_string}\n{order_string}"
-    cur.execute(full_statement, {"start": search_start, "end": search_end, "leg": search_leg_id})
+    cur.execute(
+        full_statement,
+        {"start": search_start, "end": search_end, "leg": search_leg_id},
+    )
     rows = cur.fetchall()
     legs = []
     for row in rows:
@@ -459,9 +507,11 @@ def select_legs(
             service_run_date = datetime.fromisoformat(service["run_date"])
             service_headcode: str = service["headcode"]
             service_start = datetime.fromisoformat(service["service_start"])
-            service_operator_id: str = service["operator_id"]
+            service_operator_id: int = service["operator_id"]
+            service_operator_code: str = service["operator_code"]
             service_operator_name: str = service["operator_name"]
-            service_brand_id: str = service["brand_id"]
+            service_brand_id: int = service["brand_id"]
+            service_brand_code: str = service["brand_code"]
             service_brand_name: str = service["brand_name"]
             service_power: str = service["power"]
             service_origins = []
@@ -474,7 +524,9 @@ def select_legs(
             for destination in service["destinations"]:
                 station_name = destination["station_name"]
                 station_crs = destination["station_crs"]
-                service_destination = ShortTrainStation(station_name, station_crs)
+                service_destination = ShortTrainStation(
+                    station_name, station_crs
+                )
                 service_destinations.append(service_destination)
             service_calls: list[ShortCall] = []
             service_assocs: list[ShortAssociatedService] = []
@@ -484,19 +536,27 @@ def select_legs(
                 )
                 call_platform: str = call["platform"]
                 if call.get("plan_arr"):
-                    call_plan_arr = datetime.fromisoformat(call["plan_arr"]).astimezone(timezone)
+                    call_plan_arr = datetime.fromisoformat(
+                        call["plan_arr"]
+                    ).astimezone(timezone)
                 else:
                     call_plan_arr = None
                 if call.get("plan_dep"):
-                    call_plan_dep = datetime.fromisoformat(call["plan_dep"]).astimezone(timezone)
+                    call_plan_dep = datetime.fromisoformat(
+                        call["plan_dep"]
+                    ).astimezone(timezone)
                 else:
                     call_plan_dep = None
                 if call.get("act_arr"):
-                    call_act_arr = datetime.fromisoformat(call["act_arr"]).astimezone(timezone)
+                    call_act_arr = datetime.fromisoformat(
+                        call["act_arr"]
+                    ).astimezone(timezone)
                 else:
                     call_act_arr = None
                 if call.get("act_dep"):
-                    call_act_dep = datetime.fromisoformat(call["act_dep"]).astimezone(timezone)
+                    call_act_dep = datetime.fromisoformat(
+                        call["act_dep"]
+                    ).astimezone(timezone)
                 else:
                     call_act_dep = None
                 call_assocs: list[ShortAssociatedService] = []
@@ -505,7 +565,9 @@ def select_legs(
                         associated_type = association["associated_type"]
                         associated_service = ShortAssociatedService(
                             association["associated_id"],
-                            datetime.fromisoformat(association["associated_run_date"]),
+                            datetime.fromisoformat(
+                                association["associated_run_date"]
+                            ),
                             associated_type,
                         )
                         call_assocs.append(associated_service)
@@ -522,6 +584,17 @@ def select_legs(
                     call_mileage,
                 )
                 service_calls.append(service_call)
+            service_operator = OperatorData(
+                service_operator_id,
+                service_operator_code,
+                service_operator_name,
+            )
+            if service_brand_id is None:
+                service_brand = None
+            else:
+                service_brand = BrandData(
+                    service_brand_id, service_brand_code, service_brand_name
+                )
             service_object = ShortTrainService(
                 service_id,
                 service_headcode,
@@ -529,10 +602,8 @@ def select_legs(
                 service_start,
                 service_origins,
                 service_destinations,
-                service_operator_name,
-                service_operator_id,
-                service_brand_id,
-                service_brand_name,
+                service_operator,
+                service_brand,
                 service_power,
                 service_calls,
                 service_assocs,
@@ -544,15 +615,25 @@ def select_legs(
                 call["station_name"], call["station_crs"]
             )
             leg_call_platform: str = call["platform"]
-            leg_call_plan_arr = str_or_null_to_datetime(call.get("plan_arr"), timezone)
-            leg_call_plan_dep = str_or_null_to_datetime(call.get("plan_dep"), timezone)
-            leg_call_act_arr = str_or_null_to_datetime(call.get("act_arr"), timezone)
-            leg_call_act_dep = str_or_null_to_datetime(call.get("act_dep"), timezone)
+            leg_call_plan_arr = str_or_null_to_datetime(
+                call.get("plan_arr"), timezone
+            )
+            leg_call_plan_dep = str_or_null_to_datetime(
+                call.get("plan_dep"), timezone
+            )
+            leg_call_act_arr = str_or_null_to_datetime(
+                call.get("act_arr"), timezone
+            )
+            leg_call_act_dep = str_or_null_to_datetime(
+                call.get("act_dep"), timezone
+            )
             leg_call_mileage = optional_to_decimal(call.get("mileage"))
             if call.get("associations"):
                 assoc = call["associations"][0]
                 assoc_id = assoc["associated_id"]
-                assoc_run_date = datetime.fromisoformat(assoc["associated_run_date"])
+                assoc_run_date = datetime.fromisoformat(
+                    assoc["associated_run_date"]
+                )
                 assoc_type = assoc["associated_type"]
                 leg_call_assoc = ShortAssociatedService(
                     assoc_id, assoc_run_date, assoc_type
@@ -572,7 +653,10 @@ def select_legs(
                     else:
                         stock_formation = Formation(stock_cars)
                     stock_obj = StockReport(
-                        stock_class, stock_subclass, stock_number, stock_formation
+                        stock_class,
+                        stock_subclass,
+                        stock_number,
+                        stock_formation,
                     )
                     leg_call_stock.append(stock_obj)
             leg_call = ShortLegCall(
@@ -591,7 +675,9 @@ def select_legs(
         for segment in stocks:
             segment_start_crs: str = segment["start_crs"]
             segment_start_name: str = segment["start_name"]
-            segment_start = ShortTrainStation(segment_start_name, segment_start_crs)
+            segment_start = ShortTrainStation(
+                segment_start_name, segment_start_crs
+            )
             segment_end_crs: str = segment["end_crs"]
             segment_end_name: str = segment["end_name"]
             segment_end = ShortTrainStation(segment_end_name, segment_end_crs)
@@ -618,7 +704,13 @@ def select_legs(
             )
             leg_stock.append(segment)
         leg_object = ShortLeg(
-            leg_id, leg_start_time, services_dict, leg_calls, leg_stock, Decimal(distance), duration
+            leg_id,
+            leg_start_time,
+            services_dict,
+            leg_calls,
+            leg_stock,
+            Decimal(distance),
+            duration,
         )
         legs.append(leg_object)
     return legs

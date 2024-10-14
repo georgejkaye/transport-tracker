@@ -19,11 +19,13 @@ def select_operator_id(cur: cursor, operator_name: str) -> Optional[str]:
 
 @dataclass
 class OperatorData:
+    id: int
     code: str
     name: str
 
 
 @dataclass
 class BrandData:
+    id: int
     code: str
     name: str

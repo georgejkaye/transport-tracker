@@ -1,10 +1,16 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional
+from webbrowser import Opera
 import xml.etree.ElementTree as ET
 from api.data.core import get_tag_text, make_get_request, prefix_namespace
 from api.data.credentials import get_api_credentials
-from api.data.database import connect, disconnect, insert, str_or_null_to_datetime
+from api.data.database import (
+    connect,
+    disconnect,
+    insert,
+    str_or_null_to_datetime,
+)
 from api.data.toperator import BrandData, OperatorData
 from api.data.train import (
     generate_natrail_token,
@@ -30,8 +36,16 @@ def string_of_short_train_station(station: ShortTrainStation) -> str:
 class TrainStation:
     name: str
     crs: str
-    operator: str
-    brand: Optional[str]
+    operator_code: str
+    brand_code: Optional[str]
+
+
+@dataclass
+class TrainStationInternal:
+    name: str
+    crs: str
+    operator: OperatorData
+    brand_code: Optional[BrandData]
 
 
 @dataclass
@@ -43,8 +57,8 @@ class TrainServiceAtStation:
     destinations: list[ShortTrainStation]
     plan_dep: Optional[datetime]
     act_dep: Optional[datetime]
-    operator_name: str
-    operator_id: str
+    operator_code: str
+    brand_code: str
 
 
 def short_string_of_service_at_station(service: TrainServiceAtStation):
@@ -52,7 +66,7 @@ def short_string_of_service_at_station(service: TrainServiceAtStation):
 
 
 def string_of_service_at_station(service: TrainServiceAtStation):
-    return f"{service.headcode} {get_multiple_short_station_string(service.origins)} to {get_multiple_short_station_string(service.destinations)} plan {get_hourmin_string(service.plan_dep)} act {get_hourmin_string(service.act_dep)} ({service.operator_name})"
+    return f"{service.headcode} {get_multiple_short_station_string(service.origins)} to {get_multiple_short_station_string(service.destinations)} plan {get_hourmin_string(service.plan_dep)} act {get_hourmin_string(service.act_dep)} ({service.operator_code})"
 
 
 kb_stations_namespace = "http://nationalrail.co.uk/xml/station"
@@ -69,9 +83,15 @@ def pull_stations(natrail_token: str) -> list[TrainStation]:
     ):
         station_name = get_tag_text(stn, "Name", kb_stations_namespace)
         station_crs = get_tag_text(stn, "CrsCode", kb_stations_namespace)
-        station_lat = float(get_tag_text(stn, "Latitude", kb_stations_namespace))
-        station_lon = float(get_tag_text(stn, "Longitude", kb_stations_namespace))
-        station_operator = get_tag_text(stn, "StationOperator", kb_stations_namespace)
+        station_lat = float(
+            get_tag_text(stn, "Latitude", kb_stations_namespace)
+        )
+        station_lon = float(
+            get_tag_text(stn, "Longitude", kb_stations_namespace)
+        )
+        station_operator = get_tag_text(
+            stn, "StationOperator", kb_stations_namespace
+        )
         if station_operator == "WM" or station_operator == "LN":
             station_brand = station_operator
             station_operator = "LM"
@@ -87,10 +107,10 @@ def pull_stations(natrail_token: str) -> list[TrainStation]:
 def populate_train_station_table(
     conn: connection, cur: cursor, stations: list[TrainStation]
 ):
-    fields = ["station_crs", "station_name", "station_operator", "station_brand"]
+    fields = ["station_crs", "station_name", "operator_code", "brand_code"]
     values = list(
         map(
-            lambda x: [x.crs, x.name, x.operator, x.brand],
+            lambda x: [x.crs, x.name, x.operator_code, x.brand_code],
             stations,
         )
     )
@@ -107,7 +127,8 @@ def populate_train_stations(conn: connection, cur: cursor):
 
 def select_station_from_crs(cur: cursor, crs: str) -> Optional[TrainStation]:
     query = """
-        SELECT station_name, station_operator, station_brand FROM Station WHERE UPPER(station_crs) = UPPER(%(crs)s)
+        SELECT station_name, Operator.operator_code, brand_code FROM Station
+        WHERE UPPER(station_crs) = UPPER(%(crs)s)
     """
     cur.execute(query, {"crs": crs})
     rows = cur.fetchall()
@@ -119,7 +140,7 @@ def select_station_from_crs(cur: cursor, crs: str) -> Optional[TrainStation]:
 
 def select_station_from_name(cur: cursor, name: str) -> Optional[TrainStation]:
     query = """
-        SELECT station_name, station_crs, station_operator, station_brand
+        SELECT station_name, station_crs, operator_code, brand_code
         FROM Station
         WHERE LOWER(station_name) = LOWER(%(name)s)
     """
@@ -131,9 +152,11 @@ def select_station_from_name(cur: cursor, name: str) -> Optional[TrainStation]:
     return TrainStation(row[0], row[1], row[2], row[3])
 
 
-def get_stations_from_substring(cur: cursor, substring: str) -> list[TrainStation]:
+def get_stations_from_substring(
+    cur: cursor, substring: str
+) -> list[TrainStation]:
     query = """
-        SELECT station_name, station_crs, station_operator, station_brand
+        SELECT station_name, station_crs, operator_id, brand_id
         FROM Station
         WHERE LOWER(station_name) LIKE '%%' || LOWER(%(subs)s) || '%%'
     """
@@ -173,15 +196,21 @@ def response_to_datetime(
         minutes = int(datetime_string[2:4])
         next_day = data.get(f"{time_field}NextDay")
         if next_day is not None and next_day:
-            actual_datetime = run_date + timedelta(days=1, hours=hours, minutes=minutes)
+            actual_datetime = run_date + timedelta(
+                days=1, hours=hours, minutes=minutes
+            )
         else:
-            actual_datetime = run_date + timedelta(days=0, hours=hours, minutes=minutes)
+            actual_datetime = run_date + timedelta(
+                days=0, hours=hours, minutes=minutes
+            )
         return actual_datetime
     else:
         return None
 
 
-def response_to_service_at_station(cur: cursor, data: dict) -> TrainServiceAtStation:
+def response_to_service_at_station(
+    cur: cursor, data: dict
+) -> TrainServiceAtStation:
     id = data["serviceUid"]
     headcode = data["trainIdentity"]
     operator_id = data["atocCode"]
@@ -217,7 +246,9 @@ def response_to_service_at_station(cur: cursor, data: dict) -> TrainServiceAtSta
 def get_services_at_station(
     cur: cursor, station: TrainStation, dt: datetime
 ) -> list[TrainServiceAtStation]:
-    endpoint = f"{station_endpoint}/{station.crs}/{get_datetime_route(dt, True)}"
+    endpoint = (
+        f"{station_endpoint}/{station.crs}/{get_datetime_route(dt, True)}"
+    )
     rtt_credentials = get_api_credentials("RTT")
     response = make_get_request(endpoint, rtt_credentials)
     if not response.status_code == 200:
@@ -262,21 +293,21 @@ class StationData:
 
 
 def select_stations(
-    cur: cursor, station_crs: Optional[str] = None
+    cur: cursor, _station_crs: Optional[str] = None
 ) -> list[StationData]:
     statement = """
         SELECT
             Station.station_name, Station.station_crs,
             Operator.operator_id, Operator.operator_name,
-            Brand.brand_id, Brand.brand_name,
-            LegDetails.legs, station_img,
+            Operator.operator_code, Brand.brand_id, Brand.brand_name,
+            Brand.brand_code, LegDetails.legs, station_img,
             COALESCE(starts, 0) as starts, COALESCE(ends, 0) AS ends,
             COALESCE(calls, 0) AS calls
         FROM Station
         INNER JOIN Operator
-        ON Station.station_operator = Operator.operator_id
+        ON Station.operator_id = Operator.operator_id
         LEFT JOIN Brand
-        ON Station.station_brand = Brand.brand_id
+        ON Station.brand_id = Brand.brand_id
         LEFT JOIN (
             SELECT station_crs, COALESCE(COUNT(*), '0') AS starts
             FROM Leg
@@ -399,9 +430,9 @@ def select_stations(
         ) LegDetails
         ON LegDetails.station_crs = station.station_crs
     """
-    if station_crs is not None:
+    if _station_crs is not None:
         where_string = "WHERE Station.station_crs = %(crs)s"
-        crs_string = station_crs.upper()
+        crs_string = _station_crs.upper()
     else:
         where_string = ""
         crs_string = ""
@@ -411,16 +442,34 @@ def select_stations(
     rows = cur.fetchall()
     stations = []
     for row in rows:
-        if row[4] is None:
+        (
+            station_name,
+            station_crs,
+            operator_id,
+            operator_name,
+            operator_code,
+            brand_id,
+            brand_name,
+            brand_code,
+            legs,
+            station_img,
+            starts,
+            ends,
+            calls,
+        ) = row
+        operator_data = OperatorData(operator_id, operator_code, operator_name)
+        if brand_id is None:
             brand_data = None
         else:
-            brand_data = BrandData(row[4], row[5])
-        legs = []
-        if row[6] is not None:
-            for leg_row in row[6]:
+            brand_data = BrandData(brand_id, brand_code, brand_name)
+        leg_objects = []
+        if legs is not None:
+            for leg_row in legs:
                 leg_data = LegAtStation(
                     leg_row["leg_id"],
-                    ShortTrainStation(leg_row["start_name"], leg_row["start_crs"]),
+                    ShortTrainStation(
+                        leg_row["start_name"], leg_row["start_crs"]
+                    ),
                     ShortTrainStation(leg_row["end_name"], leg_row["end_crs"]),
                     datetime.fromisoformat(leg_row["stop_time"]),
                     str_or_null_to_datetime(leg_row["plan_arr"]),
@@ -428,24 +477,24 @@ def select_stations(
                     str_or_null_to_datetime(leg_row["plan_dep"]),
                     str_or_null_to_datetime(leg_row["act_dep"]),
                 )
-                legs.append(leg_data)
+                leg_objects.append(leg_data)
         data = StationData(
-            row[0],
-            row[1],
-            OperatorData(row[2], row[3]),
+            station_name,
+            station_crs,
+            operator_data,
             brand_data,
-            legs,
-            row[7],
-            int(row[8]),
-            int(row[9]),
-            int(row[10]),
+            leg_objects,
+            station_img,
+            int(starts),
+            int(ends),
+            int(calls),
         )
         stations.append(data)
     return stations
 
 
 def select_station(cur: cursor, station_crs: str) -> Optional[StationData]:
-    result = select_stations(cur, station_crs=station_crs)
+    result = select_stations(cur, _station_crs=station_crs)
     if result is None or len(result) != 1:
         return None
     return result[0]
