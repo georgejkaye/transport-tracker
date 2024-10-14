@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 from typing import Optional
+from api.data.toperator import BrandData, OperatorData
 from bs4 import BeautifulSoup
 from psycopg2._psycopg import cursor, connection
 
@@ -31,7 +32,6 @@ from api.data.stations import (
 )
 from api.interactive import information
 from api.times import get_datetime_route, timezone
-
 
 
 @dataclass
@@ -128,10 +128,8 @@ class ShortTrainService:
     service_start: datetime
     origins: list[ShortTrainStation]
     destinations: list[ShortTrainStation]
-    operator_name: str
-    operator_id: str
-    brand_id: Optional[str]
-    brand_name: Optional[str]
+    operator: OperatorData
+    brand: Optional[BrandData]
     power: Optional[str]
     calls: list[ShortCall]
     assocs: list[ShortAssociatedService]
