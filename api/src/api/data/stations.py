@@ -299,8 +299,10 @@ def select_stations(
         SELECT
             Station.station_name, Station.station_crs,
             Operator.operator_id, Operator.operator_name,
-            Operator.operator_code, Brand.brand_id, Brand.brand_name,
-            Brand.brand_code, LegDetails.legs, station_img,
+            Operator.operator_code, Operator.bg_colour AS operator_bg,
+            Operator.fg_colour AS operator_fg, Brand.brand_id, Brand.brand_name,
+            Brand.brand_code, Brand.bg_colour AS brand_bg,
+            Brand.fg_colour AS brand_fg, LegDetails.legs, station_img,
             COALESCE(starts, 0) as starts, COALESCE(ends, 0) AS ends,
             COALESCE(calls, 0) AS calls
         FROM Station
@@ -448,20 +450,28 @@ def select_stations(
             operator_id,
             operator_name,
             operator_code,
+            operator_bg,
+            operator_fg,
             brand_id,
             brand_name,
             brand_code,
+            brand_bg,
+            brand_fg,
             legs,
             station_img,
             starts,
             ends,
             calls,
         ) = row
-        operator_data = OperatorData(operator_id, operator_code, operator_name)
+        operator_data = OperatorData(
+            operator_id, operator_code, operator_name, operator_bg, operator_fg
+        )
         if brand_id is None:
             brand_data = None
         else:
-            brand_data = BrandData(brand_id, brand_code, brand_name)
+            brand_data = BrandData(
+                brand_id, brand_code, brand_name, brand_bg, brand_fg
+            )
         leg_objects = []
         if legs is not None:
             for leg_row in legs:

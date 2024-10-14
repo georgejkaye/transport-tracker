@@ -22,6 +22,8 @@ class OperatorData:
     id: int
     code: str
     name: str
+    bg: Optional[str]
+    fg: Optional[str]
 
 
 @dataclass
@@ -29,3 +31,5 @@ class BrandData:
     id: int
     code: str
     name: str
+    bg: Optional[str]
+    fg: Optional[str]
