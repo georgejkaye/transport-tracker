@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["George Kaye <georgejkaye@gmail.com>"]
 readme = "README.md"
-packages = [{include = "api", from = "src"}]
+packages = [{ include = "api", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -27,6 +27,9 @@ pytz = "^2024.1"
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.5.1"
 black = "^24.3.0"
+
+[tool.black]
+line-length = 80
 
 [build-system]
 requires = ["poetry-core"]
