@@ -288,6 +288,8 @@ class LegAtStation:
     act_dep: Optional[datetime]
     calls_before: Optional[int]
     calls_after: Optional[int]
+    operator: OperatorData
+    brand: Optional[BrandData]
 
 
 @dataclass
@@ -379,11 +381,22 @@ def select_stations(
                     EndDetails.station_crs AS end_crs,
                     COALESCE(plan_arr, plan_dep, act_arr, act_dep) AS stop_time,
                     plan_arr, act_arr, plan_dep, act_dep,
-                    CallMetric.calls_before, CallMetric.calls_after
+                    CallMetric.calls_before, CallMetric.calls_after,
+                    Operator.operator_id, Operator.operator_name,
+                    Operator.operator_code, Operator.bg_colour as operator_bg,
+                    Operator.fg_colour as operator_fg, Brand.brand_id,
+                    Brand.brand_name, Brand.brand_code, Brand.bg_colour as
+                    brand_bg, Brand.fg_colour as brand_fg
                 FROM Call
                 INNER JOIN LegCall
                 ON Call.call_id = LegCall.arr_call_id
                 OR Call.call_id = LegCall.dep_call_id
+                INNER JOIN Service
+                ON Call.service_id = Service.service_id
+                INNER JOIN Operator
+                ON Service.operator_id = Operator.operator_id
+                LEFT JOIN Brand
+                ON Service.brand_id = Brand.brand_id
                 INNER JOIN (
                     SELECT Leg.leg_id, Call.station_crs, Station.station_name
                     FROM leg
@@ -524,6 +537,24 @@ def select_stations(
         leg_objects = []
         if legs is not None:
             for leg_row in legs:
+                leg_operator = OperatorData(
+                    leg_row["operator_id"],
+                    leg_row["operator_code"],
+                    leg_row["operator_name"],
+                    leg_row["operator_bg"],
+                    leg_row["operator_fg"],
+                )
+                if leg_row["brand_id"] is None:
+                    leg_brand = None
+                else:
+                    leg_brand = BrandData(
+                        leg_row["brand_id"],
+                        leg_row["brand_code"],
+                        leg_row["brand_name"],
+                        leg_row["brand_bg"],
+                        leg_row["brand_fg"],
+                    )
+
                 leg_data = LegAtStation(
                     leg_row["leg_id"],
                     ShortTrainStation(
@@ -537,6 +568,8 @@ def select_stations(
                     str_or_null_to_datetime(leg_row["act_dep"]),
                     leg_row["calls_before"],
                     leg_row["calls_after"],
+                    leg_operator,
+                    leg_brand,
                 )
                 leg_objects.append(leg_data)
         data = StationData(
