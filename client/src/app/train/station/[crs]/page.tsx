@@ -91,41 +91,53 @@ const StationLeg = (props: {
   let { station, leg } = props
   let startsAtThisStation = leg.origin.crs === station.crs
   let terminatesAtThisStation = leg.destination.crs === station.crs
+  let operatorText = leg.brand ? leg.brand.name : leg.operator.name
+  let operatorBg = leg.brand ? leg.brand.bg : leg.operator.bg
+  let operatorFg = leg.brand ? leg.brand.fg : leg.operator.fg
   return (
-    <div className="flex flex-col md:flex-row gap-2 w-full">
-      <div className="px-4">
-        <div className="flex flex-row gap-2 items-center">
-          <LegIconLink id={leg.id} />
-          <div className="w-28 text-center text-left">
-            {dateToShortString(leg.stopTime)}
+    <div className="flex flex-col">
+      <div className="flex flex-row gap-2 w-full align-center">
+        <LegIconLink id={leg.id} />
+        <div className="flex flex-col md:flex-row">
+          <div className="px-4">
+            <div className="flex flex-row gap-2 items-center">
+              <div className="w-28 text-center text-left">
+                {dateToShortString(leg.stopTime)}
+              </div>
+            </div>
+            <div className="flex flex-col md:flex-row w-full px-1">
+              {leg.origin.crs === station.crs ? (
+                ""
+              ) : (
+                <div className="flex flex-row items-center gap-2">
+                  <div className="w-14 text-left">
+                    {maybeDateToTimeString(leg.actArr ?? leg.planArr)}
+                  </div>
+                  <div className="w-8 text-sm text-right">from</div>
+                  <StationLink station={leg.origin} />
+                </div>
+              )}
+              {leg.destination.crs === station.crs ? (
+                ""
+              ) : (
+                <div className="flex flex-row items-center gap-2">
+                  <div className="w-14 text-left">
+                    {maybeDateToTimeString(leg.actDep ?? leg.planDep)}
+                  </div>
+                  <div className="w-8 text-sm text-right">to</div>
+                  <StationLink station={leg.destination} />
+                </div>
+              )}
+            </div>
           </div>
         </div>
-        <div className="flex flex-col md:flex-row w-full px-1">
-          {leg.origin.crs === station.crs ? (
-            ""
-          ) : (
-            <div className="flex flex-row items-center gap-2">
-              <div className="w-14 text-left">
-                {maybeDateToTimeString(leg.actArr ?? leg.planArr)}
-              </div>
-              <div className="w-8 text-sm text-right">from</div>
-              <StationLink station={leg.origin} />
-            </div>
-          )}
-          {leg.destination.crs === station.crs ? (
-            ""
-          ) : (
-            <div className="flex flex-row items-center gap-2">
-              <div className="w-14 text-left">
-                {maybeDateToTimeString(leg.actDep ?? leg.planDep)}
-              </div>
-              <div className="w-8 text-sm text-right">to</div>
-              <StationLink station={leg.destination} />
-            </div>
-          )}
-        </div>
       </div>
-      <div className="bg-red-300 text-white px-4">West Midlands Railway</div>
+      <div
+        className="px-4"
+        style={{ background: operatorBg, color: operatorFg }}
+      >
+        {operatorText}
+      </div>
     </div>
   )
 }
@@ -136,12 +148,10 @@ const StationLegs = (props: {
 }) => {
   let { station, legs } = props
   return (
-    <div className="flex flex-col gap-2">
-      <Line />
+    <div className="flex flex-col gap-4">
       {legs.map((leg, i) => (
         <div key={i} className="flex flex-col">
-          <StationLeg station={station} leg={leg} />
-          <Line />
+          <StationLeg station={station} leg={leg} />{" "}
         </div>
       ))}
     </div>
@@ -166,7 +176,7 @@ const Page = ({ params }: { params: { crs: string } }) => {
   return !station ? (
     <Loader />
   ) : (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 w-full">
       <div className="px-4">
         <h1 className="text-3xl font-bold flex gap-2">
           <span className="text-gray-700">{station.crs}</span>

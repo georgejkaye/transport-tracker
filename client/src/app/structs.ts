@@ -59,23 +59,35 @@ export const responseToTrainStation = (data: any) => ({
 })
 
 export interface OperatorData {
+  id: number
   name: string
   code: string
+  fg: string
+  bg: string
 }
 
 export const responseToOperatorData = (data: any) => ({
+  id: data["id"],
   name: data["name"],
   code: data["code"],
+  fg: data["fg"],
+  bg: data["bg"],
 })
 
 export interface BrandData {
+  id: number
   name: string
   code: string
+  fg: string
+  bg: string
 }
 
 export const responseToBrandData = (data: any) => ({
+  id: data["id"],
   name: data["name"],
   code: data["code"],
+  fg: data["fg"],
+  bg: data["bg"],
 })
 
 export interface TrainStationLegData {
@@ -89,6 +101,8 @@ export interface TrainStationLegData {
   actDep?: Date
   before?: number
   after?: number
+  operator: OperatorData
+  brand?: BrandData
 }
 
 export const responseToTrainStationLegData = (data: any) => ({
@@ -102,6 +116,8 @@ export const responseToTrainStationLegData = (data: any) => ({
   actDep: responseToDate(data["act_dep"]),
   before: data["calls_before"],
   after: data["calls_after"],
+  operator: responseToOperatorData(data["operator"]),
+  brand: !data["brand"] ? undefined : responseToBrandData(data),
 })
 
 export interface TrainStationData {
