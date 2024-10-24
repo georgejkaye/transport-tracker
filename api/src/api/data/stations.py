@@ -149,7 +149,7 @@ def select_station_from_crs(cur: cursor, crs: str) -> Optional[TrainStation]:
 
 def select_station_from_name(cur: cursor, name: str) -> Optional[TrainStation]:
     query = """
-        SELECT station_name, station_crs, operator_code, brand_code
+        SELECT station_name, station_crs, operator_id, brand_id
         FROM Station
         WHERE LOWER(station_name) = LOWER(%(name)s)
     """
