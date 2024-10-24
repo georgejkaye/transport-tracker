@@ -36,8 +36,8 @@ def string_of_short_train_station(station: ShortTrainStation) -> str:
 class TrainStation:
     name: str
     crs: str
-    operator_code: str
-    brand_code: Optional[str]
+    operator_code: int
+    brand_code: Optional[int]
 
 
 @dataclass
@@ -45,7 +45,7 @@ class TrainStationInternal:
     name: str
     crs: str
     operator: OperatorData
-    brand_code: Optional[BrandData]
+    brand: Optional[BrandData]
 
 
 @dataclass
@@ -127,7 +127,8 @@ def populate_train_stations(conn: connection, cur: cursor):
 
 def select_station_from_crs(cur: cursor, crs: str) -> Optional[TrainStation]:
     query = """
-        SELECT station_name, Operator.operator_code, brand_code FROM Station
+        SELECT
+            station_name, operator_id, brand_id FROM Station
         WHERE UPPER(station_crs) = UPPER(%(crs)s)
     """
     cur.execute(query, {"crs": crs})
