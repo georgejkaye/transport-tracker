@@ -33,11 +33,19 @@ def string_of_short_train_station(station: ShortTrainStation) -> str:
 
 
 @dataclass
+class TrainStationRaw:
+    name: str
+    crs: str
+    operator: str
+    brand: Optional[str]
+
+
+@dataclass
 class TrainStation:
     name: str
     crs: str
-    operator_code: int
-    brand_code: Optional[int]
+    operator: int
+    brand: Optional[int]
 
 
 @dataclass
@@ -72,7 +80,7 @@ def string_of_service_at_station(service: TrainServiceAtStation):
 kb_stations_namespace = "http://nationalrail.co.uk/xml/station"
 
 
-def pull_stations(natrail_token: str) -> list[TrainStation]:
+def pull_stations(natrail_token: str) -> list[TrainStationRaw]:
     kb_stations_url = get_kb_url("stations")
     headers = get_natrail_token_headers(natrail_token)
     kb_stations = make_get_request(kb_stations_url, headers=headers).text
@@ -97,7 +105,7 @@ def pull_stations(natrail_token: str) -> list[TrainStation]:
             station_operator = "LM"
         else:
             station_brand = None
-        station = TrainStation(
+        station = TrainStationRaw(
             station_name, station_crs, station_operator, station_brand
         )
         stations.append(station)
@@ -105,12 +113,12 @@ def pull_stations(natrail_token: str) -> list[TrainStation]:
 
 
 def populate_train_station_table(
-    conn: connection, cur: cursor, stations: list[TrainStation]
+    conn: connection, cur: cursor, stations: list[TrainStationRaw]
 ):
     fields = ["station_crs", "station_name", "operator_code", "brand_code"]
     values = list(
         map(
-            lambda x: [x.crs, x.name, x.operator_code, x.brand_code],
+            lambda x: [x.crs, x.name, x.operator, x.brand],
             stations,
         )
     )
