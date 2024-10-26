@@ -20,7 +20,7 @@ from api.data.services import (
     ShortAssociatedService,
     ShortCall,
     ShortTrainService,
-    TrainService,
+    TrainServiceRaw,
     insert_services,
     string_of_associated_type,
     string_to_associated_type,
@@ -70,7 +70,7 @@ class ShortLegSegment:
 
 @dataclass
 class Leg:
-    service: TrainService
+    service: TrainServiceRaw
     calls: list[LegCall]
     distance: Decimal
     stock: list[LegSegmentStock]
@@ -84,7 +84,7 @@ def get_value_or_none[
     return get(obj)
 
 
-def get_service_fields(service: TrainService) -> list[str | None]:
+def get_service_fields(service: TrainServiceRaw) -> list[str | None]:
     return [
         str(service.id),
         service.run_date.isoformat(),

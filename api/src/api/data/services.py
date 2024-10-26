@@ -81,7 +81,7 @@ def string_to_associated_type(string: str) -> Optional[AssociatedType]:
 @dataclass
 class AssociatedService:
     station: ShortTrainStation
-    service: "TrainService"
+    service: "TrainServiceRaw"
     association: AssociatedType
 
 
@@ -105,15 +105,15 @@ class ShortCall:
 
 
 @dataclass
-class TrainService:
+class TrainServiceRaw:
     id: str
     headcode: str
     run_date: datetime
     origins: list[ShortTrainStation]
     destinations: list[ShortTrainStation]
     operator_name: str
-    operator_id: str
-    brand_id: Optional[str]
+    operator_code: str
+    brand_code: Optional[str]
     power: Optional[str]
     calls: list[Call]
     divides: list[AssociatedService]
@@ -148,7 +148,7 @@ class LegCall:
 
 
 def get_calls_between_stations(
-    service: TrainService,
+    service: TrainServiceRaw,
     calls: list[Call],
     origin: str,
     dest: str,
@@ -261,7 +261,9 @@ def get_calls_between_stations(
     return None
 
 
-def string_of_calls(calls: list[Call], branch: bool = True, level: int = 0) -> str:
+def string_of_calls(
+    calls: list[Call], branch: bool = True, level: int = 0
+) -> str:
     string = ""
     for i, call in enumerate(calls):
         stop_symbol = "| " * level
@@ -277,11 +279,15 @@ def string_of_calls(calls: list[Call], branch: bool = True, level: int = 0) -> s
         assocs = False
         if branch:
             for join in call.join:
-                join_string = string_of_calls(join.service.calls, branch, level + 1)
+                join_string = string_of_calls(
+                    join.service.calls, branch, level + 1
+                )
                 string = f"{string}\n\n{join_string}\n{"|" * (level + 1)}/"
                 assocs = True
             for divide in call.divide:
-                divide_string = string_of_calls(divide.service.calls, branch, level + 1)
+                divide_string = string_of_calls(
+                    divide.service.calls, branch, level + 1
+                )
                 string = f"{string}\n{"|" * (level + 1)}\\\n{divide_string}\n{"|" * (level + 1)}"
                 assocs = True
         if assocs:
@@ -301,7 +307,9 @@ def response_to_time(
     else:
         days_offset = 0
     new_time = run_date + timedelta(
-        days=days_offset, hours=int(time_string[0:2]), minutes=int(time_string[2:4])
+        days=days_offset,
+        hours=int(time_string[0:2]),
+        minutes=int(time_string[2:4]),
     )
     return new_time.replace(tzinfo=timezone)
 
@@ -340,7 +348,9 @@ def response_to_call(
                 or not parent_uid == assoc_uid
                 and (assoc["type"] == "divide" or assoc["type"] == "join")
             ):
-                assoc_date = datetime.strptime(assoc["associatedRunDate"], "%Y-%m-%d")
+                assoc_date = datetime.strptime(
+                    assoc["associatedRunDate"], "%Y-%m-%d"
+                )
                 if service_soup is None:
                     subsoup = False
                 else:
@@ -361,7 +371,9 @@ def response_to_call(
                         else:
                             assoc_type = AssociatedType.DIVIDES_TO
                         divides.append(
-                            AssociatedService(station, associated_service, assoc_type)
+                            AssociatedService(
+                                station, associated_service, assoc_type
+                            )
                         )
                     elif assoc["type"] == "join":
                         if last:
@@ -369,7 +381,9 @@ def response_to_call(
                         else:
                             assoc_type = AssociatedType.JOINS_WITH
                         joins.append(
-                            AssociatedService(station, associated_service, assoc_type)
+                            AssociatedService(
+                                station, associated_service, assoc_type
+                            )
                         )
     if service_soup is None:
         mileage = None
@@ -402,8 +416,10 @@ def get_service_from_id(
     plan_arr: Optional[datetime] = None,
     act_arr: Optional[datetime] = None,
     soup: bool = False,
-) -> Optional[TrainService]:
-    endpoint = f"{service_endpoint}/{service_id}/{get_datetime_route(run_date, False)}"
+) -> Optional[TrainServiceRaw]:
+    endpoint = (
+        f"{service_endpoint}/{service_id}/{get_datetime_route(run_date, False)}"
+    )
     rtt_credentials = get_api_credentials("RTT")
     response = make_get_request(endpoint, rtt_credentials)
     data = response.json()
@@ -411,14 +427,15 @@ def get_service_from_id(
         headcode = data["trainIdentity"]
         power = data.get("powerType")
         origins = [
-            response_to_short_train_station(cur, origin) for origin in data["origin"]
+            response_to_short_train_station(cur, origin)
+            for origin in data["origin"]
         ]
         destinations = [
             response_to_short_train_station(cur, destination)
             for destination in data["destination"]
         ]
         operator_name = data["atocName"]
-        operator_id = data["atocCode"]
+        operator_code = data["atocCode"]
         calls: list[Call] = []
         divides: list[AssociatedService] = []
         joins: list[AssociatedService] = []
@@ -444,16 +461,16 @@ def get_service_from_id(
                 divides.extend(call.divide)
                 joins.extend(call.join)
                 calls.append(call)
-        brand_id = None
-        return TrainService(
+        brand_code = None
+        return TrainServiceRaw(
             service_id,
             headcode,
             run_date,
             origins,
             destinations,
             operator_name,
-            operator_id,
-            brand_id,
+            operator_code,
+            brand_code,
             power,
             calls,
             divides,
@@ -481,10 +498,12 @@ def filter_services_by_time(
 
 
 def stops_at_station(
-    service: TrainService, origin_crs: str, destination_crs: str
+    service: TrainServiceRaw, origin_crs: str, destination_crs: str
 ) -> bool:
     return (
-        get_calls_between_stations(service, service.calls, origin_crs, destination_crs)
+        get_calls_between_stations(
+            service, service.calls, origin_crs, destination_crs
+        )
         is not None
     )
 
@@ -507,7 +526,9 @@ def filter_services_by_time_and_stop(
         full_service = get_service_from_id(
             cur, service.id, service.run_date, soup=False
         )
-        if full_service and stops_at_station(full_service, origin.crs, destination.crs):
+        if full_service and stops_at_station(
+            full_service, origin.crs, destination.crs
+        ):
             stop_filtered.append(service)
     information(" " * max_string_length, end="\r")
     return stop_filtered
@@ -518,17 +539,21 @@ def get_service_page_url(id: str, service_date: datetime) -> str:
     return f"https://www.realtimetrains.co.uk/service/gb-nr:{id}/{date_string}/detailed"
 
 
-def get_service_page_url_from_service(service: TrainService) -> str:
+def get_service_page_url_from_service(service: TrainServiceRaw) -> str:
     return get_service_page_url(service.id, service.run_date)
 
 
-def get_service_page(service_id: str, run_date: datetime) -> Optional[BeautifulSoup]:
+def get_service_page(
+    service_id: str, run_date: datetime
+) -> Optional[BeautifulSoup]:
     url = get_service_page_url(service_id, run_date)
     soup = get_soup(url)
     return soup
 
 
-def get_service_page_from_service(service: TrainService) -> Optional[BeautifulSoup]:
+def get_service_page_from_service(
+    service: TrainServiceRaw,
+) -> Optional[BeautifulSoup]:
     get_service_page(service.id, service.run_date)
 
 
@@ -556,7 +581,37 @@ def get_miles_and_chains_from_call_div(
     return miles_and_chains_to_miles(miles_int, chains_int)
 
 
-def insert_services(conn: connection, cur: cursor, services: list[TrainService]):
+def get_operator_id_from_operator_code_and_run_date_statement(
+    operator_code: str, run_date: datetime
+):
+    return f"""
+        (SELECT operator_id
+        FROM Operator
+        WHERE
+        operator_code = '{operator_code}'
+        AND
+        '{run_date.date()}'::date <@ operation_range)
+    """
+
+
+def get_brand_id_from_brand_code_and_run_date_statement(
+    brand_code: str | None, run_date: datetime
+):
+    if brand_code is None:
+        return None
+    return NoEscape(
+        f"""
+        (SELECT brand_id
+        FROM Operator
+        WHERE
+        brand_code = '{brand_code}')
+    """
+    )
+
+
+def insert_services(
+    conn: connection, cur: cursor, services: list[TrainServiceRaw]
+):
     service_fields = [
         "service_id",
         "run_date",
@@ -593,14 +648,25 @@ def insert_services(conn: connection, cur: cursor, services: list[TrainService])
                 str(service.id),
                 service.run_date.isoformat(),
                 service.headcode,
-                service.operator_id,
-                service.brand_id,
+                NoEscape(
+                    get_operator_id_from_operator_code_and_run_date_statement(
+                        service.operator_code, service.run_date
+                    )
+                ),
+                get_brand_id_from_brand_code_and_run_date_statement(
+                    service.brand_code, service.run_date
+                ),
                 service.power,
             ]
         )
         for origin in service.origins:
             endpoint_values.append(
-                [str(service.id), service.run_date.isoformat(), origin.crs, str(True)]
+                [
+                    str(service.id),
+                    service.run_date.isoformat(),
+                    origin.crs,
+                    str(True),
+                ]
             )
         for destination in service.destinations:
             endpoint_values.append(
@@ -659,7 +725,11 @@ def insert_services(conn: connection, cur: cursor, services: list[TrainService])
         additional_query="ON CONFLICT DO NOTHING",
     )
     insert(
-        cur, "Call", call_fields, call_values, additional_query="ON CONFLICT DO NOTHING"
+        cur,
+        "Call",
+        call_fields,
+        call_values,
+        additional_query="ON CONFLICT DO NOTHING",
     )
     insert(
         cur,

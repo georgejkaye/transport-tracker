@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from dataclasses import dataclass
@@ -65,7 +66,9 @@ class ClassAndSubclass:
         return hash(self.class_no * 10 + subclass_hash)
 
 
-def string_of_class_and_subclass(stock: ClassAndSubclass, name: bool = True) -> str:
+def string_of_class_and_subclass(
+    stock: ClassAndSubclass, name: bool = True
+) -> str:
     string = f"Class {stock.class_no}"
     if stock.subclass_no is not None:
         string = f"{string}/{stock.subclass_no}"
@@ -88,7 +91,9 @@ def sort_by_subclasses(stock: list[ClassAndSubclass]) -> list[ClassAndSubclass]:
     return sorted(stock, key=subclass_sort_key)
 
 
-def get_unique_classes_from_subclasses(stock: list[ClassAndSubclass]) -> list[Class]:
+def get_unique_classes_from_subclasses(
+    stock: list[ClassAndSubclass],
+) -> list[Class]:
     uniques: set[Class] = set()
     for cas in stock:
         if cas.class_no not in uniques:
@@ -161,7 +166,11 @@ def insert_stock(conn: connection, cur: cursor, stocks: list[Stock]):
     current_fields = ["operator_id", "brand_id", "stock_class", "subclass"]
     current_values = [stock_to_current(stock) for stock in stocks]
     insert(
-        cur, "OperatorStock", current_fields, current_values, "ON CONFLICT DO NOTHING"
+        cur,
+        "OperatorStock",
+        current_fields,
+        current_values,
+        "ON CONFLICT DO NOTHING",
     )
 
 
@@ -220,7 +229,9 @@ def insert_stock_interactive():
             exit(1)
 
 
-def get_operator_stock(cur: cursor, operator: str) -> list[Stock]:
+def get_operator_stock(
+    cur: cursor, operator_code: str, run_date: datetime
+) -> list[Stock]:
     query = """
         SELECT
             Stock.stock_class, Stock.name AS stock_name,
@@ -231,15 +242,26 @@ def get_operator_stock(cur: cursor, operator: str) -> list[Stock]:
         ON Stock.stock_class = StockSubclass.stock_class
         INNER JOIN OperatorStock
         ON
-            Stock.stock_class = OperatorStock.stock_class AND
-            (StockSubclass.stock_subclass IS NULL OR StockSubclass.stock_subclass = OperatorStock.stock_subclass)
+            Stock.stock_class = OperatorStock.stock_class AND (
+                StockSubclass.stock_subclass IS NULL
+                OR
+                StockSubclass.stock_subclass = OperatorStock.stock_subclass
+            )
+        INNER JOIN Operator
+        ON OperatorStock.operator_id = Operator.operator_id
+        LEFT JOIN Brand
+        ON OperatorStock.brand_id = Brand.brand_id
         WHERE
-            OperatorStock.operator_id = %(id)s OR OperatorStock.brand_id = %(id)s
+            (operator_code = %(code)s OR brand_code = %(code)s)
+        AND
+            %(rundate)s <@ operation_range
         ORDER BY Stock.stock_class ASC, StockSubclass.stock_subclass ASC
     """
-    cur.execute(query, {"id": operator})
+    cur.execute(query, {"code": operator_code, "rundate": run_date.date()})
     rows = cur.fetchall()
-    stock = [Stock(row[0], row[1], row[2], row[3], row[4], row[5]) for row in rows]
+    stock = [
+        Stock(row[0], row[1], row[2], row[3], row[4], row[5]) for row in rows
+    ]
     return stock
 
 
@@ -259,7 +281,10 @@ def get_unique_subclasses(
         if stock_class and item.class_no == stock_class.class_no:
             if item.subclass_no is not None:
                 stock_subclass = ClassAndSubclass(
-                    item.class_no, item.class_name, item.subclass_no, item.class_name
+                    item.class_no,
+                    item.class_name,
+                    item.subclass_no,
+                    item.class_name,
                 )
                 stock_subclasses.add(stock_subclass)
     return list(stock_subclasses)
@@ -274,7 +299,9 @@ def string_of_formation(f: Formation) -> str:
     return f"{f.cars} cars"
 
 
-def select_stock_cars(cur: cursor, stock: Stock) -> list[Formation]:
+def select_stock_cars(
+    cur: cursor, stock: Stock, run_date: datetime
+) -> list[Formation]:
     statement = """
         SELECT DISTINCT cars FROM StockFormation
         INNER JOIN (
@@ -300,8 +327,11 @@ def select_stock_cars(cur: cursor, stock: Stock) -> list[Formation]:
                 AND OperatorStock.stock_subclass IS NULL
             )
         )
+        INNER JOIN Operator
+        ON OperatorStock.operator_id = Operator.operator_id
         WHERE Stocks.stock_class = %(class_no)s
-        AND operator_id = %(operator)s
+        AND operator_code = %(operator)s
+        AND %(rundate)s <@ operation_range
     """
     if stock.subclass_no is not None:
         statement = f"""
@@ -319,6 +349,7 @@ def select_stock_cars(cur: cursor, stock: Stock) -> list[Formation]:
             "operator": stock.operator,
             "subclass_no": stock.subclass_no,
             "brand": stock.brand,
+            "rundate": run_date.date(),
         },
     )
     rows = cur.fetchall()

@@ -20,7 +20,7 @@ from api.data.network import (
 )
 from api.data.services import (
     LegCall,
-    TrainService,
+    TrainServiceRaw,
     filter_services_by_time_and_stop,
     get_calls_between_stations,
     get_service_from_id,
@@ -183,7 +183,10 @@ def get_station_from_input(
         else:
             print("Multiple matches found: ")
             choice = input_select(
-                "Select a station", matches, display=lambda x: x.name, cancel=True
+                "Select a station",
+                matches,
+                display=lambda x: x.name,
+                cancel=True,
             )
             match choice:
                 case PickSingle(stn):
@@ -250,7 +253,9 @@ def get_unit_class(
 def get_unit_subclass(
     operator_stock: list[Stock], stock_class: Class
 ) -> Optional[PickUnknown | PickSingle[ClassAndSubclass]]:
-    valid_subclasses = get_unique_subclasses(operator_stock, stock_class=stock_class)
+    valid_subclasses = get_unique_subclasses(
+        operator_stock, stock_class=stock_class
+    )
     # If there are no subclasses then we are done
     if len(valid_subclasses) == 0:
         stock_subclass = None
@@ -291,7 +296,11 @@ def get_unit_no(stock_subclass: ClassAndSubclass) -> Optional[int]:
 
 
 def get_unit_cars(
-    cur: cursor, stock_subclass: ClassAndSubclass, operator: str, brand: Optional[str]
+    cur: cursor,
+    run_date: datetime,
+    stock_subclass: ClassAndSubclass,
+    operator: str,
+    brand: Optional[str],
 ) -> PickUnknown | PickSingle[Formation] | None:
     stock = Stock(
         stock_subclass.class_no,
@@ -301,7 +310,7 @@ def get_unit_cars(
         operator,
         brand,
     )
-    car_options = select_stock_cars(cur, stock)
+    car_options = select_stock_cars(cur, stock, run_date)
     # If there is no choice we know the answer already
     if len(car_options) == 1:
         information(
@@ -353,7 +362,11 @@ def string_of_stock_change(change: StockChange) -> str:
 
 
 def get_unit_report(
-    cur: cursor, stock_list: list[Stock], operator: str, brand: Optional[str]
+    cur: cursor,
+    run_date: datetime,
+    stock_list: list[Stock],
+    operator: str,
+    brand: Optional[str],
 ) -> Optional[StockReport]:
     stock_class_res = get_unit_class(stock_list)
     match stock_class_res:
@@ -381,7 +394,10 @@ def get_unit_report(
         stock_unit_no = None
         stock_cars_res = get_unit_cars(
             cur,
-            ClassAndSubclass(stock_class.class_no, stock_class.class_name, None, None),
+            run_date,
+            ClassAndSubclass(
+                stock_class.class_no, stock_class.class_name, None, None
+            ),
             operator,
             brand,
         )
@@ -395,7 +411,9 @@ def get_unit_report(
     elif stock_class is not None and stock_subclass is not None:
         stock_subclass_no = stock_subclass.subclass_no
         stock_unit_no = get_unit_no(stock_subclass)
-        stock_cars_res = get_unit_cars(cur, stock_subclass, operator, brand)
+        stock_cars_res = get_unit_cars(
+            cur, run_date, stock_subclass, operator, brand
+        )
         match stock_cars_res:
             case None:
                 return None
@@ -403,7 +421,9 @@ def get_unit_report(
                 stock_cars = None
             case PickSingle(form):
                 stock_cars = form
-    return StockReport(stock_class_no, stock_subclass_no, stock_unit_no, stock_cars)
+    return StockReport(
+        stock_class_no, stock_subclass_no, stock_unit_no, stock_cars
+    )
 
 
 def get_stock_change_reason() -> StockChange:
@@ -422,7 +442,7 @@ def get_stock_change_reason() -> StockChange:
 def get_stock(
     cur: cursor,
     calls: list[LegCall],
-    service: TrainService,
+    service: TrainServiceRaw,
     previous: Optional[LegSegmentStock] = None,
     stock_number: int = 0,
 ) -> Optional[list[LegSegmentStock]]:
@@ -431,7 +451,9 @@ def get_stock(
     last_used_stock = previous
     # Currently getting this automatically isn't implemented
     # First get all stock this operator has
-    stock_list = get_operator_stock(cur, service.operator_id)
+    stock_list = get_operator_stock(
+        cur, service.operator_code, service.run_date
+    )
     first_call = calls[0]
     current_call = first_call
     last_call = calls[-1]
@@ -440,7 +462,9 @@ def get_stock(
     # of stops excluding the start
     remaining_calls = calls[1:]
     while not compare_crs(current_call.station.crs, last_call.station.crs):
-        information(f"Recording stock formation after {current_call.station.name}")
+        information(
+            f"Recording stock formation after {current_call.station.name}"
+        )
         segment_stock: list[StockReport] = []
         segment_start = current_call
         # Find out where this stock ends
@@ -452,7 +476,9 @@ def get_stock(
             next_remaining_calls = []
         else:
             (stock_end, segment_end_index, next_remaining_calls) = stock_end_opt
-        stock_calls = [current_call] + remaining_calls[0 : segment_end_index + 1]
+        stock_calls = [current_call] + remaining_calls[
+            0 : segment_end_index + 1
+        ]
         remaining_calls = next_remaining_calls
         segment_end = stock_calls[-1]
         # Now find out what reason for the change in stock is (or if we are just startin)
@@ -473,7 +499,11 @@ def get_stock(
                 for i in range(0, number_of_units):
                     information(f"Selecting unit {i+1}")
                     stock_report = get_unit_report(
-                        cur, stock_list, service.operator_id, service.brand_id
+                        cur,
+                        service.run_date,
+                        stock_list,
+                        service.operator_code,
+                        service.brand_code,
                     )
                     if stock_report is None:
                         return None
@@ -493,7 +523,9 @@ def get_stock(
         segment = LegSegmentStock(segment_stock, stock_calls, stock_mileage)
         used_stock.append(segment)
         last_used_stock = segment
-        information(f"Stock formation {len(used_stock) + stock_number} recorded")
+        information(
+            f"Stock formation {len(used_stock) + stock_number} recorded"
+        )
         current_call = segment_end
     return used_stock
 
@@ -577,7 +609,9 @@ def record_new_leg(
             else:
                 service = service_candidate
     else:
-        service = get_service_from_id(cur, service_at_station.id, run_date, soup=True)
+        service = get_service_from_id(
+            cur, service_at_station.id, run_date, soup=True
+        )
     if service is None:
         return None
     calls = get_calls_between_stations(
@@ -592,7 +626,9 @@ def record_new_leg(
             previous = stock_segments[-1]
         else:
             previous = None
-        chain_stock = get_stock(cur, chain, service, previous, len(stock_segments))
+        chain_stock = get_stock(
+            cur, chain, service, previous, len(stock_segments)
+        )
         if chain_stock is None:
             return None
         stock_segments.extend(chain_stock)
