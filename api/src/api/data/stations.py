@@ -279,6 +279,7 @@ def compare_crs(a: str, b: str) -> bool:
 @dataclass
 class LegAtStation:
     id: int
+    platform: Optional[str]
     origin: ShortTrainStation
     destination: ShortTrainStation
     stop_time: datetime
@@ -374,7 +375,7 @@ def select_stations(
         LEFT JOIN (
             WITH legdetails AS (
                 SELECT
-                    Call.station_crs, LegCall.leg_id,
+                    Call.station_crs, Call.platform, LegCall.leg_id,
                     StartDetails.station_name AS start_name,
                     StartDetails.station_crs AS start_crs,
                     EndDetails.station_name AS end_name,
@@ -557,6 +558,7 @@ def select_stations(
 
                 leg_data = LegAtStation(
                     leg_row["leg_id"],
+                    leg_row["platform"],
                     ShortTrainStation(
                         leg_row["start_name"], leg_row["start_crs"]
                     ),
