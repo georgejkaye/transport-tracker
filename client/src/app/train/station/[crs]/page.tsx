@@ -94,40 +94,35 @@ const StationLeg = (props: {
   let operatorText = leg.brand ? leg.brand.name : leg.operator.name
   let operatorBg = leg.brand ? leg.brand.bg : leg.operator.bg
   let operatorFg = leg.brand ? leg.brand.fg : leg.operator.fg
+  console.log(props.leg)
   return (
-    <div className="flex flex-col">
-      <div className="flex flex-row gap-2 w-full align-center">
+    <div className="flex flex-col mx-4 border-2 rounded-xl overflow-hidden">
+      <div className="flex flex-row gap-4 m-2 align-center">
         <LegIconLink id={leg.id} />
-        <div className="flex flex-col md:flex-row">
-          <div className="px-4">
-            <div className="flex flex-row gap-2 items-center">
-              <div className="w-28 text-center text-left">
+        <div className="flex flex-col md:flex-row flex-1">
+          <div>
+            <div className="flex flex-row gap-2 items-center pb-2">
+              <div className="w-28 text-left flex-1">
                 {dateToShortString(leg.stopTime)}
               </div>
+              <div>{!leg.platform ? "" : `Platform ${leg.platform}`}</div>
             </div>
-            <div className="flex flex-col md:flex-row w-full px-1">
-              {leg.origin.crs === station.crs ? (
-                ""
-              ) : (
-                <div className="flex flex-row items-center gap-2">
-                  <div className="w-14 text-left">
-                    {maybeDateToTimeString(leg.actArr ?? leg.planArr)}
-                  </div>
-                  <div className="w-8 text-sm text-right">from</div>
-                  <StationLink station={leg.origin} />
-                </div>
-              )}
-              {leg.destination.crs === station.crs ? (
-                ""
-              ) : (
-                <div className="flex flex-row items-center gap-2">
-                  <div className="w-14 text-left">
-                    {maybeDateToTimeString(leg.actDep ?? leg.planDep)}
-                  </div>
-                  <div className="w-8 text-sm text-right">to</div>
-                  <StationLink station={leg.destination} />
-                </div>
-              )}
+            <div className="flex flex-col md:flex-row w-full">
+              <div className="flex flex-row gap-1">
+                <Link
+                  className={linkStyle}
+                  href={`/train/station/${leg.origin.crs}`}
+                >
+                  {leg.origin.name}
+                </Link>
+                <div>to</div>
+                <Link
+                  className={linkStyle}
+                  href={`/train/station/${leg.destination.crs}`}
+                >
+                  {leg.destination.name}
+                </Link>
+              </div>
             </div>
           </div>
         </div>
