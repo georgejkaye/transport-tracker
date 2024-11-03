@@ -84,54 +84,144 @@ const StationLegPlanActTime = (props: { plan?: Date; act?: Date }) => {
   )
 }
 
+interface StationLegProps {
+  leg: TrainStationLegData
+  originStyle: string
+  destinationStyle: string
+  operatorText: string
+  operatorBg: string
+  operatorFg: string
+  passStyle: string
+}
+
+const StationLegMobile = ({
+  leg,
+  originStyle,
+  destinationStyle,
+  operatorText,
+  operatorBg,
+  operatorFg,
+  passStyle,
+}: StationLegProps) => (
+  <div
+    className={`flex flex-col mx-4 gap-1 border-2 border-gray-400 rounded-xl overflow-hidden ${passStyle}`}
+  >
+    <div className="flex flex-row gap-4 m-2 p-1 align-center">
+      <LegIconLink id={leg.id} />
+      <div className="flex flex-col md:flex-row flex-1">
+        <div>
+          <div className="flex flex-row gap-2 items-center pb-2">
+            <div className="w-28 text-left flex-1">
+              {dateToShortString(leg.stopTime)}
+            </div>
+            {!leg.actArr ? "" : <div>{`${dateToTimeString(leg.actArr)}`}</div>}
+            {!leg.actDep ? "" : <div>{`${dateToTimeString(leg.actDep)}`}</div>}
+            <div>{!leg.platform ? "" : `P${leg.platform}`}</div>
+          </div>
+          <div className="flex flex-col md:flex-row w-full">
+            <div className="flex flex-row gap-1">
+              <Link
+                className={`${originStyle} ${linkStyle}`}
+                href={`/train/station/${leg.origin.crs}`}
+              >
+                {leg.origin.name}
+              </Link>
+              <div>to</div>
+              <Link
+                className={`${destinationStyle} ${linkStyle}`}
+                href={`/train/station/${leg.destination.crs}`}
+              >
+                {leg.destination.name}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      className="px-4 py-1"
+      style={{ background: operatorBg, color: operatorFg }}
+    >
+      {operatorText}
+    </div>
+  </div>
+)
+
+const StationLegWide = ({
+  leg,
+  originStyle,
+  destinationStyle,
+  operatorText,
+  operatorBg,
+  operatorFg,
+  passStyle,
+}: StationLegProps) => (
+  <div className="flex flex-row rounded-xl border-2 border-gray-300 mx-2 gap-2 overflow-hidden">
+    <div className="flex flex-row p-2">
+      {" "}
+      <LegIconLink id={leg.id} />
+      <div className="w-28">{dateToShortString(leg.stopTime)}</div>
+      <Link
+        className={`${originStyle} ${linkStyle}`}
+        href={`/train/station/${leg.origin.crs}`}
+      >
+        {leg.origin.name}
+      </Link>
+      <PlanActTime plan={leg.planArr} act={leg.actArr} />
+      <Link
+        className={`${destinationStyle} ${linkStyle}`}
+        href={`/train/station/${leg.destination.crs}`}
+      >
+        {leg.destination.name}
+      </Link>
+      <PlanActTime plan={leg.planDep} act={leg.actDep} />
+    </div>
+    <div
+      className="align-end p-2"
+      style={{ background: operatorBg, color: operatorFg }}
+    >
+      {operatorText}
+    </div>
+  </div>
+)
+
 const StationLeg = (props: {
   station: TrainStation
   leg: TrainStationLegData
 }) => {
   let { station, leg } = props
-  let startsAtThisStation = leg.origin.crs === station.crs
-  let terminatesAtThisStation = leg.destination.crs === station.crs
+  let boardsAtThisStation = leg.origin.crs === station.crs
+  let alightsAtThisStation = leg.destination.crs === station.crs
   let operatorText = leg.brand ? leg.brand.name : leg.operator.name
   let operatorBg = leg.brand ? leg.brand.bg : leg.operator.bg
   let operatorFg = leg.brand ? leg.brand.fg : leg.operator.fg
-  console.log(props.leg)
+  let passStyle =
+    boardsAtThisStation || alightsAtThisStation ? "" : "bg-gray-300"
+  let originStyle = boardsAtThisStation ? "font-bold" : ""
+  let destinationStyle = alightsAtThisStation ? "font-bold" : ""
   return (
-    <div className="flex flex-col mx-4 border-2 rounded-xl overflow-hidden">
-      <div className="flex flex-row gap-4 m-2 align-center">
-        <LegIconLink id={leg.id} />
-        <div className="flex flex-col md:flex-row flex-1">
-          <div>
-            <div className="flex flex-row gap-2 items-center pb-2">
-              <div className="w-28 text-left flex-1">
-                {dateToShortString(leg.stopTime)}
-              </div>
-              <div>{!leg.platform ? "" : `Platform ${leg.platform}`}</div>
-            </div>
-            <div className="flex flex-col md:flex-row w-full">
-              <div className="flex flex-row gap-1">
-                <Link
-                  className={linkStyle}
-                  href={`/train/station/${leg.origin.crs}`}
-                >
-                  {leg.origin.name}
-                </Link>
-                <div>to</div>
-                <Link
-                  className={linkStyle}
-                  href={`/train/station/${leg.destination.crs}`}
-                >
-                  {leg.destination.name}
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div>
+      <div className="md:hidden">
+        <StationLegMobile
+          leg={leg}
+          originStyle={originStyle}
+          destinationStyle={destinationStyle}
+          operatorText={operatorText}
+          operatorBg={operatorBg}
+          operatorFg={operatorFg}
+          passStyle={passStyle}
+        />
       </div>
-      <div
-        className="px-4"
-        style={{ background: operatorBg, color: operatorFg }}
-      >
-        {operatorText}
+      <div className="hidden md:block">
+        <StationLegWide
+          leg={leg}
+          originStyle={originStyle}
+          destinationStyle={destinationStyle}
+          operatorText={operatorText}
+          operatorBg={operatorBg}
+          operatorFg={operatorFg}
+          passStyle={passStyle}
+        />
       </div>
     </div>
   )
