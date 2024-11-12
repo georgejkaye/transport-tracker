@@ -206,22 +206,27 @@ END;
 $$;
 
 CREATE TABLE StockSegment (
+    stock_segment_id SERIAL PRIMARY KEY,
     start_call INT NOT NULL,
     end_call INT NOT NULL,
-    PRIMARY KEY (start_call, end_call),
     FOREIGN KEY (start_call) REFERENCES Call(call_id) ON DELETE CASCADE,
     FOREIGN KEY (end_call) REFERENCES Call(call_id) ON DELETE CASCADE
 );
 
 CREATE TABLE StockReport (
-    start_call INT NOT NULL,
-    end_call INT NOT NULL,
+    stock_report_id SERIAL PRIMARY KEY,
     stock_class INT,
     stock_subclass INT,
     stock_number INT,
     stock_cars INT,
-    FOREIGN KEY (start_call, end_call) REFERENCES StockSegment(start_call, end_call) ON DELETE CASCADE,
     FOREIGN KEY (stock_class) REFERENCES Stock(stock_class),
     FOREIGN KEY (stock_class, stock_subclass) REFERENCES StockSubclass(stock_class, stock_subclass),
     CONSTRAINT valid_stock CHECK (validStockFormation(stock_class, stock_subclass, stock_cars))
+);
+
+CREATE TABLE StockSegmentReport (
+    stock_segment_id INT NOT NULL,
+    stock_report_id INT NOT NULL,
+    FOREIGN KEY (stock_segment_id) REFERENCES StockSegment(stock_segment_id),
+    FOREIGN KEY (stock_report_id) REFERENCES StockReport(stock_report_id)
 );

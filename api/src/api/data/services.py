@@ -581,162 +581,81 @@ def get_miles_and_chains_from_call_div(
     return miles_and_chains_to_miles(miles_int, chains_int)
 
 
-def get_operator_id_from_operator_code_and_run_date_statement(
-    operator_code: str, run_date: datetime
-):
-    return f"""
-        (SELECT operator_id
-        FROM Operator
-        WHERE
-        operator_code = '{operator_code}'
-        AND
-        '{run_date.date()}'::date <@ operation_range)
-    """
-
-
-def get_brand_id_from_brand_code_and_run_date_statement(
-    brand_code: str | None, run_date: datetime
-):
-    if brand_code is None:
-        return None
-    return NoEscape(
-        f"""
-        (SELECT brand_id
-        FROM Operator
-        WHERE
-        brand_code = '{brand_code}')
-    """
-    )
-
-
 def insert_services(
     conn: connection, cur: cursor, services: list[TrainServiceRaw]
 ):
-    service_fields = [
-        "service_id",
-        "run_date",
-        "headcode",
-        "operator_id",
-        "brand_id",
-        "power",
-    ]
-    endpoint_fields = ["service_id", "run_date", "station_crs", "origin"]
-    call_fields = [
-        "service_id",
-        "run_date",
-        "station_crs",
-        "platform",
-        "plan_arr",
-        "plan_dep",
-        "act_arr",
-        "act_dep",
-        "mileage",
-    ]
-    assoc_fields = [
-        "call_id",
-        "associated_id",
-        "associated_run_date",
-        "associated_type",
-    ]
     service_values = []
     endpoint_values = []
     call_values = []
     assoc_values = []
     for service in services:
         service_values.append(
-            [
-                str(service.id),
+            (
+                service.id,
                 service.run_date.isoformat(),
                 service.headcode,
-                NoEscape(
-                    get_operator_id_from_operator_code_and_run_date_statement(
-                        service.operator_code, service.run_date
-                    )
-                ),
-                get_brand_id_from_brand_code_and_run_date_statement(
-                    service.brand_code, service.run_date
-                ),
+                service.operator_code,
+                service.brand_code,
                 service.power,
-            ]
+            )
         )
         for origin in service.origins:
             endpoint_values.append(
-                [
-                    str(service.id),
-                    service.run_date.isoformat(),
+                (
+                    service.id,
+                    service.run_date,
                     origin.crs,
-                    str(True),
-                ]
+                    True,
+                )
             )
         for destination in service.destinations:
             endpoint_values.append(
-                [
-                    str(service.id),
-                    service.run_date.isoformat(),
+                (
+                    service.id,
+                    service.run_date,
                     destination.crs,
-                    str(False),
-                ]
+                    False,
+                )
             )
         for call in service.calls:
             call_values.append(
-                [
+                (
                     service.id,
-                    service.run_date.isoformat(),
+                    service.run_date,
                     call.station.crs,
                     call.platform,
-                    datetime_or_none_to_str(call.plan_arr),
-                    datetime_or_none_to_str(call.plan_dep),
-                    datetime_or_none_to_str(call.act_arr),
-                    datetime_or_none_to_str(call.act_dep),
-                    number_or_none_to_str(call.mileage),
-                ]
-            )
-            select_call_id_statement = f"""(
-                SELECT call_id FROM Call
-                WHERE service_id = '{service.id}'
-                AND run_date = '{service.run_date.isoformat()}'
-                AND station_crs = '{call.station.crs}'
-                AND (
-                plan_arr = {datetime_or_none_to_raw_str(call.plan_arr)}
-                OR plan_dep = {datetime_or_none_to_raw_str(call.plan_dep)}
+                    call.plan_arr,
+                    call.plan_dep,
+                    call.act_arr,
+                    call.act_dep,
+                    call.mileage,
                 )
-            )"""
+            )
             for divide in call.divide + call.join:
                 assoc_values.append(
-                    [
-                        NoEscape(select_call_id_statement),
+                    (
+                        service.id,
+                        service.run_date,
+                        call.station.crs,
+                        call.plan_arr,
+                        call.plan_dep,
+                        call.act_arr,
+                        call.act_dep,
                         divide.service.id,
                         divide.service.run_date.isoformat(),
                         string_of_associated_type(divide.association),
-                    ]
+                    )
                 )
-    insert(
-        cur,
-        "Service",
-        service_fields,
-        service_values,
-        additional_query="ON CONFLICT DO NOTHING",
-    )
-    insert(
-        cur,
-        "ServiceEndpoint",
-        endpoint_fields,
-        endpoint_values,
-        additional_query="ON CONFLICT DO NOTHING",
-    )
-    insert(
-        cur,
-        "Call",
-        call_fields,
-        call_values,
-        additional_query="ON CONFLICT DO NOTHING",
-    )
-    insert(
-        cur,
-        "AssociatedService",
-        assoc_fields,
-        assoc_values,
-        additional_query="ON CONFLICT DO NOTHING",
+    cur.execute(
+        """
+        SELECT * FROM InsertServices(
+            %s::service_data[],
+            %s::endpoint_data[],
+            %s::call_data[],
+            %s::assoc_data[]
+        )
+        """,
+        [service_values, endpoint_values, call_values, assoc_values],
     )
     conn.commit()
 
