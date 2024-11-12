@@ -18,6 +18,24 @@ CREATE TABLE Operator (
     )
 );
 
+CREATE OR REPLACE FUNCTION GetOperatorId(
+    p_operator_code CHARACTER(2),
+    p_run_date TIMESTAMP WITH TIME ZONE
+)
+RETURNS INT
+LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    v_operator_id INT;
+BEGIN
+    SELECT operator_id INTO v_operator_id FROM Operator
+    WHERE operator_code = p_operator_code
+    AND operation_range @> p_run_date::date;
+    RETURN v_operator_id;
+END;
+$$;
+
 CREATE TABLE Brand (
     brand_id SERIAL PRIMARY KEY,
     brand_code CHARACTER(2),
@@ -27,6 +45,27 @@ CREATE TABLE Brand (
     fg_colour TEXT,
     FOREIGN KEY (parent_operator) REFERENCES Operator(operator_id)
 );
+
+CREATE OR REPLACE FUNCTION GetBrandId(
+    p_brand_code CHARACTER(2),
+    p_run_date TIMESTAMP WITH TIME ZONE
+)
+RETURNS INT
+LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    v_brand_id INT;
+BEGIN
+    SELECT brand_id INTO v_brand_id
+    FROM Brand
+    INNER JOIN Operator
+    ON Operator.operator_id = Brand.parent_operator
+    WHERE brand_code = p_brand_code
+    AND operation_range @> p_run_date::date;
+    RETURN v_brand_id;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION validBrand(
     p_brand_id INT,
@@ -170,6 +209,33 @@ CREATE TABLE LegCall (
     CONSTRAINT arr_or_dep CHECK (num_nulls(arr_call_id, dep_call_id) <= 1)
 );
 
+CREATE OR REPLACE FUNCTION getCallFromLegCall (
+    p_service_id TEXT,
+    p_run_date TIMESTAMP WITH TIME ZONE,
+    p_station_crs CHARACTER(3),
+    p_plan_arr TIMESTAMP WITH TIME ZONE,
+    p_plan_dep TIMESTAMP WITH TIME ZONE,
+    p_act_arr TIMESTAMP WITH TIME ZONE,
+    p_act_dep TIMESTAMP WITH TIME ZONE
+) RETURNS INTEGER
+LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    v_call_id INTEGER;
+BEGIN
+    SELECT call_id INTO v_call_id
+    FROM Call
+    WHERE service_id = p_service_id
+    AND run_date = p_run_date
+    AND station_crs = p_station_crs
+    AND
+        COALESCE(plan_arr, plan_dep, act_arr, act_dep) =
+        COALESCE(p_plan_arr, p_plan_dep, p_act_arr, p_act_dep);
+    RETURN v_call_id;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION validStockFormation (
     stockclass INT,
     stocksubclass INT,
@@ -213,6 +279,24 @@ CREATE TABLE StockSegment (
     FOREIGN KEY (end_call) REFERENCES Call(call_id) ON DELETE CASCADE
 );
 
+CREATE OR REPLACE FUNCTION getStockSegmentId (
+    p_start_call INTEGER,
+    p_end_call INTEGER
+) RETURNS INTEGER
+LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    v_stock_segment_id INTEGER;
+BEGIN
+    SELECT stock_segment_id INTO v_stock_segment_id
+    FROM StockSegment
+    WHERE start_call = p_start_call
+    AND end_call = p_end_call;
+    RETURN v_call_id;
+END;
+$$;
+
 CREATE TABLE StockReport (
     stock_report_id SERIAL PRIMARY KEY,
     stock_class INT,
@@ -224,9 +308,155 @@ CREATE TABLE StockReport (
     CONSTRAINT valid_stock CHECK (validStockFormation(stock_class, stock_subclass, stock_cars))
 );
 
+CREATE OR REPLACE FUNCTION getStockReportId (
+    p_stock_class INTEGER,
+    p_stock_subclass INTEGER,
+    p_stock_number INTEGER,
+    p_stock_cars INTEGER
+) RETURNS INTEGER
+LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    v_stock_report_id INTEGER;
+BEGIN
+    SELECT stock_report_id INTO v_stock_report_id
+    FROM StockReport
+    WHERE stock_class = p_stock_class
+    AND stock_subclass = p_stock_subclass
+    AND stock_number = p_stock_number
+    AND stock_cars = p_stock_cars;
+    RETURN v_stock_report_id;
+END;
+$$;
+
 CREATE TABLE StockSegmentReport (
     stock_segment_id INT NOT NULL,
     stock_report_id INT NOT NULL,
     FOREIGN KEY (stock_segment_id) REFERENCES StockSegment(stock_segment_id),
     FOREIGN KEY (stock_report_id) REFERENCES StockReport(stock_report_id)
 );
+
+CREATE TYPE service_data AS (
+    service_id TEXT,
+    run_date TIMESTAMP WITH TIME ZONE,
+    headcode CHARACTER(4),
+    operator_code CHARACTER(2),
+    brand_code CHARACTER(2),
+    power TEXT
+);
+
+CREATE TYPE endpoint_data AS (
+    service_id TEXT,
+    run_date TIMESTAMP WITH TIME ZONE,
+    station_crs CHARACTER(3),
+    origin BOOLEAN
+);
+
+CREATE TYPE call_data AS (
+    service_id TEXT,
+    run_date TIMESTAMP WITH TIME ZONE,
+    station_crs CHARACTER(3),
+    platform TEXT,
+    plan_arr TIMESTAMP WITH TIME ZONE,
+    plan_dep TIMESTAMP WITH TIME ZONE,
+    act_arr TIMESTAMP WITH TIME ZONE,
+    act_dep TIMESTAMP WITH TIME ZONE,
+    mileage DECIMAL
+);
+
+CREATE TYPE assoc_data AS (
+    service_id TEXT,
+    run_date TIMESTAMP WITH TIME ZONE,
+    station_crs CHARACTER(3),
+    plan_arr TIMESTAMP WITH TIME ZONE,
+    plan_dep TIMESTAMP WITH TIME ZONE,
+    act_arr TIMESTAMP WITH TIME ZONE,
+    act_dep TIMESTAMP WITH TIME ZONE,
+    assoc_id TEXT,
+    assoc_run_date TIMESTAMP WITH TIME ZONE,
+    assoc_type TEXT
+);
+
+CREATE OR REPLACE FUNCTION InsertServices(
+    p_services service_data[],
+    p_endpoints endpoint_data[],
+    p_calls call_data[],
+    p_assocs assoc_data[]
+)
+RETURNS VOID
+LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    v_operator_id INT;
+    v_brand_id INT;
+BEGIN
+    INSERT INTO Service(
+        service_id,
+        run_date,
+        headcode,
+        operator_id,
+        brand_id,
+        power
+    ) SELECT
+        v_service.service_id,
+        v_service.run_date,
+        v_service.headcode,
+        (SELECT GetOperatorId(v_service.operator_code, v_service.run_date)),
+        (SELECT GetBrandId(v_service.brand_code, v_service.run_date)),
+        v_service.power
+    FROM UNNEST(p_services) AS v_service;
+    INSERT INTO ServiceEndpoint(
+        service_id,
+        run_date,
+        station_crs,
+        origin
+    ) SELECT
+        v_endpoint.service_id,
+        v_endpoint.run_date,
+        v_endpoint.station_crs,
+        v_endpoint.origin
+    FROM UNNEST(p_endpoints) AS v_endpoint;
+    INSERT INTO Call(
+        service_id,
+        run_date,
+        station_crs,
+        platform,
+        plan_arr,
+        plan_dep,
+        act_arr,
+        act_dep,
+        mileage
+    ) SELECT
+        v_call.service_id,
+        v_call.run_date,
+        v_call.station_crs,
+        v_call.platform,
+        v_call.plan_arr,
+        v_call.plan_dep,
+        v_call.act_arr,
+        v_call.act_dep,
+        v_call.mileage
+    FROM UNNEST(p_calls) AS v_call;
+    INSERT INTO AssociatedService(
+        call_id,
+        associated_id,
+        associated_run_date,
+        associated_type
+    ) SELECT
+        (SELECT getCallFromLegCall(
+            v_assoc.service_id,
+            v_assoc.run_date,
+            v_assoc.station_crs,
+            v_assoc.plan_arr,
+            v_assoc.plan_dep,
+            v_assoc.act_arr,
+            v_assoc.act_dep
+        )),
+        v_assoc.assoc_id,
+        v_assoc.assoc_run_date,
+        v_assoc.assoc_type
+    FROM UNNEST(p_assocs) AS v_assoc;
+END;
+$$;
