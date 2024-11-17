@@ -23,7 +23,6 @@ from api.data.services import (
     TrainServiceRaw,
     insert_services,
     string_of_associated_type,
-    string_to_associated_type,
 )
 from api.data.stations import ShortTrainStation
 from api.data.stock import Formation
@@ -94,48 +93,52 @@ def get_service_fields(service: TrainServiceRaw) -> list[str | None]:
     ]
 
 
-def select_call_id(
+def get_call_from_leg_call_procedure(
     service_id: str,
     run_date: datetime,
     station_crs: str,
     plan_arr: Optional[datetime],
     plan_dep: Optional[datetime],
-    arr: bool,
-) -> Optional[NoEscape]:
-    if arr:
-        field_stub = "arr"
-        plan = plan_arr
-    else:
-        field_stub = "dep"
-        plan = plan_dep
-    column = f"plan_{field_stub}"
-    if plan is None:
-        condition = f"{column} IS NULL"
-    else:
-        condition = f"{column} = '{plan.isoformat()}'"
-    select_call_id_statement = f"""(
-        SELECT call_id FROM Call
-        WHERE service_id = '{service_id}'
-        AND run_date = '{run_date.isoformat()}'
-        AND station_crs = '{station_crs}'
-        AND {condition}
-    )"""
-    return NoEscape(select_call_id_statement)
+    act_arr: Optional[datetime],
+    act_dep: Optional[datetime],
+) -> Optional[str]:
+    return f"SELECT getCallFromLegCall({service_id}, {run_date}, {station_crs}, {plan_arr}, {plan_dep}, {act_arr}, {act_dep})"
 
 
-def select_call_id_from_leg_call(
-    call: Optional[Call], arr: bool
-) -> Optional[NoEscape]:
+def select_call_id_from_leg_call(call: Optional[Call]) -> Optional[str]:
     if call is None:
         return None
-    return select_call_id(
+    return get_call_from_leg_call_procedure(
         call.service_id,
         call.run_date,
         call.station.crs,
         call.plan_arr,
         call.plan_dep,
-        arr,
+        call.act_arr,
+        call.act_dep,
     )
+
+
+def call_to_leg_call_data(call: Optional[Call]):
+    if call is None:
+        return None
+    return (
+        call.service_id,
+        call.run_date,
+        call.station.crs,
+        call.plan_arr,
+        call.plan_dep,
+        call.act_arr,
+        call.act_dep,
+    )
+
+
+def apply_to_optional[
+    T, U
+](t: Optional[T], fn: Callable[[T], U]) -> Optional[U]:
+    if t is None:
+        return None
+    return fn(t)
 
 
 def insert_leg(conn: connection, cur: cursor, leg: Leg):
@@ -143,19 +146,7 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
     for assoc in leg.service.divides + leg.service.joins:
         services.append(assoc.service)
     insert_services(conn, cur, services)
-
-    leg_statement = """
-        INSERT INTO Leg(distance) VALUES (%(distance)s) RETURNING leg_id
-    """
-    cur.execute(leg_statement, {"distance": leg.distance})
-    leg_id: int = cur.fetchall()[0][0]
-    call_fields = [
-        "leg_id",
-        "arr_call_id",
-        "dep_call_id",
-        "mileage",
-        "assoc_type",
-    ]
+    leg_values = leg.distance
     call_values = []
     for call in leg.calls:
         arr_call = call.arr_call
@@ -165,66 +156,66 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
         else:
             assoc_change_type = None
         call_values.append(
-            [
-                str(leg_id),
-                select_call_id_from_leg_call(arr_call, True),
-                select_call_id_from_leg_call(dep_call, False),
-                number_or_none_to_str(call.mileage),
+            (
+                apply_to_optional(arr_call, lambda c: c.service_id),
+                apply_to_optional(arr_call, lambda c: c.run_date),
+                apply_to_optional(arr_call, lambda c: c.station.crs),
+                apply_to_optional(arr_call, lambda c: c.plan_arr),
+                apply_to_optional(arr_call, lambda c: c.plan_dep),
+                apply_to_optional(arr_call, lambda c: c.act_arr),
+                apply_to_optional(arr_call, lambda c: c.act_dep),
+                apply_to_optional(dep_call, lambda c: c.service_id),
+                apply_to_optional(dep_call, lambda c: c.run_date),
+                apply_to_optional(dep_call, lambda c: c.station.crs),
+                apply_to_optional(dep_call, lambda c: c.plan_arr),
+                apply_to_optional(dep_call, lambda c: c.plan_dep),
+                apply_to_optional(dep_call, lambda c: c.act_arr),
+                apply_to_optional(dep_call, lambda c: c.act_dep),
+                call.mileage,
                 assoc_change_type,
-            ]
+            )
         )
-    insert(cur, "LegCall", call_fields, call_values)
-    legstock_fields = ["start_call", "end_call"]
-    stockreport_fields = [
-        "start_call",
-        "end_call",
-        "stock_class",
-        "stock_subclass",
-        "stock_number",
-        "stock_cars",
-    ]
-    legstock_values = []
     stockreport_values = []
     for formation in leg.stock:
         stocks = formation.stock
-        start_call = select_call_id_from_leg_call(
-            formation.calls[0].dep_call, False
-        )
-        end_call = select_call_id_from_leg_call(
-            formation.calls[-1].arr_call, True
-        )
-        legstock_values.append([start_call, end_call])
         for stock in stocks:
-            stock_class = int_or_none_to_str_or_none(stock.class_no)
-            stock_subclass = int_or_none_to_str_or_none(stock.subclass_no)
             if stock.cars is None:
                 stock_cars = None
             else:
-                stock_cars = str(stock.cars.cars)
-            stock_number = int_or_none_to_str_or_none(stock.stock_no)
+                stock_cars = stock.cars.cars
+            start_call = formation.calls[0].dep_call
+            end_call = formation.calls[-1].arr_call
             stockreport_values.append(
-                [
-                    start_call,
-                    end_call,
-                    stock_class,
-                    stock_subclass,
-                    stock_number,
+                (
+                    apply_to_optional(start_call, lambda c: c.service_id),
+                    apply_to_optional(start_call, lambda c: c.run_date),
+                    apply_to_optional(start_call, lambda c: c.station.crs),
+                    apply_to_optional(start_call, lambda c: c.plan_arr),
+                    apply_to_optional(start_call, lambda c: c.plan_dep),
+                    apply_to_optional(start_call, lambda c: c.act_arr),
+                    apply_to_optional(start_call, lambda c: c.act_dep),
+                    apply_to_optional(end_call, lambda c: c.service_id),
+                    apply_to_optional(end_call, lambda c: c.run_date),
+                    apply_to_optional(end_call, lambda c: c.station.crs),
+                    apply_to_optional(end_call, lambda c: c.plan_arr),
+                    apply_to_optional(end_call, lambda c: c.plan_dep),
+                    apply_to_optional(end_call, lambda c: c.act_arr),
+                    apply_to_optional(end_call, lambda c: c.act_dep),
+                    stock.class_no,
+                    stock.subclass_no,
+                    stock.stock_no,
                     stock_cars,
-                ]
+                )
             )
-    insert(
-        cur,
-        "StockSegment",
-        legstock_fields,
-        legstock_values,
-        "ON CONFLICT DO NOTHING",
-    )
-    insert(
-        cur,
-        "StockReport",
-        stockreport_fields,
-        stockreport_values,
-        "ON CONFLICT DO NOTHING",
+    cur.execute(
+        """
+        SELECT * FROM InsertLeg(
+            %s::decimal,
+            %s::legcall_data[],
+            %s::stockreport_data[]
+        )
+        """,
+        [leg_values, call_values, stockreport_values],
     )
     conn.commit()
 
@@ -336,7 +327,11 @@ def select_legs(
                     WITH StockInfo AS (
                         SELECT start_call, stock_class, stock_subclass,
                             stock_number, stock_cars
-                        FROM StockReport
+                        FROM StockSegment
+                        INNER JOIN StockSegmentReport
+                        ON StockSegment.stock_segment_id = StockSegmentReport.stock_segment_id
+                        INNER JOIN StockReport
+                        ON StockSegmentReport.stock_report_id = StockReport.stock_report_id
                         INNER JOIN Call
                         ON start_call = call_id
                     )
@@ -436,6 +431,10 @@ def select_legs(
                             stock_class, stock_subclass, stock_number,
                             stock_cars, start_call, end_call
                         FROM StockReport
+                        INNER JOIN StockSegmentReport
+                        ON StockReport.stock_report_id = StockSegmentReport.stock_report_id
+                        INNER JOIN StockSegment
+                        ON StockSegmentReport.stock_segment_id = StockSegment.stock_segment_id
                     )
                     SELECT
                         start_call, end_call, JSON_AGG(StockDetail.*) AS stocks
