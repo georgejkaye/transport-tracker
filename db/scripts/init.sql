@@ -527,7 +527,7 @@ CREATE TYPE stockreport_data AS (
     dep_call_plan_arr TIMESTAMP WITH TIME ZONE,
     dep_call_plan_dep TIMESTAMP WITH TIME ZONE,
     dep_call_act_arr TIMESTAMP WITH TIME ZONE,
-    dep_call_act_dep TIMESTAMP WITH TIME ZONE
+    dep_call_act_dep TIMESTAMP WITH TIME ZONE,
     stock_class INT,
     stock_subclass INT,
     stock_number INT,
