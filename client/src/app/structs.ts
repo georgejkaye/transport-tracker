@@ -59,27 +59,40 @@ export const responseToTrainStation = (data: any) => ({
 })
 
 export interface OperatorData {
+  id: number
   name: string
   code: string
+  fg: string
+  bg: string
 }
 
 export const responseToOperatorData = (data: any) => ({
+  id: data["id"],
   name: data["name"],
   code: data["code"],
+  fg: data["fg"],
+  bg: data["bg"],
 })
 
 export interface BrandData {
+  id: number
   name: string
   code: string
+  fg: string
+  bg: string
 }
 
 export const responseToBrandData = (data: any) => ({
+  id: data["id"],
   name: data["name"],
   code: data["code"],
+  fg: data["fg"],
+  bg: data["bg"],
 })
 
 export interface TrainStationLegData {
   id: number
+  platform: string
   origin: TrainStation
   destination: TrainStation
   stopTime: Date
@@ -87,10 +100,15 @@ export interface TrainStationLegData {
   actArr?: Date
   planDep?: Date
   actDep?: Date
+  before?: number
+  after?: number
+  operator: OperatorData
+  brand?: BrandData
 }
 
 export const responseToTrainStationLegData = (data: any) => ({
   id: data["id"],
+  platform: data["platform"],
   origin: responseToTrainStation(data["origin"]),
   destination: responseToTrainStation(data["destination"]),
   stopTime: responseToDate(data["stop_time"]),
@@ -98,6 +116,10 @@ export const responseToTrainStationLegData = (data: any) => ({
   actArr: responseToDate(data["act_arr"]),
   planDep: responseToDate(data["plan_dep"]),
   actDep: responseToDate(data["act_dep"]),
+  before: data["calls_before"],
+  after: data["calls_after"],
+  operator: responseToOperatorData(data["operator"]),
+  brand: !data["brand"] ? undefined : responseToBrandData(data["brand"]),
 })
 
 export interface TrainStationData {

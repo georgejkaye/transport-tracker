@@ -279,6 +279,7 @@ def compare_crs(a: str, b: str) -> bool:
 @dataclass
 class LegAtStation:
     id: int
+    platform: Optional[str]
     origin: ShortTrainStation
     destination: ShortTrainStation
     stop_time: datetime
@@ -286,6 +287,10 @@ class LegAtStation:
     act_arr: Optional[datetime]
     plan_dep: Optional[datetime]
     act_dep: Optional[datetime]
+    calls_before: Optional[int]
+    calls_after: Optional[int]
+    operator: OperatorData
+    brand: Optional[BrandData]
 
 
 @dataclass
@@ -325,7 +330,7 @@ def select_stations(
             INNER JOIN (
                 SELECT
                     Leg.leg_id,
-                    MIN(COALESCE(call.plan_dep, call.act_dep)) as last
+                    MIN(COALESCE(Call.plan_dep, Call.act_dep)) as last
                 FROM Leg
                 INNER JOIN LegCall
                 ON Leg.leg_id = LegCall.leg_id
@@ -346,7 +351,7 @@ def select_stations(
             INNER JOIN (
                 SELECT
                     Leg.leg_id,
-                    MAX(COALESCE(call.plan_arr, call.act_arr)) as last
+                    MAX(COALESCE(Call.plan_arr, Call.act_arr)) as last
                 FROM Leg
                 INNER JOIN LegCall
                 ON Leg.leg_id = LegCall.leg_id
@@ -370,17 +375,29 @@ def select_stations(
         LEFT JOIN (
             WITH legdetails AS (
                 SELECT
-                    Call.station_crs, LegCall.leg_id,
+                    Call.station_crs, Call.platform, LegCall.leg_id,
                     StartDetails.station_name AS start_name,
                     StartDetails.station_crs AS start_crs,
                     EndDetails.station_name AS end_name,
                     EndDetails.station_crs AS end_crs,
                     COALESCE(plan_arr, plan_dep, act_arr, act_dep) AS stop_time,
-                    plan_arr, act_arr, plan_dep, act_dep
+                    plan_arr, act_arr, plan_dep, act_dep,
+                    CallMetric.calls_before, CallMetric.calls_after,
+                    Operator.operator_id, Operator.operator_name,
+                    Operator.operator_code, Operator.bg_colour as operator_bg,
+                    Operator.fg_colour as operator_fg, Brand.brand_id,
+                    Brand.brand_name, Brand.brand_code, Brand.bg_colour as
+                    brand_bg, Brand.fg_colour as brand_fg
                 FROM Call
                 INNER JOIN LegCall
                 ON Call.call_id = LegCall.arr_call_id
                 OR Call.call_id = LegCall.dep_call_id
+                INNER JOIN Service
+                ON Call.service_id = Service.service_id
+                INNER JOIN Operator
+                ON Service.operator_id = Operator.operator_id
+                LEFT JOIN Brand
+                ON Service.brand_id = Brand.brand_id
                 INNER JOIN (
                     SELECT Leg.leg_id, Call.station_crs, Station.station_name
                     FROM leg
@@ -396,7 +413,7 @@ def select_stations(
                     ) firsts
                     ON leg.leg_id = firsts.leg_id
                     INNER JOIN Call
-                    ON firsts.min = COALESCE(call.plan_dep, plan_arr, act_dep, act_arr)
+                    ON firsts.min = COALESCE(Call.plan_dep, plan_arr, act_dep, act_arr)
                     INNER JOIN Station
                     ON Call.station_crs = Station.station_crs
                 ) StartDetails
@@ -425,7 +442,7 @@ def select_stations(
                 ON LegCall.leg_id = EndDetails.leg_id
                 INNER JOIN (
                     SELECT
-                        leg_id, ARRAY_AGG(call.station_crs) AS calls
+                        leg_id, ARRAY_AGG(Call.station_crs) AS calls
                     FROM Call
                     INNER JOIN LegCall
                     ON LegCall.arr_call_id = Call.call_id
@@ -433,6 +450,43 @@ def select_stations(
                     GROUP BY LegCall.leg_id
                 ) Calls
                 ON Calls.leg_id = LegCall.leg_id
+                INNER JOIN (
+                    WITH ThisLegCall AS (
+                        SELECT
+                            LegCall.leg_id, Call.call_id, Call.station_crs,
+                            COALESCE(Call.plan_arr, Call.plan_dep, Call.act_arr, Call.act_dep) AS stop_time,
+                            OtherCall.station_crs AS other_station,
+                            COALESCE(OtherCall.plan_arr, OtherCall.plan_dep, OtherCall.act_arr, OtherCall.act_dep) AS other_stop_time
+                        FROM LegCall
+                        INNER JOIN Call
+                        ON COALESCE(LegCall.arr_call_id, LegCall.dep_call_id) = Call.call_id
+                        INNER JOIN LegCall OtherLegCall
+                        ON LegCall.leg_id = OtherLegCall.leg_id
+                        INNER JOIN Call OtherCall
+                        ON COALESCE(OtherLegCall.arr_call_id, OtherLegCall.dep_call_id) = OtherCall.call_id
+                    )
+                    SELECT
+                        DISTINCT ThisLegCall.leg_id, ThisLegCall.station_crs,
+                        COALESCE(CallBefore.count, 0) AS calls_before,
+                        COALESCE(CallAfter.count, 0) AS calls_after
+                    FROM ThisLegCall
+                    LEFT JOIN (
+                        SELECT leg_id, station_crs, COUNT(*) FROM ThisLegCall
+                        WHERE stop_time > other_stop_time
+                        GROUP BY leg_id, station_crs
+                    ) CallBefore
+                    ON CallBefore.leg_id = ThisLegCall.leg_id
+                    AND CallBefore.station_crs = ThisLegCall.station_crs
+                    LEFT JOIN (
+                        SELECT leg_id, station_crs, COUNT(*) FROM ThisLegCall
+                        WHERE stop_time < other_stop_time
+                        GROUP BY leg_id, station_crs
+                    ) CallAfter
+                    ON CallAfter.leg_id = ThisLegCall.leg_id
+                    AND CallAfter.station_crs = ThisLegCall.station_crs
+                ) CallMetric
+                ON CallMetric.station_crs = Call.station_crs
+                AND CallMetric.leg_id = LegCall.leg_id
             ) SELECT
                 station_crs,
                 JSON_AGG(legdetails.* ORDER BY stop_time DESC) AS legs
@@ -484,8 +538,27 @@ def select_stations(
         leg_objects = []
         if legs is not None:
             for leg_row in legs:
+                leg_operator = OperatorData(
+                    leg_row["operator_id"],
+                    leg_row["operator_code"],
+                    leg_row["operator_name"],
+                    leg_row["operator_bg"],
+                    leg_row["operator_fg"],
+                )
+                if leg_row["brand_id"] is None:
+                    leg_brand = None
+                else:
+                    leg_brand = BrandData(
+                        leg_row["brand_id"],
+                        leg_row["brand_code"],
+                        leg_row["brand_name"],
+                        leg_row["brand_bg"],
+                        leg_row["brand_fg"],
+                    )
+
                 leg_data = LegAtStation(
                     leg_row["leg_id"],
+                    leg_row["platform"],
                     ShortTrainStation(
                         leg_row["start_name"], leg_row["start_crs"]
                     ),
@@ -495,6 +568,10 @@ def select_stations(
                     str_or_null_to_datetime(leg_row["act_arr"]),
                     str_or_null_to_datetime(leg_row["plan_dep"]),
                     str_or_null_to_datetime(leg_row["act_dep"]),
+                    leg_row["calls_before"],
+                    leg_row["calls_after"],
+                    leg_operator,
+                    leg_brand,
                 )
                 leg_objects.append(leg_data)
         data = StationData(
