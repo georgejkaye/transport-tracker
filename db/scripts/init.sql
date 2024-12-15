@@ -18,16 +18,24 @@ CREATE TABLE Operator (
     )
 );
 
+CREATE TYPE OperatorData AS (
+    operator_id INTEGER,
+    operator_code CHARACTER(2),
+    operator_name TEXT,
+    bg_colour TEXT,
+    fg_colour TEXT
+);
+
 CREATE OR REPLACE FUNCTION GetOperatorId(
     p_operator_code CHARACTER(2),
     p_run_date TIMESTAMP WITH TIME ZONE
 )
-RETURNS INT
+RETURNS INTEGER
 LANGUAGE plpgsql
 AS
 $$
 DECLARE
-    v_operator_id INT;
+    v_operator_id INTEGER;
 BEGIN
     SELECT operator_id INTO v_operator_id FROM Operator
     WHERE operator_code = p_operator_code
@@ -46,16 +54,24 @@ CREATE TABLE Brand (
     FOREIGN KEY (parent_operator) REFERENCES Operator(operator_id)
 );
 
+CREATE TYPE BrandData AS (
+    brand_id INTEGER,
+    brand_code CHARACTER(2).
+    brand_name TEXT
+    bg_colour TEXT,
+    fg_colour TEXT
+);
+
 CREATE OR REPLACE FUNCTION GetBrandId(
     p_brand_code CHARACTER(2),
     p_run_date TIMESTAMP WITH TIME ZONE
 )
-RETURNS INT
+RETURNS INTEGER
 LANGUAGE plpgsql
 AS
 $$
 DECLARE
-    v_brand_id INT;
+    v_brand_id INTEGER;
 BEGIN
     SELECT brand_id INTO v_brand_id
     FROM Brand
@@ -68,8 +84,8 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION validBrand(
-    p_brand_id INT,
-    p_operator_id INT
+    p_brand_id INTEGER,
+    p_operator_id INTEGER
 ) RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS
@@ -82,22 +98,22 @@ END;
 $$;
 
 CREATE TABLE Stock (
-    stock_class INT PRIMARY KEY,
+    stock_class INTEGER PRIMARY KEY,
     name TEXT
 );
 
 CREATE TABLE StockSubclass (
-    stock_class INT NOT NULL,
-    stock_subclass INT NOT NULL,
+    stock_class INTEGER NOT NULL,
+    stock_subclass INTEGER NOT NULL,
     name TEXT,
     PRIMARY KEY (stock_class, stock_subclass),
     FOREIGN KEY (stock_class) REFERENCES Stock(stock_class)
 );
 
 CREATE TABLE StockFormation (
-    stock_class INT NOT NULL,
-    stock_subclass INT,
-    cars INT NOT NULL,
+    stock_class INTEGER NOT NULL,
+    stock_subclass INTEGER,
+    cars INTEGER NOT NULL,
     FOREIGN KEY (stock_class) REFERENCES Stock(stock_class),
     FOREIGN KEY (stock_class, stock_subclass) REFERENCES StockSubclass(stock_class, stock_subclass),
     CONSTRAINT stock_class_cars_unique UNIQUE (stock_class, stock_subclass, cars)
@@ -106,8 +122,8 @@ CREATE TABLE StockFormation (
 CREATE TABLE OperatorStock (
     operator_id INTEGER NOT NULL,
     brand_id INTEGER,
-    stock_class INT NOT NULL,
-    stock_subclass INT,
+    stock_class INTEGER NOT NULL,
+    stock_subclass INTEGER,
     FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
     FOREIGN KEY (brand_id) REFERENCES Brand(brand_id),
     FOREIGN KEY (stock_class) REFERENCES Stock(stock_class),
@@ -178,7 +194,7 @@ INSERT INTO AssociatedType(associated_type) VALUES ('JOINS_TO');
 INSERT INTO AssociatedType(associated_type) VALUES ('JOINS_WITH');
 
 CREATE TABLE AssociatedService (
-    call_id INT NOT NULL,
+    call_id INTEGER NOT NULL,
     associated_id TEXT NOT NULL,
     associated_run_date TIMESTAMP WITH TIME ZONE NOT NULL,
     associated_type TEXT NOT NULL,
@@ -195,9 +211,9 @@ CREATE TABLE Leg (
 );
 
 CREATE TABLE LegCall (
-    leg_id INT NOT NULL,
-    arr_call_id INT,
-    dep_call_id INT,
+    leg_id INTEGER NOT NULL,
+    arr_call_id INTEGER,
+    dep_call_id INTEGER,
     mileage NUMERIC,
     assoc_type TEXT,
     CONSTRAINT leg_call_unique UNIQUE (leg_id, arr_call_id, dep_call_id),
@@ -246,9 +262,9 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION validStockFormation (
-    stockclass INT,
-    stocksubclass INT,
-    stockcars INT
+    stockclass INTEGER,
+    stocksubclass INTEGER,
+    stockcars INTEGER
 ) RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS
@@ -282,8 +298,8 @@ $$;
 
 CREATE TABLE StockSegment (
     stock_segment_id SERIAL PRIMARY KEY,
-    start_call INT NOT NULL,
-    end_call INT NOT NULL,
+    start_call INTEGER NOT NULL,
+    end_call INTEGER NOT NULL,
     FOREIGN KEY (start_call) REFERENCES Call(call_id) ON DELETE CASCADE,
     FOREIGN KEY (end_call) REFERENCES Call(call_id) ON DELETE CASCADE,
     CONSTRAINT stock_segment_unique UNIQUE (start_call, end_call)
@@ -312,10 +328,10 @@ $$;
 
 CREATE TABLE StockReport (
     stock_report_id SERIAL PRIMARY KEY,
-    stock_class INT,
-    stock_subclass INT,
-    stock_number INT,
-    stock_cars INT,
+    stock_class INTEGER,
+    stock_subclass INTEGER,
+    stock_number INTEGER,
+    stock_cars INTEGER,
     FOREIGN KEY (stock_class) REFERENCES Stock(stock_class),
     FOREIGN KEY (stock_class, stock_subclass) REFERENCES StockSubclass(stock_class, stock_subclass),
     CONSTRAINT valid_stock CHECK (validStockFormation(stock_class, stock_subclass, stock_cars))
@@ -347,8 +363,8 @@ END;
 $$;
 
 CREATE TABLE StockSegmentReport (
-    stock_segment_id INT NOT NULL,
-    stock_report_id INT NOT NULL,
+    stock_segment_id INTEGER NOT NULL,
+    stock_report_id INTEGER NOT NULL,
     FOREIGN KEY (stock_segment_id) REFERENCES StockSegment(stock_segment_id),
     FOREIGN KEY (stock_report_id) REFERENCES StockReport(stock_report_id)
 );
@@ -404,8 +420,8 @@ LANGUAGE plpgsql
 AS
 $$
 DECLARE
-    v_operator_id INT;
-    v_brand_id INT;
+    v_operator_id INTEGER;
+    v_brand_id INTEGER;
 BEGIN
     INSERT INTO Service(
         service_id,
@@ -528,10 +544,10 @@ CREATE TYPE stockreport_data AS (
     dep_call_plan_dep TIMESTAMP WITH TIME ZONE,
     dep_call_act_arr TIMESTAMP WITH TIME ZONE,
     dep_call_act_dep TIMESTAMP WITH TIME ZONE,
-    stock_class INT,
-    stock_subclass INT,
-    stock_number INT,
-    stock_cars INT
+    stock_class INTEGER,
+    stock_subclass INTEGER,
+    stock_number INTEGER,
+    stock_cars INTEGER
 );
 
 CREATE OR REPLACE FUNCTION InsertLeg(
@@ -544,7 +560,7 @@ LANGUAGE plpgsql
 AS
 $$
 DECLARE
-    v_leg_id INT;
+    v_leg_id INTEGER;
 BEGIN
     INSERT INTO Leg(distance)
         VALUES (p_leg_distance)
@@ -638,5 +654,89 @@ BEGIN
         ))
     FROM UNNEST(p_stockreports) AS v_stockreport
     ON CONFLICT DO NOTHING;
+END;
+$$;
+
+CREATE TYPE StockData AS (
+    stock_class INT,
+    stock_subclass INT,
+    stock_number INT,
+    stock_cars INT
+)
+
+CREATE TYPE StationLegData AS (
+    platform TEXT,
+    leg_id INTEGER,
+    board_name TEXT,
+    board_crs CHARACTER(3),
+    alight_name TEXT,
+    alight_crs CHARACTER(3),
+    stop_time TIMESTAMP WITH TIME ZONE,
+    plan_arr TIMESTAMP WITH TIME ZONE,
+    act_arr TIMESTAMP WITH TIME ZONE,
+    plan_dep TIMESTAMP WITH TIME ZONE,
+    act_dep TIMESTAMP WITH TIME ZONE,
+    calls_before INTEGER,
+    calls_after INTEGER,
+    operator OperatorData,
+    brand BrandData,
+    stock StockData[]
+)
+
+CREATE TYPE StationEndpointData AS (
+    station_name TEXT,
+    station_crs CHARACTER(3),
+    boards INTEGER,
+    alights INTEGER,
+    calls INTEGER,
+    operator OperatorData,
+    brand BrandData,
+    legs StationLegData
+)
+
+CREATE OR REPLACE FUNCTION GetStartTime (
+    p_leg_id NUMBER
+) RETURNS TIMESTAMP WITH TIME ZONE
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN
+        SELECT MIN(COALESCE(plan_dep, act_dep, plan_arr, act_arr))
+        FROM Call
+        INNER JOIN LegCall
+        ON Call.call_id = LegCall.arr_call_id
+        OR Call.call_id = LegCall.dep_call_id
+        INNER JOIN Leg
+        ON Leg.leg_id = LegCall.leg_id
+
+CREATE OR REPLACE FUNCTION GetStation (
+    p_station_crs CHARACTER(3)
+) RETURNS StationData
+LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    v_boards INTEGER
+BEGIN
+    SELECT ARRAY_AGG(leg_id), COALESCE(COUNT(*), 0) INTO v_boards
+    FROM Call
+    INNER JOIN LegCall
+    ON LegCall.arr_call_id = Call.call_id
+    OR LegCall.dep_call_id = Call.call_id
+    INNER JOIN (
+        SELECT
+
+            MIN(COALESCE(Call.plan_dep, Call.act_dep, Call.plan_arr, Call.act_arr)) AS call_time
+        FROM Leg
+        INNER JOIN LegCall
+        ON Leg.leg_id = LegCall.leg_id
+        INNER JOIN Call
+        ON LegCall.arr_call_id = Call.call_id
+        OR LegCall.dep_call_id = Call.call_id
+        GROUP BY Leg.leg_id
+    ) FirstCallTime
+    ON COALESCE(Call.plan_dep, Call.act_dep, Call.plan)
+    WHERE Call.station_crs = p_station_crs;
 END;
 $$;

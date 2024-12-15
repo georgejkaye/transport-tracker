@@ -88,8 +88,8 @@ def get_service_fields(service: TrainServiceRaw) -> list[str | None]:
         str(service.id),
         service.run_date.isoformat(),
         service.headcode,
-        service.operator_id,
-        service.brand_id,
+        service.operator_code,
+        service.brand_code,
     ]
 
 
