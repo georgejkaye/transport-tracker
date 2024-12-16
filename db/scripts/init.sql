@@ -710,6 +710,75 @@ BEGIN
         INNER JOIN Leg
         ON Leg.leg_id = LegCall.leg_id
 
+CREATE OR REPLACE FUNCTION GetStationBoards ()
+RETURNS TABLE (station_crs CHARACTER(3), boards BIGINT)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+        SELECT Call.station_crs, COALESCE(COUNT(*), '0') AS boards
+        FROM Leg
+        INNER JOIN (
+            SELECT
+                Leg.leg_id,
+                MIN(COALESCE(Call.plan_dep, Call.act_dep)) as last
+            FROM Leg
+            INNER JOIN LegCall
+            ON Leg.leg_id = LegCall.leg_id
+            INNER JOIN Call
+            ON Call.call_id = LegCall.arr_call_id
+            OR Call.call_id = LegCall.dep_call_id
+            GROUP BY Leg.leg_id
+        ) LegFirstCall
+        ON LegFirstCall.leg_id = Leg.leg_id
+        INNER JOIN Call
+        ON LegFirstCall.last = COALESCE(Call.plan_dep, Call.act_dep, Call.plan_arr, Call.act_arr)
+        GROUP BY Call.station_crs;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetStationAlights ()
+RETURNS TABLE (station_crs CHARACTER(3), alights BIGINT)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+        SELECT Call.station_crs, COALESCE(COUNT(*), '0') AS boards
+        FROM Leg
+        INNER JOIN (
+            SELECT
+                Leg.leg_id,
+                MAX(COALESCE(Call.plan_dep, Call.act_dep)) as last
+            FROM Leg
+            INNER JOIN LegCall
+            ON Leg.leg_id = LegCall.leg_id
+            INNER JOIN Call
+            ON Call.call_id = LegCall.arr_call_id
+            OR Call.call_id = LegCall.dep_call_id
+            GROUP BY Leg.leg_id
+        ) LegLastCall
+        ON LegLastCall.leg_id = Leg.leg_id
+        INNER JOIN Call
+        ON LegLastCall.last = COALESCE(Call.plan_dep, Call.act_dep, Call.plan_arr, Call.act_arr)
+        GROUP BY Call.station_crs;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetStationCalls ()
+RETURNS TABLE (station_crs CHARACTER(3), calls BIGINT)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+        SELECT Call.station_crs, COUNT(*) AS calls
+        FROM Call
+        GROUP BY Call.station_crs;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION GetStation (
     p_station_crs CHARACTER(3)
 ) RETURNS StationData
