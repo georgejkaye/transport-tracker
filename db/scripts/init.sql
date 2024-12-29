@@ -661,6 +661,34 @@ CREATE TYPE OutServiceAssocData AS (
     assoc_type TEXT
 );
 
+CREATE OR REPLACE FUNCTION GetCallAssocData()
+RETURNS TABLE (call_id INTEGER, call_assocs OutServiceAssocData[])
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    WITH assocs AS (
+        SELECT
+            AssocData.call_id,
+            (associated_id, associated_run_date, associated_type)::OutServiceAssocData AS call_assocs
+        FROM (
+            SELECT
+                AssociatedService.call_id,
+                AssociatedService.associated_id,
+                AssociatedService.associated_run_date,
+                AssociatedService.associated_type
+            FROM AssociatedService
+        ) AssocData
+    )
+    SELECT
+        assocs.call_id,
+        ARRAY_AGG(assocs.call_assocs) AS associations
+    FROM assocs
+    GROUP BY assocs.call_id;
+END;
+$$;
+
 CREATE TYPE OutServiceCallData AS (
     station OutServiceStationData,
     platform TEXT,
@@ -685,8 +713,43 @@ CREATE TYPE OutServiceData AS (
     service_assocs OutServiceAssocData[]
 );
 
+CREATE TYPE OutStockData AS (
+    stock_class INTEGER,
+    stock_subclass INTEGER,
+    stock_number INTEGER,
+    stock_cars INTEGER
+);
+
+CREATE OR REPLACE FUNCTION GetCallStockInfo()
+RETURNS TABLE (start_call INTEGER, stock_info OutStockData[])
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    WITH call_stock_data AS (
+        SELECT
+            CallStock.start_call,
+            (stock_class, stock_subclass, stock_number, stock_cars)::OutStockData AS stock_data
+        FROM (
+            SELECT StockSegment.start_call, stock_class, stock_subclass,
+                stock_number, stock_cars
+            FROM StockSegment
+            INNER JOIN StockSegmentReport
+            ON StockSegment.stock_segment_id = StockSegmentReport.stock_segment_id
+            INNER JOIN StockReport
+            ON StockSegmentReport.stock_report_id = StockReport.stock_report_id
+            INNER JOIN Call
+            ON StockSegment.start_call = Call.call_id
+        ) CallStock
+    )
+    SELECT call_stock_data.start_call, ARRAY_AGG(call_stock_data.stock_data)
+    FROM call_stock_data
+    GROUP BY call_stock_data.start_call;
+END;
+$$;
+
 CREATE TYPE OutLegCallData AS (
-    leg_id INTEGER,
     arr_call_id INTEGER,
     arr_service_id TEXT,
     arr_service_run_date TIMESTAMP WITH TIME ZONE,
@@ -701,15 +764,57 @@ CREATE TYPE OutLegCallData AS (
     station_name TEXT,
     platform TEXT,
     mileage DECIMAL,
-    assocs OutServiceAssocData
+    stocks OutStockData[],
+    assocs OutServiceAssocData[]
 );
 
-CREATE TYPE OutLegStockData AS (
-    class_no INTEGER,
-    subclass_no INTEGER,
-    stock_no INTEGER,
-    cars INTEGER
-);
+CREATE OR REPLACE FUNCTION GetLegCalls()
+RETURNS TABLE (leg_id INTEGER, leg_calls OutLegCallData[])
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    WITH LegCallData AS (
+        SELECT
+            LegCall.leg_id, (
+                LegCall.arr_call_id,
+                ArrCall.service_id,
+                ArrCall.run_date,
+                ArrCall.plan_arr,
+                ArrCall.act_arr,
+                LegCall.dep_call_id,
+                DepCall.service_id,
+                DepCall.run_date,
+                DepCall.plan_dep,
+                DepCall.act_dep,
+                COALESCE(ArrCall.station_crs, DepCall.station_crs),
+                COALESCE(ArrStation.station_name, DepStation.station_name),
+                COALESCE(ArrCall.platform, DepCall.platform),
+                LegCall.mileage,
+                StockDetails.stock_info,
+                CallAssocs.call_assocs
+            )::OutLegCallData AS legcall_data
+        FROM LegCall
+        LEFT JOIN Call ArrCall
+        ON LegCall.arr_call_id = ArrCall.call_id
+        LEFT JOIN Station ArrStation
+        ON ArrCall.station_crs = ArrStation.station_crs
+        LEFT JOIN Call DepCall
+        ON LegCall.dep_call_id = DepCall.call_id
+        LEFT JOIN Station DepStation
+        ON DepCall.station_crs = DepStation.station_crs
+        LEFT JOIN (SELECT * FROM GetCallStockInfo()) StockDetails
+        ON LegCall.dep_call_id = StockDetails.start_call
+        LEFT JOIN (SELECT * FROM GetCallAssocData()) CallAssocs
+        ON ArrCall.call_id = CallAssocs.call_id
+        ORDER BY COALESCE(ArrCall.plan_arr, ArrCall.act_arr, DepCall.plan_dep, DepCall.act_arr) ASC
+    )
+    SELECT LegCallData.leg_id, ARRAY_AGG(LegCallData.legcall_data) AS leg_calls
+    FROM LegCallData
+    GROUP BY LegCallData.leg_id;
+END;
+$$;
 
 CREATE TYPE OutLegStockSegmentData AS (
     segment_start OutServiceStationData,
@@ -728,66 +833,6 @@ CREATE TYPE OutLegData AS (
     leg_duration INTERVAL
 );
 
-CREATE OR REPLACE FUNCTION GetLegCalls() RETURNS SETOF OutLegCallData
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    RETURN QUERY
-    SELECT
-        LegCall.leg_id, LegCall.arr_call_id,
-        ArrCall.service_id AS arr_id, ArrCall.run_date AS arr_run_date,
-        ArrCall.plan_arr, ArrCall.act_arr,
-        LegCall.dep_call_id,
-        DepCall.service_id AS dep_id, DepCall.run_date AS dep_run_date,
-        DepCall.plan_dep, DepCall.act_dep,
-        COALESCE(ArrCall.station_crs, DepCall.station_crs) AS station_crs,
-        COALESCE(ArrStation.station_name, DepStation.station_name) AS station_name,
-        COALESCE(ArrCall.platform, DepCall.platform) AS platform,
-        LegCall.mileage, associations, new_stock
-    FROM LegCall
-    LEFT JOIN Call ArrCall
-    ON LegCall.arr_call_id = ArrCall.call_id
-    LEFT JOIN Station ArrStation
-    ON ArrCall.station_crs = ArrStation.station_crs
-    LEFT JOIN Call DepCall
-    ON LegCall.dep_call_id = DepCall.call_id
-    LEFT JOIN Station DepStation
-    ON DepCall.station_crs = DepStation.station_crs
-    LEFT JOIN (
-        WITH StockInfo AS (
-            SELECT start_call, stock_class, stock_subclass,
-                stock_number, stock_cars
-            FROM StockSegment
-            INNER JOIN StockSegmentReport
-            ON StockSegment.stock_segment_id = StockSegmentReport.stock_segment_id
-            INNER JOIN StockReport
-            ON StockSegmentReport.stock_report_id = StockReport.stock_report_id
-            INNER JOIN Call
-            ON start_call = call_id
-        )
-        SELECT start_call, ARRAY_AGG(StockInfo.*) AS new_stock
-        FROM StockInfo
-        GROUP BY start_call
-    ) StockDetails
-    ON LegCall.dep_call_id = StockDetails.start_call
-    LEFT JOIN (
-        WITH AssociationInfo AS (
-            SELECT
-                call_id, associated_id,
-                associated_run_date, associated_type
-            FROM AssociatedService
-        )
-        SELECT
-            call_id,
-            JSON_AGG(AssociationInfo.*) AS associations
-        FROM AssociationInfo
-        GROUP BY call_id
-    ) Association
-    ON ArrCall.call_id = Association.call_id
-    ORDER BY COALESCE(ArrCall.plan_arr, ArrCall.act_arr, DepCall.plan_dep, DepCall.act_arr) ASC;
-END;
-$$;
 
 CREATE OR REPLACE FUNCTION GetLegs(
     p_start_date TIMESTAMP WITH TIME ZONE,
@@ -815,65 +860,7 @@ BEGIN
         COALESCE(legcalls[0].act_dep, legcalls[0].plan_dep)::TIMESTAMP WITH TIME ZONE
         AS leg_duration
     FROM Leg
-    INNER JOIN (
-        WITH legcall_info AS (
-            SELECT
-                LegCall.leg_id, LegCall.arr_call_id,
-                ArrCall.service_id AS arr_id, ArrCall.run_date AS arr_run_date,
-                ArrCall.plan_arr, ArrCall.act_arr,
-                LegCall.dep_call_id,
-                DepCall.service_id AS dep_id, DepCall.run_date AS dep_run_date,
-                DepCall.plan_dep, DepCall.act_dep,
-                COALESCE(ArrCall.station_crs, DepCall.station_crs) AS station_crs,
-                COALESCE(ArrStation.station_name, DepStation.station_name) AS station_name,
-                COALESCE(ArrCall.platform, DepCall.platform) AS platform,
-                LegCall.mileage, associations, new_stock
-            FROM LegCall
-            LEFT JOIN Call ArrCall
-            ON LegCall.arr_call_id = ArrCall.call_id
-            LEFT JOIN Station ArrStation
-            ON ArrCall.station_crs = ArrStation.station_crs
-            LEFT JOIN Call DepCall
-            ON LegCall.dep_call_id = DepCall.call_id
-            LEFT JOIN Station DepStation
-            ON DepCall.station_crs = DepStation.station_crs
-            LEFT JOIN (
-                WITH StockInfo AS (
-                    SELECT start_call, stock_class, stock_subclass,
-                        stock_number, stock_cars
-                    FROM StockSegment
-                    INNER JOIN StockSegmentReport
-                    ON StockSegment.stock_segment_id = StockSegmentReport.stock_segment_id
-                    INNER JOIN StockReport
-                    ON StockSegmentReport.stock_report_id = StockReport.stock_report_id
-                    INNER JOIN Call
-                    ON start_call = call_id
-                )
-                SELECT start_call, ARRAY_AGG(StockInfo.*) AS new_stock
-                FROM StockInfo
-                GROUP BY start_call
-            ) StockDetails
-            ON LegCall.dep_call_id = StockDetails.start_call
-            LEFT JOIN (
-                WITH AssociationInfo AS (
-                    SELECT
-                        call_id, associated_id,
-                        associated_run_date, associated_type
-                    FROM AssociatedService
-                )
-                SELECT
-                    call_id,
-                    JSON_AGG(AssociationInfo.*) AS associations
-                FROM AssociationInfo
-                GROUP BY call_id
-            ) Association
-            ON ArrCall.call_id = Association.call_id
-            ORDER BY COALESCE(ArrCall.plan_arr, ArrCall.act_arr, DepCall.plan_dep, DepCall.act_arr) ASC
-        )
-        SELECT legcall_info.leg_id, ARRAY_AGG(legcall_info.* ORDER BY COALESCE(plan_arr, act_arr, plan_dep, act_dep) ASC) as legcalls
-        FROM legcall_info
-        GROUP BY legcall_info.leg_id
-    ) legcall_table
+    INNER JOIN (SELECT * FROM GetLegCalls()) legcall_table
     ON legcall_table.leg_id = leg.leg_id
     INNER JOIN (
         SELECT
