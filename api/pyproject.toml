@@ -20,9 +20,9 @@ python-dotenv = "^1.0.1"
 psycopg2 = "^2.9.9"
 types-psycopg2 = "^2.9.21.20240417"
 questionary = "^2.0.1"
-fastapi = "^0.112.0"
 uvicorn = "^0.30.5"
 pytz = "^2024.1"
+fastapi = "^0.115.6"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.5.1"
