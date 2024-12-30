@@ -195,7 +195,7 @@ export const responseToTrainCall = (data: any) => ({
   planDep: responseToDate(data["plan_dep"]),
   actArr: responseToDate(data["act_arr"]),
   actDep: responseToDate(data["act_dep"]),
-  assocs: data.assocs.map(responseToAssociatedTrainService),
+  assocs: !data.assocs ? [] : data.assocs.map(responseToAssociatedTrainService),
   mileage: !data["mileage"] ? null : parseFloat(data["mileage"]),
 })
 
@@ -228,7 +228,7 @@ export const responseToTrainService = (data: any) => ({
   brandName: data["brand_name"],
   power: data["power"],
   calls: data["calls"].map(responseToTrainCall),
-  assocs: data["assocs"].map(responseToAssociatedTrainService),
+  assocs: !data.assocs ? [] : data.assocs.map(responseToAssociatedTrainService),
 })
 
 const getServiceEndpointString = (stations: TrainStation[]) => {
