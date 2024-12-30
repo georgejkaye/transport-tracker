@@ -1,5 +1,5 @@
 CREATE OR REPLACE FUNCTION SelectCallAssocData()
-RETURNS TABLE (call_id INTEGER, call_assocs OutServiceAssocData[])
+RETURNS TABLE (call_id INTEGER, call_assocs OutAssocData[])
 LANGUAGE plpgsql
 AS
 $$
@@ -8,7 +8,7 @@ BEGIN
     WITH assocs AS (
         SELECT
             AssocData.call_id,
-            (associated_id, associated_run_date, associated_type)::OutServiceAssocData AS call_assocs
+            (associated_id, associated_run_date, associated_type)::OutAssocData AS call_assocs
         FROM (
             SELECT
                 AssociatedService.call_id,
@@ -25,7 +25,6 @@ BEGIN
     GROUP BY assocs.call_id;
 END;
 $$;
-
 
 CREATE OR REPLACE FUNCTION SelectCallStockInfo()
 RETURNS TABLE (start_call INTEGER, stock_info OutStockData[])
@@ -63,7 +62,18 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    WITH LegCallData AS (
+    SELECT
+        LegCallData.leg_id,
+        ARRAY_AGG(
+            LegCallData.legcall_data
+            ORDER BY COALESCE(
+                (LegCallData.legcall_data).plan_arr,
+                (LegCallData.legcall_data).plan_dep,
+                (LegCallData.legcall_data).act_arr,
+                (LegCallData.legcall_data).act_dep
+            )
+        ) AS leg_calls
+    FROM (
         SELECT
             LegCall.leg_id, (
                 LegCall.arr_call_id,
@@ -97,16 +107,303 @@ BEGIN
         LEFT JOIN (SELECT * FROM SelectCallAssocData()) CallAssocs
         ON ArrCall.call_id = CallAssocs.call_id
         ORDER BY COALESCE(ArrCall.plan_arr, ArrCall.act_arr, DepCall.plan_dep, DepCall.act_arr) ASC
-    )
-    SELECT LegCallData.leg_id, ARRAY_AGG(LegCallData.legcall_data) AS leg_calls
-    FROM LegCallData
+    ) LegCallData
     GROUP BY LegCallData.leg_id;
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION SelectServiceEndpoints(
+    p_origin BOOLEAN
+)
+RETURNS TABLE (
+    service_id TEXT,
+    run_date TIMESTAMP WITH TIME ZONE,
+    endpoint_data OutServiceStationData[])
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    WITH EndpointData AS (
+        SELECT
+            ServiceEndpoint.service_id,
+            ServiceEndpoint.run_date,
+            (Station.station_crs, Station.station_name)::OutServiceStationData AS endpoint_data
+        FROM ServiceEndpoint
+        INNER JOIN Station
+        ON ServiceEndpoint.station_crs = Station.station_crs
+        WHERE origin = p_origin
+    )
+    SELECT
+        EndpointData.service_id,
+        EndpointData.run_date,
+        ARRAY_AGG(EndpointData.endpoint_data) AS endpoint_data
+    FROM EndpointData
+    GROUP BY (EndpointData.service_id, EndpointData.run_date);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION SelectServiceCalls()
+RETURNS TABLE (
+    service_id TEXT,
+    run_date TIMESTAMP WITH TIME ZONE,
+    call_data OutCallData[]
+)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    WITH CallInfo AS (
+        SELECT
+            Call.service_id,
+            Call.run_date, (
+                Call.station_crs,
+                Station.station_name,
+                Call.platform,
+                Call.plan_arr,
+                Call.plan_dep,
+                Call.act_arr,
+                Call.act_dep,
+                CallAssoc.call_assocs,
+                Call.mileage
+            )::OutCallData AS call_data
+        FROM Call
+        INNER JOIN Station
+        ON Call.station_crs = Station.station_crs
+        LEFT JOIN (SELECT * FROM SelectCallAssocData()) CallAssoc
+        ON CallAssoc.call_id = Call.call_id
+        ORDER BY COALESCE(Call.plan_arr, Call.plan_dep, Call.act_arr, Call.act_dep)
+    )
+    SELECT
+        CallInfo.service_id,
+        CallInfo.run_date,
+        ARRAY_AGG(CallInfo.call_data) AS call_data
+    FROM CallInfo
+    GROUP BY (CallInfo.service_id, CallInfo.run_date);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION SelectServiceAssocs()
+RETURNS TABLE (
+    service_id TEXT,
+    service_run_date TIMESTAMP WITH TIME ZONE,
+    service_assocs OutServiceAssocData[]
+)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    WITH ServiceAssoc AS (
+        SELECT
+            Call.service_id,
+            Call.run_date,
+            (
+                AssociatedService.call_id,
+                AssociatedService.associated_id,
+                AssociatedService.associated_run_date,
+                AssociatedService.associated_type
+            )::OutServiceAssocData AS service_assoc
+        FROM AssociatedService
+        INNER JOIN Call
+        On AssociatedService.call_id = Call.call_id
+    )
+    SELECT
+        ServiceAssoc.service_id,
+        ServiceAssoc.run_date AS service_run_date,
+        ARRAY_AGG(ServiceAssoc.service_assoc) AS service_assocs
+    FROM ServiceAssoc
+    GROUP BY (ServiceAssoc.service_id, ServiceAssoc.run_date);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION SelectLegServiceIds()
+RETURNS TABLE (leg_id INTEGER, service_id TEXT, run_date TIMESTAMP WITH TIME ZONE)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT DISTINCT Leg.leg_id, Service.service_id, Service.run_date
+    FROM Leg
+    INNER JOIN Legcall
+    ON Leg.leg_id = LegCall.leg_id
+    INNER JOIN call
+    ON (
+        Call.call_id = LegCall.arr_call_id
+        OR Call.call_id = LegCall.dep_call_id
+    )
+    INNER JOIN service
+    ON Call.service_id = Service.service_id
+    AND Call.run_date = Service.run_date;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION SelectServiceData()
+RETURNS TABLE (
+    service_id TEXT,
+    service_run_date TIMESTAMP WITH TIME ZONE,
+    service_data OutServiceData
+)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        Service.service_id,
+        Service.run_date,
+        (
+            Service.service_id,
+            Service.run_date,
+            Service.headcode,
+            COALESCE(
+                ServiceCall.call_data[1].plan_arr,
+                ServiceCall.call_data[1].act_arr,
+                ServiceCall.call_data[1].plan_dep,
+                ServiceCall.call_data[1].act_dep
+            ),
+            ServiceOrigin.endpoint_data,
+            ServiceDestination.endpoint_data,
+            (
+                Operator.operator_id,
+                Operator.operator_code,
+                Operator.operator_name,
+                Operator.bg_colour,
+                Operator.fg_colour
+            )::OutOperatorData,
+            (
+                Brand.brand_id,
+                Brand.brand_code,
+                Brand.brand_name,
+                Brand.bg_colour,
+                Brand.fg_colour
+            )::OutBrandData,
+            ServiceCall.call_data,
+            ServiceAssoc.service_assocs
+        )::OutServiceData AS service_data
+    FROM Service
+    LEFT JOIN (SELECT * FROM SelectServiceEndpoints(true)) ServiceOrigin
+    On ServiceOrigin.service_id = Service.service_id
+    AND ServiceOrigin.run_date = Service.run_date
+    LEFT JOIN (SELECT * FROM SelectServiceEndpoints(false)) ServiceDestination
+    On ServiceDestination.service_id = Service.service_id
+    AND ServiceDestination.run_date = Service.run_date
+    LEFT JOIN (SELECT * FROM SelectServiceCalls()) ServiceCall
+    ON Service.service_id = ServiceCall.service_id
+    AND Service.run_date = ServiceCall.run_date
+    LEFT JOIN (SELECT * FROM SelectServiceAssocs()) ServiceAssoc
+    ON Service.service_id = ServiceAssoc.service_id
+    AND Service.run_date = ServiceAssoc.service_run_date
+    INNER JOIN Operator
+    ON Service.operator_id = Operator.operator_id
+    LEFT JOIN Brand
+    ON Service.brand_id = Brand.brand_id
+    ORDER BY (service_data).service_start;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION SelectLegServices()
+RETURNS TABLE (leg_id INTEGER, leg_services OutServiceData[])
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        LegServiceId.leg_id,
+        ARRAY_AGG(ServiceData.service_data) AS services
+    FROM (SELECT * FROM SelectLegServiceIds()) LegServiceId
+    INNER JOIN (SELECT * FROM SelectServiceData()) ServiceData
+    ON ServiceData.service_id = LegServiceId.service_id
+    AND ServiceData.service_run_date = LegServiceId.run_date
+    GROUP BY LegServiceId.leg_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION SelectStockSegmentStockReports()
+RETURNS TABLE (stock_segment_id INTEGER, stock_data OutStockData[])
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        StockSegment.stock_segment_id,
+        ARRAY_AGG(StockReportData.stock_report)
+    FROM StockSegment
+    INNER JOIN StockSegmentReport
+    ON StockSegmentReport.stock_segment_id = StockSegment.stock_segment_id
+    INNER JOIN (
+        SELECT stock_report_id, (
+            stock_class,
+            stock_subclass,
+            stock_number,
+            stock_cars
+        )::OutStockData AS stock_report
+        FROM StockReport
+    ) StockReportData
+    ON StockReportData.stock_report_id = StockSegmentReport.stock_report_id
+    GROUP BY StockSegment.stock_segment_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION SelectLegStock()
+RETURNS TABLE (leg_id INTEGER, leg_stock OutLegStock[])
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        LegStockSegment.leg_id,
+        ARRAY_AGG(
+            LegStockSegment.stock_segment
+            ORDER BY (LegStockSegment.stock_segment).segment_start
+        ) AS leg_stock
+    FROM (
+        SELECT
+            StartLegCall.leg_id,
+            (
+                COALESCE(
+                    StartCall.plan_dep,
+                    StartCall.plan_arr,
+                    StartCall.act_dep,
+                    StartCall.act_arr
+                ),
+                StartStation.station_crs,
+                StartStation.station_name,
+                EndStation.station_crs,
+                EndStation.station_name,
+                EndLegCall.mileage - StartLegCall.mileage,
+                COALESCE(EndCall.act_arr, EndCall.plan_arr) -
+                COALESCE(StartCall.act_dep, StartCall.plan_dep),
+                StockSegmentStockReport.stock_data
+            )::OutLegStock AS stock_segment
+        FROM StockSegment
+        INNER JOIN (SELECT * FROM SelectStockSegmentStockReports()) StockSegmentStockReport
+        ON StockSegment.stock_segment_id = StockSegmentStockReport.stock_segment_id
+        INNER JOIN Call StartCall
+        ON StockSegment.start_call = StartCall.call_id
+        INNER JOIN Station StartStation
+        ON StartCall.station_crs = StartStation.station_crs
+        INNER JOIN Call EndCall
+        ON StockSegment.end_call = EndCall.call_id
+        INNER JOIN Station EndStation
+        ON EndCall.station_crs = EndStation.station_crs
+        INNER JOIN LegCall StartLegCall
+        ON StartLegCall.dep_call_id = StartCall.call_id
+        INNER JOIN LegCall EndLegCall
+        ON EndLegCall.arr_call_id = EndCall.call_id
+    ) LegStockSegment
+    GROUP BY LegStockSegment.leg_id;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION SelectLegs(
-    p_start_date TIMESTAMP WITH TIME ZONE,
-    p_end_date TIMESTAMP WITH TIME ZONE
+    p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
 RETURNS SETOF OutLegData
 LANGUAGE plpgsql
@@ -116,186 +413,33 @@ BEGIN
     RETURN QUERY SELECT
         Leg.leg_id AS leg_id,
         COALESCE(
-            legcalls[0].plan_dep,
-            legcalls[0].act_dep,
-            legcalls[0].plan_arr,
-            legcalls[0].act_arr
-        )::TIMESTAMP WITH TIME ZONE AS leg_start,
-        services AS leg_services,
-        legcalls AS leg_calls,
-        stocks AS leg_stocks,
+            LegCallLink.leg_calls[1].plan_dep,
+            LegCallLink.leg_calls[1].act_dep,
+            LegCallLink.leg_calls[1].plan_arr,
+            LegCallLink.leg_calls[1].act_arr
+        ) AS leg_start,
+        LegService.leg_services,
+        LegCallLink.leg_calls,
+        LegStock.leg_stock,
         Leg.distance AS leg_distance,
-        COALESCE(legcalls[-1].act_arr, legcalls[-1].plan_arr)::TIMESTAMP WITH TIME ZONE
-        -
-        COALESCE(legcalls[0].act_dep, legcalls[0].plan_dep)::TIMESTAMP WITH TIME ZONE
+        COALESCE(
+            LegCallLink.leg_calls[ARRAY_LENGTH(LegCallLink.leg_calls, 1)].act_arr,
+            LegCallLink.leg_calls[ARRAY_LENGTH(LegCallLink.leg_calls, 1)].plan_arr,
+            LegCallLink.leg_calls[ARRAY_LENGTH(LegCallLink.leg_calls, 1)].act_dep,
+            LegCallLink.leg_calls[ARRAY_LENGTH(LegCallLink.leg_calls, 1)].plan_dep
+        ) - COALESCE(
+            LegCallLink.leg_calls[1].act_dep,
+            LegCallLink.leg_calls[1].plan_dep,
+            LegCallLink.leg_calls[1].act_arr,
+            LegCallLink.leg_calls[1].plan_arr
+        )
         AS leg_duration
     FROM Leg
-    INNER JOIN (SELECT * FROM SelectLegCalls()) legcall_table
-    ON legcall_table.leg_id = leg.leg_id
-    INNER JOIN (
-        SELECT
-            LegService.leg_id,
-            JSON_AGG(service_details ORDER BY service_start ASC) AS services
-        FROM (
-            SELECT DISTINCT leg.leg_id, service.service_id
-            FROM Leg
-            INNER JOIN Legcall
-            ON leg.leg_id = legcall.leg_id
-            INNER JOIN call
-            ON (
-                Call.call_id = LegCall.arr_call_id
-                OR Call.call_id = LegCall.dep_call_id
-            )
-            INNER JOIN service
-            ON call.service_id = service.service_id
-            AND call.run_date = service.run_date
-        ) LegService
-        INNER JOIN (
-            WITH service_info AS (
-                SELECT
-                    Service.service_id, Service.run_date, headcode, origins,
-                    destinations, calls, Operator.operator_id,
-                    Operator.operator_code, Operator.operator_name,
-                    Operator.bg_colour AS operator_bg,
-                    Operator.fg_colour AS operator_fg, Brand.brand_id,
-                    Brand.brand_code, Brand.brand_name,
-                    Brand.bg_colour AS brand_bg, Brand.fg_colour AS brand_fg,
-                    power,
-                    COALESCE(calls[0].plan_arr, calls[0].act_arr, calls[0].plan_dep, calls[0].act_dep) AS service_start
-                FROM Service
-                INNER JOIN (
-                    WITH endpoint_info AS (
-                        SELECT service_id, run_date, Station.station_name, Station.station_crs
-                        FROM ServiceEndpoint
-                        INNER JOIN Station
-                        ON ServiceEndpoint.station_crs = Station.station_crs
-                        WHERE origin = true
-                    )
-                    SELECT
-                        endpoint_info.service_id, endpoint_info.run_date,
-                        JSON_AGG(endpoint_info.*) AS origins
-                    FROM endpoint_info
-                    GROUP BY (endpoint_info.service_id, endpoint_info.run_date)) origin_details
-                On origin_details.service_id = Service.service_id
-                AND origin_details.run_date = Service.run_date
-                INNER JOIN (
-                    WITH endpoint_info AS (
-                        SELECT service_id, run_date, Station.station_name, Station.station_crs
-                        FROM ServiceEndpoint
-                        INNER JOIN Station
-                        ON ServiceEndpoint.station_crs = Station.station_crs
-                        WHERE origin = false
-                    )
-                    SELECT
-                        endpoint_info.service_id, endpoint_info.run_date,
-                        ARRAY_AGG(endpoint_info.*) AS destinations
-                    FROM endpoint_info
-                    GROUP BY (endpoint_info.service_id, endpoint_info.run_date)
-                ) destination_details
-                On destination_details.service_id = Service.service_id
-                AND destination_details.run_date = Service.run_date
-                INNER JOIN (
-                    WITH call_info AS (
-                        SELECT
-                            Call.call_id, service_id, run_date, station_name, Call.station_crs,
-                            platform, plan_arr, plan_dep, act_arr, act_dep,
-                            mileage, associations
-                        FROM Call
-                        INNER JOIN Station
-                        ON Call.station_crs = Station.station_crs
-                        LEFT JOIN (
-                            WITH AssociationInfo AS (
-                                SELECT
-                                    call_id, associated_id,
-                                    associated_run_date, associated_type
-                                FROM AssociatedService
-                            )
-                            SELECT
-                                call_id,
-                                ARRAY_AGG(AssociationInfo.*) AS associations
-                            FROM AssociationInfo
-                            GROUP BY call_id
-                        ) Association
-                        ON Call.call_id = Association.call_id
-                        ORDER BY COALESCE(plan_arr, act_arr, plan_dep, act_dep) ASC
-                    )
-                    SELECT service_id, run_date, ARRAY_AGG(call_info.*) AS calls
-                    FROM call_info
-                    GROUP BY (service_id, run_date)
-                ) call_details
-                ON Service.service_id = call_details.service_id
-                INNER JOIN Operator
-                ON Service.operator_id = Operator.operator_id
-                LEFT JOIN Brand
-                ON Service.brand_id = Brand.brand_id
-                ORDER BY service_start ASC
-            )
-            SELECT
-                service_id, run_date, service_start,
-                ARRAY_AGG(service_info.*) AS service_details
-            FROM service_info
-            GROUP BY (service_id, run_date, service_start)
-            ORDER BY service_start ASC
-        ) ServiceDetails
-        ON ServiceDetails.service_id = LegService.service_id
-        GROUP BY LegService.leg_id
-    ) LegServices
-    ON LegServices.leg_id = Leg.leg_id
-    INNER JOIN (
-        WITH StockSegment AS (
-            WITH StockSegmentDetail AS (
-                WITH StockDetail AS (
-                    SELECT
-                        stock_class, stock_subclass, stock_number,
-                        stock_cars, start_call, end_call
-                    FROM StockReport
-                    INNER JOIN StockSegmentReport
-                    ON StockReport.stock_report_id = StockSegmentReport.stock_report_id
-                    INNER JOIN StockSegment
-                    ON StockSegmentReport.stock_segment_id = StockSegment.stock_segment_id
-                )
-                SELECT
-                    start_call, end_call, ARRAY_AGG(StockDetail.*) AS stocks
-                FROM StockDetail
-                GROUP BY start_call, end_call
-            )
-            SELECT
-                StartLegCall.leg_id,
-                COALESCE(StartCall.plan_dep, StartCall.plan_arr, StartCall.act_dep, StartCall.act_arr) AS segment_start,
-                StartStation.station_crs AS start_crs,
-                StartStation.station_name AS start_name,
-                EndStation.station_crs AS end_crs,
-                EndStation.station_name AS end_name,
-                Service.service_id, Service.run_date,
-                EndLegCall.mileage - StartLegCall.mileage AS distance,
-                COALESCE(EndCall.act_arr, EndCall.plan_arr) -
-                COALESCE(StartCall.act_dep, StartCall.plan_dep) AS duration,
-                ARRAY_AGG(StockSegmentDetail.*) AS stocks
-            FROM StockSegmentDetail
-            INNER JOIN Call StartCall
-            ON StockSegmentDetail.start_call = StartCall.call_id
-            INNER JOIN Station StartStation
-            ON StartCall.station_crs = StartStation.station_crs
-            INNER JOIN Call EndCall
-            ON StockSegmentDetail.end_call = EndCall.call_id
-            INNER JOIN Station EndStation
-            ON EndCall.station_crs = EndStation.station_crs
-            INNER JOIN LegCall StartLegCall
-            ON StartLegCall.dep_call_id = StartCall.call_id
-            INNER JOIN LegCall EndLegCall
-            ON EndLegCall.arr_call_id = EndCall.call_id
-            INNER JOIN Service
-            ON StartCall.service_id = Service.service_id
-            AND StartCall.run_date = Service.run_date
-            GROUP BY
-                StartLegCall.leg_id, segment_start, start_crs, start_name,
-                end_crs, end_name, Service.service_id, Service.run_date,
-                distance, duration
-        )
-        SELECT stocksegment.leg_id, ARRAY_AGG(StockSegment.* ORDER BY segment_start ASC) AS stocks
-        FROM StockSegment
-        GROUP BY stocksegment.leg_id
-    ) StockDetails
-    ON StockDetails.leg_id = Leg.leg_id;
+    INNER JOIN (SELECT * FROM SelectLegServices()) LegService
+    ON LegService.leg_id = Leg.leg_id
+    INNER JOIN (SELECT * FROM SelectLegCalls()) LegCallLink
+    ON LegCallLink.leg_id = Leg.leg_id
+    INNER JOIN (SELECT * FROM SelectLegStock()) LegStock
+    ON LegStock.leg_id = Leg.leg_id;
 END;
 $$;
