@@ -109,7 +109,7 @@ CREATE TYPE OutBrandData AS (
     brand_fg TEXT
 );
 
-CREATE TYPE OutServiceStationData AS (
+CREATE TYPE OutStationData AS (
     station_crs CHARACTER(3),
     station_name TEXT
 );
@@ -128,8 +128,7 @@ CREATE TYPE OutServiceAssocData AS (
 );
 
 CREATE TYPE OutCallData AS (
-    station_crs CHARACTER(3),
-    station_name TEXT,
+    station OutStationData,
     platform TEXT,
     plan_arr TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
@@ -144,8 +143,8 @@ CREATE TYPE OutServiceData AS (
     service_run_date TIMESTAMP WITH TIME ZONE,
     service_headcode CHARACTER(4),
     service_start TIMESTAMP WITH TIME ZONE,
-    service_origins OutServiceStationData[],
-    service_destinations OutServiceStationData[],
+    service_origins OutStationData[],
+    service_destinations OutStationData[],
     service_operator OutOperatorData,
     service_brand OutBrandData,
     service_calls OutCallData[],
@@ -170,8 +169,7 @@ CREATE TYPE OutLegCallData AS (
     dep_service_run_date TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE,
-    station_crs CHARACTER(3),
-    station_name TEXT,
+    station OutStationData,
     platform TEXT,
     mileage DECIMAL,
     stocks OutStockData[],
@@ -180,10 +178,8 @@ CREATE TYPE OutLegCallData AS (
 
 CREATE TYPE OutLegStock AS (
     segment_start TIMESTAMP WITH TIME ZONE,
-    start_crs CHARACTER(3),
-    start_name TEXT,
-    end_crs CHARACTER(3),
-    end_name TEXT,
+    start_station OutStationData,
+    end_station OutStationData,
     distance DECIMAL,
     duration INTERVAL,
     stock_data OutStockData[]

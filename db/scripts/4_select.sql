@@ -86,8 +86,10 @@ BEGIN
                 DepCall.run_date,
                 DepCall.plan_dep,
                 DepCall.act_dep,
-                COALESCE(ArrCall.station_crs, DepCall.station_crs),
-                COALESCE(ArrStation.station_name, DepStation.station_name),
+                (
+                    COALESCE(ArrCall.station_crs, DepCall.station_crs),
+                    COALESCE(ArrStation.station_name, DepStation.station_name)
+                )::OutStationData,
                 COALESCE(ArrCall.platform, DepCall.platform),
                 LegCall.mileage,
                 StockDetails.stock_info,
@@ -118,7 +120,7 @@ CREATE OR REPLACE FUNCTION SelectServiceEndpoints(
 RETURNS TABLE (
     service_id TEXT,
     run_date TIMESTAMP WITH TIME ZONE,
-    endpoint_data OutServiceStationData[])
+    endpoint_data OutStationData[])
 LANGUAGE plpgsql
 AS
 $$
@@ -128,7 +130,7 @@ BEGIN
         SELECT
             ServiceEndpoint.service_id,
             ServiceEndpoint.run_date,
-            (Station.station_crs, Station.station_name)::OutServiceStationData AS endpoint_data
+            (Station.station_crs, Station.station_name)::OutStationData AS endpoint_data
         FROM ServiceEndpoint
         INNER JOIN Station
         ON ServiceEndpoint.station_crs = Station.station_crs
@@ -158,8 +160,10 @@ BEGIN
         SELECT
             Call.service_id,
             Call.run_date, (
-                Call.station_crs,
-                Station.station_name,
+                (
+                    Call.station_crs,
+                    Station.station_name
+                )::OutStationData,
                 Call.platform,
                 Call.plan_arr,
                 Call.plan_dep,
@@ -371,11 +375,14 @@ BEGIN
                     StartCall.plan_arr,
                     StartCall.act_dep,
                     StartCall.act_arr
-                ),
-                StartStation.station_crs,
-                StartStation.station_name,
-                EndStation.station_crs,
-                EndStation.station_name,
+                ), (
+                    StartStation.station_crs,
+                    StartStation.station_name
+                )::OutStationData,
+                (
+                    EndStation.station_crs,
+                    EndStation.station_name
+                )::OutStationData,
                 EndLegCall.mileage - StartLegCall.mileage,
                 COALESCE(EndCall.act_arr, EndCall.plan_arr) -
                 COALESCE(StartCall.act_dep, StartCall.plan_dep),
@@ -446,6 +453,7 @@ BEGIN
         ON LegStock.leg_id = Leg.leg_id
     ) LegDetails
     WHERE (p_start_date IS NULL OR LegDetails.leg_start >= p_start_date)
-    AND (p_end_date IS NULL OR LegDetails.leg_start <= p_end_date);
+    AND (p_end_date IS NULL OR LegDetails.leg_start <= p_end_date)
+    ORDER BY LegDetails.leg_start DESC;
 END;
 $$;
