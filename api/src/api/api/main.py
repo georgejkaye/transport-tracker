@@ -31,12 +31,19 @@ app = FastAPI(
 )
 
 
-@app.get("/legs", summary="Get legs")
+@app.get("/train/legs", summary="Get legs")
 async def get_legs(
     start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
 ) -> list[ShortLeg]:
     with connect() as (conn, _):
         legs = select_legs(conn, start_date, end_date)
+        return legs
+
+
+@app.get("/train/legs/{year}", summary="Get legs")
+async def get_legs_from_year(year: int) -> list[ShortLeg]:
+    with connect() as (conn, _):
+        legs = select_legs(conn, datetime(year, 1, 1), datetime(year, 12, 31))
         return legs
 
 
