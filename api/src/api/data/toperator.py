@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
-from psycopg2._psycopg import cursor
+from psycopg import Cursor
 
 
 def select_operator_id(cur: Cursor, operator_name: str) -> Optional[str]:

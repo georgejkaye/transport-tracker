@@ -1,9 +1,11 @@
+import abc
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, DecimalException
 from typing import Any, Optional
 from dotenv import load_dotenv
 from psycopg import Connection, Cursor
+from psycopg.types.composite import CompositeInfo, register_composite
 
 from api.data.environment import get_env_variable, get_secret
 
@@ -129,3 +131,11 @@ def insert(
             {additional_query}
         """
         cur.execute(statement.encode())
+
+
+def register_type(conn: Connection, name: str, factory=None):
+    info = CompositeInfo.fetch(conn, name)
+    if info is not None:
+        register_composite(info, conn, factory)
+    else:
+        raise RuntimeError(f"Could not find composite type {name}")

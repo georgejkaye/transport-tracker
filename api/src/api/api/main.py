@@ -35,15 +35,15 @@ app = FastAPI(
 async def get_legs(
     start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
 ) -> list[ShortLeg]:
-    with connect() as (_, cur):
-        legs = select_legs(cur, start_date, end_date)
+    with connect() as (conn, _):
+        legs = select_legs(conn, start_date, end_date)
         return legs
 
 
 @app.get("/train/leg/{leg_id}", summary="Get train leg")
 async def get_leg(leg_id: int) -> ShortLeg:
-    with connect() as (_, cur):
-        legs = select_legs(cur, search_leg_id=leg_id)
+    with connect() as (conn, _):
+        legs = select_legs(conn, search_leg_id=leg_id)
         if len(legs) != 1:
             raise HTTPException(status_code=404, detail="Leg not found")
         return legs[0]
