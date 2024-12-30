@@ -411,35 +411,41 @@ AS
 $$
 BEGIN
     RETURN QUERY SELECT
-        Leg.leg_id AS leg_id,
-        COALESCE(
-            LegCallLink.leg_calls[1].plan_dep,
-            LegCallLink.leg_calls[1].act_dep,
-            LegCallLink.leg_calls[1].plan_arr,
-            LegCallLink.leg_calls[1].act_arr
-        ) AS leg_start,
-        LegService.leg_services,
-        LegCallLink.leg_calls,
-        LegStock.leg_stock,
-        Leg.distance AS leg_distance,
-        COALESCE(
-            LegCallLink.leg_calls[ARRAY_LENGTH(LegCallLink.leg_calls, 1)].act_arr,
-            LegCallLink.leg_calls[ARRAY_LENGTH(LegCallLink.leg_calls, 1)].plan_arr,
-            LegCallLink.leg_calls[ARRAY_LENGTH(LegCallLink.leg_calls, 1)].act_dep,
-            LegCallLink.leg_calls[ARRAY_LENGTH(LegCallLink.leg_calls, 1)].plan_dep
-        ) - COALESCE(
-            LegCallLink.leg_calls[1].act_dep,
-            LegCallLink.leg_calls[1].plan_dep,
-            LegCallLink.leg_calls[1].act_arr,
-            LegCallLink.leg_calls[1].plan_arr
-        )
-        AS leg_duration
-    FROM Leg
-    INNER JOIN (SELECT * FROM SelectLegServices()) LegService
-    ON LegService.leg_id = Leg.leg_id
-    INNER JOIN (SELECT * FROM SelectLegCalls()) LegCallLink
-    ON LegCallLink.leg_id = Leg.leg_id
-    INNER JOIN (SELECT * FROM SelectLegStock()) LegStock
-    ON LegStock.leg_id = Leg.leg_id;
+        LegDetails.leg_id,
+        LegDetails.leg_start,
+        LegDetails.leg_services,
+        LegDetails.leg_calls,
+        LegDetails.leg_stock,
+        LegDetails.leg_distance,
+        LegDetails.leg_end - LegDetails.leg_start AS leg_duration
+    FROM (
+        SELECT
+            Leg.leg_id AS leg_id,
+            COALESCE(
+                LegCallLink.leg_calls[1].plan_dep,
+                LegCallLink.leg_calls[1].act_dep,
+                LegCallLink.leg_calls[1].plan_arr,
+                LegCallLink.leg_calls[1].act_arr
+            ) AS leg_start,
+            COALESCE(
+                LegCallLink.leg_calls[ARRAY_LENGTH(LegCallLink.leg_calls, 1)].act_arr,
+                LegCallLink.leg_calls[ARRAY_LENGTH(LegCallLink.leg_calls, 1)].plan_arr,
+                LegCallLink.leg_calls[ARRAY_LENGTH(LegCallLink.leg_calls, 1)].act_dep,
+                LegCallLink.leg_calls[ARRAY_LENGTH(LegCallLink.leg_calls, 1)].plan_dep
+            ) AS leg_end,
+            LegService.leg_services,
+            LegCallLink.leg_calls,
+            LegStock.leg_stock,
+            Leg.distance AS leg_distance
+        FROM Leg
+        INNER JOIN (SELECT * FROM SelectLegServices()) LegService
+        ON LegService.leg_id = Leg.leg_id
+        INNER JOIN (SELECT * FROM SelectLegCalls()) LegCallLink
+        ON LegCallLink.leg_id = Leg.leg_id
+        INNER JOIN (SELECT * FROM SelectLegStock()) LegStock
+        ON LegStock.leg_id = Leg.leg_id
+    ) LegDetails
+    WHERE (p_start_date IS NULL OR LegDetails.leg_start >= p_start_date)
+    AND (p_end_date IS NULL OR LegDetails.leg_start <= p_end_date);
 END;
 $$;
