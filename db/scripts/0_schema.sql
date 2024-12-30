@@ -90,7 +90,7 @@ CREATE TABLE Station (
 
 CREATE TABLE Service (
     service_id TEXT NOT NULL,
-    run_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    run_date TIMESTAMP WITH TIME ZONE NOT NULL,
     headcode CHARACTER(4) NOT NULL,
     operator_id INTEGER NOT NULL,
     brand_id INTEGER,
@@ -103,7 +103,7 @@ CREATE TABLE Service (
 
 CREATE TABLE ServiceEndpoint (
     service_id TEXT NOT NULL,
-    run_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    run_date TIMESTAMP WITH TIME ZONE NOT NULL,
     station_crs CHARACTER(3) NOT NULL,
     origin BOOLEAN NOT NULL,
     CONSTRAINT endpoint_unique UNIQUE (service_id, run_date, station_crs, origin),
