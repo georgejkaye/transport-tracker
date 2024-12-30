@@ -1,4 +1,4 @@
-from api.data.database import connect, disconnect
+from api.data.database import connect
 from api.record import add_to_logfile
 
 if __name__ == "__main__":

@@ -2,15 +2,12 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Callable, Optional
+from psycopg import Connection, Cursor
+
 from api.data.toperator import BrandData, OperatorData
-from psycopg2._psycopg import connection, cursor
 
 from api.data.database import (
-    NoEscape,
     connect,
-    insert,
-    int_or_none_to_str_or_none,
-    number_or_none_to_str,
     optional_to_decimal,
     str_or_null_to_datetime,
 )
@@ -83,16 +80,6 @@ def get_value_or_none[
     return get(obj)
 
 
-def get_service_fields(service: TrainServiceRaw) -> list[str | None]:
-    return [
-        str(service.id),
-        service.run_date.isoformat(),
-        service.headcode,
-        service.operator_id,
-        service.brand_id,
-    ]
-
-
 def get_call_from_leg_call_procedure(
     service_id: str,
     run_date: datetime,
@@ -141,7 +128,7 @@ def apply_to_optional[
     return fn(t)
 
 
-def insert_leg(conn: connection, cur: cursor, leg: Leg):
+def insert_leg(conn: Connection, cur: Cursor, leg: Leg):
     services = [leg.service]
     for assoc in leg.service.divides + leg.service.joins:
         services.append(assoc.service)
@@ -220,42 +207,6 @@ def insert_leg(conn: connection, cur: cursor, leg: Leg):
     conn.commit()
 
 
-def get_endpoint_statement(origin: bool, column_name: str) -> str:
-    return f"""
-        WITH endpoint_info AS (
-            SELECT service_id, run_date, Station.station_name, Station.station_crs
-            FROM ServiceEndpoint
-            INNER JOIN Station
-            ON ServiceEndpoint.station_crs = Station.station_crs
-            WHERE origin = {origin}
-        )
-        SELECT
-            endpoint_info.service_id, endpoint_info.run_date,
-            JSON_AGG(endpoint_info.*) AS {column_name}
-        FROM endpoint_info
-        GROUP BY (endpoint_info.service_id, endpoint_info.run_date)
-    """
-
-
-def get_associations_statement(call_table: str) -> str:
-    return f"""
-    LEFT JOIN (
-        WITH AssociationInfo AS (
-            SELECT
-                call_id, associated_id,
-                associated_run_date, associated_type
-            FROM AssociatedService
-        )
-        SELECT
-            call_id,
-            JSON_AGG(AssociationInfo.*) AS associations
-        FROM AssociationInfo
-        GROUP BY call_id
-    ) Association
-    ON {call_table}.call_id = Association.call_id
-    """
-
-
 @dataclass
 class ShortLegCall:
     station: ShortTrainStation
@@ -281,222 +232,12 @@ class ShortLeg:
 
 
 def select_legs(
-    cur: cursor,
+    cur: Cursor,
     search_start: Optional[datetime] = None,
     search_end: Optional[datetime] = None,
     search_leg_id: Optional[int] = None,
 ) -> list[ShortLeg]:
-    statement = f"""
-        SELECT
-            Leg.leg_id,
-            COALESCE(
-                legcalls -> 0 ->> 'plan_dep',
-                legcalls -> 0 ->> 'act_dep',
-                legcalls -> 0 ->> 'plan_arr',
-                legcalls-> 0 ->> 'act_arr'
-            ) AS leg_start,
-            services, legcalls, stocks, Leg.distance,
-            COALESCE(legcalls -> -1 ->> 'act_arr', legcalls -> -1 ->> 'plan_arr')::TIMESTAMP
-            -
-            COALESCE(legcalls -> 0 ->> 'act_dep', legcalls -> 0 ->> 'plan_dep')::TIMESTAMP
-            AS duration
-        FROM Leg
-        INNER JOIN (
-            WITH legcall_info AS (
-                SELECT
-                    leg_id, LegCall.arr_call_id,
-                    ArrCall.service_id AS arr_id, ArrCall.run_date AS arr_run_date,
-                    ArrCall.plan_arr, ArrCall.act_arr,
-                    LegCall.dep_call_id,
-                    DepCall.service_id AS dep_id, DepCall.run_date AS dep_run_date,
-                    DepCall.plan_dep, DepCall.act_dep,
-                    COALESCE(ArrCall.station_crs, DepCall.station_crs) AS station_crs,
-                    COALESCE(ArrStation.station_name, DepStation.station_name) AS station_name,
-                    COALESCE(ArrCall.platform, DepCall.platform) AS platform,
-                    LegCall.mileage, associations, new_stock
-                FROM LegCall
-                LEFT JOIN Call ArrCall
-                ON LegCall.arr_call_id = ArrCall.call_id
-                LEFT JOIN Station ArrStation
-                ON ArrCall.station_crs = ArrStation.station_crs
-                LEFT JOIN Call DepCall
-                ON LegCall.dep_call_id = DepCall.call_id
-                LEFT JOIN Station DepStation
-                ON DepCall.station_crs = DepStation.station_crs
-                LEFT JOIN (
-                    WITH StockInfo AS (
-                        SELECT start_call, stock_class, stock_subclass,
-                            stock_number, stock_cars
-                        FROM StockSegment
-                        INNER JOIN StockSegmentReport
-                        ON StockSegment.stock_segment_id = StockSegmentReport.stock_segment_id
-                        INNER JOIN StockReport
-                        ON StockSegmentReport.stock_report_id = StockReport.stock_report_id
-                        INNER JOIN Call
-                        ON start_call = call_id
-                    )
-                    SELECT start_call, JSON_AGG(StockInfo.*) AS new_stock
-                    FROM StockInfo
-                    GROUP BY start_call
-                ) StockDetails
-                ON LegCall.dep_call_id = StockDetails.start_call
-                { get_associations_statement("ArrCall") }
-                ORDER BY COALESCE(ArrCall.plan_arr, ArrCall.act_arr, DepCall.plan_dep, DepCall.act_arr) ASC
-            )
-            SELECT leg_id, JSON_AGG(legcall_info.* ORDER BY COALESCE(plan_arr, act_arr, plan_dep, act_dep) ASC) as legcalls
-            FROM legcall_info
-            GROUP BY leg_id
-        ) legcall_table
-        ON legcall_table.leg_id = leg.leg_id
-        INNER JOIN (
-            SELECT
-                LegService.leg_id,
-                JSON_AGG(service_details ORDER BY service_start ASC) AS services
-            FROM (
-                SELECT DISTINCT leg.leg_id, service.service_id
-                FROM Leg
-                INNER JOIN Legcall
-                ON leg.leg_id = legcall.leg_id
-                INNER JOIN call
-                ON (
-                    Call.call_id = LegCall.arr_call_id
-                    OR Call.call_id = LegCall.dep_call_id
-                )
-                INNER JOIN service
-                ON call.service_id = service.service_id
-                AND call.run_date = service.run_date
-            ) LegService
-            INNER JOIN (
-                WITH service_info AS (
-                    SELECT
-                        Service.service_id, Service.run_date, headcode, origins,
-                        destinations, calls, Operator.operator_id,
-                        Operator.operator_code, Operator.operator_name,
-                        Operator.bg_colour AS operator_bg,
-                        Operator.fg_colour AS operator_fg, Brand.brand_id,
-                        Brand.brand_code, Brand.brand_name,
-                        Brand.bg_colour AS brand_bg, Brand.fg_colour AS brand_fg,
-                        power,
-                        COALESCE(calls -> 0 ->> 'plan_arr', calls -> 0 ->> 'act_arr', calls -> 0 ->> 'plan_dep', calls -> 0 ->> 'act_dep') AS service_start
-                    FROM Service
-                    INNER JOIN (
-                        {get_endpoint_statement(True, "origins")}
-                    ) origin_details
-                    On origin_details.service_id = Service.service_id
-                    AND origin_details.run_date = Service.run_date
-                    INNER JOIN (
-                        {get_endpoint_statement(False, "destinations")}
-                    ) destination_details
-                    On destination_details.service_id = Service.service_id
-                    AND destination_details.run_date = Service.run_date
-                    INNER JOIN (
-                        WITH call_info AS (
-                            SELECT
-                                Call.call_id, service_id, run_date, station_name, Call.station_crs,
-                                platform, plan_arr, plan_dep, act_arr, act_dep,
-                                mileage, associations
-                            FROM Call
-                            INNER JOIN Station
-                            ON Call.station_crs = Station.station_crs
-                            {get_associations_statement("Call")}
-                            ORDER BY COALESCE(plan_arr, act_arr, plan_dep, act_dep) ASC
-                        )
-                        SELECT service_id, run_date, JSON_AGG(call_info.*) AS calls
-                        FROM call_info
-                        GROUP BY (service_id, run_date)
-                    ) call_details
-                    ON Service.service_id = call_details.service_id
-                    INNER JOIN Operator
-                    ON Service.operator_id = Operator.operator_id
-                    LEFT JOIN Brand
-                    ON Service.brand_id = Brand.brand_id
-                    ORDER BY service_start ASC
-                )
-                SELECT
-                    service_id, run_date, service_start,
-                    JSON_AGG(service_info.*) AS service_details
-                FROM service_info
-                GROUP BY (service_id, run_date, service_start)
-                ORDER BY service_start ASC
-            ) ServiceDetails
-            ON ServiceDetails.service_id = LegService.service_id
-            GROUP BY LegService.leg_id
-        ) LegServices
-        ON LegServices.leg_id = Leg.leg_id
-        INNER JOIN (
-            WITH StockSegment AS (
-                WITH StockSegmentDetail AS (
-                    WITH StockDetail AS (
-                        SELECT
-                            stock_class, stock_subclass, stock_number,
-                            stock_cars, start_call, end_call
-                        FROM StockReport
-                        INNER JOIN StockSegmentReport
-                        ON StockReport.stock_report_id = StockSegmentReport.stock_report_id
-                        INNER JOIN StockSegment
-                        ON StockSegmentReport.stock_segment_id = StockSegment.stock_segment_id
-                    )
-                    SELECT
-                        start_call, end_call, JSON_AGG(StockDetail.*) AS stocks
-                    FROM StockDetail
-                    GROUP BY start_call, end_call
-                )
-                SELECT
-                    StartLegCall.leg_id,
-                    COALESCE(StartCall.plan_dep, StartCall.plan_arr, StartCall.act_dep, StartCall.act_arr) AS segment_start,
-                    StartStation.station_crs AS start_crs,
-                    StartStation.station_name AS start_name,
-                    EndStation.station_crs AS end_crs,
-                    EndStation.station_name AS end_name,
-                    Service.service_id, Service.run_date,
-                    EndLegCall.mileage - StartLegCall.mileage AS distance,
-                    COALESCE(EndCall.act_arr, EndCall.plan_arr) -
-                    COALESCE(StartCall.act_dep, StartCall.plan_dep) AS duration,
-                    JSON_AGG(StockSegmentDetail.*) AS stocks
-                FROM StockSegmentDetail
-                INNER JOIN Call StartCall
-                ON StockSegmentDetail.start_call = StartCall.call_id
-                INNER JOIN Station StartStation
-                ON StartCall.station_crs = StartStation.station_crs
-                INNER JOIN Call EndCall
-                ON StockSegmentDetail.end_call = EndCall.call_id
-                INNER JOIN Station EndStation
-                ON EndCall.station_crs = EndStation.station_crs
-                INNER JOIN LegCall StartLegCall
-                ON StartLegCall.dep_call_id = StartCall.call_id
-                INNER JOIN LegCall EndLegCall
-                ON EndLegCall.arr_call_id = EndCall.call_id
-                INNER JOIN Service
-                ON StartCall.service_id = Service.service_id
-                AND StartCall.run_date = Service.run_date
-                GROUP BY
-                    StartLegCall.leg_id, segment_start, start_crs, start_name,
-                    end_crs, end_name, Service.service_id, Service.run_date,
-                    distance, duration
-            )
-            SELECT leg_id, JSON_AGG(StockSegment.* ORDER BY segment_start ASC) AS stocks
-            FROM StockSegment
-            GROUP BY leg_id
-        ) StockDetails
-        ON StockDetails.leg_id = Leg.leg_id
-    """
-    wheres = []
-    if search_start is not None:
-        wheres.append("leg_start >= %(start)s")
-    if search_end is not None:
-        wheres.append("leg_start < %(end)s")
-    if search_leg_id is not None:
-        wheres.append("Leg.leg_id = %(leg)s")
-    if len(wheres) != 0:
-        where_string = f"\nWHERE {" AND ".join(wheres)}"
-    else:
-        where_string = ""
-    order_string = "ORDER BY leg_start DESC"
-    full_statement = f"{statement}\n{where_string}\n{order_string}"
-    cur.execute(
-        full_statement,
-        {"start": search_start, "end": search_end, "leg": search_leg_id},
-    )
+    cur.execute("SELECT * FROM SelectLegs(%s, %s)", [search_start, search_end])
     rows = cur.fetchall()
     legs = []
     for row in rows:
@@ -729,5 +470,5 @@ def select_legs(
 
 
 if __name__ == "__main__":
-    conn, cur = connect()
-    select_legs(cur, None, None)
+    with connect() as (conn, cur):
+        select_legs(cur, None, None)

@@ -1,4 +1,8 @@
+import xml.etree.ElementTree as ET
+
 from dataclasses import dataclass
+from psycopg import Connection, Cursor
+
 from api.data.train import (
     generate_natrail_token,
     get_kb_url,
@@ -6,10 +10,8 @@ from api.data.train import (
 )
 from api.data.core import get_tag_text, make_get_request, prefix_namespace
 from api.data.credentials import get_api_credentials
-import xml.etree.ElementTree as ET
-from api.data.database import connect, disconnect, insert
+from api.data.database import connect, insert, NoEscape
 from api.data.schema import toc_table
-from psycopg2._psycopg import connection, cursor
 
 
 @dataclass
@@ -43,14 +45,16 @@ def pull_tocs(natrail_token: str) -> list[Toc]:
     return tocs
 
 
-def populate_toc_table(conn: connection, cur: cursor, tocs: list[Toc]):
+def populate_toc_table(conn: Connection, cur: Cursor, tocs: list[Toc]):
     fields = ["operator_name", "operator_id"]
-    values: list[list[str | None]] = list(map(lambda x: [x.name, x.atoc], tocs))
+    values: list[list[str | NoEscape | None]] = list(
+        map(lambda x: [x.name, x.atoc], tocs)
+    )
     insert(cur, toc_table, fields, values)
     conn.commit()
 
 
-def populate_tocs(conn: connection, cur: cursor):
+def populate_tocs(conn: Connection, cur: Cursor):
     natrail_credentials = get_api_credentials("NATRAIL")
     token = generate_natrail_token(natrail_credentials)
     tocs = pull_tocs(token)
@@ -63,7 +67,7 @@ def get_brands_or_empty(brands: list | None) -> list[Toc]:
     return [Toc(brand["brand_name"], brand["brand_id"]) for brand in brands]
 
 
-def get_tocs(conn: connection, cur: cursor) -> list[TocWithBrand]:
+def get_tocs(conn: Connection, cur: Cursor) -> list[TocWithBrand]:
     query = """
         SELECT operator_name, operator_id, brands.brands
         FROM operator
@@ -91,6 +95,5 @@ def get_tocs(conn: connection, cur: cursor) -> list[TocWithBrand]:
 
 
 if __name__ == "__main__":
-    (conn, cur) = connect()
-    populate_tocs(conn, cur)
-    disconnect(conn, cur)
+    with connect() as (conn, cur):
+        populate_tocs(conn, cur)

@@ -3,17 +3,15 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 
-from api.data.database import connect, disconnect
+from api.data.database import connect
 from api.data.environment import get_env_variable
 from api.data.leg import ShortLeg, select_legs
 
 import uvicorn
 
 from api.data.stations import (
-    ShortTrainStation,
     StationData,
     select_station,
-    select_station_from_crs,
     select_stations,
 )
 
@@ -37,38 +35,34 @@ app = FastAPI(
 async def get_legs(
     start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
 ) -> list[ShortLeg]:
-    (conn, cur) = connect()
-    legs = select_legs(cur, start_date, end_date)
-    disconnect(conn, cur)
-    return legs
+    with connect() as (_, cur):
+        legs = select_legs(cur, start_date, end_date)
+        return legs
 
 
 @app.get("/train/leg/{leg_id}", summary="Get train leg")
 async def get_leg(leg_id: int) -> ShortLeg:
-    (conn, cur) = connect()
-    legs = select_legs(cur, search_leg_id=leg_id)
-    disconnect(conn, cur)
-    if len(legs) != 1:
-        raise HTTPException(status_code=404, detail="Leg not found")
-    return legs[0]
+    with connect() as (_, cur):
+        legs = select_legs(cur, search_leg_id=leg_id)
+        if len(legs) != 1:
+            raise HTTPException(status_code=404, detail="Leg not found")
+        return legs[0]
 
 
 @app.get("/train/stations", summary="Get train stations")
 async def get_train_stations() -> list[StationData]:
-    (conn, cur) = connect()
-    stations = select_stations(cur)
-    disconnect(conn, cur)
-    return stations
+    with connect() as (_, cur):
+        stations = select_stations(cur)
+        return stations
 
 
 @app.get("/train/station/{station_crs}", summary="Get train station")
 async def get_train_station(station_crs: str) -> StationData:
-    (conn, cur) = connect()
-    station = select_station(cur, station_crs)
-    disconnect(conn, cur)
-    if station is None:
-        raise HTTPException(status_code=404, detail="Station not found")
-    return station
+    with connect() as (_, cur):
+        station = select_station(cur, station_crs)
+        if station is None:
+            raise HTTPException(status_code=404, detail="Station not found")
+        return station
 
 
 def start():
