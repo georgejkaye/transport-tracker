@@ -410,7 +410,8 @@ $$;
 
 CREATE OR REPLACE FUNCTION SelectLegs(
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-    p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+    p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_leg_id INTEGER DEFAULT NULL
 )
 RETURNS SETOF OutLegData
 LANGUAGE plpgsql
@@ -454,6 +455,7 @@ BEGIN
     ) LegDetails
     WHERE (p_start_date IS NULL OR LegDetails.leg_start >= p_start_date)
     AND (p_end_date IS NULL OR LegDetails.leg_start <= p_end_date)
+    AND p_leg_id IS NULL OR LegDetails.leg_id = p_leg_id
     ORDER BY LegDetails.leg_start DESC;
 END;
 $$;

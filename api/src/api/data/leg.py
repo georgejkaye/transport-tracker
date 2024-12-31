@@ -426,8 +426,8 @@ def select_legs(
     register_type(conn, "OutLegData", register_leg_data)
 
     rows = conn.execute(
-        "SELECT SelectLegs(%s, %s)",
-        [search_start, search_end],
+        "SELECT SelectLegs(%s, %s, %s)",
+        [search_start, search_end, search_leg_id],
     ).fetchall()
     return [row[0] for row in rows]
 
