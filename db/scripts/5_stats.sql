@@ -314,3 +314,40 @@ BEGIN
     ORDER BY LegOverview.leg_start;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION GetStockUsed(
+    p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+)
+RETURNS TABLE (
+    leg_id INTEGER,
+    stock_class INTEGER,
+    stock_subclass INTEGER,
+    stock_number INTEGER
+)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT DISTINCT
+        Leg.leg_id,
+        StockReport.stock_class,
+        StockReport.stock_subclass,
+        StockReport.stock_number
+    FROM Leg
+    INNER JOIN LegCall
+    ON Leg.leg_id = LegCall.leg_id
+    INNER JOIN Call
+    ON LegCall.arr_call_id = Call.call_id
+    OR LegCall.dep_call_id = Call.call_id
+    INNER JOIN StockSegment
+    ON Call.call_id = StockSegment.start_call
+    INNER JOIN StockSegmentReport
+    ON StockSegment.stock_segment_id = StockSegmentReport.stock_segment_id
+    INNER JOIN StockReport
+    ON StockSegmentReport.stock_report_id = StockReport.stock_report_id
+    INNER JOIN GetLegIdsInRange(p_start_date, p_end_date) LegId
+    ON Leg.leg_id = LegId.leg_id;
+END;
+$$;
