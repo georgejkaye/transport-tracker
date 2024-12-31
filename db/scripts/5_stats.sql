@@ -1,31 +1,3 @@
-CREATE OR REPLACE FUNCTION GetLegStartTime(
-    p_leg_id INTEGER
-)
-RETURNS TIMESTAMP WITH TIME ZONE
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    RETURN (
-        SELECT MIN(
-            COALESCE(
-                Call.act_dep,
-                Call.act_arr,
-                Call.plan_dep,
-                Call.plan_arr
-            )
-        )
-        FROM Leg
-        INNER JOIN LegCall
-        ON Leg.leg_id = LegCall.leg_id
-        INNER JOIN Call
-        ON LegCall.arr_call_id = Call.call_id
-        OR LegCall.dep_call_id = Call.call_id
-        WHERE Leg.leg_id = p_leg_id
-    );
-END;
-$$;
-
 CREATE OR REPLACE FUNCTION GetLegIdsInRange(
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
@@ -36,9 +8,22 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT LegStart.leg_id, LegStart.start_time FROM (
-        SELECT Leg.leg_id, GetLegStartTime(Leg.leg_id) AS start_time FROM Leg
+    SELECT
+        Leg.leg_id,
+        LegStart.start_time
+    FROM Leg
+    INNER JOIN (
+        SELECT
+            LegCall.leg_id,
+            MIN(
+                COALESCE(Call.act_dep, Call.act_arr, Call.plan_dep, Call.plan_arr)
+            ) AS start_time
+        FROM LegCall
+        INNER JOIN Call
+        ON COALESCE(LegCall.dep_call_id, LegCall.arr_call_id) = Call.call_id
+        GROUP BY LegCall.leg_id
     ) LegStart
+    ON Leg.leg_id = LegStart.leg_id
     WHERE (p_start_date IS NULL OR LegStart.start_time >= p_start_date)
     AND (p_end_date IS NULL OR LegStart.start_time <= p_end_date)
     ORDER BY LegStart.start_time;
@@ -71,65 +56,112 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION GetLegCallStats(
-    p_start_date TIMESTAMP WITH TIME ZONE,
-    p_end_date TIMESTAMP WITH TIME ZONE
+CREATE OR REPLACE FUNCTION GetLegOverview(
+    p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
 RETURNS TABLE (
     leg_id INTEGER,
+    service_id TEXT,
+    leg_start TIMESTAMP WITH TIME ZONE,
+    board_call_id INTEGER,
     board_station_crs CHARACTER(3),
+    alight_call_id INTEGER,
     alight_station_crs CHARACTER(3),
-    intermediate_calls BIGINT
+    intermediate_calls BIGINT,
+    operator TEXT
 )
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
     RETURN QUERY
-    WITH LegRange AS (SELECT * FROM GetLegIdsInRange(p_start_date, p_end_date)),
-    LegStop AS (
-        SELECT
-            LegRange.leg_id,
-            Call.station_crs,
-            COALESCE(plan_arr, plan_dep, act_arr, act_dep) AS stop_time
-        FROM LegRange
-        INNER JOIN LegCall
-        ON LegRange.leg_id = LegCall.leg_id
-        INNER JOIN Call
-        ON COALESCE(LegCall.arr_call_id, LegCall.dep_call_id) = Call.call_id
-    )
     SELECT
-        LegStopBoard.leg_id,
-        LegStopBoardStation.station_crs AS board_station_crs,
-        LegStopAlightStation.station_crs AS alight_station_crs,
-        LegStopIntermediate.intermediate_calls AS call_station_count
+        LegStopOverview.leg_id,
+        Service.service_id,
+        LegStart.leg_start,
+        LegStopOverview.board_call_id,
+        LegStopOverview.board_station_crs,
+        LegStopOverview.alight_call_id,
+        LegStopOverview.alight_station_crs,
+        LegStopOverview.intermediate_calls,
+        COALESCE(Brand.brand_name, Operator.operator_name) AS operator
     FROM (
-        SELECT LegStop.leg_id, MIN(stop_time) AS board_time
-        FROM LegStop
-        GROUP BY LegStop.leg_id
-    ) LegStopBoard
+        WITH LegStop AS (
+            SELECT
+                LegRange.leg_id,
+                Call.call_id,
+                Call.station_crs,
+                COALESCE(plan_arr, plan_dep, act_arr, act_dep) AS stop_time
+            FROM (SELECT * FROM GetLegIdsInRange(p_start_date, p_end_date)) LegRange
+            INNER JOIN LegCall
+            ON LegRange.leg_id = LegCall.leg_id
+            INNER JOIN Call
+            ON COALESCE(LegCall.arr_call_id, LegCall.dep_call_id) = Call.call_id
+        )
+        SELECT
+            LegStopBoard.leg_id,
+            LegStopBoardStation.call_id AS board_call_id,
+            LegStopBoardStation.station_crs AS board_station_crs,
+            LegStopAlightStation.call_id AS alight_call_id,
+            LegStopAlightStation.station_crs AS alight_station_crs,
+            LegStopIntermediate.intermediate_calls AS intermediate_calls
+        FROM (
+            SELECT LegStop.leg_id, MIN(stop_time) AS board_time
+            FROM LegStop
+            GROUP BY LegStop.leg_id
+        ) LegStopBoard
+        INNER JOIN (
+            SELECT LegStop.leg_id, MAX(stop_time) AS alight_time
+            FROM LegStop
+            GROUP BY LegStop.leg_id
+        ) LegStopAlight
+        ON LegStopBoard.leg_id = LegStopAlight.leg_id
+        INNER JOIN (
+            SELECT LegStop.call_id, LegStop.stop_time, LegStop.station_crs
+            FROM LegStop
+        ) LegStopBoardStation
+        ON LegStopBoardStation.stop_time = LegStopBoard.board_time
+        INNER JOIN (
+            SELECT LegStop.call_id, LegStop.stop_time, LegStop.station_crs
+            FROM LegStop
+        ) LegStopAlightStation
+        ON LegStopAlightStation.stop_time = LegStopAlight.alight_time
+        INNER JOIN (
+            SELECT LegStop.leg_id, COUNT(*) - 2 AS intermediate_calls
+            FROM LegStop
+            GROUP BY LegStop.leg_id
+        ) LegStopIntermediate
+        ON LegStopIntermediate.leg_id = LegStopBoard.leg_id
+    ) LegStopOverview
     INNER JOIN (
-        SELECT LegStop.leg_id, MAX(stop_time) AS alight_time
-        FROM LegStop
-        GROUP BY LegStop.leg_id
-    ) LegStopAlight
-    ON LegStopBoard.leg_id = LegStopAlight.leg_id
-    INNER JOIN (
-        SELECT LegStop.stop_time, LegStop.station_crs
-        FROM LegStop
-    ) LegStopBoardStation
-    ON LegStopBoardStation.stop_time = LegStopBoard.board_time
-    INNER JOIN (
-        SELECT LegStop.stop_time, LegStop.station_crs
-        FROM LegStop
-    ) LegStopAlightStation
-    ON LegStopAlightStation.stop_time = LegStopAlight.alight_time
-    INNER JOIN (
-        SELECT LegStop.leg_id, COUNT(*) - 2 AS intermediate_calls
-        FROM LegStop
-        GROUP BY LegStop.leg_id
-    ) LegStopIntermediate
-    ON LegStopIntermediate.leg_id = LegStopBoard.leg_id;
+        SELECT Leg.leg_id, MIN(
+            COALESCE(
+                Call.act_dep,
+                Call.act_arr,
+                Call.plan_dep,
+                Call.plan_arr
+            )
+        ) AS leg_start
+        FROM Leg
+        INNER JOIN LegCall
+        ON Leg.leg_id = LegCall.leg_id
+        INNER JOIN Call
+        ON LegCall.arr_call_id = Call.call_id
+        OR LegCall.dep_call_id = Call.call_id
+        GROUP BY Leg.leg_id
+    ) LegStart
+    ON LegStopOverview.leg_id = LegStart.leg_id
+    INNER JOIN Call
+    ON LegStopOverview.board_call_id = Call.call_id
+    INNER JOIN Service
+    ON Call.service_id = Service.service_id
+    AND Call.run_date = Service.run_date
+    INNER JOIN Operator
+    ON Service.operator_id = Operator.operator_id
+    LEFT JOIN Brand
+    ON Service.brand_id = Brand.brand_id
+    ORDER BY LegStart.leg_start;
 END;
 $$;
 
@@ -163,7 +195,7 @@ BEGIN
             StationCount.alights,
             (StationCount.calls - StationCount.boards - StationCount.alights) AS intermediates
         FROM (
-            WITH LegEndpoint AS (SELECT * FROM GetLegCallStats(p_start_time, p_end_time))
+            WITH LegEndpoint AS (SELECT * FROM GetLegOverview(p_start_time, p_end_time))
             SELECT
                 LegCallCount.station_crs AS station_crs,
                 COALESCE(StationBoardAlight.boards, 0) AS boards,
@@ -222,5 +254,55 @@ BEGIN
     FROM (
         SELECT * FROM GetStationCounts(p_start_time, p_end_time)
     ) StationCount;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetLegStats (
+    p_start_time TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_time TIMESTAMP WITH TIME ZONE DEFAULT NULL
+)
+RETURNS TABLE (
+    leg_id INTEGER,
+    run_date TIMESTAMP WITH TIME ZONE,
+    board_crs CHARACTER(3),
+    board_name TEXT,
+    alight_crs CHARACTER(3),
+    alight_name TEXT,
+    distance DECIMAL,
+    duration INTERVAL,
+    operator TEXT
+)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        LegOverview.leg_id,
+        LegOverview.leg_start,
+        LegOverview.board_station_crs,
+        BoardStation.station_name,
+        LegOverview.alight_station_crs,
+        AlightStation.station_name,
+        COALESCE(
+            AlightCall.mileage - BoardCall.mileage,
+            Leg.distance
+        ) AS distance,
+        COALESCE(AlightCall.act_arr, AlightCall.plan_arr)
+        -
+        COALESCE(BoardCall.act_dep, BoardCall.plan_dep) AS duration,
+        LegOverview.operator
+    FROM (SELECT * FROM GetLegOverview(p_start_time, p_end_time)) LegOverview
+    INNER JOIN Station BoardStation
+    ON LegOverview.board_station_crs = BoardStation.station_crs
+    INNER JOIN Station AlightStation
+    ON LegOverview.alight_station_crs = AlightStation.station_crs
+    INNER JOIN Call BoardCall
+    ON LegOverview.board_call_id = BoardCall.call_id
+    INNER JOIN Call AlightCall
+    ON LegOverview.alight_call_id = AlightCall.call_id
+    INNER JOIN Leg
+    ON LegOverview.leg_id = Leg.leg_id
+    ORDER BY LegOverview.leg_start;
 END;
 $$;
