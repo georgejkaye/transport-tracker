@@ -1,11 +1,12 @@
 import decimal
 import json
+import psycopg
 
 from decimal import Decimal
 from enum import Enum
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
-from psycopg2._psycopg import connection, cursor
+from psycopg import Cursor, Connection
 
 from api.data.leg import (
     Leg,
@@ -144,7 +145,7 @@ def get_input_price(prompt):
 
 
 def get_station_from_input(
-    cur: cursor, prompt: str, stn: TrainStation | None = None
+    cur: Cursor, prompt: str, stn: TrainStation | None = None
 ) -> Optional[TrainStation]:
     """
     Get a string specifying a station from a user.
@@ -196,7 +197,7 @@ def get_station_from_input(
 
 
 def get_service_at_station(
-    cur: cursor,
+    cur: Cursor,
     origin: TrainStation,
     search_datetime: datetime,
     destination: TrainStation,
@@ -296,7 +297,7 @@ def get_unit_no(stock_subclass: ClassAndSubclass) -> Optional[int]:
 
 
 def get_unit_cars(
-    cur: cursor,
+    cur: Cursor,
     run_date: datetime,
     stock_subclass: ClassAndSubclass,
     operator: str,
@@ -362,7 +363,7 @@ def string_of_stock_change(change: StockChange) -> str:
 
 
 def get_unit_report(
-    cur: cursor,
+    cur: Cursor,
     run_date: datetime,
     stock_list: list[Stock],
     operator: str,
@@ -440,7 +441,7 @@ def get_stock_change_reason() -> StockChange:
 
 
 def get_stock(
-    cur: cursor,
+    cur: Cursor,
     calls: list[LegCall],
     service: TrainServiceRaw,
     previous: Optional[LegSegmentStock] = None,
@@ -577,7 +578,7 @@ def get_datetime(start: Optional[datetime] = None) -> datetime:
 
 
 def record_new_leg(
-    cur: cursor,
+    cur: Cursor,
     start: datetime | None = None,
     default_station: TrainStation | None = None,
 ) -> Leg | None:
@@ -638,7 +639,7 @@ def record_new_leg(
     return leg
 
 
-def add_to_logfile(conn: connection, cur: cursor):
+def add_to_logfile(conn: Connection, cur: Cursor):
     leg = record_new_leg(cur)
     if leg is None:
         print("Could not get leg")

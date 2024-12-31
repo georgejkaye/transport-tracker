@@ -1,31 +1,38 @@
+import abc
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, DecimalException
 from typing import Any, Optional
 from dotenv import load_dotenv
-from psycopg2 import connect as db_connect
-from psycopg2._psycopg import connection, cursor
+from psycopg import Connection, Cursor
+from psycopg.types.composite import CompositeInfo, register_composite
 
 from api.data.environment import get_env_variable, get_secret
-import pytz
 
 load_dotenv()
 
 
-def connect() -> tuple[connection, cursor]:
-    conn = db_connect(
-        dbname=get_env_variable("DB_NAME"),
-        user=get_env_variable("DB_USER"),
-        password=get_secret("DB_PASSWORD"),
-        host=get_env_variable("DB_HOST"),
-    )
-    cur = conn.cursor()
-    return (conn, cur)
+class DbConnection:
+    def __init__(self):
+        pass
+
+    def __enter__(self):
+        self.conn = Connection.connect(
+            dbname=get_env_variable("DB_NAME"),
+            user=get_env_variable("DB_USER"),
+            password=get_secret("DB_PASSWORD"),
+            host=get_env_variable("DB_HOST"),
+        )
+        self.cur = self.conn.cursor()
+        return (self.conn, self.cur)
+
+    def __exit__(self, exception_type, exception_value, exception_traceback):
+        self.cur.close()
+        self.conn.close()
 
 
-def disconnect(conn, cur):
-    conn.close()
-    cur.close()
+def connect():
+    return DbConnection()
 
 
 @dataclass
@@ -99,7 +106,7 @@ def list_of_str_and_none_to_postgres_str(
 
 
 def insert(
-    cur: cursor,
+    cur: Cursor,
     table: str,
     fields: list[str],
     values: list[list[str | None | NoEscape]],
@@ -118,9 +125,17 @@ def insert(
                 partition,
             )
         )
-        statement = f"""
+        statement: str = f"""
             INSERT into {table}({rows})
             VALUES {",".join(value_strings)}
             {additional_query}
         """
-        cur.execute(statement)
+        cur.execute(statement.encode())
+
+
+def register_type(conn: Connection, name: str, factory=None):
+    info = CompositeInfo.fetch(conn, name)
+    if info is not None:
+        register_composite(info, conn, factory)
+    else:
+        raise RuntimeError(f"Could not find composite type {name}")

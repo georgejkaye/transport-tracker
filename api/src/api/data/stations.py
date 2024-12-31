@@ -1,13 +1,14 @@
+import xml.etree.ElementTree as ET
+
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional
-from webbrowser import Opera
-import xml.etree.ElementTree as ET
+from psycopg import Connection, Cursor
+
 from api.data.core import get_tag_text, make_get_request, prefix_namespace
 from api.data.credentials import get_api_credentials
 from api.data.database import (
     connect,
-    disconnect,
     insert,
     str_or_null_to_datetime,
 )
@@ -17,8 +18,6 @@ from api.data.train import (
     get_kb_url,
     get_natrail_token_headers,
 )
-from psycopg2._psycopg import connection, cursor
-
 from api.times import get_datetime_route, get_hourmin_string
 
 
@@ -113,7 +112,7 @@ def pull_stations(natrail_token: str) -> list[TrainStationRaw]:
 
 
 def populate_train_station_table(
-    conn: connection, cur: cursor, stations: list[TrainStationRaw]
+    conn: Connection, cur: Cursor, stations: list[TrainStationRaw]
 ):
     fields = ["station_crs", "station_name", "operator_code", "brand_code"]
     values = list(
@@ -126,14 +125,14 @@ def populate_train_station_table(
     conn.commit()
 
 
-def populate_train_stations(conn: connection, cur: cursor):
+def populate_train_stations(conn: Connection, cur: Cursor):
     natrail_credentials = get_api_credentials("NATRAIL")
     token = generate_natrail_token(natrail_credentials)
     stations = pull_stations(token)
     populate_train_station_table(conn, cur, stations)
 
 
-def select_station_from_crs(cur: cursor, crs: str) -> Optional[TrainStation]:
+def select_station_from_crs(cur: Cursor, crs: str) -> Optional[TrainStation]:
     query = """
         SELECT
             station_name, operator_id, brand_id FROM Station
@@ -147,7 +146,7 @@ def select_station_from_crs(cur: cursor, crs: str) -> Optional[TrainStation]:
     return TrainStation(row[0], crs.upper(), row[1], row[2])
 
 
-def select_station_from_name(cur: cursor, name: str) -> Optional[TrainStation]:
+def select_station_from_name(cur: Cursor, name: str) -> Optional[TrainStation]:
     query = """
         SELECT station_name, station_crs, operator_id, brand_id
         FROM Station
@@ -162,7 +161,7 @@ def select_station_from_name(cur: cursor, name: str) -> Optional[TrainStation]:
 
 
 def get_stations_from_substring(
-    cur: cursor, substring: str
+    cur: Cursor, substring: str
 ) -> list[TrainStation]:
     query = """
         SELECT station_name, station_crs, operator_id, brand_id
@@ -177,7 +176,7 @@ def get_stations_from_substring(
 station_endpoint = "https://api.rtt.io/api/v1/json/search"
 
 
-def response_to_short_train_station(cur: cursor, data) -> ShortTrainStation:
+def response_to_short_train_station(cur: Cursor, data) -> ShortTrainStation:
     name = data["description"]
     station = select_station_from_name(cur, name)
     if station is None:
@@ -218,7 +217,7 @@ def response_to_datetime(
 
 
 def response_to_service_at_station(
-    cur: cursor, data: dict
+    cur: Cursor, data: dict
 ) -> TrainServiceAtStation:
     id = data["serviceUid"]
     headcode = data["trainIdentity"]
@@ -253,7 +252,7 @@ def response_to_service_at_station(
 
 
 def get_services_at_station(
-    cur: cursor, station: TrainStation, dt: datetime
+    cur: Cursor, station: TrainStation, dt: datetime
 ) -> list[TrainServiceAtStation]:
     endpoint = (
         f"{station_endpoint}/{station.crs}/{get_datetime_route(dt, True)}"
@@ -307,7 +306,7 @@ class StationData:
 
 
 def select_stations(
-    cur: cursor, _station_crs: Optional[str] = None
+    cur: Cursor, _station_crs: Optional[str] = None
 ) -> list[StationData]:
     statement = """
         SELECT
@@ -589,7 +588,7 @@ def select_stations(
     return stations
 
 
-def select_station(cur: cursor, station_crs: str) -> Optional[StationData]:
+def select_station(cur: Cursor, station_crs: str) -> Optional[StationData]:
     result = select_stations(cur, _station_crs=station_crs)
     if result is None or len(result) != 1:
         return None
@@ -597,6 +596,5 @@ def select_station(cur: cursor, station_crs: str) -> Optional[StationData]:
 
 
 if __name__ == "__main__":
-    (conn, cur) = connect()
-    populate_train_stations(conn, cur)
-    disconnect(conn, cur)
+    with connect() as (conn, cur):
+        populate_train_stations(conn, cur)

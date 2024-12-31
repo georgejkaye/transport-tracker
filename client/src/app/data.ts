@@ -9,7 +9,7 @@ import {
 } from "./structs"
 
 export const getLegs = async (): Promise<TrainLeg[]> => {
-  let endpoint = "/api/legs"
+  let endpoint = "/api/train/legs"
   try {
     let response = await axios.get(endpoint)
     let data = response.data

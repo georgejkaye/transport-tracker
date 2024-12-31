@@ -156,4 +156,4 @@ dmypy.json
 
 # Data
 
-db/scripts/populate.sql
+db/scripts/99_populate.sql

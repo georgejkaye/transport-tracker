@@ -6,21 +6,12 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 from typing import Optional
-from api.data.toperator import BrandData, OperatorData
 from bs4 import BeautifulSoup
-from psycopg2._psycopg import cursor, connection
+from psycopg import Connection, Cursor
 
 from api.data.core import get_soup, make_get_request
 from api.data.credentials import get_api_credentials
-from api.data.database import (
-    NoEscape,
-    connect,
-    datetime_or_none_to_raw_str,
-    datetime_or_none_to_str,
-    disconnect,
-    insert,
-    number_or_none_to_str,
-)
+from api.data.database import connect
 from api.data.network import miles_and_chains_to_miles
 from api.data.stations import (
     ShortTrainStation,
@@ -30,6 +21,7 @@ from api.data.stations import (
     response_to_short_train_station,
     short_string_of_service_at_station,
 )
+from api.data.toperator import BrandData, OperatorData
 from api.interactive import information
 from api.times import get_datetime_route, timezone
 
@@ -315,7 +307,7 @@ def response_to_time(
 
 
 def response_to_call(
-    cur: cursor,
+    cur: Cursor,
     service_id: str,
     service_soup: Optional[BeautifulSoup],
     run_date: datetime,
@@ -409,7 +401,7 @@ def response_to_call(
 
 
 def get_service_from_id(
-    cur: cursor,
+    cur: Cursor,
     service_id: str,
     run_date: datetime,
     parent: Optional[str] = None,
@@ -509,7 +501,7 @@ def stops_at_station(
 
 
 def filter_services_by_time_and_stop(
-    cur: cursor,
+    cur: Cursor,
     earliest: datetime,
     latest: datetime,
     origin: TrainStation,
@@ -582,7 +574,7 @@ def get_miles_and_chains_from_call_div(
 
 
 def insert_services(
-    conn: connection, cur: cursor, services: list[TrainServiceRaw]
+    conn: Connection, cur: Cursor, services: list[TrainServiceRaw]
 ):
     service_values = []
     endpoint_values = []
@@ -661,8 +653,7 @@ def insert_services(
 
 
 if __name__ == "__main__":
-    (conn, cur) = connect()
-    service = get_service_from_id(cur, "G38662", datetime(2024, 7, 24))
-    if service is not None:
-        print(string_of_calls(service.calls))
-    disconnect(conn, cur)
+    with connect() as (conn, cur):
+        service = get_service_from_id(cur, "G38662", datetime(2024, 7, 24))
+        if service is not None:
+            print(string_of_calls(service.calls))

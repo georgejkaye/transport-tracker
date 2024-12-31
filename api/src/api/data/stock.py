@@ -4,7 +4,7 @@ from typing import Optional
 from dataclasses import dataclass
 from api.data.database import NoEscape, connect, insert
 from api.data.toc import Toc, TocWithBrand, get_tocs
-from psycopg2._psycopg import connection, cursor
+from psycopg import Connection, Cursor
 
 
 def display_tocs(tocs: list[TocWithBrand]):
@@ -159,7 +159,7 @@ def stock_to_current(stock: Stock) -> list[str | None | NoEscape]:
     return [elem_0, elem_1, elem_2, elem_3]
 
 
-def insert_stock(conn: connection, cur: cursor, stocks: list[Stock]):
+def insert_stock(conn: Connection, cur: Cursor, stocks: list[Stock]):
     stock_fields = ["stock_class", "subclass", "name"]
     stock_values = [stock_to_values(stock) for stock in stocks]
     insert(cur, "Stock", stock_fields, stock_values, "ON CONFLICT DO NOTHING")
@@ -175,62 +175,64 @@ def insert_stock(conn: connection, cur: cursor, stocks: list[Stock]):
 
 
 def insert_stock_interactive():
-    (conn, cur) = connect()
-    tocs = get_tocs(conn, cur)
-    ready = True
-    while ready:
-        display_tocs(tocs)
-        operator_index = get_number("Select operator", len(tocs))
-        if operator_index is not None:
-            operator = tocs[operator_index - 1]
-            if len(operator.brand) > 0:
-                display_brands(operator.brand)
-                brand_index = get_number("Select brand", len(operator.brand))
-                if brand_index is not None:
-                    brand = operator.brand[brand_index - 1]
+    with connect() as (conn, cur):
+        tocs = get_tocs(conn, cur)
+        ready = True
+        while ready:
+            display_tocs(tocs)
+            operator_index = get_number("Select operator", len(tocs))
+            if operator_index is not None:
+                operator = tocs[operator_index - 1]
+                if len(operator.brand) > 0:
+                    display_brands(operator.brand)
+                    brand_index = get_number(
+                        "Select brand", len(operator.brand)
+                    )
+                    if brand_index is not None:
+                        brand = operator.brand[brand_index - 1]
+                    else:
+                        brand = None
                 else:
                     brand = None
-            else:
-                brand = None
-            stock = ""
-            while stock is not None:
-                class_no = input("Class no: ")
-                class_name = input("Class name: ")
-                if class_name == "":
-                    class_name_option = None
-                else:
-                    class_name_option = class_name
-                subclass_no = input("Subclass no: ")
-                if subclass_no == "":
-                    subclass = None
-                else:
-                    subclass = int(subclass_no)
-                subclass_name = input("Subclass name: ")
-                if subclass_name == "":
-                    subclass_name_option = None
-                else:
-                    subclass_name_option = subclass_name
-                if brand is None:
-                    brand_id = None
-                else:
-                    brand_id = brand.atoc
-                stock = Stock(
-                    int(class_no),
-                    class_name_option,
-                    subclass,
-                    subclass_name_option,
-                    operator.atoc,
-                    brand_id,
-                )
-                insert_stock(conn, cur, [stock])
-                conn.commit()
+                stock = ""
+                while stock is not None:
+                    class_no = input("Class no: ")
+                    class_name = input("Class name: ")
+                    if class_name == "":
+                        class_name_option = None
+                    else:
+                        class_name_option = class_name
+                    subclass_no = input("Subclass no: ")
+                    if subclass_no == "":
+                        subclass = None
+                    else:
+                        subclass = int(subclass_no)
+                    subclass_name = input("Subclass name: ")
+                    if subclass_name == "":
+                        subclass_name_option = None
+                    else:
+                        subclass_name_option = subclass_name
+                    if brand is None:
+                        brand_id = None
+                    else:
+                        brand_id = brand.atoc
+                    stock = Stock(
+                        int(class_no),
+                        class_name_option,
+                        subclass,
+                        subclass_name_option,
+                        operator.atoc,
+                        brand_id,
+                    )
+                    insert_stock(conn, cur, [stock])
+                    conn.commit()
 
-        else:
-            exit(1)
+            else:
+                exit(1)
 
 
 def get_operator_stock(
-    cur: cursor, operator_code: str, run_date: datetime
+    cur: Cursor, operator_code: str, run_date: datetime
 ) -> list[Stock]:
     query = """
         SELECT
@@ -300,7 +302,7 @@ def string_of_formation(f: Formation) -> str:
 
 
 def select_stock_cars(
-    cur: cursor, stock: Stock, run_date: datetime
+    cur: Cursor, stock: Stock, run_date: datetime
 ) -> list[Formation]:
     statement = """
         SELECT DISTINCT cars FROM StockFormation
