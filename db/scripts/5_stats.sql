@@ -270,6 +270,7 @@ RETURNS TABLE (
     alight_name TEXT,
     distance DECIMAL,
     duration INTERVAL,
+    delay INTEGER,
     operator TEXT
 )
 LANGUAGE plpgsql
@@ -291,6 +292,13 @@ BEGIN
         COALESCE(AlightCall.act_arr, AlightCall.plan_arr)
         -
         COALESCE(BoardCall.act_dep, BoardCall.plan_dep) AS duration,
+        (EXTRACT(
+            EPOCH FROM (
+                COALESCE(AlightCall.act_arr, AlightCall.act_dep)
+                -
+                COALESCE(AlightCall.plan_arr, AlightCall.plan_dep)
+            )
+        ) / 60)::INTEGER AS delay,
         LegOverview.operator
     FROM (SELECT * FROM GetLegOverview(p_start_time, p_end_time)) LegOverview
     INNER JOIN Station BoardStation
