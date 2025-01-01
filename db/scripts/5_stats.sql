@@ -357,39 +357,55 @@ CREATE OR REPLACE FUNCTION GetClassStats(
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
 RETURNS TABLE (
-    stock_class INTEGER,
-    count BIGINT
+    stock_number INTEGER,
+    count BIGINT,
+    distance DECIMAL,
+    duration INTERVAL
 )
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT LegClass.stock_class, COUNT(*)
+    SELECT
+        LegClass.stock_class,
+        COUNT(*),
+        SUM(LegStat.distance),
+        SUM(LegStat.duration)
     FROM (
         SELECT DISTINCT LegStock.leg_id, LegStock.stock_class
         FROM GetStockUsed(p_start_date, p_end_date) LegStock
     ) LegClass
+    INNER JOIN GetLegStats(p_start_date, p_end_date) LegStat
+    ON LegClass.leg_id = LegStat.leg_id
     GROUP BY LegClass.stock_class
     ORDER BY count DESC;
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION GetUnitStats(
+CREATE OR REPLACE FUNCTION GetUnitStats (
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
 RETURNS TABLE (
     stock_number INTEGER,
-    count BIGINT
+    count BIGINT,
+    distance DECIMAL,
+    duration INTERVAL
 )
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT LegStock.stock_number, COUNT(*)
+    SELECT
+        LegStock.stock_number,
+        COUNT(*),
+        SUM(LegStat.distance),
+        SUM(LegStat.duration)
     FROM GetStockUsed(p_start_date, p_end_date) LegStock
+    INNER JOIN GetLegStats(p_start_date, p_end_date) LegStat
+    ON LegStock.leg_id = LegStat.leg_id
     WHERE LegStock.stock_number IS NOT NULL
     GROUP BY LegStock.stock_number
     ORDER BY count DESC;
