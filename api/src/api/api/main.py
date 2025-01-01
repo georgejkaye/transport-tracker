@@ -1,13 +1,14 @@
+import uvicorn
+
 from datetime import datetime
 from typing import Optional
-
 from fastapi import FastAPI, HTTPException
 
+from api.data.stats import Stats, get_stats
 from api.data.database import connect
 from api.data.environment import get_env_variable
 from api.data.leg import ShortLeg, select_legs
 
-import uvicorn
 
 from api.data.stations import (
     StationData,
@@ -31,6 +32,28 @@ app = FastAPI(
 )
 
 
+@app.get("/train", summary="Get train stats across an optional range")
+async def get_train_stats(
+    start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
+) -> Stats:
+    with connect() as (conn, _):
+        try:
+            return get_stats(conn, start_date, end_date)
+        except RuntimeError:
+            raise HTTPException(500, "Could not get stats")
+
+
+@app.get("/train/year/{year}", summary="Get train stats across a year")
+async def get_train_stats_from_year(
+    year: int,
+) -> Stats:
+    with connect() as (conn, _):
+        try:
+            return get_stats(conn, datetime(year, 1, 1), datetime(year, 12, 31))
+        except RuntimeError:
+            raise HTTPException(500, "Could not get stats")
+
+
 @app.get("/train/legs", summary="Get legs")
 async def get_legs(
     start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
@@ -40,7 +63,7 @@ async def get_legs(
         return legs
 
 
-@app.get("/train/legs/{year}", summary="Get legs")
+@app.get("/train/legs/year/{year}", summary="Get legs")
 async def get_legs_from_year(year: int) -> list[ShortLeg]:
     with connect() as (conn, _):
         legs = select_legs(conn, datetime(year, 1, 1), datetime(year, 12, 31))
