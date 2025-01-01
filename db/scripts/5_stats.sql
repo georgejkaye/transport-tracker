@@ -226,7 +226,9 @@ RETURNS TABLE (
     distance DECIMAL,
     duration INTERVAL,
     delay INTEGER,
-    operator TEXT
+    operator_id INTEGER,
+    operator_name TEXT,
+    is_brand BOOLEAN
 )
 LANGUAGE plpgsql
 AS
@@ -244,7 +246,9 @@ BEGIN
         LegStat.distance,
         LegStat.duration,
         LegStat.delay,
-        LegStat.operator
+        LegStat.operator_id,
+        LegStat.operator_name,
+        LegStat.is_brand
     FROM (
         SELECT
             LegCallOverview.leg_id,
@@ -278,7 +282,14 @@ BEGIN
                     COALESCE(AlightCall.plan_arr, AlightCall.plan_dep)
                 )
             ) / 60)::INTEGER AS delay,
-            COALESCE(Brand.brand_name, Operator.operator_name) AS operator
+            COALESCE(Brand.brand_id, Operator.operator_id) AS operator_id,
+            COALESCE(Brand.brand_name, Operator.operator_name) AS operator_name,
+            (
+                CASE
+                    WHEN Brand.brand_id IS NOT NULL THEN true
+                    ELSE false
+                END
+            ) AS is_brand
         FROM (
             SELECT * FROM GetLegCallOverview(p_start_time, p_end_time)
         ) LegCallOverview
@@ -390,7 +401,9 @@ CREATE OR REPLACE FUNCTION GetOperatorStats (
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
 RETURNS TABLE (
-    operator TEXT,
+    operator_id INTEGER,
+    operator_name TEXT,
+    is_brand BOOLEAN,
     count BIGINT,
     distance DECIMAL,
     duration INTERVAL,
@@ -402,13 +415,15 @@ $$
 BEGIN
     RETURN QUERY
     SELECT
-        LegStat.operator,
+        LegStat.operator_id,
+        LegStat.operator_name,
+        LegStat.is_brand,
         COUNT(*) AS count,
         SUM(LegStat.distance) AS distance,
         SUM(LegStat.duration) AS duration,
         SUM(LegStat.delay) AS delay
     FROM (SELECT * FROM GetLegStats(p_start_date, p_end_date)) LegStat
-    GROUP BY LegStat.operator
+    GROUP BY (LegStat.operator_id, LegStat.operator_name, LegStat.is_brand)
     ORDER BY count DESC;
 END;
 $$;
