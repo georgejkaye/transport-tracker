@@ -60,20 +60,14 @@ CREATE OR REPLACE FUNCTION GetStationStats (
     p_start_time TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_time TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
-RETURNS TABLE(
-    station_crs CHARACTER(3),
-    station_name TEXT,
-    boards BIGINT,
-    alights BIGINT,
-    intermediates BIGINT
-)
+RETURNS SETOF OutStationStat
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
     RETURN QUERY
     SELECT
-        StationCount.station_crs,
+        StationCount.station_crs::CHARACTER(3),
         StationCount.station_name,
         StationCount.boards,
         StationCount.alights,
@@ -91,7 +85,7 @@ BEGIN
             ) AS intermediates
         FROM (
             WITH LegEndpoint AS (
-                SELECT * FROM GetLegData(p_start_time, p_end_time)
+                SELECT * FROM GetLegCallOverview(p_start_time, p_end_time)
             )
             SELECT
                 LegCallCount.station_crs AS station_crs,
@@ -215,21 +209,7 @@ CREATE OR REPLACE FUNCTION GetLegStats (
     p_start_time TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_time TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
-RETURNS TABLE (
-    leg_id INTEGER,
-    leg_start TIMESTAMP WITH TIME ZONE,
-    board_crs CHARACTER(3),
-    board_name TEXT,
-    leg_end TIMESTAMP WITH TIME ZONE,
-    alight_crs CHARACTER(3),
-    alight_name TEXT,
-    distance DECIMAL,
-    duration INTERVAL,
-    delay INTEGER,
-    operator_id INTEGER,
-    operator_name TEXT,
-    is_brand BOOLEAN
-)
+RETURNS SETOF OutLegStat
 LANGUAGE plpgsql
 AS
 $$
@@ -238,10 +218,10 @@ BEGIN
     SELECT
         LegStat.leg_id,
         LegStat.leg_start,
-        LegStat.board_station_crs,
+        LegStat.board_station_crs::CHARACTER(3),
         LegStat.board_station_name,
         LegStat.leg_end,
-        LegStat.alight_station_crs,
+        LegStat.alight_station_crs::CHARACTER(3),
         LegStat.alight_station_name,
         LegStat.distance,
         LegStat.duration,
@@ -356,12 +336,7 @@ CREATE OR REPLACE FUNCTION GetClassStats(
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
-RETURNS TABLE (
-    stock_number INTEGER,
-    count BIGINT,
-    distance DECIMAL,
-    duration INTERVAL
-)
+RETURNS SETOF OutClassStat
 LANGUAGE plpgsql
 AS
 $$
@@ -387,12 +362,7 @@ CREATE OR REPLACE FUNCTION GetUnitStats (
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
-RETURNS TABLE (
-    stock_number INTEGER,
-    count BIGINT,
-    distance DECIMAL,
-    duration INTERVAL
-)
+RETURNS SETOF OutUnitStat
 LANGUAGE plpgsql
 AS
 $$
@@ -416,15 +386,7 @@ CREATE OR REPLACE FUNCTION GetOperatorStats (
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
-RETURNS TABLE (
-    operator_id INTEGER,
-    operator_name TEXT,
-    is_brand BOOLEAN,
-    count BIGINT,
-    distance DECIMAL,
-    duration INTERVAL,
-    delay BIGINT
-)
+RETURNS SETOF OutOperatorStat
 LANGUAGE plpgsql
 AS
 $$
@@ -434,16 +396,15 @@ BEGIN
         LegStat.operator_id,
         LegStat.operator_name,
         LegStat.is_brand,
-        COUNT(*) AS count,
-        SUM(LegStat.distance) AS distance,
-        SUM(LegStat.duration) AS duration,
-        SUM(LegStat.delay) AS delay
+        COUNT(*),
+        SUM(LegStat.distance),
+        SUM(LegStat.duration),
+        SUM(LegStat.delay)
     FROM (SELECT * FROM GetLegStats(p_start_date, p_end_date)) LegStat
     GROUP BY (LegStat.operator_id, LegStat.operator_name, LegStat.is_brand)
     ORDER BY count DESC;
 END;
 $$;
-
 
 CREATE OR REPLACE FUNCTION GetLegDelayRanking (
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
@@ -508,5 +469,59 @@ BEGIN
     FROM (SELECT * FROM GetLegStats(p_start_date, p_end_date)) LegStat
     WHERE LegStat.duration IS NOT NULL
     ORDER BY LegStat.duration DESC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetStats (
+    p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+) RETURNS OutStats
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN (
+    SELECT (
+        COUNT(LegStat.*),
+        SUM(LegStat.distance),
+        SUM(LegStat.duration),
+        SUM(LegStat.delay),
+        (
+            SELECT ARRAY_AGG(leg_stats)
+            FROM (
+                SELECT GetLegStats(p_start_date, p_end_date)
+                AS leg_stats
+            )
+        ),
+        (
+            SELECT ARRAY_AGG(station_stats)
+            FROM (
+                SELECT GetStationStats(p_start_date, p_end_date)
+                AS station_stats
+            )
+        ),
+        (
+            SELECT ARRAY_AGG(operator_stats)
+            FROM (
+                SELECT GetOperatorStats(p_start_date, p_end_date)
+                AS operator_stats
+            )
+        ),
+        (
+            SELECT ARRAY_AGG(class_stats)
+            FROM (
+                SELECT GetClassStats(p_start_date, p_end_date)
+                AS class_stats
+            )
+        ),
+        (
+            SELECT ARRAY_AGG(unit_stats)
+            FROM (
+                SELECT GetUnitStats(p_start_date, p_end_date)
+                AS unit_stats
+            )
+        ))::OutStats
+    )
+    FROM (SELECT * FROM GetLegStats(p_start_date, p_end_date) AS stats) LegStat;
 END;
 $$;

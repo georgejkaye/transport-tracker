@@ -194,3 +194,65 @@ CREATE TYPE OutLegData AS (
     leg_distance DECIMAL,
     leg_duration INTERVAL
 );
+
+-- Stats Types
+
+CREATE TYPE OutLegStat AS (
+    leg_id INTEGER,
+    board_time TIMESTAMP WITH TIME ZONE,
+    board_crs CHARACTER(3),
+    board_name TEXT,
+    alight_time TIMESTAMP WITH TIME ZONE,
+    alight_crs CHARACTER(3),
+    alight_name TEXT,
+    distance DECIMAL,
+    duration INTERVAL,
+    delay INTEGER,
+    operator_id INTEGER,
+    operator_name TEXT,
+    is_brand BOOLEAN
+);
+
+CREATE TYPE OutStationStat AS (
+    station_crs CHARACTER(3),
+    station_name TEXT,
+    boards BIGINT,
+    alights BIGINT,
+    intermediates BIGINT
+);
+
+CREATE TYPE OutOperatorStat AS (
+    operator_id INTEGER,
+    operator_name TEXT,
+    is_brand BOOLEAN,
+    count BIGINT,
+    distance DECIMAL,
+    duration INTERVAL,
+    delay BIGINT
+);
+
+CREATE TYPE OutUnitStat AS (
+    stock_number INTEGER,
+    count BIGINT,
+    distance DECIMAL,
+    duration INTERVAL
+);
+
+CREATE TYPE OutClassStat AS (
+    stock_class INTEGER,
+    count BIGINT,
+    distance DECIMAL,
+    duration INTERVAL
+);
+
+CREATE TYPE OutStats AS (
+    journeys BIGINT,
+    distance DECIMAL,
+    duration INTERVAL,
+    delay BIGINT,
+    leg_stats OutLegStat[],
+    station_stats OutStationStat[],
+    operator_stats OutOperatorStat[],
+    class_stats OutClassStat[],
+    unit_stats OutUnitStat[]
+);
