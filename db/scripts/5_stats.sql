@@ -525,3 +525,43 @@ BEGIN
     FROM (SELECT * FROM GetLegStats(p_start_date, p_end_date) AS stats) LegStat;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION GetLegLines( p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL, p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL) RETURNS TABLE ( board_crs CHARACTER(3), board_name TEXT, board_latitude DECIMAL,
+    board_longitude DECIMAL,
+    alight_crs CHARACTER(3),
+    alight_name TEXT,
+    alight_latitude DECIMAL,
+    alight_longitude DECIMAL,
+    colour TEXT
+)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        LegStat.board_crs,
+        LegStat.board_name,
+        BoardStation.latitude AS board_latitude,
+        BoardStation.longitude AS board_longitude,
+        LegStat.alight_crs,
+        LegStat.alight_name,
+        AlightStation.latitude AS alight_longitude,
+        AlightStation.longitude AS alight_longitude,
+        (
+            CASE WHEN LegStat.is_brand
+                THEN Brand.bg_colour
+                ELSE Operator.bg_colour
+            END
+        ) AS colour
+    FROM GetLegStats(p_start_date, p_end_date) LegStat
+    INNER JOIN Station BoardStation
+    ON BoardStation.station_crs = LegStat.board_crs
+    INNER JOIN Station AlightStation
+    ON AlightStation.station_crs = LegStat.alight_crs
+    LEFT JOIN Operator
+    ON LegStat.operator_id = Operator.operator_id
+    LEFT JOIN Brand
+    ON LegStat.operator_id = Brand.brand_id;
+END;
+$$;
