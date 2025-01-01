@@ -31,8 +31,8 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetLegCalls(
-    p_start_date TIMESTAMP WITH TIME ZONE,
-    p_end_date TIMESTAMP WITH TIME ZONE
+    p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
 RETURNS TABLE (
     station_crs CHARACTER(3),
@@ -166,8 +166,8 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetStationCounts(
-    p_start_time TIMESTAMP WITH TIME ZONE,
-    p_end_time TIMESTAMP WITH TIME ZONE
+    p_start_time TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_time TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
 RETURNS TABLE(
     station_crs CHARACTER(3),
@@ -234,8 +234,8 @@ $$;
 
 
 CREATE OR REPLACE FUNCTION GetStationVisits(
-    p_start_time TIMESTAMP WITH TIME ZONE,
-    p_end_time TIMESTAMP WITH TIME ZONE
+    p_start_time TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_time TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
 RETURNS TABLE(
     station_crs CHARACTER(3),
@@ -253,7 +253,8 @@ BEGIN
         (StationCount.boards + StationCount.alights) AS visits
     FROM (
         SELECT * FROM GetStationCounts(p_start_time, p_end_time)
-    ) StationCount;
+    ) StationCount
+    WHERE StationCount.boards > 0 OR StationCount.alights > 0;
 END;
 $$;
 
@@ -349,5 +350,136 @@ BEGIN
     ON StockSegmentReport.stock_report_id = StockReport.stock_report_id
     INNER JOIN GetLegIdsInRange(p_start_date, p_end_date) LegId
     ON Leg.leg_id = LegId.leg_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetClassRanking(
+    p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+)
+RETURNS TABLE (
+    stock_class INTEGER,
+    count BIGINT
+)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT LegClass.stock_class, COUNT(*)
+    FROM (
+        SELECT DISTINCT LegStock.leg_id, LegStock.stock_class
+        FROM GetStockUsed(p_start_date, p_end_date) LegStock
+    ) LegClass
+    GROUP BY LegClass.stock_class
+    ORDER BY count DESC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetUnitRanking(
+    p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+)
+RETURNS TABLE (
+    stock_number INTEGER,
+    count BIGINT
+)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT LegStock.stock_number, COUNT(*)
+    FROM GetStockUsed(p_start_date, p_end_date) LegStock
+    WHERE LegStock.stock_number IS NOT NULL
+    GROUP BY LegStock.stock_number
+    ORDER BY count DESC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetOperatorRanking (
+    p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+)
+RETURNS TABLE (
+    operator TEXT,
+    count BIGINT
+)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT LegStat.operator, COUNT(*)
+    FROM (SELECT * FROM GetLegStats(p_start_date)) LegStat
+    GROUP BY LegStat.operator
+    ORDER BY count DESC;
+END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION GetLegDelayRanking (
+    p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+)
+RETURNS TABLE (
+    run_date TIMESTAMP WITH TIME ZONE,
+    board_name TEXT,
+    alight_name TEXT,
+    delay INTEGER
+)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT LegStat.run_date, LegStat.board_name, LegStat.alight_name, LegStat.delay
+    FROM (SELECT * FROM GetLegStats(p_start_date, p_end_date)) LegStat
+    WHERE LegStat.delay IS NOT NULL
+    ORDER BY LegStat.delay DESC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetLegDistanceRanking (
+    p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+)
+RETURNS TABLE (
+    run_date TIMESTAMP WITH TIME ZONE,
+    board_name TEXT,
+    alight_name TEXT,
+    distance DECIMAL
+)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT LegStat.run_date, LegStat.board_name, LegStat.alight_name, LegStat.distance
+    FROM (SELECT * FROM GetLegStats(p_start_date, p_end_date)) LegStat
+    WHERE LegStat.distance IS NOT NULL
+    ORDER BY LegStat.distance DESC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetLegDurationRanking (
+    p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+)
+RETURNS TABLE (
+    run_date TIMESTAMP WITH TIME ZONE,
+    board_name TEXT,
+    alight_name TEXT,
+    duration INTERVAL
+)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT LegStat.run_date, LegStat.board_name, LegStat.alight_name, LegStat.duration
+    FROM (SELECT * FROM GetLegStats(p_start_date, p_end_date)) LegStat
+    WHERE LegStat.duration IS NOT NULL
+    ORDER BY LegStat.duration DESC;
 END;
 $$;
