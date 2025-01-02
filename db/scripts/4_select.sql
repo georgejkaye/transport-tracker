@@ -459,3 +459,18 @@ BEGIN
     ORDER BY LegDetails.leg_start DESC;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION GetStationDetailsFromNames(
+    p_station_names TEXT[]
+)
+RETURNS SETOF StationDetails
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT station_crs, station_name, latitude, longitude
+    FROM Station
+    WHERE station_name = ANY(p_station_names);
+END;
+$$;

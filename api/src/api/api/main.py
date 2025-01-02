@@ -3,11 +3,17 @@ import uvicorn
 from datetime import datetime
 from typing import Optional
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 
 from api.data.stats import Stats, get_stats
 from api.data.database import connect
 from api.data.environment import get_env_variable
 from api.data.leg import ShortLeg, select_legs
+from api.data.map import (
+    StationPair,
+    make_leg_map_from_db,
+    make_leg_map_from_station_pair_list,
+)
 
 
 from api.data.stations import (
@@ -52,6 +58,54 @@ async def get_train_stats_from_year(
             return get_stats(conn, datetime(year, 1, 1), datetime(year, 12, 31))
         except RuntimeError:
             raise HTTPException(500, "Could not get stats")
+
+
+@app.get(
+    "/train/map",
+    summary="Get map of train journeys across a time period",
+    response_class=HTMLResponse,
+)
+async def get_train_map_from_time_period(
+    start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
+) -> str:
+    with connect() as (conn, _):
+        try:
+            return make_leg_map_from_db(conn, start_date, end_date)
+        except RuntimeError:
+            raise HTTPException(500, "Could not get stats")
+
+
+@app.get(
+    "/train/map/year/{year}",
+    summary="Get map of train journeys across a year",
+    response_class=HTMLResponse,
+)
+async def get_train_map_from_year(year: int) -> str:
+    with connect() as (conn, _):
+        try:
+            return make_leg_map_from_db(
+                conn, datetime(year, 1, 1), datetime(year, 12, 31)
+            )
+        except RuntimeError:
+            raise HTTPException(500, "Could not get stats")
+
+
+@app.post(
+    "/train/map/data",
+    summary="Get map of train journeys from a data set",
+    response_class=HTMLResponse,
+)
+async def get_train_map_from_data(data: list[StationPair]) -> str:
+    with connect() as (conn, _):
+        try:
+            return make_leg_map_from_station_pair_list(conn, data)
+        except RuntimeError:
+            raise HTTPException(500, "Could not get all stations")
+        except KeyError as e:
+            raise HTTPException(
+                422,
+                f"Could not find station {str(e)}; please use the station name as it appears on RealTime Trains",
+            )
 
 
 @app.get("/train/legs", summary="Get legs")
