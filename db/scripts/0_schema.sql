@@ -83,6 +83,8 @@ CREATE TABLE Station (
     operator_id INTEGER NOT NULL,
     brand_id INTEGER,
     station_img TEXT,
+    latitude DECIMAL,
+    longitude DECIMAL,
     FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
     FOREIGN KEY (brand_id) REFERENCES Brand(brand_id),
     CONSTRAINT valid_brand CHECK (IsValidBrand(brand_id, operator_id))

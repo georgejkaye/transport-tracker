@@ -256,3 +256,10 @@ CREATE TYPE OutStats AS (
     class_stats OutClassStat[],
     unit_stats OutUnitStat[]
 );
+
+CREATE TYPE StationDetails AS (
+    station_crs CHARACTER(3),
+    station_name TEXT,
+    latitude DECIMAL,
+    longitude DECIMAL
+);

@@ -23,6 +23,7 @@ uvicorn = "^0.30.5"
 pytz = "^2024.1"
 fastapi = "^0.115.6"
 psycopg = "^3.2.3"
+folium = "^0.19.3"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.5.1"
