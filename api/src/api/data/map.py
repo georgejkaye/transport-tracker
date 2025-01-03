@@ -1,5 +1,6 @@
 import json
 import sys
+from bs4 import BeautifulSoup
 import folium
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -66,8 +67,8 @@ def make_leg_map(leg_lines: list[LegLine]) -> str:
     )
     for leg_line in leg_lines:
         coordinates = [
-            (leg_line.board_lat, leg_line.board_lon),
-            (leg_line.alight_lat, leg_line.alight_lon),
+            [leg_line.board_lat, leg_line.board_lon],
+            [leg_line.alight_lat, leg_line.alight_lon],
         ]
         tooltip = f"{leg_line.board_station} to {leg_line.alight_station} ({leg_line.count_lr})"
         if leg_line.count_rl > 0:
@@ -150,7 +151,76 @@ def make_leg_map_from_station_pair_file(leg_file: str | Path) -> str:
         return make_leg_map_from_station_pair_list(conn, leg_list_objects)
 
 
+def make_leg_map_from_gml(gml_data: BeautifulSoup) -> str:
+    nodes = gml_data.find_all("node")
+    node_dict = {}
+    for node in nodes:
+        node_id = node.get("id")
+        node_lat = node.find("data", {"key": "d4"}).text
+        node_lon = node.find("data", {"key": "d5"}).text
+        node_dict[node_id] = (node_lat, node_lon)
+
+    edges = gml_data.find_all("edge")
+
+    leg_lines = []
+
+    for edge in edges:
+        edge_source = edge.get("source")
+        edge_target = edge.get("target")
+
+        (source_lat, source_lon) = node_dict[edge_source]
+        (target_lat, target_lon) = node_dict[edge_target]
+
+        edge_nodes = [(source_lat, source_lon)]
+
+        intermediate_nodes = edge.find("data", {"key": "d18"})
+        if intermediate_nodes is not None:
+            linestring_text = intermediate_nodes.text
+            node_string_list = linestring_text[12:-1].split(", ")
+            for node_string in node_string_list:
+                if node_string[0] == "-":
+                    lon_offset = 1
+                else:
+                    lon_offset = 0
+                node_lon = node_string[0 + lon_offset : 9 + lon_offset]
+
+                if node_string[10 + lon_offset] == "-":
+                    lat_offset = 1
+                else:
+                    lat_offset = 0
+                node_lat = node_string[
+                    10 + lon_offset + lat_offset : 20 + lon_offset + lat_offset
+                ]
+                edge_nodes.append((node_lat, node_lon))
+
+        edge_nodes.append((target_lat, target_lon))
+
+        for i in range(1, len(edge_nodes) - 3):
+            (source_lat, source_lon) = edge_nodes[i]
+            (target_lat, target_lon) = edge_nodes[i + 1]
+            leg_line = LegLine(
+                "",
+                source_lat,
+                source_lon,
+                "",
+                target_lat,
+                target_lon,
+                "#000000",
+                0,
+                0,
+            )
+            leg_lines.append(leg_line)
+    return make_leg_map(leg_lines)
+
+
+def make_leg_map_from_gml_file(leg_file: str | Path) -> str:
+    with open(leg_file, "r") as f:
+        data = f.read()
+    xml_data = BeautifulSoup(data, "xml")
+    return make_leg_map_from_gml(xml_data)
+
+
 if __name__ == "__main__":
-    html = make_leg_map_from_station_pair_file(sys.argv[1])
-    with open(sys.argv[2], "w") as f:
+    html = make_leg_map_from_gml_file("api/graph.gml")
+    with open("data/map.html") as f:
         f.write(html)
