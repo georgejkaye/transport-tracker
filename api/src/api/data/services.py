@@ -12,7 +12,7 @@ from psycopg import Connection, Cursor
 from api.data.core import get_soup, make_get_request
 from api.data.credentials import get_api_credentials
 from api.data.database import connect
-from api.data.network import miles_and_chains_to_miles
+from api.data.mileage import miles_and_chains_to_miles
 from api.data.stations import (
     ShortTrainStation,
     TrainServiceAtStation,

@@ -15,7 +15,7 @@ from api.data.leg import (
     insert_leg,
     string_of_enumerated_stock_report,
 )
-from api.data.network import (
+from api.data.mileage import (
     miles_and_chains_to_miles,
     string_of_miles_and_chains,
 )

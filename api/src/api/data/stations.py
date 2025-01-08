@@ -1,5 +1,4 @@
 from decimal import Decimal
-from logging.config import dictConfig
 import xml.etree.ElementTree as ET
 
 from dataclasses import dataclass
@@ -21,6 +20,7 @@ from api.data.train import (
     get_natrail_token_headers,
 )
 from api.times import get_datetime_route, get_hourmin_string
+from shapely import Point
 
 
 @dataclass
@@ -597,23 +597,46 @@ def select_station(cur: Cursor, station_crs: str) -> Optional[StationData]:
     return result[0]
 
 
-def get_station_latlons_from_names(
+def get_station_lonlats_from_names(
     conn: Connection, station_names: list[str]
-) -> dict[str, tuple[Decimal, Decimal]]:
+) -> dict[str, Point]:
     rows = conn.execute(
         "SELECT * FROM GetStationDetailsFromNames(%s::TEXT[])", [station_names]
     ).fetchall()
     if rows is None:
         raise RuntimeError(f"Could not find station with name {station_names}")
-    latlon_dict = {}
+    lonlat_dict = {}
     for row in rows:
-        latlon_dict[row[1]] = (row[2], row[3])
-    return latlon_dict
+        lonlat_dict[row[1]] = (row[2], row[3])
+    return lonlat_dict
+
+
+def get_station_lonlat_from_name(conn: Connection, station_name: str) -> Point:
+    return get_station_lonlats_from_names(conn, [station_name])[station_name]
+
+
+def get_station_lonlats_from_crses(
+    conn: Connection, station_crses: list[str]
+) -> dict[str, Point]:
+    rows = conn.execute(
+        "SELECT * FROM GetStationDetailsFromCrses(%s::TEXT[])",
+        [[crs.upper() for crs in station_crses]],
+    ).fetchall()
+    if rows is None:
+        raise RuntimeError(f"Could not find station with crs {station_crses}")
+    lonlat_dict = {}
+    for row in rows:
+        lonlat_dict[row[0]] = Point(row[2], row[3])
+    return lonlat_dict
+
+
+def get_station_lonlat_from_crs(conn: Connection, station_crs: str) -> Point:
+    return get_station_lonlats_from_crses(conn, [station_crs])[station_crs]
 
 
 if __name__ == "__main__":
     with connect() as (conn, cur):
-        get_station_latlons_from_names(
+        get_station_lonlats_from_names(
             conn,
             ["University (Birmingham)", "Shirley", "Birmingham New Street"],
         )
