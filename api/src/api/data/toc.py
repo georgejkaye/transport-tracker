@@ -11,7 +11,6 @@ from api.data.train import (
 from api.data.core import get_tag_text, make_get_request, prefix_namespace
 from api.data.credentials import get_api_credentials
 from api.data.database import connect, insert, NoEscape
-from api.data.schema import toc_table
 
 
 @dataclass
@@ -50,7 +49,7 @@ def populate_toc_table(conn: Connection, cur: Cursor, tocs: list[Toc]):
     values: list[list[str | NoEscape | None]] = list(
         map(lambda x: [x.name, x.atoc], tocs)
     )
-    insert(cur, toc_table, fields, values)
+    insert(cur, "Operator", fields, values)
     conn.commit()
 
 
