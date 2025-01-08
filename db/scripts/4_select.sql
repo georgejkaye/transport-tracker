@@ -469,8 +469,23 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT station_crs, station_name, latitude, longitude
+    SELECT station_crs, station_name, longitude, latitude
     FROM Station
     WHERE station_name = ANY(p_station_names);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetStationDetailsFromCrses(
+    p_station_crses TEXT[]
+)
+RETURNS SETOF StationDetails
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT station_crs, station_name, longitude, latitude
+    FROM Station
+    WHERE station_crs = ANY(p_station_crses);
 END;
 $$;
