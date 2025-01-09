@@ -186,6 +186,7 @@ def insert_station_node_to_network(
         station_crs, id=station_crs, x=point_on_edge.x, y=point_on_edge.y
     )
     network.remove_edge(edge.source, edge.target)
+    network.remove_edge(edge.target, edge.source)
     network.add_edge(
         edge.source,
         station_crs,
@@ -194,8 +195,20 @@ def insert_station_node_to_network(
     )
     network.add_edge(
         station_crs,
+        edge.source,
+        geometry=first_segment.reverse(),
+        length=first_segment.length,
+    )
+    network.add_edge(
+        station_crs,
         edge.target,
         geometry=second_segment,
+        length=second_segment.length,
+    )
+    network.add_edge(
+        edge.target,
+        station_crs,
+        geometry=second_segment.reverse(),
         length=second_segment.length,
     )
     return network
@@ -203,19 +216,18 @@ def insert_station_node_to_network(
 
 if __name__ == "__main__":
     network = ox.io.load_graphml(sys.argv[1])
-    crs1 = "BHM"
-    crs2 = "EDB"
+    crs1 = "RDG"
+    crs2 = "DPD"
     with connect() as (conn, _):
         network = insert_station_node_to_network(conn, network, crs1)
         network = insert_station_node_to_network(conn, network, crs2)
         station1 = get_station_lonlat_from_crs(conn, crs1)
         station2 = get_station_lonlat_from_crs(conn, crs2)
-    route = find_path_between_nodes(network, "BHM", "EDB")
-    print(network["BHM"])
+    route = find_path_between_nodes(network, crs1, crs2)
     html2 = make_leg_map_from_linestrings(
         [
-            MapPoint(station1, "#0000ff", 10, "BHM"),
-            MapPoint(station2, "#00ff00", 10, "BHM on line"),
+            MapPoint(station1, "#0000ff", 10, crs1),
+            MapPoint(station2, "#00ff00", 10, crs2),
         ],
         route,
     )
