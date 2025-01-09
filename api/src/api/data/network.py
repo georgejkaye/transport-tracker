@@ -3,25 +3,24 @@ from decimal import Decimal
 import sys
 from typing import TypedDict
 import networkx as nx
+from numpy import insert
 import osmnx as ox
 import geopandas as gpd
 
 from pathlib import Path
 from geopandas import GeoDataFrame, GeoSeries
 from networkx import MultiDiGraph
-from shapely import (
-    Geometry,
-    LineString,
-    Point,
-    line_locate_point,
-    set_precision,
-)
+from psycopg import Connection
+from shapely import LineString, Point
+import shapely
+from shapely.ops import split, snap
 from networkx.classes.coreviews import AtlasView
 
 from api.data.database import connect
 from api.data.stations import get_station_lonlat_from_crs
 from api.data.map import (
     LegLine,
+    MapPoint,
     make_leg_map,
     make_leg_map_from_gml_file,
     make_leg_map_from_linestrings,
@@ -116,7 +115,7 @@ def get_nearest_edge(network: MultiDiGraph, point: Point) -> EdgeDetails:
 
 
 def get_closest_edge_on_network_to_point(
-    point: Point, network: MultiDiGraph
+    network: MultiDiGraph, point: Point
 ) -> EdgeDetails:
     edge = get_nearest_edge(network, point)
     return edge
@@ -127,7 +126,7 @@ def get_edge_weight(source, target, edge_dict) -> float:
 
 
 def find_path_between_nodes(
-    network: MultiDiGraph, source: int, target: int
+    network: MultiDiGraph, source: int | str, target: int | str
 ) -> list[LineString]:
     path = nx.shortest_path(network, source, target, weight=get_edge_weight)
     line_strings = []
@@ -152,17 +151,73 @@ def find_path_between_nodes(
     return line_strings
 
 
+def get_nearest_point_on_linestring(point: Point, line: LineString) -> Point:
+    return line.interpolate(line.project(point))
+
+
+def split_linestring_at_point(
+    line: LineString, point: Point
+) -> tuple[LineString, LineString]:
+    adjusted_line = snap(line, point, 0.01)
+    if not adjusted_line.contains(point):
+        raise RuntimeError("The point is not close enough to the line")
+    splits = split(adjusted_line, point)
+    segments = splits.geoms
+    first_segment = segments[0]
+    second_segment = segments[1]
+    if isinstance(
+        first_segment, shapely.geometry.linestring.LineString
+    ) and isinstance(second_segment, shapely.geometry.linestring.LineString):
+        return (first_segment, second_segment)
+    raise RuntimeError("Could not split line string")
+
+
+def insert_station_node_to_network(
+    conn: Connection, network: MultiDiGraph, station_crs: str
+) -> MultiDiGraph:
+    point = get_station_lonlat_from_crs(conn, station_crs)
+    edge = get_closest_edge_on_network_to_point(network, point)
+    edge_geometry = edge.tags["geometry"]
+    point_on_edge = get_nearest_point_on_linestring(point, edge_geometry)
+    (first_segment, second_segment) = split_linestring_at_point(
+        edge_geometry, point_on_edge
+    )
+    network.add_node(
+        station_crs, id=station_crs, x=point_on_edge.x, y=point_on_edge.y
+    )
+    network.remove_edge(edge.source, edge.target)
+    network.add_edge(
+        edge.source,
+        station_crs,
+        geometry=first_segment,
+        length=first_segment.length,
+    )
+    network.add_edge(
+        station_crs,
+        edge.target,
+        geometry=second_segment,
+        length=second_segment.length,
+    )
+    return network
+
+
 if __name__ == "__main__":
     network = ox.io.load_graphml(sys.argv[1])
+    crs1 = "BHM"
+    crs2 = "EDB"
     with connect() as (conn, _):
-        uni_latlon = get_station_lonlat_from_crs(conn, "BHM")
-        cdf_latlon = get_station_lonlat_from_crs(conn, "EDB")
-    uni_edge = get_closest_edge_on_network_to_point(uni_latlon, network)
-    cdf_edge = get_closest_edge_on_network_to_point(cdf_latlon, network)
-    path = find_path_between_nodes(network, uni_edge.source, cdf_edge.target)
-    html = make_leg_map_from_linestrings(path)
-    with open("test.html", "w+") as f:
-        f.write(html)
-    html2 = make_leg_map_from_linestrings([uni_edge.tags["geometry"]])
+        network = insert_station_node_to_network(conn, network, crs1)
+        network = insert_station_node_to_network(conn, network, crs2)
+        station1 = get_station_lonlat_from_crs(conn, crs1)
+        station2 = get_station_lonlat_from_crs(conn, crs2)
+    route = find_path_between_nodes(network, "BHM", "EDB")
+    print(network["BHM"])
+    html2 = make_leg_map_from_linestrings(
+        [
+            MapPoint(station1, "#0000ff", 10, "BHM"),
+            MapPoint(station2, "#00ff00", 10, "BHM on line"),
+        ],
+        route,
+    )
     with open("test2.html", "w+") as f:
         f.write(html2)

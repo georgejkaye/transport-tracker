@@ -5,6 +5,7 @@ import folium
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
+from numpy import size
 from psycopg import Connection
 from pathlib import Path
 from typing import Optional
@@ -13,6 +14,14 @@ from api.data.database import connect
 from api.data.stations import get_station_lonlats_from_names
 from pydantic import Field
 from shapely import LineString, Point
+
+
+@dataclass
+class MapPoint:
+    point: Point
+    colour: str
+    size: int
+    tooltip: str
 
 
 @dataclass
@@ -61,13 +70,22 @@ def get_leg_lines_from_db(
     return leg_lines
 
 
-def make_leg_map(leg_lines: list[LegLine]) -> str:
+def make_leg_map(map_points: list[MapPoint], leg_lines: list[LegLine]) -> str:
     m = folium.Map(
         tiles="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
         attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         location=(53.906602, -1.933667),
         zoom_start=6,
     )
+    for map_point in map_points:
+        folium.Circle(
+            location=[map_point.point.y, map_point.point.x],
+            radius=map_point.size,
+            color=map_point.colour,
+            fill=True,
+            opacity=1,
+            tooltip=map_point.tooltip,
+        ).add_to(m)
     for leg_line in leg_lines:
         tooltip = f"{leg_line.board_station} to {leg_line.alight_station} ({leg_line.count_lr})"
         if leg_line.count_rl > 0:
@@ -89,7 +107,7 @@ def make_leg_map_from_db(
     end_date: Optional[datetime],
 ) -> str:
     leg_lines = get_leg_lines_from_db(conn, start_date, end_date)
-    return make_leg_map(leg_lines)
+    return make_leg_map([], leg_lines)
 
 
 @dataclass
@@ -138,7 +156,7 @@ def make_leg_map_from_station_pair_list(
         leg_line = leg_dict[key]
         leg_lines.append(leg_line)
 
-    return make_leg_map(leg_lines)
+    return make_leg_map([], leg_lines)
 
 
 def make_leg_map_from_station_pair_file(leg_file: str | Path) -> str:
@@ -198,7 +216,7 @@ def make_leg_map_from_gml(gml_data: BeautifulSoup) -> str:
             0,
         )
         leg_lines.append(leg_line)
-    return make_leg_map(leg_lines)
+    return make_leg_map([], leg_lines)
 
 
 def make_leg_map_from_gml_file(leg_file: str | Path) -> str:
@@ -208,12 +226,14 @@ def make_leg_map_from_gml_file(leg_file: str | Path) -> str:
     return make_leg_map_from_gml(xml_data)
 
 
-def make_leg_map_from_linestrings(line_strings: list[LineString]) -> str:
+def make_leg_map_from_linestrings(
+    map_points: list[MapPoint], line_strings: list[LineString]
+) -> str:
     leg_lines = [
-        LegLine("", "", line_string, "#000000", 0, 0)
-        for line_string in line_strings
+        LegLine(i, "", line_string, "#000000", 0, 0)
+        for (i, line_string) in enumerate(line_strings)
     ]
-    return make_leg_map(leg_lines)
+    return make_leg_map(map_points, leg_lines)
 
 
 if __name__ == "__main__":
