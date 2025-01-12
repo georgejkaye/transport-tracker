@@ -148,6 +148,45 @@ def split_linestring_at_point(
     raise RuntimeError("Could not split line string")
 
 
+def insert_node_to_network(
+    network: MultiDiGraph, point: Point, id: str
+) -> MultiDiGraph:
+    edge = get_closest_edge_on_network_to_point(network, point)
+    edge_geometry = edge.tags["geometry"]
+    point_on_edge = get_nearest_point_on_linestring(point, edge_geometry)
+    (first_segment, second_segment) = split_linestring_at_point(
+        edge_geometry, point_on_edge
+    )
+    network.add_node(id, id=id, x=point_on_edge.x, y=point_on_edge.y)
+    network.remove_edge(edge.source, edge.target)
+    network.remove_edge(edge.target, edge.source)
+    network.add_edge(
+        edge.source,
+        id,
+        geometry=first_segment,
+        length=first_segment.length,
+    )
+    network.add_edge(
+        id,
+        edge.source,
+        geometry=first_segment.reverse(),
+        length=first_segment.length,
+    )
+    network.add_edge(
+        id,
+        edge.target,
+        geometry=second_segment,
+        length=second_segment.length,
+    )
+    network.add_edge(
+        edge.target,
+        id,
+        geometry=second_segment.reverse(),
+        length=second_segment.length,
+    )
+    return network
+
+
 def insert_station_node_to_network(
     conn: Connection, network: MultiDiGraph, station_crs: str
 ) -> MultiDiGraph:
@@ -155,45 +194,7 @@ def insert_station_node_to_network(
         return network
     print(f"Inserting {station_crs}")
     point = get_station_lonlat_from_crs(conn, station_crs)
-    edge = get_closest_edge_on_network_to_point(network, point)
-    edge_geometry = edge.tags["geometry"]
-    point_on_edge = get_nearest_point_on_linestring(point, edge_geometry)
-    print(
-        f"Splitting {edge_geometry} at {point} which is the closest to {point}"
-    )
-    (first_segment, second_segment) = split_linestring_at_point(
-        edge_geometry, point_on_edge
-    )
-    network.add_node(
-        station_crs, id=station_crs, x=point_on_edge.x, y=point_on_edge.y
-    )
-    network.remove_edge(edge.source, edge.target)
-    network.remove_edge(edge.target, edge.source)
-    network.add_edge(
-        edge.source,
-        station_crs,
-        geometry=first_segment,
-        length=first_segment.length,
-    )
-    network.add_edge(
-        station_crs,
-        edge.source,
-        geometry=first_segment.reverse(),
-        length=first_segment.length,
-    )
-    network.add_edge(
-        station_crs,
-        edge.target,
-        geometry=second_segment,
-        length=second_segment.length,
-    )
-    network.add_edge(
-        edge.target,
-        station_crs,
-        geometry=second_segment.reverse(),
-        length=second_segment.length,
-    )
-    return network
+    return insert_node_to_network(network, point, station_crs)
 
 
 def find_path_between_stations(

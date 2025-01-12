@@ -607,7 +607,7 @@ def get_station_lonlats_from_names(
         raise RuntimeError(f"Could not find station with name {station_names}")
     lonlat_dict = {}
     for row in rows:
-        lonlat_dict[row[1]] = (row[2], row[3])
+        lonlat_dict[row[1]] = Point(row[2], row[3])
     return lonlat_dict
 
 
