@@ -1,18 +1,14 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
-from re import L
 from typing import Callable, Optional
 from psycopg import Connection, Cursor
-from psycopg.types.composite import CompositeInfo, register_composite
 
 from api.data.toperator import BrandData, OperatorData
 
 from api.data.database import (
     connect,
-    optional_to_decimal,
     register_type,
-    str_or_null_to_datetime,
 )
 from api.data.services import (
     Call,
@@ -432,8 +428,11 @@ def select_legs(
     return [row[0] for row in rows]
 
 
-if __name__ == "__main__":
-    with connect() as (conn, cur):
-        legs = select_legs(conn, None, None)
-        for leg in legs:
-            print(leg)
+def get_operator_colour_from_leg(leg: ShortLeg) -> str:
+    service_key = list(leg.services.keys())[0]
+    service = leg.services[service_key]
+    if service.brand is not None and service.brand.bg is not None:
+        return service.brand.bg
+    if service.operator.bg is None:
+        return "#000000"
+    return service.operator.bg

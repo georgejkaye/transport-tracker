@@ -1,34 +1,32 @@
-from dataclasses import dataclass
-from decimal import Decimal
+from pathlib import Path
+from platform import architecture
 import sys
+from numpy import insert
+from pydantic_core import MultiHostUrl
+import shapely
+
+from dataclasses import dataclass
 from typing import TypedDict
 import networkx as nx
-from numpy import insert
 import osmnx as ox
-import geopandas as gpd
 
-from pathlib import Path
-from geopandas import GeoDataFrame, GeoSeries
+from osmnx import settings as oxsettings
+
 from networkx import MultiDiGraph
 from psycopg import Connection
 from shapely import LineString, Point
-import shapely
-from shapely.ops import split, snap
-from networkx.classes.coreviews import AtlasView
+from shapely import geometry, ops
+from geopandas import GeoDataFrame
 
 from api.data.database import connect
-from api.data.stations import get_station_lonlat_from_crs
-from api.data.map import (
-    LegLine,
-    MapPoint,
-    make_leg_map,
-    make_leg_map_from_gml_file,
-    make_leg_map_from_linestrings,
-)
+from api.data.stations import ShortTrainStation, get_station_lonlat_from_crs
 
 coordinate_precision = 0.000001
 wgs84 = "EPSG:4326"
 osgb36 = "EPSG:27700"
+
+oxsettings.useful_tags_node.append("name")
+oxsettings.useful_tags_way.append("electrified")
 
 
 def get_railway_network(places: list[str | dict[str, str]]) -> MultiDiGraph:
@@ -38,49 +36,27 @@ def get_railway_network(places: list[str | dict[str, str]]) -> MultiDiGraph:
     )
 
 
-# def get_closest_point_on_network_to_point(
-#     point: Point, network: MultiDiGraph
-# ) -> tuple[int, int, int]:
-#     gdf_nodes = ox.convert.graph_to_gdfs(
-#         network,
-#         nodes=True,
-#         edges=False,
-#         node_geometry=True,
-#         fill_edge_geometry=False,
-#     )
-#     gdf_edges = ox.convert.graph_to_gdfs(
-#         network,
-#         nodes=False,
-#         edges=True,
-#         node_geometry=False,
-#         fill_edge_geometry=True,
-#     )
-#     gdf_nodes["geometry"] = gdf_nodes.geometry.to_crs(gb_projection)
-#     gdf_nodes["x"] = gdf_nodes["geometry"].x
-#     gdf_nodes["y"] = gdf_nodes["geometry"].y
-#     gdf_edges["geometry"] = gdf_edges.geometry.to_crs(gb_projection)
-#     graph_attrs = {"crs": gb_projection}
-#     proj_multidigraph = ox.convert.graph_from_gdfs(
-#         gdf_nodes, gdf_edges, graph_attrs=graph_attrs
-#     )
+def get_railway_stations(places: list[str | dict[str, str]]) -> GeoDataFrame:
+    return ox.features.features_from_place(
+        places, tags={"railway": "station", "network": "National Rail"}
+    )
 
-#     point_node_dict: dict[str, list] = {"col1": ["point"], "geometry": [point]}
-#     point_node_gdf = gpd.GeoDataFrame(point_node_dict, crs=gb_projection)
-#     point_node_gdf["geometry"] = point_node_gdf.geometry.to_crs(gb_projection)
-#     point_proj_lon = point_node_gdf["geometry"].x[0]
-#     point_proj_lat = point_node_gdf["geometry"].x[1]
 
-#     return ox.distance.nearest_edges(
-#         proj_multidigraph,
-#         point_proj_lon,
-#         point_proj_lat,
-#         interpolate=None,
-#         return_dist=True,
-#     )
+def read_network_from_file(path: Path | str) -> MultiDiGraph:
+    network = ox.io.load_graphml(path)
+    return network
 
 
 def get_latlon_string(point: Point) -> str:
     return f"{point.y}, {point.x}"
+
+
+def merge_linestrings(line_strings: list[LineString]) -> LineString:
+    multi_line = geometry.MultiLineString(line_strings)
+    line = ops.linemerge(multi_line)
+    if not isinstance(line, geometry.LineString):
+        raise RuntimeError("Not contiguous line strings")
+    return line
 
 
 class EdgeTags(TypedDict):
@@ -158,10 +134,10 @@ def get_nearest_point_on_linestring(point: Point, line: LineString) -> Point:
 def split_linestring_at_point(
     line: LineString, point: Point
 ) -> tuple[LineString, LineString]:
-    adjusted_line = snap(line, point, 0.01)
+    adjusted_line = ops.snap(line, point, 0.01)
     if not adjusted_line.contains(point):
         raise RuntimeError("The point is not close enough to the line")
-    splits = split(adjusted_line, point)
+    splits = ops.split(adjusted_line, point)
     segments = splits.geoms
     first_segment = segments[0]
     second_segment = segments[1]
@@ -175,10 +151,16 @@ def split_linestring_at_point(
 def insert_station_node_to_network(
     conn: Connection, network: MultiDiGraph, station_crs: str
 ) -> MultiDiGraph:
+    if network.has_node(station_crs):
+        return network
+    print(f"Inserting {station_crs}")
     point = get_station_lonlat_from_crs(conn, station_crs)
     edge = get_closest_edge_on_network_to_point(network, point)
     edge_geometry = edge.tags["geometry"]
     point_on_edge = get_nearest_point_on_linestring(point, edge_geometry)
+    print(
+        f"Splitting {edge_geometry} at {point} which is the closest to {point}"
+    )
     (first_segment, second_segment) = split_linestring_at_point(
         edge_geometry, point_on_edge
     )
@@ -214,22 +196,34 @@ def insert_station_node_to_network(
     return network
 
 
+def find_path_between_stations(
+    network: MultiDiGraph,
+    conn: Connection,
+    origin: ShortTrainStation,
+    destination: ShortTrainStation,
+) -> LineString:
+    network = insert_station_node_to_network(conn, network, origin.crs)
+    network = insert_station_node_to_network(conn, network, destination.crs)
+    path = find_path_between_nodes(network, origin.crs, destination.crs)
+    return merge_linestrings(path)
+
+
 if __name__ == "__main__":
-    network = ox.io.load_graphml(sys.argv[1])
-    crs1 = "RDG"
-    crs2 = "DPD"
-    with connect() as (conn, _):
-        network = insert_station_node_to_network(conn, network, crs1)
-        network = insert_station_node_to_network(conn, network, crs2)
-        station1 = get_station_lonlat_from_crs(conn, crs1)
-        station2 = get_station_lonlat_from_crs(conn, crs2)
-    route = find_path_between_nodes(network, crs1, crs2)
-    html2 = make_leg_map_from_linestrings(
-        [
-            MapPoint(station1, "#0000ff", 10, crs1),
-            MapPoint(station2, "#00ff00", 10, crs2),
-        ],
-        route,
-    )
-    with open("test2.html", "w+") as f:
-        f.write(html2)
+    stations = get_railway_stations(["United Kingdom"])
+    actual_stations = []
+    for row in stations.itertuples():
+        if (
+            row.network == "National Rail"
+            and str(row._50) != "nan"
+            and isinstance(row.geometry, geometry.Point)
+        ):
+            print(f"{row._50}\t\t{row.name}\t\t\t\t\t\t{row.geometry}")
+            actual_stations.append((row._50, row.name, row.geometry))
+    print(len(actual_stations))
+    with connect() as (conn, cur):
+        for station in actual_stations:
+            conn.execute(
+                "UPDATE Station SET latitude = %s, longitude = %s WHERE station_crs = %s",
+                [station[2].y, station[2].x, station[0]],
+            )
+        conn.commit()

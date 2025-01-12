@@ -1,19 +1,26 @@
 import json
 import sys
-from bs4 import BeautifulSoup
 import folium
-from dataclasses import dataclass, field
+import osmnx as ox
+
+from api.data.leg import ShortLeg, get_operator_colour_from_leg, select_legs
+from api.data.network import (
+    find_path_between_stations,
+    merge_linestrings,
+)
+from bs4 import BeautifulSoup
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from numpy import size
+from networkx import MultiDiGraph
 from psycopg import Connection
 from pathlib import Path
 from typing import Optional
+from pydantic import Field
+from shapely import LineString, Point
 
 from api.data.database import connect
 from api.data.stations import get_station_lonlats_from_names
-from pydantic import Field
-from shapely import LineString, Point
 
 
 @dataclass
@@ -230,13 +237,64 @@ def make_leg_map_from_linestrings(
     map_points: list[MapPoint], line_strings: list[LineString]
 ) -> str:
     leg_lines = [
-        LegLine(i, "", line_string, "#000000", 0, 0)
+        LegLine("", "", line_string, "#000000", 0, 0)
         for (i, line_string) in enumerate(line_strings)
     ]
     return make_leg_map(map_points, leg_lines)
 
 
+def get_linestring_for_leg(
+    network: MultiDiGraph, conn: Connection, leg: ShortLeg
+) -> LegLine:
+    print(
+        f"Getting linestring for {leg.calls[0].station.name} to {leg.calls[-1].station.name}"
+    )
+    leg_calls = leg.calls
+    paths = []
+    points = []
+    for i in range(0, len(leg_calls) - 1):
+        first_call = leg_calls[i]
+        second_call = leg_calls[i + 1]
+        path = find_path_between_stations(
+            network, conn, first_call.station, second_call.station
+        )
+        paths.append(path)
+    complete_path = merge_linestrings(paths)
+    return LegLine(
+        leg.calls[0].station.name,
+        leg.calls[-1].station.name,
+        complete_path,
+        get_operator_colour_from_leg(leg),
+        0,
+        0,
+    )
+
+
+def get_leglines_for_legs(
+    network: MultiDiGraph, conn: Connection, legs: list[ShortLeg]
+) -> list[LegLine]:
+    return [get_linestring_for_leg(network, conn, leg) for leg in legs]
+
+
+def get_leg_map_page(
+    network: MultiDiGraph,
+    conn: Connection,
+    search_start: Optional[datetime] = None,
+    search_end: Optional[datetime] = None,
+    search_leg_id: Optional[int] = None,
+) -> str:
+    legs = select_legs(conn, search_start, search_end, search_leg_id)
+    leg_lines = get_leglines_for_legs(network, conn, legs)
+    html = make_leg_map([], leg_lines)
+    return html
+
+
 if __name__ == "__main__":
-    html = make_leg_map_from_gml_file(sys.argv[1])
-    with open(sys.argv[2], "w+") as f:
+    network_path = sys.argv[1]
+    network = ox.load_graphml(network_path)
+    with connect() as (conn, cur):
+        html = get_leg_map_page(
+            network, conn, datetime(2024, 1, 1), datetime(2024, 12, 31)
+        )
+    with open("output.html", "w+") as f:
         f.write(html)
