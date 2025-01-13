@@ -333,7 +333,7 @@ if __name__ == "__main__":
     # with open(sys.argv[2], "w+") as f:
     #     f.write(html)
     with connect() as (conn, cur):
-        path = find_path_between_stations(network, conn, "TAM", "BHM")
+        path = find_path_between_stations(network, conn, "SHF", "DON")
         html = make_leg_map_from_linestrings([], [path])
         with open(sys.argv[2], "w+") as f:
             f.write(html)

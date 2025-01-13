@@ -154,7 +154,19 @@ def insert_node_to_network(
     edge = get_closest_edge_on_network_to_point(network, point)
     edge_geometry = edge.tags["geometry"]
     point_on_edge = get_nearest_point_on_linestring(point, edge_geometry)
-    try:
+
+    source = network.nodes[edge.source]
+    target = network.nodes[edge.target]
+    source_point = Point(source["x"], source["y"])
+    target_point = Point(target["x"], target["y"])
+    source_distance = shapely.distance(point_on_edge, source_point)
+    target_distance = shapely.distance(point_on_edge, target_point)
+
+    if source_distance < 0.001:
+        network = nx.relabel_nodes(network, {edge.source: id})
+    elif target_distance < 0.001:
+        network = nx.relabel_nodes(network, {edge.target: id})
+    else:
         (first_segment, second_segment) = split_linestring_at_point(
             edge_geometry, point_on_edge
         )
@@ -185,18 +197,6 @@ def insert_node_to_network(
             geometry=second_segment.reverse(),
             length=second_segment.length,
         )
-    except:
-        source = network.nodes[edge.source]
-        target = network.nodes[edge.target]
-        source_point = Point(source["x"], source["y"])
-        target_point = Point(target["x"], target["y"])
-        source_distance = shapely.distance(point_on_edge, source_point)
-        target_distance = shapely.distance(point_on_edge, target_point)
-        if source_distance < target_distance:
-            node_to_relabel = edge.source
-        else:
-            node_to_relabel = edge.target
-        network = nx.relabel_nodes(network, {node_to_relabel: id})
     return network
 
 
