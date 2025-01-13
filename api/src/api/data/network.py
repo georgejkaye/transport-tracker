@@ -1,12 +1,8 @@
 from pathlib import Path
-from platform import architecture
-import sys
-from numpy import insert
-from pydantic_core import MultiHostUrl
 import shapely
 
 from dataclasses import dataclass
-from typing import TypedDict
+from typing import Optional, TypedDict
 import networkx as nx
 import osmnx as ox
 
@@ -19,7 +15,10 @@ from shapely import geometry, ops
 from geopandas import GeoDataFrame
 
 from api.data.database import connect
-from api.data.stations import ShortTrainStation, get_station_lonlat_from_crs
+from api.data.stations import (
+    StationPoint,
+    get_station_points,
+)
 
 coordinate_precision = 0.000001
 wgs84 = "EPSG:4326"
@@ -101,30 +100,51 @@ def get_edge_weight(source, target, edge_dict) -> float:
     return edge_dict[0]["length"]
 
 
+def get_node_name(point: StationPoint) -> str:
+    if point.platform is None:
+        return point.crs
+    return f"{point.crs}:{point.platform}"
+
+
 def find_path_between_nodes(
-    network: MultiDiGraph, source: int | str, target: int | str
-) -> list[LineString]:
-    path = nx.shortest_path(network, source, target, weight=get_edge_weight)
-    line_strings = []
+    network: MultiDiGraph,
+    sources: list[StationPoint],
+    targets: list[StationPoint],
+) -> LineString:
+    line_strings: list[LineString] = []
+    for source in sources:
+        for target in targets:
+            path = nx.shortest_path(
+                network,
+                get_node_name(source),
+                get_node_name(target),
+                weight=get_edge_weight,
+            )
+            this_line_strings = []
 
-    for i in range(0, len(path) - 1):
-        source_node = path[i]
-        target_node = path[i + 1]
-        edge = get_edge_from_endpoints(network, source_node, target_node)
-        if edge.tags.get("geometry") is not None:
-            line_strings.append(edge.tags["geometry"])
-        else:
-            source_node = network.nodes[edge.source]
-            source_x = source_node["x"]
-            source_y = source_node["y"]
-            source_point = Point(source_x, source_y)
-            target_node = network.nodes[edge.target]
-            target_x = target_node["x"]
-            target_y = target_node["y"]
-            target_point = Point(target_x, target_y)
-            line_strings.append(LineString([source_point, target_point]))
-
-    return line_strings
+            for i in range(0, len(path) - 1):
+                source_node = path[i]
+                target_node = path[i + 1]
+                edge = get_edge_from_endpoints(
+                    network, source_node, target_node
+                )
+                if edge.tags.get("geometry") is not None:
+                    this_line_strings.append(edge.tags["geometry"])
+                else:
+                    source_node = network.nodes[edge.source]
+                    source_x = source_node["x"]
+                    source_y = source_node["y"]
+                    source_point = Point(source_x, source_y)
+                    target_node = network.nodes[edge.target]
+                    target_x = target_node["x"]
+                    target_y = target_node["y"]
+                    target_point = Point(target_x, target_y)
+                    this_line_strings.append(
+                        LineString([source_point, target_point])
+                    )
+            line_string = merge_linestrings(this_line_strings)
+            line_strings.append(line_string)
+    return min(line_strings, key=lambda ls: shapely.length(ls))
 
 
 def get_nearest_point_on_linestring(point: Point, line: LineString) -> Point:
@@ -201,25 +221,56 @@ def insert_node_to_network(
 
 
 def insert_station_node_to_network(
-    conn: Connection, network: MultiDiGraph, station_crs: str
-) -> MultiDiGraph:
-    if network.has_node(station_crs):
-        return network
+    conn: Connection,
+    network: MultiDiGraph,
+    station_crs: str,
+    station_platform: Optional[str],
+) -> tuple[MultiDiGraph, list[StationPoint]]:
+    if station_platform is None:
+        node_name = station_crs
+    else:
+        node_name = f"{station_crs}:{station_platform}"
+    if network.has_node(node_name):
+        return (
+            network,
+            [
+                StationPoint(
+                    station_crs,
+                    station_platform,
+                    Point(
+                        network.nodes[node_name]["x"],
+                        network.nodes[node_name]["y"],
+                    ),
+                )
+            ],
+        )
     print(f"Inserting {station_crs}")
-    point = get_station_lonlat_from_crs(conn, station_crs)
-    return insert_node_to_network(network, point, station_crs)
+    points = get_station_points(conn, station_crs, station_platform)
+    for point in points:
+        if point.platform is None:
+            node_name = point.crs
+        else:
+            node_name = f"{point.crs}:{point.platform}"
+        network = insert_node_to_network(network, point.point, node_name)
+    return (network, points)
 
 
 def find_path_between_stations(
     network: MultiDiGraph,
     conn: Connection,
     origin_crs: str,
+    origin_platform: Optional[str],
     destination_crs: str,
+    destination_platform: Optional[str],
 ) -> LineString:
-    network = insert_station_node_to_network(conn, network, origin_crs)
-    network = insert_station_node_to_network(conn, network, destination_crs)
-    path = find_path_between_nodes(network, origin_crs, destination_crs)
-    return merge_linestrings(path)
+    (network, origin_points) = insert_station_node_to_network(
+        conn, network, origin_crs, origin_platform
+    )
+    (network, destination_points) = insert_station_node_to_network(
+        conn, network, destination_crs, destination_platform
+    )
+    path = find_path_between_nodes(network, origin_points, destination_points)
+    return path
 
 
 if __name__ == "__main__":

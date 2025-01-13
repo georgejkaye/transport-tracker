@@ -634,6 +634,36 @@ def get_station_lonlat_from_crs(conn: Connection, station_crs: str) -> Point:
     return get_station_lonlats_from_crses(conn, [station_crs])[station_crs]
 
 
+def get_station_point_from_crs_and_platform(
+    conn: Connection, station_crs: str, platform: Optional[str]
+) -> Optional[Point]:
+    row = conn.execute(
+        "SELECT * FROM GetStationPoint(%s, %s)", [station_crs.upper(), platform]
+    ).fetchone()
+    if row is None:
+        return None
+    return Point(row[1], row[0])
+
+
+@dataclass
+class StationPoint:
+    crs: str
+    platform: Optional[str]
+    point: Point
+
+
+def get_station_points(
+    conn: Connection, station_crs: str, platform: Optional[str]
+) -> list[StationPoint]:
+    rows = conn.execute(
+        "SELECT * FROM GetStationPoints(%s, %s)",
+        [station_crs.upper(), platform],
+    ).fetchall()
+    if rows is None:
+        raise RuntimeError(f"Could not find station with crs {station_crs}")
+    return [StationPoint(row[0], row[1], Point(row[3], row[2])) for row in rows]
+
+
 if __name__ == "__main__":
     with connect() as (conn, cur):
         get_station_lonlats_from_names(

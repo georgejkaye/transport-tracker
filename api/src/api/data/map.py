@@ -256,7 +256,12 @@ def get_linestring_for_leg(
         first_call = leg_calls[i]
         second_call = leg_calls[i + 1]
         path = find_path_between_stations(
-            network, conn, first_call.station.crs, second_call.station.crs
+            network,
+            conn,
+            first_call.station.crs,
+            first_call.platform,
+            second_call.station.crs,
+            second_call.platform,
         )
         paths.append(path)
     complete_path = merge_linestrings(paths)
@@ -333,7 +338,9 @@ if __name__ == "__main__":
     # with open(sys.argv[2], "w+") as f:
     #     f.write(html)
     with connect() as (conn, cur):
-        path = find_path_between_stations(network, conn, "SHF", "DON")
+        path = find_path_between_stations(
+            network, conn, "TAM", None, "STA", None
+        )
         html = make_leg_map_from_linestrings([], [path])
         with open(sys.argv[2], "w+") as f:
             f.write(html)
