@@ -489,3 +489,20 @@ BEGIN
     WHERE station_crs = ANY(p_station_crses);
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION GetStationPoints(
+    p_station_crs CHARACTER(3),
+    p_platform TEXT
+)
+RETURNS SETOF StationLatLon
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT station_crs, platform, latitude, longitude
+    FROM StationPoint
+    WHERE station_crs = p_station_crs
+    AND (p_platform IS NULL OR platform = p_platform);
+END;
+$$;

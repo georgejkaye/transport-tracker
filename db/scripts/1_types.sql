@@ -263,3 +263,10 @@ CREATE TYPE StationDetails AS (
     latitude DECIMAL,
     longitude DECIMAL
 );
+
+CREATE TYPE StationLatLon AS (
+    station_crs CHARACTER(3),
+    platform TEXT,
+    latitude DECIMAL,
+    longitude DECIMAL
+);

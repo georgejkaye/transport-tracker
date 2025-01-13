@@ -90,6 +90,15 @@ CREATE TABLE Station (
     CONSTRAINT valid_brand CHECK (IsValidBrand(brand_id, operator_id))
 );
 
+CREATE TABLE StationPoint (
+    station_crs CHARACTER(3),
+    platform TEXT,
+    latitude DECIMAL NOT NULL,
+    longitude DECIMAL NOT NULL,
+    FOREIGN KEY (station_crs) REFERENCES Station(station_crs),
+    CONSTRAINT point_unique UNIQUE NULLS NOT DISTINCT (station_crs, platform)
+);
+
 CREATE TABLE Service (
     service_id TEXT NOT NULL,
     run_date TIMESTAMP WITH TIME ZONE NOT NULL,
