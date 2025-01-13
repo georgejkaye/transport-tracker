@@ -256,7 +256,7 @@ def get_linestring_for_leg(
         first_call = leg_calls[i]
         second_call = leg_calls[i + 1]
         path = find_path_between_stations(
-            network, conn, first_call.station, second_call.station
+            network, conn, first_call.station.crs, second_call.station.crs
         )
         paths.append(path)
     complete_path = merge_linestrings(paths)
@@ -328,13 +328,12 @@ def get_leg_map_page_from_station_pair_list(
 if __name__ == "__main__":
     network_path = sys.argv[1]
     network = ox.load_graphml(network_path)
-    with open(sys.argv[3]) as f:
-        pairs = json.load(f)
+    # with connect() as (conn, cur):
+    #     html = get_leg_map_page(network, conn)
+    # with open(sys.argv[2], "w+") as f:
+    #     f.write(html)
     with connect() as (conn, cur):
-        html = get_leg_map_page_from_station_pair_list(
-            network,
-            conn,
-            [StationPair(pair["from"], pair["to"]) for pair in pairs],
-        )
-    with open(sys.argv[2], "w+") as f:
-        f.write(html)
+        path = find_path_between_stations(network, conn, "TAM", "BHM")
+        html = make_leg_map_from_linestrings([], [path])
+        with open(sys.argv[2], "w+") as f:
+            f.write(html)

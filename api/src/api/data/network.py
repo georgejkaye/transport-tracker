@@ -154,36 +154,49 @@ def insert_node_to_network(
     edge = get_closest_edge_on_network_to_point(network, point)
     edge_geometry = edge.tags["geometry"]
     point_on_edge = get_nearest_point_on_linestring(point, edge_geometry)
-    (first_segment, second_segment) = split_linestring_at_point(
-        edge_geometry, point_on_edge
-    )
-    network.add_node(id, id=id, x=point_on_edge.x, y=point_on_edge.y)
-    network.remove_edge(edge.source, edge.target)
-    network.remove_edge(edge.target, edge.source)
-    network.add_edge(
-        edge.source,
-        id,
-        geometry=first_segment,
-        length=first_segment.length,
-    )
-    network.add_edge(
-        id,
-        edge.source,
-        geometry=first_segment.reverse(),
-        length=first_segment.length,
-    )
-    network.add_edge(
-        id,
-        edge.target,
-        geometry=second_segment,
-        length=second_segment.length,
-    )
-    network.add_edge(
-        edge.target,
-        id,
-        geometry=second_segment.reverse(),
-        length=second_segment.length,
-    )
+    try:
+        (first_segment, second_segment) = split_linestring_at_point(
+            edge_geometry, point_on_edge
+        )
+        network.add_node(id, id=id, x=point_on_edge.x, y=point_on_edge.y)
+        network.remove_edge(edge.source, edge.target)
+        network.remove_edge(edge.target, edge.source)
+        network.add_edge(
+            edge.source,
+            id,
+            geometry=first_segment,
+            length=first_segment.length,
+        )
+        network.add_edge(
+            id,
+            edge.source,
+            geometry=first_segment.reverse(),
+            length=first_segment.length,
+        )
+        network.add_edge(
+            id,
+            edge.target,
+            geometry=second_segment,
+            length=second_segment.length,
+        )
+        network.add_edge(
+            edge.target,
+            id,
+            geometry=second_segment.reverse(),
+            length=second_segment.length,
+        )
+    except:
+        source = network.nodes[edge.source]
+        target = network.nodes[edge.target]
+        source_point = Point(source["x"], source["y"])
+        target_point = Point(target["x"], target["y"])
+        source_distance = shapely.distance(point_on_edge, source_point)
+        target_distance = shapely.distance(point_on_edge, target_point)
+        if source_distance < target_distance:
+            node_to_relabel = edge.source
+        else:
+            node_to_relabel = edge.target
+        network = nx.relabel_nodes(network, {node_to_relabel: id})
     return network
 
 
@@ -200,12 +213,12 @@ def insert_station_node_to_network(
 def find_path_between_stations(
     network: MultiDiGraph,
     conn: Connection,
-    origin: ShortTrainStation,
-    destination: ShortTrainStation,
+    origin_crs: str,
+    destination_crs: str,
 ) -> LineString:
-    network = insert_station_node_to_network(conn, network, origin.crs)
-    network = insert_station_node_to_network(conn, network, destination.crs)
-    path = find_path_between_nodes(network, origin.crs, destination.crs)
+    network = insert_station_node_to_network(conn, network, origin_crs)
+    network = insert_station_node_to_network(conn, network, destination_crs)
+    path = find_path_between_nodes(network, origin_crs, destination_crs)
     return merge_linestrings(path)
 
 
