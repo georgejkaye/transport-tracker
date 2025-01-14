@@ -265,8 +265,22 @@ CREATE TYPE StationDetails AS (
 );
 
 CREATE TYPE StationLatLon AS (
-    station_crs CHARACTER(3),
     platform TEXT,
     latitude DECIMAL,
     longitude DECIMAL
+);
+
+CREATE TYPE StationCrsAndPlatform AS (
+    station_crs CHARACTER(3),
+    station_platform TEXT
+);
+
+CREATE TYPE StationNameAndPlatform AS (
+    station_name TEXT,
+    station_platform TEXT
+);
+
+CREATE TYPE StationAndPoints AS (
+    station_crs CHARACTER(3),
+    station_points StationLatLon[]
 );

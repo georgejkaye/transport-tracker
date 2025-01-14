@@ -500,9 +500,84 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT station_crs, platform, latitude, longitude
+    SELECT platform, latitude, longitude
     FROM StationPoint
     WHERE station_crs = p_station_crs
     AND (p_platform IS NULL OR platform = p_platform);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetStationPointsFromName(
+    p_station_name TEXT,
+    p_platform TEXT
+)
+RETURNS SETOF StationLatLon
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT platform, latitude, longitude
+    FROM StationPoint
+    INNER JOIN Station
+    ON Station.station_crs = StationPoint.station_crs
+    WHERE station_name = p_station_name
+    AND (p_platform IS NULL OR platform = p_platform);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetStationPointsFromCrses(
+    p_stations StationCrsAndPlatform[]
+)
+RETURNS SETOF StationAndPoints
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT station_crs, ARRAY_AGG(station_point)
+    FROM (
+        SELECT
+            station_crs,
+            (platform, latitude, longitude)::StationLatLon AS station_point
+        FROM StationPoint
+        WHERE (station_crs, platform) IN
+            (SELECT * FROM UNNEST(p_stations))
+        OR station_crs IN (
+            SELECT unnest.station_crs
+            FROM (
+                SELECT * FROM UNNEST(p_stations) WHERE station_platform IS NULL
+            ) unnest
+        )
+    ) points
+    GROUP BY station_crs;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetStationPointsFromNames(
+    p_stations StationNameAndPlatform[]
+)
+RETURNS SETOF StationAndPoints
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT station_crs, ARRAY_AGG(station_point)
+    FROM (
+        SELECT
+            Station.station_crs,
+            (platform, latitude, longitude)::StationLatLon AS station_point
+        FROM StationPoint
+        INNER JOIN Station
+        ON Station.station_crs = StationPoint.station_crs
+        WHERE (station_name, platform) IN (SELECT * FROM UNNEST(p_stations))
+        OR station_name IN (
+            SELECT unnest.station_name FROM (
+                SELECT * FROM UNNEST(p_stations) WHERE station_platform IS NULL
+            ) unnest
+        )
+    ) points
+    GROUP BY station_crs;
 END;
 $$;
