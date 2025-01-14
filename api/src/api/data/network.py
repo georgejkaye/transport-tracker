@@ -17,7 +17,7 @@ from geopandas import GeoDataFrame
 from api.data.database import connect
 from api.data.stations import (
     StationPoint,
-    get_station_points,
+    get_station_points_from_crses,
 )
 
 coordinate_precision = 0.000001
@@ -102,8 +102,8 @@ def get_edge_weight(source, target, edge_dict) -> float:
 
 def get_node_name(point: StationPoint) -> str:
     if point.platform is None:
-        return point.crs
-    return f"{point.crs}:{point.platform}"
+        return point.identifier
+    return f"{point.identifier}:{point.platform}"
 
 
 def find_path_between_nodes(
@@ -171,6 +171,8 @@ def split_linestring_at_point(
 def insert_node_to_network(
     network: MultiDiGraph, point: Point, id: str
 ) -> MultiDiGraph:
+    if network.has_node(id):
+        return network
     edge = get_closest_edge_on_network_to_point(network, point)
     edge_geometry = edge.tags["geometry"]
     point_on_edge = get_nearest_point_on_linestring(point, edge_geometry)
@@ -220,6 +222,27 @@ def insert_node_to_network(
     return network
 
 
+def insert_nodes_to_network(
+    network: MultiDiGraph, stations: list[StationPoint]
+) -> MultiDiGraph:
+    for station in stations:
+        if station.platform is None:
+            node_id = station.identifier
+        else:
+            node_id = f"{station.identifier}:{station.platform}"
+        network = insert_node_to_network(network, station.point, node_id)
+    return network
+
+
+def insert_node_dict_to_network(
+    network: MultiDiGraph, stations: dict[str, list[StationPoint]]
+) -> MultiDiGraph:
+    nodes = []
+    for key in stations.keys():
+        nodes = nodes + stations[key]
+    return insert_nodes_to_network(network, nodes)
+
+
 def insert_station_node_to_network(
     conn: Connection,
     network: MultiDiGraph,
@@ -245,14 +268,20 @@ def insert_station_node_to_network(
             ],
         )
     print(f"Inserting {station_crs}")
-    points = get_station_points(conn, station_crs, station_platform)
-    for point in points:
-        if point.platform is None:
-            node_name = point.crs
-        else:
-            node_name = f"{point.crs}:{point.platform}"
-        network = insert_node_to_network(network, point.point, node_name)
-    return (network, points)
+    points = get_station_points_from_crses(
+        conn, [(station_crs, station_platform)]
+    )
+    station_point_list = []
+    for key in points.keys():
+        station_points = points[key]
+        for point in station_points:
+            if point.platform is None:
+                node_name = point.identifier
+            else:
+                node_name = f"{point.identifier}:{point.platform}"
+            network = insert_node_to_network(network, point.point, node_name)
+            station_point_list.append(point)
+    return (network, station_point_list)
 
 
 def find_path_between_stations(
@@ -262,7 +291,7 @@ def find_path_between_stations(
     origin_platform: Optional[str],
     destination_crs: str,
     destination_platform: Optional[str],
-) -> LineString:
+) -> tuple[MultiDiGraph, LineString]:
     (network, origin_points) = insert_station_node_to_network(
         conn, network, origin_crs, origin_platform
     )
@@ -270,7 +299,7 @@ def find_path_between_stations(
         conn, network, destination_crs, destination_platform
     )
     path = find_path_between_nodes(network, origin_points, destination_points)
-    return path
+    return (network, path)
 
 
 if __name__ == "__main__":
