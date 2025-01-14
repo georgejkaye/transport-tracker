@@ -557,16 +557,16 @@ $$;
 CREATE OR REPLACE FUNCTION GetStationPointsFromNames(
     p_stations StationNameAndPlatform[]
 )
-RETURNS SETOF StationAndPoints
+RETURNS SETOF StationNameAndPoints
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT station_crs, ARRAY_AGG(station_point)
+    SELECT station_name, ARRAY_AGG(station_point)
     FROM (
         SELECT
-            Station.station_crs,
+            Station.station_name,
             (platform, latitude, longitude)::StationLatLon AS station_point
         FROM StationPoint
         INNER JOIN Station
@@ -578,6 +578,6 @@ BEGIN
             ) unnest
         )
     ) points
-    GROUP BY station_crs;
+    GROUP BY station_name;
 END;
 $$;
