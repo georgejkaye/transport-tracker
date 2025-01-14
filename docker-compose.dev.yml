@@ -60,8 +60,10 @@ services:
       DB_PASSWORD: /run/secrets/db_secret
       DB_NAME: transport
       TIMEZONE: ${TIMEZONE}
+      NETWORK_PATH: /app/data/${NETWORK_FILE}
     volumes:
       - ./api/src:/app/src
+      - ./api/data:/app/data
     secrets:
       - rtt_secret
       - natrail_secret

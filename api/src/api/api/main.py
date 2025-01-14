@@ -1,4 +1,5 @@
 import uvicorn
+import osmnx as ox
 
 from datetime import datetime
 from typing import Optional
@@ -11,6 +12,7 @@ from api.data.environment import get_env_variable
 from api.data.leg import ShortLeg, select_legs
 from api.data.map import (
     StationPair,
+    get_leg_map_page_from_station_pair_list,
     make_leg_map_from_db,
     make_leg_map_from_station_pair_list,
 )
@@ -21,6 +23,9 @@ from api.data.stations import (
     select_station,
     select_stations,
 )
+
+network_path = get_env_variable("NETWORK_PATH")
+network = ox.load_graphml(network_path)
 
 app = FastAPI(
     title="Train tracker API",
@@ -98,7 +103,7 @@ async def get_train_map_from_year(year: int) -> str:
 async def get_train_map_from_data(data: list[StationPair]) -> str:
     with connect() as (conn, _):
         try:
-            return make_leg_map_from_station_pair_list(conn, data)
+            return get_leg_map_page_from_station_pair_list(network, conn, data)
         except RuntimeError:
             raise HTTPException(500, "Could not get all stations")
         except KeyError as e:
