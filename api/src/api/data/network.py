@@ -172,6 +172,7 @@ def insert_node_to_network(
     network: MultiDiGraph, point: Point, id: str
 ) -> MultiDiGraph:
     if network.has_node(id):
+        print(f"Network already has node {id}, skipping")
         return network
     edge = get_closest_edge_on_network_to_point(network, point)
     edge_geometry = edge.tags["geometry"]
@@ -292,6 +293,9 @@ def find_path_between_stations(
     destination_crs: str,
     destination_platform: Optional[str],
 ) -> tuple[MultiDiGraph, LineString]:
+    print(
+        f"{origin_crs}:{origin_platform} to {destination_crs}:{destination_platform}"
+    )
     (network, origin_points) = insert_station_node_to_network(
         conn, network, origin_crs, origin_platform
     )

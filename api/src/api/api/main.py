@@ -12,6 +12,7 @@ from api.data.environment import get_env_variable
 from api.data.leg import ShortLeg, select_legs
 from api.data.map import (
     StationPair,
+    get_leg_map_page,
     get_leg_map_page_from_station_pair_list,
     make_leg_map_from_db,
     make_leg_map_from_station_pair_list,
@@ -75,7 +76,7 @@ async def get_train_map_from_time_period(
 ) -> str:
     with connect() as (conn, _):
         try:
-            return make_leg_map_from_db(conn, start_date, end_date)
+            return get_leg_map_page(network, conn, start_date, end_date)
         except RuntimeError:
             raise HTTPException(500, "Could not get stats")
 
@@ -88,8 +89,8 @@ async def get_train_map_from_time_period(
 async def get_train_map_from_year(year: int) -> str:
     with connect() as (conn, _):
         try:
-            return make_leg_map_from_db(
-                conn, datetime(year, 1, 1), datetime(year, 12, 31)
+            return get_leg_map_page(
+                network, conn, datetime(year, 1, 1), datetime(year, 12, 31)
             )
         except RuntimeError:
             raise HTTPException(500, "Could not get stats")
