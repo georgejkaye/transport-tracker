@@ -537,17 +537,31 @@ BEGIN
     RETURN QUERY
     SELECT station_crs, ARRAY_AGG(station_point)
     FROM (
+        WITH
+            arr AS (SELECT * FROM unnest(p_stations)),
+            platform_match AS (
+                SELECT StationPoint.* FROM stationpoint
+                INNER JOIN arr
+                ON arr.station_crs = StationPoint.station_crs
+                AND arr.station_platform = StationPoint.platform
+            ),
+            station_match AS (
+                SELECT StationPoint.* FROM stationpoint
+                INNER JOIN arr
+                ON arr.station_crs = StationPoint.station_crs
+            )
         SELECT
             station_crs,
             (platform, latitude, longitude)::StationLatLon AS station_point
-        FROM StationPoint
-        WHERE (station_crs, platform) IN
-            (SELECT * FROM UNNEST(p_stations))
-        OR station_crs IN (
-            SELECT unnest.station_crs
-            FROM (
-                SELECT * FROM UNNEST(p_stations) WHERE station_platform IS NULL
-            ) unnest
+        FROM (
+            SELECT *
+            FROM platform_match
+            UNION
+            SELECT * FROM station_match
+            WHERE station_match.station_crs
+            NOT IN (
+                SELECT platform_match.station_crs FROM platform_match
+            )
         )
     ) points
     GROUP BY station_crs;
@@ -565,17 +579,37 @@ BEGIN
     RETURN QUERY
     SELECT station_name, ARRAY_AGG(station_point)
     FROM (
+        WITH
+            arr AS (SELECT * FROM unnest(p_stations)),
+            platform_match AS (
+                SELECT StationPoint.*, Station.station_name
+                FROM StationPoint
+                INNER JOIN Station
+                ON StationPoint.station_crs = Station.station_crs
+                INNER JOIN arr
+                ON arr.station_name = Station.station_name
+                AND arr.station_platform = StationPoint.platform
+            ),
+            station_match AS (
+                SELECT StationPoint.*, Station.station_name
+                FROM StationPoint
+                INNER JOIN Station
+                ON StationPoint.station_crs = Station.station_crs
+                INNER JOIN arr
+                ON arr.station_name = Station.station_name
+            )
         SELECT
-            Station.station_name,
+            station_name,
             (platform, latitude, longitude)::StationLatLon AS station_point
-        FROM StationPoint
-        INNER JOIN Station
-        ON Station.station_crs = StationPoint.station_crs
-        WHERE (station_name, platform) IN (SELECT * FROM UNNEST(p_stations))
-        OR station_name IN (
-            SELECT unnest.station_name FROM (
-                SELECT * FROM UNNEST(p_stations) WHERE station_platform IS NULL
-            ) unnest
+        FROM (
+            SELECT *
+            FROM platform_match
+            UNION
+            SELECT * FROM station_match
+            WHERE station_match.station_crs
+            NOT IN (
+                SELECT platform_match.station_crs FROM platform_match
+            )
         )
     ) points
     GROUP BY station_name;
