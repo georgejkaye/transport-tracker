@@ -11,6 +11,7 @@ from api.data.credentials import get_api_credentials
 from api.data.database import (
     connect,
     insert,
+    register_type,
     str_or_null_to_datetime,
 )
 from api.data.toperator import BrandData, OperatorData
@@ -647,26 +648,61 @@ def get_station_point_from_crs_and_platform(
 
 @dataclass
 class StationPoint:
-    crs: str
+    identifier: str
     platform: Optional[str]
     point: Point
 
 
-def get_station_points(
-    conn: Connection, station_crs: str, platform: Optional[str]
-) -> list[StationPoint]:
+@dataclass
+class StationLocation:
+    platform: Optional[str]
+    point: Point
+
+
+@dataclass
+class StationAndPlatform:
+    crs: str
+    platform: Optional[str]
+
+
+def get_station_point_dict(rows: list) -> dict[str, list[StationPoint]]:
+    station_point_dict = {}
+    for row in rows:
+        station_point_dict[row[0]] = [
+            StationPoint(row[0], point.platform, point.point)
+            for point in row[1]
+        ]
+    return station_point_dict
+
+
+def register_station_latlon(
+    platform: str, latitude: float, longitude: float
+) -> StationLocation:
+    return StationLocation(platform, Point(longitude, latitude))
+
+
+def get_station_points_from_crses(
+    conn: Connection, stations: list[tuple[str, Optional[str]]]
+) -> dict[str, list[StationPoint]]:
+    register_type(conn, "StationLatLon", register_station_latlon)
     rows = conn.execute(
-        "SELECT * FROM GetStationPoints(%s, %s)",
-        [station_crs.upper(), platform],
+        "SELECT * FROM GetStationPointsFromCrses(%s::StationCrsAndPlatform[])",
+        [stations],
     ).fetchall()
-    if rows is None:
-        raise RuntimeError(f"Could not find station with crs {station_crs}")
-    return [StationPoint(row[0], row[1], Point(row[3], row[2])) for row in rows]
+    return get_station_point_dict(rows)
+
+
+def get_station_points_from_names(
+    conn: Connection, stations: list[tuple[str, Optional[str]]]
+) -> dict[str, list[StationPoint]]:
+    register_type(conn, "StationLatLon", register_station_latlon)
+    rows = conn.execute(
+        "SELECT * FROM GetStationPointsFromNames(%s::StationNameAndPlatform[])",
+        [stations],
+    ).fetchall()
+    return get_station_point_dict(rows)
 
 
 if __name__ == "__main__":
     with connect() as (conn, cur):
-        get_station_lonlats_from_names(
-            conn,
-            ["University (Birmingham)", "Shirley", "Birmingham New Street"],
-        )
+        get_station_points_from_crses(conn, [("TAM", None), ("BHM", None)])
