@@ -110,7 +110,7 @@ def find_path_between_nodes(
     network: MultiDiGraph,
     sources: list[StationPoint],
     targets: list[StationPoint],
-) -> LineString:
+) -> Optional[LineString]:
     line_strings: list[LineString] = []
     for source in sources:
         for target in targets:
@@ -144,6 +144,8 @@ def find_path_between_nodes(
                     )
             line_string = merge_linestrings(this_line_strings)
             line_strings.append(line_string)
+    if len(line_strings) == 0:
+        return None
     return min(line_strings, key=lambda ls: shapely.length(ls))
 
 
@@ -292,7 +294,7 @@ def find_path_between_stations(
     origin_platform: Optional[str],
     destination_crs: str,
     destination_platform: Optional[str],
-) -> tuple[MultiDiGraph, LineString]:
+) -> tuple[MultiDiGraph, Optional[LineString]]:
     print(
         f"{origin_crs}:{origin_platform} to {destination_crs}:{destination_platform}"
     )

@@ -267,7 +267,7 @@ def get_linestring_for_leg(
 
 def get_linestring_for_station_pair(
     network: MultiDiGraph, conn: Connection, leg: StationPair
-) -> tuple[MultiDiGraph, LegLine]:
+) -> tuple[MultiDiGraph, Optional[LegLine]]:
     first_call = leg.alight_station
     second_call = leg.board_station
     station_points = get_station_points_from_names(
@@ -277,6 +277,8 @@ def get_linestring_for_station_pair(
     path = find_path_between_nodes(
         network, station_points[first_call], station_points[second_call]
     )
+    if path is None:
+        return (network, None)
     legline = LegLine(
         first_call,
         second_call,
