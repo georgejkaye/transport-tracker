@@ -97,7 +97,17 @@ def get_closest_edge_on_network_to_point(
 
 
 def get_edge_weight(source, target, edge_dict) -> float:
-    return edge_dict[0]["length"]
+    if edge_dict[0].get("maxspeed") is None:
+        max_speed = 1
+    else:
+        max_speed_value = edge_dict[0]["maxspeed"]
+        if isinstance(max_speed_value, str):
+            max_speed = int(max_speed_value.split(" ")[0])
+        else:
+            max_speed = max(
+                [int(string.split(" ")[0]) for string in max_speed_value]
+            )
+    return edge_dict[0]["length"] / (max_speed * max_speed)
 
 
 def get_node_name(point: StationPoint) -> str:
