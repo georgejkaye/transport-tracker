@@ -10,20 +10,20 @@ from api.data.stats import Stats, get_stats
 from api.data.database import connect
 from api.data.environment import get_env_variable
 from api.data.leg import ShortLeg, select_legs
-from api.data.map import (
-    StationPair,
-    get_leg_map_page,
-    get_leg_map_page_from_station_pair_list,
-    make_leg_map_from_db,
-    make_leg_map_from_station_pair_list,
-)
-
-
 from api.data.stations import (
     StationData,
     select_station,
+    select_station_from_crs,
     select_stations,
 )
+from api.data.map import (
+    LegLine,
+    StationPair,
+    get_leg_map_page,
+    get_leg_map_page_from_station_pair_list,
+    make_leg_map,
+)
+from api.data.network import find_path_between_stations
 
 network_path = get_env_variable("NETWORK_PATH")
 network = ox.load_graphml(network_path)
@@ -112,6 +112,48 @@ async def get_train_map_from_data(data: list[StationPair]) -> str:
                 422,
                 f"Could not find station {str(e)}; please use the station name as it appears on RealTime Trains",
             )
+
+
+@app.get(
+    "/train/route",
+    summary="Get route between two stations",
+    response_class=HTMLResponse,
+)
+async def get_route_between_stations(
+    from_crs: str,
+    to_crs: str,
+    from_platform: Optional[str] = None,
+    to_platform: Optional[str] = None,
+) -> str:
+    with connect() as (conn, cur):
+        from_station = select_station_from_crs(cur, from_crs)
+        if from_station is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Could not find station for code {from_crs}",
+            )
+        to_station = select_station_from_crs(cur, to_crs)
+        if to_station is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Could not find station for code {to_crs}",
+            )
+        (_, path) = find_path_between_stations(
+            network, conn, from_crs, from_platform, to_crs, to_platform
+        )
+        if path is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Could not find a route between these stations",
+            )
+        return make_leg_map(
+            [],
+            [
+                LegLine(
+                    from_station.name, to_station.name, path, "#000000", 0, 0
+                )
+            ],
+        )
 
 
 @app.get("/train/legs", summary="Get legs")
