@@ -1,5 +1,4 @@
 import uvicorn
-import osmnx as ox
 
 from datetime import datetime
 from typing import Optional
@@ -12,21 +11,20 @@ from api.data.environment import get_env_variable
 from api.data.leg import ShortLeg, select_legs
 from api.data.stations import (
     StationData,
+    get_station_points_from_crses,
     select_station,
     select_station_from_crs,
     select_stations,
 )
 from api.data.map import (
     LegLine,
-    StationPair,
-    get_leg_map_page,
-    get_leg_map_page_from_station_pair_list,
     make_leg_map,
 )
-from api.data.network import find_path_between_stations
+from api.data.network import find_shortest_path_between_stations
 
-network_path = get_env_variable("NETWORK_PATH")
-network = ox.load_graphml(network_path)
+from api.api.network import network
+from api.api.routers.train import train
+
 
 app = FastAPI(
     title="Train tracker API",
@@ -42,6 +40,8 @@ app = FastAPI(
         "url": "https://www.gnu.org/licenses/gpl-3.0.en.html",
     },
 )
+
+app.include_router(train.router)
 
 
 @app.get("/train", summary="Get train stats across an optional range")
@@ -64,54 +64,6 @@ async def get_train_stats_from_year(
             return get_stats(conn, datetime(year, 1, 1), datetime(year, 12, 31))
         except RuntimeError:
             raise HTTPException(500, "Could not get stats")
-
-
-@app.get(
-    "/train/map",
-    summary="Get map of train journeys across a time period",
-    response_class=HTMLResponse,
-)
-async def get_train_map_from_time_period(
-    start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
-) -> str:
-    with connect() as (conn, _):
-        try:
-            return get_leg_map_page(network, conn, start_date, end_date)
-        except RuntimeError:
-            raise HTTPException(500, "Could not get stats")
-
-
-@app.get(
-    "/train/map/year/{year}",
-    summary="Get map of train journeys across a year",
-    response_class=HTMLResponse,
-)
-async def get_train_map_from_year(year: int) -> str:
-    with connect() as (conn, _):
-        try:
-            return get_leg_map_page(
-                network, conn, datetime(year, 1, 1), datetime(year, 12, 31)
-            )
-        except RuntimeError:
-            raise HTTPException(500, "Could not get stats")
-
-
-@app.post(
-    "/train/map/data",
-    summary="Get map of train journeys from a data set",
-    response_class=HTMLResponse,
-)
-async def get_train_map_from_data(data: list[StationPair]) -> str:
-    with connect() as (conn, _):
-        try:
-            return get_leg_map_page_from_station_pair_list(network, conn, data)
-        except RuntimeError:
-            raise HTTPException(500, "Could not get all stations")
-        except KeyError as e:
-            raise HTTPException(
-                422,
-                f"Could not find station {str(e)}; please use the station name as it appears on RealTime Trains",
-            )
 
 
 @app.get(
@@ -138,8 +90,17 @@ async def get_route_between_stations(
                 status_code=404,
                 detail=f"Could not find station for code {to_crs}",
             )
-        (_, path) = find_path_between_stations(
-            network, conn, from_crs, from_platform, to_crs, to_platform
+        station_points = get_station_points_from_crses(
+            conn, [(from_crs, from_platform), (to_crs, to_platform)]
+        )
+        (_, path) = find_shortest_path_between_stations(
+            network,
+            conn,
+            from_crs,
+            from_platform,
+            to_crs,
+            to_platform,
+            station_points,
         )
         if path is None:
             raise HTTPException(
