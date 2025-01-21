@@ -282,10 +282,6 @@ CREATE TYPE StationNameAndPlatform AS (
 
 CREATE TYPE StationAndPoints AS (
     station_crs CHARACTER(3),
-    station_points StationLatLon[]
-);
-
-CREATE TYPE StationNameAndPoints AS (
     station_name TEXT,
     station_points StationLatLon[]
 );

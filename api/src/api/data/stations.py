@@ -665,13 +665,16 @@ class StationAndPlatform:
     platform: Optional[str]
 
 
-def get_station_point_dict(rows: list) -> dict[str, list[StationPoint]]:
+def get_station_point_dict(
+    rows: list,
+) -> dict[str, dict[Optional[str], StationPoint]]:
     station_point_dict = {}
     for row in rows:
-        station_point_dict[row[0]] = [
-            StationPoint(row[0], point.platform, point.point)
-            for point in row[1]
-        ]
+        station_point_dict[row[0]] = {}
+        for point in row[2]:
+            station_point_dict[row[0]][point.platform] = StationPoint(
+                row[0], point.platform, point.point
+            )
     return station_point_dict
 
 
@@ -681,9 +684,17 @@ def register_station_latlon(
     return StationLocation(platform, Point(longitude, latitude))
 
 
+def get_station_points(
+    conn: Connection,
+) -> dict[str, dict[Optional[str], StationPoint]]:
+    register_type(conn, "StationLatLon", register_station_latlon)
+    rows = conn.execute("SELECT * FROM GetStationPoints()").fetchall()
+    return get_station_point_dict(rows)
+
+
 def get_station_points_from_crses(
     conn: Connection, stations: list[tuple[str, Optional[str]]]
-) -> dict[str, list[StationPoint]]:
+) -> dict[str, dict[Optional[str], StationPoint]]:
     register_type(conn, "StationLatLon", register_station_latlon)
     rows = conn.execute(
         "SELECT * FROM GetStationPointsFromCrses(%s::StationCrsAndPlatform[])",
@@ -694,13 +705,24 @@ def get_station_points_from_crses(
 
 def get_station_points_from_names(
     conn: Connection, stations: list[tuple[str, Optional[str]]]
-) -> dict[str, list[StationPoint]]:
+) -> dict[str, dict[Optional[str], StationPoint]]:
     register_type(conn, "StationLatLon", register_station_latlon)
     rows = conn.execute(
         "SELECT * FROM GetStationPointsFromNames(%s::StationNameAndPlatform[])",
         [stations],
     ).fetchall()
     return get_station_point_dict(rows)
+
+
+def get_relevant_station_points(
+    station_crs: str,
+    platform: Optional[str],
+    station_points: dict[str, dict[Optional[str], StationPoint]],
+) -> list[StationPoint]:
+    crs_points = station_points[station_crs]
+    if platform is None:
+        return [crs_points[key] for key in crs_points.keys()]
+    return [crs_points[platform]]
 
 
 if __name__ == "__main__":

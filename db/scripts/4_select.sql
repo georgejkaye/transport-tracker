@@ -535,70 +535,29 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT station_crs, ARRAY_AGG(station_point)
+    SELECT points.station_crs, station_name, ARRAY_AGG(station_point)
     FROM (
         WITH
             arr AS (SELECT * FROM unnest(p_stations)),
             platform_match AS (
-                SELECT StationPoint.* FROM stationpoint
+                SELECT StationPoint.*, station_name
+                FROM StationPoint
                 INNER JOIN arr
                 ON arr.station_crs = StationPoint.station_crs
                 AND arr.station_platform = StationPoint.platform
+                INNER JOIN Station
+                ON Station.station_crs = StationPoint.station_crs
             ),
             station_match AS (
-                SELECT StationPoint.* FROM stationpoint
+                SELECT StationPoint.*, station_name
+                FROM StationPoint
                 INNER JOIN arr
                 ON arr.station_crs = StationPoint.station_crs
+                INNER JOIN Station
+                ON Station.station_crs = StationPoint.station_crs
             )
         SELECT
             station_crs,
-            (platform, latitude, longitude)::StationLatLon AS station_point
-        FROM (
-            SELECT *
-            FROM platform_match
-            UNION
-            SELECT * FROM station_match
-            WHERE station_match.station_crs
-            NOT IN (
-                SELECT platform_match.station_crs FROM platform_match
-            )
-        )
-    ) points
-    GROUP BY station_crs;
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION GetStationPointsFromNames(
-    p_stations StationNameAndPlatform[]
-)
-RETURNS SETOF StationNameAndPoints
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    RETURN QUERY
-    SELECT station_name, ARRAY_AGG(station_point)
-    FROM (
-        WITH
-            arr AS (SELECT * FROM unnest(p_stations)),
-            platform_match AS (
-                SELECT StationPoint.*, Station.station_name
-                FROM StationPoint
-                INNER JOIN Station
-                ON StationPoint.station_crs = Station.station_crs
-                INNER JOIN arr
-                ON arr.station_name = Station.station_name
-                AND arr.station_platform = StationPoint.platform
-            ),
-            station_match AS (
-                SELECT StationPoint.*, Station.station_name
-                FROM StationPoint
-                INNER JOIN Station
-                ON StationPoint.station_crs = Station.station_crs
-                INNER JOIN arr
-                ON arr.station_name = Station.station_name
-            )
-        SELECT
             station_name,
             (platform, latitude, longitude)::StationLatLon AS station_point
         FROM (
@@ -612,6 +571,76 @@ BEGIN
             )
         )
     ) points
-    GROUP BY station_name;
+    GROUP BY (station_crs, station_name);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetStationPointsFromNames(
+    p_stations StationNameAndPlatform[]
+)
+RETURNS SETOF StationAndPoints
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT station_crs, station_name, ARRAY_AGG(station_point)
+    FROM (
+        WITH
+            arr AS (SELECT * FROM unnest(p_stations)),
+            platform_match AS (
+                SELECT StationPoint.*, Station.station_name
+                FROM StationPoint
+                INNER JOIN Station
+                ON StationPoint.station_crs = Station.station_crs
+                INNER JOIN arr
+                ON arr.station_name = Station.station_name
+                AND arr.station_platform = StationPoint.platform
+            ),
+            station_match AS (
+                SELECT StationPoint.*, Station.station_name
+                FROM StationPoint
+                INNER JOIN Station
+                ON StationPoint.station_crs = Station.station_crs
+                INNER JOIN arr
+                ON arr.station_name = Station.station_name
+            )
+        SELECT
+            station_crs,
+            station_name,
+            (platform, latitude, longitude)::StationLatLon AS station_point
+        FROM (
+            SELECT *
+            FROM platform_match
+            UNION
+            SELECT * FROM station_match
+            WHERE station_match.station_crs
+            NOT IN (
+                SELECT platform_match.station_crs FROM platform_match
+            )
+        )
+    ) points
+    GROUP BY (station_crs, station_name);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetStationPoints()
+RETURNS SETOF StationAndPoints
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT station_crs, station_name, ARRAY_AGG(station_point)
+    FROM (
+        SELECT
+            StationPoint.station_crs,
+            station_name,
+            (platform, latitude, longitude)::StationLatLon AS station_point
+        FROM StationPoint
+        INNER JOIN Station
+        ON StationPoint.station_crs = Station.station_crs
+    )
+    GROUP BY (station_crs, station_name);
 END;
 $$;
