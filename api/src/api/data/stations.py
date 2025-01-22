@@ -1,10 +1,10 @@
-from decimal import Decimal
 import xml.etree.ElementTree as ET
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional
 from psycopg import Connection, Cursor
+from shapely import Point
 
 from api.data.core import get_tag_text, make_get_request, prefix_namespace
 from api.data.credentials import get_api_credentials
@@ -21,7 +21,6 @@ from api.data.train import (
     get_natrail_token_headers,
 )
 from api.times import get_datetime_route, get_hourmin_string
-from shapely import Point
 
 
 @dataclass
@@ -598,7 +597,7 @@ def select_station(cur: Cursor, station_crs: str) -> Optional[StationData]:
     return result[0]
 
 
-def get_station_lonlats_from_names(
+def get_station_coordinates_from_names(
     conn: Connection, station_names: list[str]
 ) -> dict[str, Point]:
     rows = conn.execute(
@@ -612,8 +611,12 @@ def get_station_lonlats_from_names(
     return lonlat_dict
 
 
-def get_station_lonlat_from_name(conn: Connection, station_name: str) -> Point:
-    return get_station_lonlats_from_names(conn, [station_name])[station_name]
+def get_station_coordinates_from_name(
+    conn: Connection, station_name: str
+) -> Point:
+    return get_station_coordinates_from_names(conn, [station_name])[
+        station_name
+    ]
 
 
 def get_station_lonlats_from_crses(
@@ -720,7 +723,7 @@ def get_relevant_station_points(
     station_points: dict[str, dict[Optional[str], StationPoint]],
 ) -> list[StationPoint]:
     crs_points = station_points[station_crs]
-    if platform is None:
+    if platform is None or crs_points.get(platform) is None:
         return [crs_points[key] for key in crs_points.keys()]
     return [crs_points[platform]]
 

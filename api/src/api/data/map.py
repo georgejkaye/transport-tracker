@@ -1,13 +1,7 @@
 import json
 import folium
+import shapely
 
-from api.data.leg import ShortLeg, get_operator_colour_from_leg, select_legs
-from api.data.network import (
-    find_paths_between_stations,
-    find_shortest_path_between_multiple_nodes,
-    insert_node_dict_to_network,
-    merge_linestrings,
-)
 from bs4 import BeautifulSoup
 from dataclasses import dataclass
 from datetime import datetime
@@ -22,12 +16,18 @@ from shapely import LineString, Point
 from api.data.database import connect
 from api.data.stations import (
     StationPoint,
-    get_relevant_station_points,
-    get_station_lonlats_from_names,
+    get_station_coordinates_from_names,
     get_station_points_from_crses,
     get_station_points_from_names,
 )
 from api.api.network import network
+from api.data.leg import ShortLeg, get_operator_colour_from_leg, select_legs
+from api.data.network import (
+    find_path_between_nodes,
+    find_shortest_path_between_multiple_nodes,
+    insert_node_dict_to_network,
+    merge_linestrings,
+)
 
 
 @dataclass
@@ -141,7 +141,7 @@ def make_leg_map_from_station_pair_list(
         alight_station = pair.alight_station
         stations.add(board_station)
         stations.add(alight_station)
-    station_lat_lons = get_station_lonlats_from_names(conn, list(stations))
+    station_lat_lons = get_station_coordinates_from_names(conn, list(stations))
     for pair in station_pair_data:
         board_station = pair.board_station
         alight_station = pair.alight_station
@@ -234,55 +234,48 @@ def make_leg_map_from_linestrings(
     return make_leg_map(map_points, leg_lines)
 
 
-@dataclass
-class RouteNode:
-    station: StationPoint
-    nexts: list[tuple["RouteNode", LineString]]
-
-
 def get_linestring_for_leg(
     network: MultiDiGraph,
-    conn: Connection,
     leg: ShortLeg,
     station_points: dict[str, dict[Optional[str], StationPoint]],
-) -> tuple[MultiDiGraph, LegLine]:
-    print(
-        f"Making leg string for {leg.calls[0].station.name} to {leg.calls[-1].station.name}"
-    )
+) -> Optional[LegLine]:
     leg_calls = leg.calls
-    board_call = leg_calls[0]
-    paths_between_calls = [
-        RouteNode(point, [])
-        for point in get_relevant_station_points(
-            board_call.station.crs, board_call.platform, station_points
+    complete_paths: list[tuple[StationPoint, Optional[LineString]]] = []
+    for platform_key in station_points[leg_calls[0].station.crs].keys():
+        complete_paths.append(
+            (
+                station_points[leg_calls[0].station.crs][platform_key],
+                None,
+            )
         )
-    ]
-    for i in range(0, len(leg_calls) - 1):
-        first_call = leg_calls[i]
-        second_call = leg_calls[i + 1]
-        (new_network, paths) = find_paths_between_stations(
-            network,
-            conn,
-            first_call.station.crs,
-            first_call.platform,
-            second_call.station.crs,
-            second_call.platform,
-            station_points,
-        )
-        network = new_network
-        for complete_path in paths_between_calls:
-            for this_path in paths:
-    complete_path = merge_linestrings(paths)
-    return (
-        network,
-        LegLine(
-            leg.calls[0].station.name,
-            leg.calls[-1].station.name,
-            complete_path,
-            get_operator_colour_from_leg(leg),
-            0,
-            0,
-        ),
+    for call in leg_calls[1:]:
+        call_paths = []
+        points_to_test = station_points[call.station.crs]
+        for platform_key in points_to_test.keys():
+            platform_paths = []
+            point_to_test = points_to_test[platform_key]
+            for station, complete_path in complete_paths:
+                path = find_path_between_nodes(network, station, point_to_test)
+                if path is not None:
+                    if complete_path is None:
+                        new_path = path
+                    else:
+                        new_path = merge_linestrings([complete_path, path])
+                    platform_paths.append((point_to_test, new_path))
+            call_paths = call_paths + platform_paths
+        complete_paths = call_paths
+    complete_path = min(
+        complete_paths, key=lambda result: shapely.length(result[1])
+    )[1]
+    if complete_path is None:
+        return None
+    return LegLine(
+        leg.calls[0].station.name,
+        leg.calls[-1].station.name,
+        complete_path,
+        get_operator_colour_from_leg(leg),
+        0,
+        0,
     )
 
 
@@ -308,7 +301,7 @@ def get_linestring_for_station_pair(
     )
     if path is None:
         return (network, None)
-    legline = LegLine(
+    leg_line = LegLine(
         first_call,
         second_call,
         path,
@@ -316,25 +309,24 @@ def get_linestring_for_station_pair(
         0,
         0,
     )
-    return (network, legline)
+    return (network, leg_line)
 
 
-def get_leglines_for_legs(
+def get_leg_lines_for_legs(
     network: MultiDiGraph,
     conn: Connection,
     legs: list[ShortLeg],
     station_points: dict[str, dict[Optional[str], StationPoint]],
-) -> tuple[MultiDiGraph, list[LegLine]]:
+) -> list[LegLine]:
     leg_strings = []
     for leg in legs:
-        (network, legstring) = get_linestring_for_leg(
-            network, conn, leg, station_points
-        )
-        leg_strings.append(legstring)
-    return (network, leg_strings)
+        leg_string = get_linestring_for_leg(network, leg, station_points)
+        if leg_string is not None:
+            leg_strings.append(leg_string)
+    return leg_strings
 
 
-def get_leglines_for_station_pairs(
+def get_leg_lines_for_station_pairs(
     network: MultiDiGraph, conn: Connection, legs: list[StationPair]
 ) -> tuple[MultiDiGraph, list[LegLine]]:
     leg_strings = []
@@ -359,9 +351,7 @@ def get_leg_map_page(
         for call in leg.calls:
             stations.append((call.station.crs, call.platform))
     station_points = get_station_points_from_crses(conn, stations)
-    (network, leg_lines) = get_leglines_for_legs(
-        network, conn, legs, station_points
-    )
+    leg_lines = get_leg_lines_for_legs(network, conn, legs, station_points)
     html = make_leg_map([], leg_lines)
     return html
 
@@ -369,7 +359,7 @@ def get_leg_map_page(
 def get_leg_map_page_from_station_pair_list(
     network: MultiDiGraph, conn: Connection, legs: list[StationPair]
 ) -> str:
-    (network, leg_lines) = get_leglines_for_station_pairs(network, conn, legs)
+    (network, leg_lines) = get_leg_lines_for_station_pairs(network, conn, legs)
     html = make_leg_map([], leg_lines)
     return html
 
@@ -392,4 +382,4 @@ if __name__ == "__main__":
         station_points = get_station_points_from_crses(
             conn, [(call.station.crs, call.platform) for call in leg[0].calls]
         )
-        get_linestring_for_leg(network, conn, leg[0], station_points)
+        get_linestring_for_leg(network, leg[0], station_points)
