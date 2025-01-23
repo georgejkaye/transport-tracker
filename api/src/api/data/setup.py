@@ -1,4 +1,5 @@
 import sys
+from api.interactive import input_confirm
 import osmnx as ox
 
 from api.data.database import connect
@@ -10,7 +11,12 @@ from api.data.network import (
 )
 from api.data.stations import get_station_points
 
-network = get_railway_network(["Great Britain"])
+input = input_confirm("Download network?", default=False)
+
+if input:
+    network = get_railway_network(["Great Britain"])
+else:
+    network = ox.load_graphml(sys.argv[1])
 
 projected_network = ox.project_graph(network, to_crs=osgb36)
 
@@ -30,4 +36,4 @@ with connect() as (conn, _):
         )[0]
 
 new_network = ox.project_graph(projected_network, to_crs=wgs84)
-ox.save_graphml(new_network, sys.argv[2])
+ox.save_graphml(new_network, sys.argv[1])
