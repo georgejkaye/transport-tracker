@@ -578,49 +578,94 @@ $$;
 CREATE OR REPLACE FUNCTION GetStationPointsFromNames(
     p_stations StationNameAndPlatform[]
 )
-RETURNS SETOF StationAndPoints
+RETURNS SETOF StationNameAndPoints
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT station_crs, station_name, ARRAY_AGG(station_point)
+    SELECT points.station_crs, points.station_name, points.search_name, ARRAY_AGG(points.station_point)
     FROM (
         WITH
             arr AS (SELECT * FROM unnest(p_stations)),
             platform_match AS (
-                SELECT StationPoint.*, Station.station_name
-                FROM StationPoint
-                INNER JOIN Station
-                ON StationPoint.station_crs = Station.station_crs
+                SELECT
+                    names.station_crs,
+                    names.station_name,
+                    names.platform,
+                    latitude,
+                    longitude
+                FROM ((
+                    SELECT StationPoint.*, Station.station_name
+                    FROM StationPoint
+                    INNER JOIN Station
+                    ON StationPoint.station_crs = Station.station_crs
+                ) UNION (
+                    SELECT StationPoint.*, StationName.alternate_station_name AS station_name
+                    FROM StationPoint
+                    INNER JOIN Station
+                    ON StationPoint.station_crs = Station.station_crs
+                    INNER JOIN StationName
+                    ON StationPoint.station_crs = StationName.station_crs
+                )) names
                 INNER JOIN arr
-                ON arr.station_name = Station.station_name
-                AND arr.station_platform = StationPoint.platform
+                ON arr.station_name = names.station_name
+                AND arr.station_platform = names.platform
             ),
             station_match AS (
-                SELECT StationPoint.*, Station.station_name
-                FROM StationPoint
-                INNER JOIN Station
-                ON StationPoint.station_crs = Station.station_crs
+                SELECT
+                    names.station_crs,
+                    names.station_name,
+                    names.platform,
+                    latitude,
+                    longitude
+                FROM ((
+                    SELECT StationPoint.*, Station.station_name
+                    FROM StationPoint
+                    INNER JOIN Station
+                    ON StationPoint.station_crs = Station.station_crs
+                ) UNION (
+                    SELECT StationPoint.*, StationName.alternate_station_name AS station_name
+                    FROM StationPoint
+                    INNER JOIN Station
+                    ON StationPoint.station_crs = Station.station_crs
+                    INNER JOIN StationName
+                    ON StationPoint.station_crs = StationName.station_crs
+                )) names
                 INNER JOIN arr
-                ON arr.station_name = Station.station_name
+                ON arr.station_name = names.station_name
+                WHERE station_crs
+                NOT IN (
+                    SELECT platform_match.station_crs FROM platform_match
+                )
             )
         SELECT
-            station_crs,
-            station_name,
-            (platform, latitude, longitude)::StationLatLon AS station_point
-        FROM (
-            SELECT *
+            Station.station_crs,
+            Station.station_name,
+            Match.station_name AS search_name,
+            (platform, latitude, longitude)::StationLatLon
+            AS station_point
+        FROM ((
+            SELECT
+                platform_match.station_crs,
+                platform_match.station_name,
+                platform_match.platform,
+                platform_match.latitude,
+                platform_match.longitude
             FROM platform_match
-            UNION
-            SELECT * FROM station_match
-            WHERE station_match.station_crs
-            NOT IN (
-                SELECT platform_match.station_crs FROM platform_match
-            )
-        )
+        ) UNION (
+            SELECT
+                station_match.station_crs,
+                station_match.station_name,
+                station_match.platform,
+                station_match.latitude,
+                station_match.longitude
+            FROM station_match
+        )) Match
+        INNER JOIN Station
+        ON Station.station_crs = Match.station_crs
     ) points
-    GROUP BY (station_crs, station_name);
+    GROUP BY (station_crs, station_name, search_name);
 END;
 $$;
 

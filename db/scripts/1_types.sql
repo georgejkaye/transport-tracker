@@ -285,3 +285,10 @@ CREATE TYPE StationAndPoints AS (
     station_name TEXT,
     station_points StationLatLon[]
 );
+
+CREATE TYPE StationNameAndPoints AS (
+    station_crs CHARACTER(3),
+    station_name TEXT,
+    search_name TEXT,
+    station_points StationLatLon[]
+);

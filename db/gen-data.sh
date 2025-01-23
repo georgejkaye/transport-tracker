@@ -11,6 +11,7 @@ PGPASSWORD=$PASSWORD pg_dump --column-inserts --data-only \
     --table=stockformation \
     --table=operatorstock \
     --table=station \
+    --table=stationname \
     --table=stationpoint \
     --table=service \
     --table=serviceendpoint \

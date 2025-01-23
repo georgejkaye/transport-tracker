@@ -88,6 +88,12 @@ CREATE TABLE Station (
     CONSTRAINT valid_brand CHECK (IsValidBrand(brand_id, operator_id))
 );
 
+CREATE TABLE StationName (
+    station_crs CHARACTER(3) NOT NULL,
+    alternate_station_name TEXT NOT NULL,
+    FOREIGN KEY (station_crs) REFERENCES Station(station_crs)
+);
+
 CREATE TABLE StationPoint (
     station_crs CHARACTER(3),
     platform TEXT,
