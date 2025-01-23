@@ -1,25 +1,23 @@
 from datetime import datetime
 from typing import Optional
-from api.data.leg import select_legs
-from api.data.stations import (
-    get_station_points_from_crses,
-    select_station_from_crs,
-)
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
 from api.data import network
+from api.data.stations import (
+    get_station_points_from_crses,
+    select_station_from_crs,
+)
 from api.data.database import connect
 from api.data.map import (
+    LegData,
     LegLine,
-    StationPair,
     get_leg_map_page,
-    get_leg_map_page_from_station_pair_list,
+    get_leg_map_page_from_leg_data,
     make_leg_map,
 )
 from api.data.network import find_shortest_path_between_stations
 from api.api.network import network
-from urllib3 import HTTPResponse
 
 router = APIRouter(prefix="/map")
 
@@ -59,17 +57,8 @@ async def get_train_map_from_year(year: int) -> str:
     summary="Get map of train journeys from a data set",
     response_class=HTMLResponse,
 )
-async def get_train_map_from_data(data: list[StationPair]) -> str:
-    with connect() as (conn, _):
-        try:
-            return get_leg_map_page_from_station_pair_list(network, conn, data)
-        except RuntimeError:
-            raise HTTPException(500, "Could not get all stations")
-        except KeyError as e:
-            raise HTTPException(
-                422,
-                f"Could not find station {str(e)}; please use the station name as it appears on RealTime Trains",
-            )
+async def get_train_map_from_data(legs: list[LegData]) -> str:
+    return get_leg_map_page_from_leg_data(network, legs)
 
 
 @router.get(
