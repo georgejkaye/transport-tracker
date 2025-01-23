@@ -422,6 +422,8 @@ def get_unit_report(
                 stock_cars = None
             case PickSingle(form):
                 stock_cars = form
+    else:
+        return None
     return StockReport(
         stock_class_no, stock_subclass_no, stock_unit_no, stock_cars
     )
