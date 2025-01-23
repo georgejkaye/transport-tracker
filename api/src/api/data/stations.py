@@ -651,7 +651,7 @@ def get_station_point_from_crs_and_platform(
 
 @dataclass
 class StationPoint:
-    identifier: str
+    crs: str
     platform: Optional[str]
     point: Point
 
@@ -669,14 +669,14 @@ class StationAndPlatform:
 
 
 def get_station_point_dict(
-    rows: list,
+    rows: list, crs_index: int, point_index: int
 ) -> dict[str, dict[Optional[str], StationPoint]]:
     station_point_dict = {}
     for row in rows:
-        station_point_dict[row[0]] = {}
-        for point in row[2]:
-            station_point_dict[row[0]][point.platform] = StationPoint(
-                row[0], point.platform, point.point
+        station_point_dict[row[crs_index]] = {}
+        for point in row[point_index]:
+            station_point_dict[row[crs_index]][point.platform] = StationPoint(
+                row[crs_index], point.platform, point.point
             )
     return station_point_dict
 
@@ -692,7 +692,7 @@ def get_station_points(
 ) -> dict[str, dict[Optional[str], StationPoint]]:
     register_type(conn, "StationLatLon", register_station_latlon)
     rows = conn.execute("SELECT * FROM GetStationPoints()").fetchall()
-    return get_station_point_dict(rows)
+    return get_station_point_dict(rows, 0, 2)
 
 
 def get_station_points_from_crses(
@@ -703,18 +703,23 @@ def get_station_points_from_crses(
         "SELECT * FROM GetStationPointsFromCrses(%s::StationCrsAndPlatform[])",
         [stations],
     ).fetchall()
-    return get_station_point_dict(rows)
+    return get_station_point_dict(rows, 0, 2)
 
 
 def get_station_points_from_names(
     conn: Connection, stations: list[tuple[str, Optional[str]]]
-) -> dict[str, dict[Optional[str], StationPoint]]:
+) -> tuple[
+    dict[str, ShortTrainStation], dict[str, dict[Optional[str], StationPoint]]
+]:
     register_type(conn, "StationLatLon", register_station_latlon)
     rows = conn.execute(
         "SELECT * FROM GetStationPointsFromNames(%s::StationNameAndPlatform[])",
         [stations],
     ).fetchall()
-    return get_station_point_dict(rows)
+    name_to_station_dict = {}
+    for row in rows:
+        name_to_station_dict[row[2]] = ShortTrainStation(row[1], row[0])
+    return (name_to_station_dict, get_station_point_dict(rows, 0, 3))
 
 
 def get_relevant_station_points(
@@ -726,8 +731,3 @@ def get_relevant_station_points(
     if platform is None or crs_points.get(platform) is None:
         return [crs_points[key] for key in crs_points.keys()]
     return [crs_points[platform]]
-
-
-if __name__ == "__main__":
-    with connect() as (conn, cur):
-        get_station_points_from_crses(conn, [("TAM", None), ("BHM", None)])

@@ -1,3 +1,4 @@
+from api.data.leg import ShortLeg
 import shapely
 import networkx as nx
 import osmnx as ox
@@ -11,7 +12,6 @@ from psycopg import Connection
 from shapely import LineString, Point
 from shapely import geometry, ops
 from geopandas import GeoDataFrame
-
 from api.data.stations import (
     StationPoint,
     get_relevant_station_points,
@@ -187,17 +187,24 @@ def get_node_id_from_crs_and_platform(crs: str, platform: Optional[str]) -> int:
 
 
 def get_node_id_from_station_point(point: StationPoint) -> int:
-    return get_node_id_from_crs_and_platform(point.identifier, point.platform)
+    return get_node_id_from_crs_and_platform(point.crs, point.platform)
 
 
 def find_path_between_nodes(
     network: MultiDiGraph, source: StationPoint, target: StationPoint
 ) -> Optional[LineString]:
+    source_id = get_node_id_from_station_point(source)
+    target_id = get_node_id_from_station_point(target)
+    if not network.has_node(source_id):
+        insert_node_to_network(
+            network, source.point, source_id, project_network=False
+        )
+    if not network.has_node(target_id):
+        insert_node_to_network(
+            network, target.point, target_id, project_network=False
+        )
     path = nx.shortest_path(
-        network,
-        get_node_id_from_station_point(source),
-        get_node_id_from_station_point(target),
-        weight=get_edge_weight,
+        network, source_id, target_id, weight=get_edge_weight
     )
     line_strings = []
     for i in range(0, len(path) - 1):
@@ -478,3 +485,43 @@ def find_shortest_path_between_stations(
     )
     shortest_path = get_shortest_linestring(paths)
     return shortest_path
+
+
+def get_linestring_for_leg(
+    network: MultiDiGraph,
+    leg: ShortLeg,
+    station_points: dict[str, dict[Optional[str], StationPoint]],
+) -> Optional[LineString]:
+    leg_calls = leg.calls
+    complete_paths: list[tuple[StationPoint, Optional[LineString]]] = []
+    for platform_key in station_points[leg_calls[0].station.crs].keys():
+        complete_paths.append(
+            (
+                station_points[leg_calls[0].station.crs][platform_key],
+                None,
+            )
+        )
+    for call in leg_calls[1:]:
+        call_paths = []
+        points_to_test = station_points[call.station.crs]
+        for platform_key in points_to_test.keys():
+            platform_paths = []
+            point_to_test = points_to_test[platform_key]
+            for station, complete_path in complete_paths:
+                path = find_path_between_nodes(network, station, point_to_test)
+                if path is not None:
+                    if complete_path is None:
+                        new_path = path
+                    else:
+                        new_path = merge_linestrings([complete_path, path])
+                    platform_paths.append((point_to_test, new_path))
+            call_paths = call_paths + platform_paths
+        complete_paths = call_paths
+    complete_path = min(
+        complete_paths,
+        default=None,
+        key=lambda result: shapely.length(result[1]),
+    )
+    if complete_path is None:
+        return None
+    return complete_path[1]
