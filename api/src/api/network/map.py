@@ -1,4 +1,8 @@
 import json
+from api.network.pathfinding import (
+    find_shortest_path_between_stations,
+    get_linestring_for_leg,
+)
 import folium
 
 from bs4 import BeautifulSoup
@@ -12,19 +16,13 @@ from typing import Optional
 from pydantic import Field
 from shapely import LineString, Point
 
-from api.data.database import connect
+from api.utils.database import connect
 from api.data.stations import (
     StationPoint,
     get_station_points_from_crses,
     get_station_points_from_names,
 )
-from api.api.network import network
 from api.data.leg import ShortLeg, get_operator_colour_from_leg, select_legs
-from api.data.network import (
-    find_shortest_path_between_stations,
-    get_linestring_for_leg,
-    insert_node_dict_to_network,
-)
 
 
 @dataclass
@@ -45,7 +43,7 @@ class LegLine:
     count_rl: int
 
 
-def make_leg_map(map_points: list[MapPoint], leg_lines: list[LegLine]) -> str:
+def get_leg_map(map_points: list[MapPoint], leg_lines: list[LegLine]) -> str:
     m = folium.Map(
         tiles="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
         attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
@@ -74,7 +72,7 @@ def make_leg_map(map_points: list[MapPoint], leg_lines: list[LegLine]) -> str:
     return m.get_root().render()
 
 
-def make_leg_map_from_gml(gml_data: BeautifulSoup) -> str:
+def get_leg_map_from_gml(gml_data: BeautifulSoup) -> str:
     geometry_key = gml_data.find_all("key", {"attr.name": "geometry"})
     geometry_attribute = geometry_key[0]["id"]
     lat_key = gml_data.find_all("key", {"attr.name": "y"})
@@ -123,14 +121,14 @@ def make_leg_map_from_gml(gml_data: BeautifulSoup) -> str:
             0,
         )
         leg_lines.append(leg_line)
-    return make_leg_map([], leg_lines)
+    return get_leg_map([], leg_lines)
 
 
-def make_leg_map_from_gml_file(leg_file: str | Path) -> str:
+def get_leg_map_from_gml_file(leg_file: str | Path) -> str:
     with open(leg_file, "r") as f:
         data = f.read()
     xml_data = BeautifulSoup(data, "xml")
-    return make_leg_map_from_gml(xml_data)
+    return get_leg_map_from_gml(xml_data)
 
 
 def get_leg_line(
@@ -225,7 +223,7 @@ def get_leg_map_page(
             stations.append((call.station.crs, call.platform))
     station_points = get_station_points_from_crses(conn, stations)
     leg_lines = get_leg_lines_for_legs(network, legs, station_points)
-    html = make_leg_map([], leg_lines)
+    html = get_leg_map([], leg_lines)
     return html
 
 
@@ -259,9 +257,8 @@ def get_leg_map_page_from_leg_data(
             )
         )
 
-    print(base_leg_data)
     leg_lines = get_leg_lines_for_leg_data(
         network, base_leg_data, station_points
     )
-    html = make_leg_map([], leg_lines)
+    html = get_leg_map([], leg_lines)
     return html

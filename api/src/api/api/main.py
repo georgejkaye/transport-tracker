@@ -3,26 +3,17 @@ import uvicorn
 from datetime import datetime
 from typing import Optional
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
 
 from api.data.stats import Stats, get_stats
-from api.data.database import connect
-from api.data.environment import get_env_variable
+from api.utils.database import connect
+from api.utils.environment import get_env_variable
 from api.data.leg import ShortLeg, select_legs
 from api.data.stations import (
     StationData,
-    get_station_points_from_crses,
     select_station,
-    select_station_from_crs,
     select_stations,
 )
-from api.data.map import (
-    LegLine,
-    make_leg_map,
-)
-from api.data.network import find_shortest_path_between_stations
 
-from api.api.network import network
 from api.api.routers.train import train
 
 

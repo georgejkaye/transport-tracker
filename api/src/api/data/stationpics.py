@@ -1,7 +1,7 @@
 import os
 import sys
 
-from api.data.database import connect
+from api.utils.database import connect
 
 files = os.listdir(sys.argv[1])
 

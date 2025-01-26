@@ -13,8 +13,8 @@ from dotenv import dotenv_values
 from requests import Response
 from requests.auth import HTTPBasicAuth
 
-from api.data.credentials import Credentials
-from api.debug import debug_msg
+from api.utils.credentials import Credentials
+from api.utils.debug import debug_msg
 
 
 def get_or_throw[T](t: Optional[T]) -> T:
@@ -34,14 +34,18 @@ data_dir = get_or_default(env_values.get("DATA_DIR"), "data")
 data_directory = Path(data_dir)
 
 
-def extract_zip(zip_path: str | Path, output_path: str | Path, delete: bool = False):
+def extract_zip(
+    zip_path: str | Path, output_path: str | Path, delete: bool = False
+):
     with zipfile.ZipFile(zip_path, "r") as f:
         f.extractall(output_path)
     if delete:
         os.remove(zip_path)
 
 
-def extract_gz(gz_path: str | Path, output_path: str | Path, delete: bool = False):
+def extract_gz(
+    gz_path: str | Path, output_path: str | Path, delete: bool = False
+):
     with gzip.open(gz_path, "rb") as f:
         with open(output_path, "wb") as out:
             shutil.copyfileobj(f, out)
@@ -49,7 +53,9 @@ def extract_gz(gz_path: str | Path, output_path: str | Path, delete: bool = Fals
         os.remove(gz_path)
 
 
-def download_binary(url: str, path: str, credentials: Optional[Credentials] = None):
+def download_binary(
+    url: str, path: str, credentials: Optional[Credentials] = None
+):
     response = make_get_request(url, credentials=credentials, stream=True)
     if response.status_code != 200:
         raise RuntimeError(f"Could not get {url}")
@@ -61,7 +67,9 @@ def prefix_namespace(namespace: str, tag: str) -> str:
     return f"{{{namespace}}}{tag}"
 
 
-def get_tag_text(root: ET.Element, tag: str, namespace: Optional[str] = None) -> str:
+def get_tag_text(
+    root: ET.Element, tag: str, namespace: Optional[str] = None
+) -> str:
     if namespace is not None:
         tag = prefix_namespace(namespace, tag)
     content: Any = get_or_throw(root.find(tag))
@@ -91,7 +99,9 @@ def make_get_request(
 
 
 def get_json(
-    url: str, credentials: Optional[Credentials] = None, headers: Optional[dict] = None
+    url: str,
+    credentials: Optional[Credentials] = None,
+    headers: Optional[dict] = None,
 ) -> Optional[dict]:
     response = make_get_request(url, credentials=credentials)
     try:

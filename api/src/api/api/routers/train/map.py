@@ -1,22 +1,21 @@
 from datetime import datetime
 from typing import Optional
+from api.network.pathfinding import find_shortest_path_between_stations
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
-from api.data import network
 from api.data.stations import (
     get_station_points_from_crses,
     select_station_from_crs,
 )
-from api.data.database import connect
-from api.data.map import (
+from api.utils.database import connect
+from api.network.map import (
     LegData,
     LegLine,
     get_leg_map_page,
     get_leg_map_page_from_leg_data,
-    make_leg_map,
+    get_leg_map,
 )
-from api.data.network import find_shortest_path_between_stations
 from api.api.network import network
 
 router = APIRouter(prefix="/map")
@@ -101,7 +100,7 @@ async def get_route_between_stations(
                 status_code=404,
                 detail="Could not find a route between these stations",
             )
-        return make_leg_map(
+        return get_leg_map(
             [],
             [
                 LegLine(
@@ -119,6 +118,6 @@ async def get_route_between_stations(
 @router.get(
     "/leg/{leg_id}", summary="Get a map for a leg", response_class=HTMLResponse
 )
-async def get_leg_map(leg_id: int) -> str:
+async def get_leg_map_for_leg_id(leg_id: int) -> str:
     with connect() as (conn, _):
         return get_leg_map_page(network, conn, search_leg_id=leg_id)

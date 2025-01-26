@@ -2,12 +2,13 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Callable, Optional
+from annotated_types import T
+from api.utils.times import get_env_variable, change_timezone
 from psycopg import Connection, Cursor
+from zoneinfo import ZoneInfo
 
-from api.data.toperator import BrandData, OperatorData
-
-from api.data.database import (
-    connect,
+from api.data.toc import BrandData, OperatorData
+from api.utils.database import (
     register_type,
 )
 from api.data.services import (
@@ -22,7 +23,6 @@ from api.data.services import (
 )
 from api.data.stations import ShortTrainStation
 from api.data.stock import Formation
-from api.times import timezone
 
 
 @dataclass
@@ -78,46 +78,6 @@ def get_value_or_none[
     if obj is None:
         return None
     return get(obj)
-
-
-def get_call_from_leg_call_procedure(
-    service_id: str,
-    run_date: datetime,
-    station_crs: str,
-    plan_arr: Optional[datetime],
-    plan_dep: Optional[datetime],
-    act_arr: Optional[datetime],
-    act_dep: Optional[datetime],
-) -> Optional[str]:
-    return f"SELECT getCallFromLegCall({service_id}, {run_date}, {station_crs}, {plan_arr}, {plan_dep}, {act_arr}, {act_dep})"
-
-
-def select_call_id_from_leg_call(call: Optional[Call]) -> Optional[str]:
-    if call is None:
-        return None
-    return get_call_from_leg_call_procedure(
-        call.service_id,
-        call.run_date,
-        call.station.crs,
-        call.plan_arr,
-        call.plan_dep,
-        call.act_arr,
-        call.act_dep,
-    )
-
-
-def call_to_leg_call_data(call: Optional[Call]):
-    if call is None:
-        return None
-    return (
-        call.service_id,
-        call.run_date,
-        call.station.crs,
-        call.plan_arr,
-        call.plan_dep,
-        call.act_arr,
-        call.act_dep,
-    )
 
 
 def apply_to_optional[
@@ -316,10 +276,10 @@ def register_call_data(
     return ShortCall(
         station,
         platform,
-        plan_arr,
-        act_arr,
-        plan_dep,
-        act_dep,
+        change_timezone(plan_arr),
+        change_timezone(act_arr),
+        change_timezone(plan_dep),
+        change_timezone(act_dep),
         assocs,
         mileage,
     )
@@ -345,10 +305,10 @@ def register_leg_call_data(
     return ShortLegCall(
         station,
         platform,
-        plan_arr,
-        plan_dep,
-        act_arr,
-        act_dep,
+        change_timezone(plan_arr),
+        change_timezone(plan_dep),
+        change_timezone(act_arr),
+        change_timezone(act_dep),
         assocs,
         stocks,
         mileage,

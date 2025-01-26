@@ -1,4 +1,3 @@
-from api.data.leg import ShortLeg
 import shapely
 import networkx as nx
 import osmnx as ox
@@ -8,14 +7,16 @@ from pathlib import Path
 from typing import Optional, TypedDict
 from osmnx import settings as oxsettings
 from networkx import MultiDiGraph
-from psycopg import Connection
 from shapely import LineString, Point
 from shapely import geometry, ops
 from geopandas import GeoDataFrame
+
 from api.data.stations import (
     StationPoint,
     get_relevant_station_points,
+    string_of_station_point,
 )
+from api.data.leg import ShortLeg
 
 coordinate_precision = 0.000001
 wgs84 = "EPSG:4326"
@@ -38,16 +39,6 @@ def append_to_linestring(linestring: LineString, point: Point) -> LineString:
         new_coords.append(Point(x, y))
     new_coords.append(point)
     return LineString(new_coords)
-
-
-def get_shortest_linestring(
-    linestrings: list[LineString],
-) -> Optional[LineString]:
-    return min(
-        linestrings,
-        default=None,
-        key=lambda linestring: shapely.length(linestring),
-    )
 
 
 def crs_to_numbers(crs: str) -> str:
@@ -144,24 +135,12 @@ def get_closest_edge_on_network_to_point(
     return edge
 
 
-def get_edge_weight(source, target, edge_dict) -> float:
-    if edge_dict[0].get("maxspeed") is None:
-        max_speed = 1
-    else:
-        max_speed_value = edge_dict[0]["maxspeed"]
-        if isinstance(max_speed_value, str):
-            max_speed = int(max_speed_value.split(" ")[0])
-        else:
-            max_speed = max(
-                [int(string.split(" ")[0]) for string in max_speed_value]
-            )
-    return edge_dict[0]["length"] / (max_speed * max_speed)
-
-
 def get_node_id_from_crs_and_platform(crs: str, platform: Optional[str]) -> int:
     """
-    Node ids are encoded as 1abbccdd where
+    Node ids are encoded as 1xxxxxxabbccdd where
 
+    xxx: crs of the station encoded as zero-padded two digit numbers
+    (a = 01, b = 02 etc)
     a: 0 if the platform is a number, 1 if the platform is a letter
     bb: the platform number padded to two digits if a number, the numeric
     encoding of the platform letter if a number (a = 01, b = 02 etc)
@@ -181,96 +160,14 @@ def get_node_id_from_crs_and_platform(crs: str, platform: Optional[str]) -> int:
     first_num = ord(crs[0]) - 64
     second_num = ord(crs[1]) - 64
     third_num = ord(crs[2]) - 64
-    return int(
+    node_id = int(
         f"1{first_num:02d}{second_num:02d}{third_num:02d}{platform_string}"
     )
+    return node_id
 
 
 def get_node_id_from_station_point(point: StationPoint) -> int:
     return get_node_id_from_crs_and_platform(point.crs, point.platform)
-
-
-def find_path_between_nodes(
-    network: MultiDiGraph, source: StationPoint, target: StationPoint
-) -> Optional[LineString]:
-    source_id = get_node_id_from_station_point(source)
-    target_id = get_node_id_from_station_point(target)
-    if not network.has_node(source_id):
-        insert_node_to_network(
-            network, source.point, source_id, project_network=False
-        )
-    if not network.has_node(target_id):
-        insert_node_to_network(
-            network, target.point, target_id, project_network=False
-        )
-    path = nx.shortest_path(
-        network, source_id, target_id, weight=get_edge_weight
-    )
-    line_strings = []
-    for i in range(0, len(path) - 1):
-        source_node = path[i]
-        target_node = path[i + 1]
-        edge = get_edge_from_endpoints(network, source_node, target_node)
-        if edge.tags.get("geometry") is not None:
-            line_strings.append(edge.tags["geometry"])
-        else:
-            source_node = network.nodes[edge.source]
-            source_x = source_node["x"]
-            source_y = source_node["y"]
-            source_point = Point(round(source_x, 16), round(source_y, 16))
-            target_node = network.nodes[edge.target]
-            target_x = target_node["x"]
-            target_y = target_node["y"]
-            target_point = Point(round(target_x, 16), round(target_y, 16))
-            line_strings.append(LineString([source_point, target_point]))
-    if len(line_strings) == 0:
-        return None
-    try:
-        return merge_linestrings(line_strings)
-    except:
-        return None
-
-
-@dataclass
-class StationPath:
-    source: StationPoint
-    target: StationPoint
-    path: LineString
-
-
-def find_paths_between_nodes(
-    network: MultiDiGraph,
-    sources: list[StationPoint],
-    targets: list[StationPoint],
-) -> list[LineString]:
-    paths = []
-    for source in sources:
-        for target in targets:
-            path = find_path_between_nodes(network, source, target)
-            if path is not None:
-                paths.append(path)
-    return paths
-
-
-def find_shortest_path_between_multiple_nodes(
-    network: MultiDiGraph,
-    sources: list[StationPoint],
-    targets: list[StationPoint],
-) -> Optional[LineString]:
-    paths = find_paths_between_nodes(network, sources, targets)
-    if len(paths) == 0:
-        return None
-    return get_shortest_linestring(paths)
-
-
-def find_shortest_path_between_nodes(
-    network: MultiDiGraph,
-    sources: StationPoint,
-    targets: StationPoint,
-) -> Optional[LineString]:
-    return find_shortest_path_between_multiple_nodes(
-        network, [sources], [targets]
-    )
 
 
 def get_nearest_point_on_linestring(point: Point, line: LineString) -> Point:
@@ -389,8 +286,6 @@ def insert_node_to_network(
             maxspeed=edge.tags.get("maxspeed"),
         )
 
-    inserted_point_wgs84 = osgb36_to_wgs84_point(point_on_edge)
-
     if project_network:
         return ox.project_graph(projected_network, to_crs=wgs84)
     return projected_network
@@ -402,6 +297,7 @@ def insert_nodes_to_network(
     project_network: bool = True,
 ) -> MultiDiGraph:
     for station in stations:
+        print(f"Inserting {string_of_station_point(station)}")
         network = insert_node_to_network(
             network,
             station.point,
@@ -414,16 +310,16 @@ def insert_nodes_to_network(
 def insert_node_dict_to_network(
     network: MultiDiGraph,
     stations: dict[str, dict[Optional[str], StationPoint]],
+    project_network: bool = False,
 ) -> MultiDiGraph:
     nodes = []
     for station_key in stations.keys():
         for platform_key in stations[station_key].keys():
             nodes.append(stations[station_key][platform_key])
-    return insert_nodes_to_network(network, nodes)
+    return insert_nodes_to_network(network, nodes, project_network)
 
 
 def insert_station_node_to_network(
-    conn: Connection,
     network: MultiDiGraph,
     station_crs: str,
     station_platform: Optional[str],
@@ -447,81 +343,3 @@ def insert_station_node_to_network(
         project_network=project_network,
     )
     return (network, nodes_to_insert)
-
-
-def find_paths_between_stations(
-    network: MultiDiGraph,
-    origin_crs: str,
-    origin_platform: Optional[str],
-    destination_crs: str,
-    destination_platform: Optional[str],
-    station_points: dict[str, dict[Optional[str], StationPoint]],
-) -> list[LineString]:
-    origin_points = get_relevant_station_points(
-        origin_crs, origin_platform, station_points
-    )
-    destination_points = get_relevant_station_points(
-        destination_crs, destination_platform, station_points
-    )
-    paths = find_paths_between_nodes(network, origin_points, destination_points)
-    return paths
-
-
-def find_shortest_path_between_stations(
-    network: MultiDiGraph,
-    origin_crs: str,
-    origin_platform: Optional[str],
-    destination_crs: str,
-    destination_platform: Optional[str],
-    station_points: dict[str, dict[Optional[str], StationPoint]],
-) -> Optional[LineString]:
-    paths = find_paths_between_stations(
-        network,
-        origin_crs,
-        origin_platform,
-        destination_crs,
-        destination_platform,
-        station_points,
-    )
-    shortest_path = get_shortest_linestring(paths)
-    return shortest_path
-
-
-def get_linestring_for_leg(
-    network: MultiDiGraph,
-    leg: ShortLeg,
-    station_points: dict[str, dict[Optional[str], StationPoint]],
-) -> Optional[LineString]:
-    leg_calls = leg.calls
-    complete_paths: list[tuple[StationPoint, Optional[LineString]]] = []
-    for platform_key in station_points[leg_calls[0].station.crs].keys():
-        complete_paths.append(
-            (
-                station_points[leg_calls[0].station.crs][platform_key],
-                None,
-            )
-        )
-    for call in leg_calls[1:]:
-        call_paths = []
-        points_to_test = station_points[call.station.crs]
-        for platform_key in points_to_test.keys():
-            platform_paths = []
-            point_to_test = points_to_test[platform_key]
-            for station, complete_path in complete_paths:
-                path = find_path_between_nodes(network, station, point_to_test)
-                if path is not None:
-                    if complete_path is None:
-                        new_path = path
-                    else:
-                        new_path = merge_linestrings([complete_path, path])
-                    platform_paths.append((point_to_test, new_path))
-            call_paths = call_paths + platform_paths
-        complete_paths = call_paths
-    complete_path = min(
-        complete_paths,
-        default=None,
-        key=lambda result: shapely.length(result[1]),
-    )
-    if complete_path is None:
-        return None
-    return complete_path[1]

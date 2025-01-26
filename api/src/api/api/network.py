@@ -1,6 +1,6 @@
 import osmnx as ox
 
-from api.data.environment import get_env_variable
+from api.utils.environment import get_env_variable
 
 network_path = get_env_variable("NETWORK_PATH")
 print(f"Loading network from {network_path}")

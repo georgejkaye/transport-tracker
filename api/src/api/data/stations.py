@@ -6,21 +6,18 @@ from typing import Optional
 from psycopg import Connection, Cursor
 from shapely import Point
 
-from api.data.core import get_tag_text, make_get_request, prefix_namespace
-from api.data.credentials import get_api_credentials
-from api.data.database import (
-    connect,
-    insert,
+from api.utils.request import make_get_request
+from api.utils.credentials import get_api_credentials
+from api.utils.database import (
     register_type,
     str_or_null_to_datetime,
 )
-from api.data.toperator import BrandData, OperatorData
-from api.data.train import (
-    generate_natrail_token,
-    get_kb_url,
-    get_natrail_token_headers,
+from api.data.toc import BrandData, OperatorData
+from api.utils.times import (
+    get_datetime_route,
+    get_hourmin_string,
+    make_timezone_aware,
 )
-from api.times import get_datetime_route, get_hourmin_string
 
 
 @dataclass
@@ -76,62 +73,6 @@ def short_string_of_service_at_station(service: TrainServiceAtStation):
 
 def string_of_service_at_station(service: TrainServiceAtStation):
     return f"{service.headcode} {get_multiple_short_station_string(service.origins)} to {get_multiple_short_station_string(service.destinations)} plan {get_hourmin_string(service.plan_dep)} act {get_hourmin_string(service.act_dep)} ({service.operator_code})"
-
-
-kb_stations_namespace = "http://nationalrail.co.uk/xml/station"
-
-
-def pull_stations(natrail_token: str) -> list[TrainStationRaw]:
-    kb_stations_url = get_kb_url("stations")
-    headers = get_natrail_token_headers(natrail_token)
-    kb_stations = make_get_request(kb_stations_url, headers=headers).text
-    kb_stations_xml = ET.fromstring(kb_stations)
-    stations = []
-    for stn in kb_stations_xml.findall(
-        prefix_namespace(kb_stations_namespace, "Station")
-    ):
-        station_name = get_tag_text(stn, "Name", kb_stations_namespace)
-        station_crs = get_tag_text(stn, "CrsCode", kb_stations_namespace)
-        station_lat = float(
-            get_tag_text(stn, "Latitude", kb_stations_namespace)
-        )
-        station_lon = float(
-            get_tag_text(stn, "Longitude", kb_stations_namespace)
-        )
-        station_operator = get_tag_text(
-            stn, "StationOperator", kb_stations_namespace
-        )
-        if station_operator == "WM" or station_operator == "LN":
-            station_brand = station_operator
-            station_operator = "LM"
-        else:
-            station_brand = None
-        station = TrainStationRaw(
-            station_name, station_crs, station_operator, station_brand
-        )
-        stations.append(station)
-    return stations
-
-
-def populate_train_station_table(
-    conn: Connection, cur: Cursor, stations: list[TrainStationRaw]
-):
-    fields = ["station_crs", "station_name", "operator_code", "brand_code"]
-    values = list(
-        map(
-            lambda x: [x.crs, x.name, x.operator, x.brand],
-            stations,
-        )
-    )
-    insert(cur, "Station", fields, values)
-    conn.commit()
-
-
-def populate_train_stations(conn: Connection, cur: Cursor):
-    natrail_credentials = get_api_credentials("NATRAIL")
-    token = generate_natrail_token(natrail_credentials)
-    stations = pull_stations(token)
-    populate_train_station_table(conn, cur, stations)
 
 
 def select_station_from_crs(cur: Cursor, crs: str) -> Optional[TrainStation]:
@@ -213,7 +154,7 @@ def response_to_datetime(
             actual_datetime = run_date + timedelta(
                 days=0, hours=hours, minutes=minutes
             )
-        return actual_datetime
+        return make_timezone_aware(actual_datetime)
     else:
         return None
 
@@ -654,6 +595,14 @@ class StationPoint:
     crs: str
     platform: Optional[str]
     point: Point
+
+
+def string_of_station_point(station_point: StationPoint) -> str:
+    if station_point.platform is None:
+        platform_string = ""
+    else:
+        platform_string = f": platform {station_point.platform}"
+    return f"{station_point.crs}{platform_string}"
 
 
 @dataclass

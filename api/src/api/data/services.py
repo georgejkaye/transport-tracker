@@ -9,9 +9,8 @@ from typing import Optional
 from bs4 import BeautifulSoup
 from psycopg import Connection, Cursor
 
-from api.data.core import get_soup, make_get_request
-from api.data.credentials import get_api_credentials
-from api.data.database import connect
+from api.utils.request import get_soup, make_get_request
+from api.utils.credentials import get_api_credentials
 from api.data.mileage import miles_and_chains_to_miles
 from api.data.stations import (
     ShortTrainStation,
@@ -21,9 +20,9 @@ from api.data.stations import (
     response_to_short_train_station,
     short_string_of_service_at_station,
 )
-from api.data.toperator import BrandData, OperatorData
-from api.interactive import information
-from api.times import get_datetime_route, timezone
+from api.data.toc import BrandData, OperatorData
+from api.utils.interactive import information
+from api.utils.times import get_datetime_route, make_timezone_aware
 
 
 @dataclass
@@ -149,6 +148,7 @@ def get_calls_between_stations(
     call_chain: list[LegCall] = []
     service_chains = deque()
     boarded = False
+    dep_call = None
     for i, call in enumerate(calls):
         # Get the arrival call
         # If this is the boarding point there is no arrival
@@ -239,6 +239,8 @@ def get_calls_between_stations(
             if assoc_type is None and boarded:
                 dep_call = call
         if boarded:
+            if dep_call is None:
+                raise RuntimeError("Cannot be boarded with no departure call")
             leg_call = LegCall(
                 call.station, arr_call, dep_call, call_mileage, assoc_type
             )
@@ -303,7 +305,7 @@ def response_to_time(
         hours=int(time_string[0:2]),
         minutes=int(time_string[2:4]),
     )
-    return new_time.replace(tzinfo=timezone)
+    return make_timezone_aware(new_time)
 
 
 def response_to_call(
@@ -650,10 +652,3 @@ def insert_services(
         [service_values, endpoint_values, call_values, assoc_values],
     )
     conn.commit()
-
-
-if __name__ == "__main__":
-    with connect() as (conn, cur):
-        service = get_service_from_id(cur, "G38662", datetime(2024, 7, 24))
-        if service is not None:
-            print(string_of_calls(service.calls))
