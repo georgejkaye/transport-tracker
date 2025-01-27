@@ -28,4 +28,9 @@ projected_network = insert_node_dict_to_network(
 )
 
 new_network = ox.project_graph(projected_network, to_crs=wgs84)
+
+for node in network.nodes():
+    node["x"] = round(node["x"], 16)
+    node["y"] = round(node["y"], 16)
+
 ox.save_graphml(new_network, sys.argv[2])
