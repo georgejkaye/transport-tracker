@@ -1,8 +1,3 @@
-import json
-from api.network.pathfinding import (
-    find_shortest_path_between_stations,
-    get_linestring_for_leg,
-)
 import folium
 
 from bs4 import BeautifulSoup
@@ -21,8 +16,13 @@ from api.data.stations import (
     StationPoint,
     get_station_points_from_crses,
     get_station_points_from_names,
+    string_of_station_point,
 )
 from api.data.leg import ShortLeg, get_operator_colour_from_leg, select_legs
+from api.network.pathfinding import (
+    find_shortest_path_between_stations,
+    get_linestring_for_leg,
+)
 
 
 @dataclass
@@ -37,19 +37,47 @@ class MapPoint:
 class LegLine:
     board_station: str
     alight_station: str
+    calls: list[StationPoint]
     points: LineString
     colour: str
     count_lr: int
     count_rl: int
 
 
-def get_leg_map(map_points: list[MapPoint], leg_lines: list[LegLine]) -> str:
+def add_call_marker(
+    call: StationPoint,
+    colour: str,
+    map: folium.Element,
+    group: Optional[folium.FeatureGroup] = None,
+):
+    marker = folium.Marker(
+        location=[call.point.y, call.point.x],
+        tooltip=string_of_station_point(call),
+        icon=folium.Icon(color=colour, icon="train", prefix="fa"),
+    )
+    if group is not None:
+        group.add_child(marker)
+
+
+def get_leg_map(
+    map_points: list[MapPoint],
+    leg_lines: list[LegLine],
+    plot_endpoints: bool = True,
+    plot_calls: bool = True,
+) -> str:
     m = folium.Map(
-        tiles="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-        attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        tiles=None,
         location=(53.906602, -1.933667),
         zoom_start=6,
     )
+    folium.TileLayer(
+        "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+        attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        name="Map",
+    ).add_to(m)
+    endpoint_group = folium.FeatureGroup(name="Endpoints")
+    call_group = folium.FeatureGroup(name="Calls")
+    line_group = folium.FeatureGroup(name="Legs")
     for map_point in map_points:
         folium.Circle(
             location=[map_point.point.y, map_point.point.x],
@@ -61,14 +89,25 @@ def get_leg_map(map_points: list[MapPoint], leg_lines: list[LegLine]) -> str:
         ).add_to(m)
     for leg_line in leg_lines:
         tooltip = f"{leg_line.board_station} to {leg_line.alight_station}"
-        folium.PolyLine(
+        line = folium.PolyLine(
             locations=[
                 (point[1], point[0]) for point in leg_line.points.coords
             ],
             color=leg_line.colour,
             tooltip=tooltip,
             weight=4,
-        ).add_to(m)
+        )
+        line_group.add_child(line)
+        if plot_endpoints:
+            add_call_marker(leg_line.calls[0], "blue", m, endpoint_group)
+            add_call_marker(leg_line.calls[-1], "blue", m, endpoint_group)
+        if plot_calls:
+            for call in leg_line.calls[1:-2]:
+                add_call_marker(call, "green", m, call_group)
+    line_group.add_to(m)
+    endpoint_group.add_to(m)
+    call_group.add_to(m)
+    folium.LayerControl().add_to(m)
     return m.get_root().render()
 
 
@@ -115,6 +154,7 @@ def get_leg_map_from_gml(gml_data: BeautifulSoup) -> str:
         leg_line = LegLine(
             "",
             "",
+            [],
             LineString(edge_nodes),
             "#000000",
             0,
@@ -136,13 +176,15 @@ def get_leg_line(
     leg: ShortLeg,
     station_points: dict[str, dict[Optional[str], StationPoint]],
 ) -> Optional[LegLine]:
-    linestring = get_linestring_for_leg(network, leg, station_points)
-    if linestring is None:
+    result = get_linestring_for_leg(network, leg, station_points)
+    if result is None:
         return None
+    (station_list, path_list) = result
     return LegLine(
         leg.calls[0].station.name,
         leg.calls[-1].station.name,
-        linestring,
+        station_list,
+        path_list,
         get_operator_colour_from_leg(leg),
         0,
         0,
@@ -172,10 +214,12 @@ def get_leg_line_for_station_pair(
     )
     if path is None:
         return None
+    (source_point, target_point, linestring) = path
     leg_line = LegLine(
         leg_data.board_name,
         leg_data.alight_name,
-        path,
+        [source_point, target_point],
+        linestring,
         "#000000",
         0,
         0,

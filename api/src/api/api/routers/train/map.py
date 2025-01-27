@@ -100,13 +100,15 @@ async def get_route_between_stations(
                 status_code=404,
                 detail="Could not find a route between these stations",
             )
+        (source_point, target_point, linestring) = path
         return get_leg_map(
             [],
             [
                 LegLine(
                     from_station.name,
                     to_station.name,
-                    path,
+                    [source_point, target_point],
+                    linestring,
                     "#000000",
                     0,
                     0,
