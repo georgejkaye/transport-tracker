@@ -1,4 +1,3 @@
-from api.network.network import merge_linestrings
 import folium
 
 from bs4 import BeautifulSoup
@@ -13,14 +12,14 @@ from pydantic import Field
 from shapely import LineString, Point
 
 from api.utils.database import connect
-from api.data.stations import (
-    ShortTrainStation,
+from api.data.stations import ShortTrainStation
+from api.data.leg import ShortLeg, get_operator_colour_from_leg, select_legs
+from api.data.points import (
     StationPoint,
     get_station_points_from_crses,
     get_station_points_from_names,
-    string_of_station_point,
 )
-from api.data.leg import ShortLeg, get_operator_colour_from_leg, select_legs
+from api.network.network import merge_linestrings
 from api.network.pathfinding import (
     find_shortest_path_between_stations,
     get_linestring_for_leg,
@@ -49,22 +48,128 @@ class LegLine:
 def add_call_marker(
     call: StationPoint,
     colour: str,
+    text: str,
     group: Optional[folium.FeatureGroup] = None,
 ):
     marker = folium.Marker(
         location=[call.point.y, call.point.x],
-        tooltip=string_of_station_point(call),
+        tooltip=text,
         icon=folium.Icon(color=colour, icon="train", prefix="fa"),
     )
     if group is not None:
         group.add_child(marker)
 
 
+@dataclass
+class CallInfo:
+    pass
+
+
+@dataclass
+class StationInfo:
+    include_counts: bool
+
+
+type MarkerTextType = CallInfo | StationInfo
+
+
+@dataclass
+class StationCount:
+    board: int
+    call: int
+    alight: int
+
+
+@dataclass
+class BoardCount:
+    pass
+
+
+@dataclass
+class CallCount:
+    pass
+
+
+@dataclass
+class AlightCount:
+    pass
+
+
+type CountType = BoardCount | CallCount | AlightCount
+
+type StationCountDict = dict[str, tuple[StationPoint, StationCount]]
+
+
+def update_station_count_dict(
+    station_count_dict: StationCountDict,
+    station_point: StationPoint,
+    update_type: CountType,
+) -> StationCountDict:
+    current_station = station_count_dict.get(station_point.crs)
+    if current_station is None:
+        current_station_count = StationCount(0, 0, 0)
+    else:
+        (_, current_station_count) = station_count_dict[station_point.crs]
+    current_board = current_station_count.board
+    current_call = current_station_count.call
+    current_alight = current_station_count.alight
+    match update_type:
+        case BoardCount():
+            new_station_count = StationCount(
+                current_board + 1, current_call, current_alight
+            )
+        case CallCount():
+            new_station_count = StationCount(
+                current_board, current_call + 1, current_alight
+            )
+        case AlightCount():
+            new_station_count = StationCount(
+                current_board, current_call, current_alight + 1
+            )
+    station_count_dict[station_point.crs] = (station_point, new_station_count)
+    return station_count_dict
+
+
+def get_call_info_time_string(call_time: Optional[datetime]) -> str:
+    if call_time is None:
+        return "--"
+    return f"{call_time.strftime("%H%M")}"
+
+
+def get_call_info_text(station_point: StationPoint) -> str:
+    if station_point.call is None:
+        time_string = ""
+    else:
+        plan_arr_str = get_call_info_time_string(station_point.call.plan_arr)
+        plan_dep_str = get_call_info_time_string(station_point.call.plan_dep)
+        act_arr_str = get_call_info_time_string(station_point.call.act_arr)
+        act_dep_str = get_call_info_time_string(station_point.call.act_dep)
+        arr_string = f"arr plan {plan_arr_str} act {act_arr_str}"
+        dep_string = f"dep plan {plan_dep_str} act {act_dep_str}"
+        time_string = f"<br/>{arr_string}<br/>{dep_string}"
+    return f"<b>{station_point.name} ({station_point.crs})</b>{time_string}"
+
+
+def get_station_info_text(
+    station_point: StationPoint,
+    include_counts: bool,
+    boards: int,
+    calls: int,
+    alights: int,
+) -> str:
+    if include_counts:
+        count_string = (
+            "<br/>Boards: {boards}<br/>Alights: {alights}<br/>Calls: {calls}"
+        )
+    else:
+        count_string = ""
+    return f"<b>{station_point.name} ({station_point.crs})</b>{count_string}"
+
+
 def get_leg_map(
     map_points: list[MapPoint],
     leg_lines: list[LegLine],
-    plot_endpoints: bool = True,
-    plot_calls: bool = True,
+    text_type: MarkerTextType,
 ) -> str:
     m = folium.Map(
         tiles=None,
@@ -76,8 +181,7 @@ def get_leg_map(
         attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         name="Map",
     ).add_to(m)
-    endpoint_group = folium.FeatureGroup(name="Endpoints")
-    call_group = folium.FeatureGroup(name="Calls")
+    station_count_dict = {}
     line_group = folium.FeatureGroup(name="Legs")
     for map_point in map_points:
         folium.Circle(
@@ -99,13 +203,36 @@ def get_leg_map(
             weight=4,
         )
         line_group.add_child(line)
-        if plot_endpoints:
-            add_call_marker(leg_line.calls[0], "blue", endpoint_group)
-            add_call_marker(leg_line.calls[-1], "blue", endpoint_group)
-        if plot_calls:
-            for call in leg_line.calls[1:-2]:
-                add_call_marker(call, "green", call_group)
+        station_count_dict = update_station_count_dict(
+            station_count_dict, leg_line.calls[0], BoardCount()
+        )
+        for call in leg_line.calls[1:-2]:
+            station_count_dict = update_station_count_dict(
+                station_count_dict, call, CallCount()
+            )
+        station_count_dict = update_station_count_dict(
+            station_count_dict, leg_line.calls[-1], AlightCount()
+        )
     line_group.add_to(m)
+    endpoint_group = folium.FeatureGroup(name="Endpoints")
+    call_group = folium.FeatureGroup(name="Calls")
+    for station_count_key in station_count_dict.keys():
+        (station_point, station_count) = station_count_dict[station_count_key]
+        boards = station_count.board
+        calls = station_count.call
+        alights = station_count.alight
+        match text_type:
+            case StationInfo(include_counts):
+                text = get_station_info_text(
+                    station_point, include_counts, boards, calls, alights
+                )
+            case CallInfo():
+                text = get_call_info_text(station_point)
+        if station_count.call > 0:
+            add_call_marker(station_point, "green", text, call_group)
+        if boards > 0 or alights > 0:
+            add_call_marker(station_point, "blue", text, endpoint_group)
+
     call_group.add_to(m)
     endpoint_group.add_to(m)
     folium.LayerControl().add_to(m)
@@ -162,7 +289,7 @@ def get_leg_map_from_gml(gml_data: BeautifulSoup) -> str:
             0,
         )
         leg_lines.append(leg_line)
-    return get_leg_map([], leg_lines)
+    return get_leg_map([], leg_lines, StationInfo(False))
 
 
 def get_leg_map_from_gml_file(leg_file: str | Path) -> str:
@@ -256,6 +383,7 @@ def get_leg_lines_for_legs(
 def get_leg_map_page(
     network: MultiDiGraph,
     conn: Connection,
+    text_type: MarkerTextType,
     search_start: Optional[datetime] = None,
     search_end: Optional[datetime] = None,
     search_leg_id: Optional[int] = None,
@@ -267,7 +395,7 @@ def get_leg_map_page(
             stations.append((call.station.crs, call.platform))
     station_points = get_station_points_from_crses(conn, stations)
     leg_lines = get_leg_lines_for_legs(network, legs, station_points)
-    html = get_leg_map([], leg_lines)
+    html = get_leg_map([], leg_lines, text_type)
     return html
 
 
@@ -306,5 +434,5 @@ def get_leg_map_page_from_leg_data(
     leg_lines = get_leg_lines_for_leg_data(
         network, base_leg_data, station_points
     )
-    html = get_leg_map([], leg_lines)
+    html = get_leg_map([], leg_lines, StationInfo(True))
     return html

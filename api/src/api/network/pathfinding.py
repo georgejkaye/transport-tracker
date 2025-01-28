@@ -1,18 +1,19 @@
-from decimal import Decimal
-from api.data.leg import ShortLeg
 import networkx as nx
 import shapely
 
+from decimal import Decimal
 from typing import Optional
-from api.data.stations import StationPoint, get_relevant_station_points
+from networkx import MultiDiGraph
+from shapely import LineString, Point
+
+from api.data.leg import ShortLeg
+from api.data.points import StationPoint, get_relevant_station_points
 from api.network.network import (
     get_edge_from_endpoints,
     get_node_id_from_station_point,
     insert_node_to_network,
     merge_linestrings,
 )
-from networkx import MultiDiGraph
-from shapely import LineString, Point
 
 
 def get_shortest_linestring(
@@ -27,7 +28,7 @@ def get_shortest_linestring(
 
 def get_edge_weight(source, target, edge_dict) -> float:
     if edge_dict[0].get("maxspeed") is None:
-        max_speed = 1
+        max_speed = 100
     else:
         max_speed_value = edge_dict[0]["maxspeed"]
         if isinstance(max_speed_value, str):
@@ -173,9 +174,18 @@ def get_linestring_for_leg(
     leg_calls = leg.calls
     complete_paths: list[tuple[list[StationPoint], Optional[LineString]]] = []
     for platform_key in station_points[leg_calls[0].station.crs].keys():
+        first_point = station_points[leg_calls[0].station.crs][platform_key]
         complete_paths.append(
             (
-                [station_points[leg_calls[0].station.crs][platform_key]],
+                [
+                    StationPoint(
+                        first_point.crs,
+                        first_point.name,
+                        first_point.platform,
+                        first_point.point,
+                        leg_calls[0],
+                    )
+                ],
                 None,
             )
         )
@@ -194,7 +204,15 @@ def get_linestring_for_leg(
                         new_path = path
                     else:
                         new_path = merge_linestrings([complete_path, path])
-                    new_stations = stations + [point_to_test]
+                    new_stations = stations + [
+                        StationPoint(
+                            point_to_test.crs,
+                            point_to_test.name,
+                            point_to_test.platform,
+                            point_to_test.point,
+                            call,
+                        )
+                    ]
                     platform_paths.append((new_stations, new_path))
             call_paths = call_paths + platform_paths
         complete_paths = call_paths

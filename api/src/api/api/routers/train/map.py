@@ -1,17 +1,17 @@
 from datetime import datetime
 from typing import Optional
+from api.data.points import get_station_points_from_crses
 from api.network.pathfinding import find_shortest_path_between_stations
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
-from api.data.stations import (
-    get_station_points_from_crses,
-    select_station_from_crs,
-)
+from api.data.stations import select_station_from_crs
 from api.utils.database import connect
 from api.network.map import (
+    CallInfo,
     LegData,
     LegLine,
+    StationInfo,
     get_leg_map_page,
     get_leg_map_page_from_leg_data,
     get_leg_map,
@@ -31,7 +31,9 @@ async def get_train_map_from_time_period(
 ) -> str:
     with connect() as (conn, _):
         try:
-            return get_leg_map_page(network, conn, start_date, end_date)
+            return get_leg_map_page(
+                network, conn, StationInfo(True), start_date, end_date
+            )
         except RuntimeError:
             raise HTTPException(500, "Could not get stats")
 
@@ -45,7 +47,11 @@ async def get_train_map_from_year(year: int) -> str:
     with connect() as (conn, _):
         try:
             return get_leg_map_page(
-                network, conn, datetime(year, 1, 1), datetime(year, 12, 31)
+                network,
+                conn,
+                StationInfo(True),
+                datetime(year, 1, 1),
+                datetime(year, 12, 31),
             )
         except RuntimeError:
             raise HTTPException(500, "Could not get stats")
@@ -58,7 +64,7 @@ async def get_train_map_from_year(year: int) -> str:
 )
 async def get_leg_map_for_leg_id(leg_id: int) -> str:
     with connect() as (conn, _):
-        return get_leg_map_page(network, conn, search_leg_id=leg_id)
+        return get_leg_map_page(network, conn, CallInfo(), search_leg_id=leg_id)
 
 
 @router.get(
@@ -115,6 +121,7 @@ async def get_route_between_stations(
                     0,
                 )
             ],
+            StationInfo(False),
         )
 
 

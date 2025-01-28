@@ -1,23 +1,19 @@
-import xml.etree.ElementTree as ET
-
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional
-from psycopg import Connection, Cursor
-from shapely import Point
+from psycopg import Cursor
 
 from api.utils.request import make_get_request
 from api.utils.credentials import get_api_credentials
 from api.utils.database import (
-    register_type,
     str_or_null_to_datetime,
 )
-from api.data.toc import BrandData, OperatorData
 from api.utils.times import (
     get_datetime_route,
     get_hourmin_string,
     make_timezone_aware,
 )
+from api.data.toc import BrandData, OperatorData
 
 
 @dataclass
@@ -536,194 +532,3 @@ def select_station(cur: Cursor, station_crs: str) -> Optional[StationData]:
     if result is None or len(result) != 1:
         return None
     return result[0]
-
-
-def get_station_coordinates_from_names(
-    conn: Connection, station_names: list[str]
-) -> dict[str, Point]:
-    rows = conn.execute(
-        "SELECT * FROM GetStationDetailsFromNames(%s::TEXT[])", [station_names]
-    ).fetchall()
-    if rows is None:
-        raise RuntimeError(f"Could not find station with name {station_names}")
-    lonlat_dict = {}
-    for row in rows:
-        lonlat_dict[row[1]] = Point(row[2], row[3])
-    return lonlat_dict
-
-
-def get_station_coordinates_from_name(
-    conn: Connection, station_name: str
-) -> Point:
-    return get_station_coordinates_from_names(conn, [station_name])[
-        station_name
-    ]
-
-
-def get_station_lonlats_from_crses(
-    conn: Connection, station_crses: list[str]
-) -> dict[str, Point]:
-    rows = conn.execute(
-        "SELECT * FROM GetStationDetailsFromCrses(%s::TEXT[])",
-        [[crs.upper() for crs in station_crses]],
-    ).fetchall()
-    if rows is None:
-        raise RuntimeError(f"Could not find station with crs {station_crses}")
-    lonlat_dict = {}
-    for row in rows:
-        lonlat_dict[row[0]] = Point(row[2], row[3])
-    return lonlat_dict
-
-
-def get_station_lonlat_from_crs(conn: Connection, station_crs: str) -> Point:
-    return get_station_lonlats_from_crses(conn, [station_crs])[station_crs]
-
-
-def get_station_point_from_crs_and_platform(
-    conn: Connection, station_crs: str, platform: Optional[str]
-) -> Optional[Point]:
-    row = conn.execute(
-        "SELECT * FROM GetStationPoint(%s, %s)", [station_crs.upper(), platform]
-    ).fetchone()
-    if row is None:
-        return None
-    return Point(row[1], row[0])
-
-
-@dataclass
-class StationPoint:
-    crs: str
-    name: str
-    platform: Optional[str]
-    point: Point
-
-
-def string_of_station_point(station_point: StationPoint) -> str:
-    if station_point.platform is None:
-        platform_string = ""
-    else:
-        platform_string = f": platform {station_point.platform}"
-    return f"{station_point.name}{platform_string}"
-
-
-@dataclass
-class StationLocation:
-    platform: Optional[str]
-    point: Point
-
-
-@dataclass
-class StationAndPlatform:
-    crs: str
-    platform: Optional[str]
-
-
-@dataclass
-class StationPointCrsSearchResult:
-    crs: str
-    name: str
-    station_points: list[StationLocation]
-
-
-def register_station_and_points(
-    station_crs: str, station_name: str, station_points: list[StationLocation]
-) -> StationPointCrsSearchResult:
-    return StationPointCrsSearchResult(
-        station_crs, station_name, station_points
-    )
-
-
-@dataclass
-class StationPointNameSearchResult:
-    crs: str
-    name: str
-    search_name: str
-    station_points: list[StationLocation]
-
-
-def register_station_name_and_points(
-    station_crs: str,
-    station_name: str,
-    search_name: str,
-    station_points: list[StationLocation],
-) -> StationPointNameSearchResult:
-    return StationPointNameSearchResult(
-        station_crs, station_name, search_name, station_points
-    )
-
-
-def get_station_point_dict(
-    rows: (
-        list[StationPointCrsSearchResult] | list[StationPointNameSearchResult]
-    ),
-) -> dict[str, dict[Optional[str], StationPoint]]:
-    station_point_dict = {}
-    for row in rows:
-        station_point_dict[row.crs] = {}
-        for point in row.station_points:
-            station_point_dict[row.crs][point.platform] = StationPoint(
-                row.crs, row.name, point.platform, point.point
-            )
-    return station_point_dict
-
-
-def register_station_latlon(
-    platform: str, latitude: float, longitude: float
-) -> StationLocation:
-    return StationLocation(platform, Point(longitude, latitude))
-
-
-def get_station_points(
-    conn: Connection,
-) -> dict[str, dict[Optional[str], StationPoint]]:
-    register_type(conn, "StationLatLon", register_station_latlon)
-    rows = conn.execute("SELECT GetStationPoints()").fetchall()
-    return get_station_point_dict([row[0] for row in rows])
-
-
-def get_station_points_from_crses(
-    conn: Connection, stations: list[tuple[str, Optional[str]]]
-) -> dict[str, dict[Optional[str], StationPoint]]:
-    register_type(conn, "StationLatLon", register_station_latlon)
-    register_type(conn, "StationAndPoints", register_station_and_points)
-    rows = conn.execute(
-        "SELECT GetStationPointsFromCrses(%s::StationCrsAndPlatform[])",
-        [stations],
-    ).fetchall()
-    return get_station_point_dict([row[0] for row in rows])
-
-
-def get_station_points_from_names(
-    conn: Connection, stations: list[tuple[str, Optional[str]]]
-) -> tuple[
-    dict[str, ShortTrainStation], dict[str, dict[Optional[str], StationPoint]]
-]:
-    register_type(conn, "StationLatLon", register_station_latlon)
-    register_type(
-        conn, "StationNameAndPoints", register_station_name_and_points
-    )
-    rows = conn.execute(
-        "SELECT GetStationPointsFromNames(%s::StationNameAndPlatform[])",
-        [stations],
-    ).fetchall()
-    name_to_station_dict = {}
-    for row in rows:
-        row = row[0]
-        name_to_station_dict[row.search_name] = ShortTrainStation(
-            row.name, row.crs
-        )
-    return (
-        name_to_station_dict,
-        get_station_point_dict([row[0] for row in rows]),
-    )
-
-
-def get_relevant_station_points(
-    station_crs: str,
-    platform: Optional[str],
-    station_points: dict[str, dict[Optional[str], StationPoint]],
-) -> list[StationPoint]:
-    crs_points = station_points[station_crs]
-    if platform is None or crs_points.get(platform) is None:
-        return [crs_points[key] for key in crs_points.keys()]
-    return [crs_points[platform]]

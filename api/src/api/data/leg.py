@@ -2,17 +2,12 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Callable, Optional
-from annotated_types import T
-from api.utils.times import get_env_variable, change_timezone
 from psycopg import Connection, Cursor
-from zoneinfo import ZoneInfo
 
+from api.utils.database import register_type
+from api.utils.times import change_timezone
 from api.data.toc import BrandData, OperatorData
-from api.utils.database import (
-    register_type,
-)
 from api.data.services import (
-    Call,
     LegCall,
     ShortAssociatedService,
     ShortCall,

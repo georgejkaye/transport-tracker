@@ -1,3 +1,4 @@
+from api.data.points import StationPoint, string_of_station_point
 import shapely
 import networkx as nx
 import osmnx as ox
@@ -11,11 +12,6 @@ from shapely import LineString, Point
 from shapely import geometry, ops
 from geopandas import GeoDataFrame
 
-from api.data.stations import (
-    StationPoint,
-    get_relevant_station_points,
-    string_of_station_point,
-)
 from api.data.leg import ShortLeg
 
 coordinate_precision = 0.000001
