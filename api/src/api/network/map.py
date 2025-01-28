@@ -13,7 +13,12 @@ from shapely import LineString, Point
 
 from api.utils.database import connect
 from api.data.stations import ShortTrainStation
-from api.data.leg import ShortLeg, get_operator_colour_from_leg, select_legs
+from api.data.leg import (
+    ShortLeg,
+    ShortLegCall,
+    get_operator_colour_from_leg,
+    select_legs,
+)
 from api.data.points import (
     StationPoint,
     get_station_points_from_crses,
@@ -144,10 +149,10 @@ def get_call_info_text(station_point: StationPoint) -> str:
         plan_dep_str = get_call_info_time_string(station_point.call.plan_dep)
         act_arr_str = get_call_info_time_string(station_point.call.act_arr)
         act_dep_str = get_call_info_time_string(station_point.call.act_dep)
-        arr_string = f"arr plan {plan_arr_str} act {act_arr_str}"
-        dep_string = f"dep plan {plan_dep_str} act {act_dep_str}"
-        time_string = f"<br/>{arr_string}<br/>{dep_string}"
-    return f"<b>{station_point.name} ({station_point.crs})</b>{time_string}"
+        arr_string = f"<b>arr</b> plan {plan_arr_str} act {act_arr_str}"
+        dep_string = f"<b>dep</b> plan {plan_dep_str} act {act_dep_str}"
+        time_string = f"{arr_string}<br/>{dep_string}"
+    return f"<h1>{station_point.name} ({station_point.crs})</h1>{time_string}"
 
 
 def get_station_info_text(
@@ -158,12 +163,14 @@ def get_station_info_text(
     alights: int,
 ) -> str:
     if include_counts:
-        count_string = (
-            "<br/>Boards: {boards}<br/>Alights: {alights}<br/>Calls: {calls}"
-        )
+        count_string = f"""
+                <b>Boards:</b> {boards}<br/>
+                <b>Alights:</b> {alights}<br/>
+                <b>Calls:</b> {calls}
+            """
     else:
         count_string = ""
-    return f"<b>{station_point.name} ({station_point.crs})</b>{count_string}"
+    return f"<h1>{station_point.name} ({station_point.crs})</h1>{count_string}"
 
 
 def get_leg_map(
@@ -299,12 +306,12 @@ def get_leg_map_from_gml_file(leg_file: str | Path) -> str:
     return get_leg_map_from_gml(xml_data)
 
 
-def get_leg_line(
+def get_leg_line_for_leg(
     network: MultiDiGraph,
     leg: ShortLeg,
     station_points: dict[str, dict[Optional[str], StationPoint]],
 ) -> Optional[LegLine]:
-    result = get_linestring_for_leg(network, leg, station_points)
+    result = get_linestring_for_leg(network, leg.calls, station_points)
     if result is None:
         return None
     (station_list, path_list) = result
@@ -319,9 +326,9 @@ def get_leg_line(
     )
 
 
-def get_leg_line_for_call_list(
+def get_leg_line_for_leg_calls(
     network: MultiDiGraph,
-    leg_data: list[ShortTrainStation],
+    leg_data: list[ShortLegCall],
     station_points: dict[str, dict[Optional[str], StationPoint]],
 ) -> Optional[LegLine]:
     previous_call = leg_data[0]
@@ -329,9 +336,9 @@ def get_leg_line_for_call_list(
     for call in leg_data[1:]:
         result = find_shortest_path_between_stations(
             network,
-            previous_call.crs,
+            previous_call.station.crs,
             None,
-            call.crs,
+            call.station.crs,
             None,
             station_points,
         )
@@ -343,8 +350,8 @@ def get_leg_line_for_call_list(
     line_strings = [path for (_, _, path) in paths]
     complete_line = merge_linestrings(line_strings)
     leg_line = LegLine(
-        leg_data[0].name,
-        leg_data[-1].name,
+        leg_data[0].station.name,
+        leg_data[-1].station.name,
         [paths[0][0], paths[-1][1]],
         complete_line,
         "#000000",
@@ -356,12 +363,12 @@ def get_leg_line_for_call_list(
 
 def get_leg_lines_for_leg_data(
     network: MultiDiGraph,
-    leg_data: list[list[ShortTrainStation]],
+    legs: list[list[ShortLegCall]],
     station_points: dict[str, dict[Optional[str], StationPoint]],
 ) -> list[LegLine]:
-    leg_lines = []
-    for leg in leg_data:
-        leg_line = get_leg_line_for_call_list(network, leg, station_points)
+    leg_lines: list[LegLine] = []
+    for leg in legs:
+        leg_line = get_leg_line_for_leg_calls(network, leg, station_points)
         if leg_line is not None:
             leg_lines.append(leg_line)
     return leg_lines
@@ -374,7 +381,7 @@ def get_leg_lines_for_legs(
 ) -> list[LegLine]:
     leg_strings = []
     for leg in legs:
-        leg_string = get_leg_line(network, leg, station_points)
+        leg_string = get_leg_line_for_leg(network, leg, station_points)
         if leg_string is not None:
             leg_strings.append(leg_string)
     return leg_strings
@@ -420,15 +427,36 @@ def get_leg_map_page_from_leg_data(
         (name_to_station_dict, station_points) = get_station_points_from_names(
             conn, list(stations)
         )
-    base_leg_data = []
+    base_leg_data: list[list[ShortLegCall]] = []
     for leg in legs:
         board_station = name_to_station_dict[leg.board_station]
         alight_station = name_to_station_dict[leg.alight_station]
-        calls = [board_station]
+        calls = [
+            ShortLegCall(
+                board_station, None, None, None, None, None, None, [], None
+            )
+        ]
         if leg.via is not None:
             for via_station in leg.via:
-                calls.append(name_to_station_dict[via_station])
-        calls.append(alight_station)
+                call_station = name_to_station_dict[via_station]
+                calls.append(
+                    ShortLegCall(
+                        call_station,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        [],
+                        None,
+                        None,
+                    )
+                )
+        calls.append(
+            ShortLegCall(
+                alight_station, None, None, None, None, None, [], None, None
+            )
+        )
         base_leg_data.append(calls)
 
     leg_lines = get_leg_lines_for_leg_data(

@@ -1,10 +1,9 @@
 from datetime import datetime
 from typing import Optional
-from api.data.points import get_station_points_from_crses
-from api.network.pathfinding import find_shortest_path_between_stations
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
+from api.data.points import get_station_points_from_crses
 from api.data.stations import select_station_from_crs
 from api.utils.database import connect
 from api.network.map import (
@@ -16,6 +15,7 @@ from api.network.map import (
     get_leg_map_page_from_leg_data,
     get_leg_map,
 )
+from api.network.pathfinding import find_shortest_path_between_stations
 from api.api.network import network
 
 router = APIRouter(prefix="/map", tags=["train/map"])
@@ -58,7 +58,7 @@ async def get_train_map_from_year(year: int) -> str:
 
 
 @router.get(
-    "/leg/{leg_id}",
+    "/legs/{leg_id}",
     summary="Get a map for a particular train leg",
     response_class=HTMLResponse,
 )

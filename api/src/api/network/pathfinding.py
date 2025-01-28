@@ -1,3 +1,4 @@
+from api.data.services import Call
 import networkx as nx
 import shapely
 
@@ -6,7 +7,7 @@ from typing import Optional
 from networkx import MultiDiGraph
 from shapely import LineString, Point
 
-from api.data.leg import ShortLeg
+from api.data.leg import ShortLeg, ShortLegCall
 from api.data.points import StationPoint, get_relevant_station_points
 from api.network.network import (
     get_edge_from_endpoints,
@@ -168,10 +169,9 @@ def find_shortest_path_between_stations(
 
 def get_linestring_for_leg(
     network: MultiDiGraph,
-    leg: ShortLeg,
+    leg_calls: list[ShortLegCall],
     station_points: dict[str, dict[Optional[str], StationPoint]],
 ) -> Optional[tuple[list[StationPoint], LineString]]:
-    leg_calls = leg.calls
     complete_paths: list[tuple[list[StationPoint], Optional[LineString]]] = []
     for platform_key in station_points[leg_calls[0].station.crs].keys():
         first_point = station_points[leg_calls[0].station.crs][platform_key]
