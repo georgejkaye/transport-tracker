@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 router = APIRouter(prefix="/stats", tags=["train/stats"])
 
 
-@router.get("", summary="Get train stats across an optional range")
+@router.get("", summary="Get train stats across a time period")
 async def get_train_stats_in_range(
     start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
 ) -> Stats:

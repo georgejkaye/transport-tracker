@@ -23,7 +23,7 @@ router = APIRouter(prefix="/map", tags=["train/map"])
 
 @router.get(
     "",
-    summary="Get map of train journeys across a time period",
+    summary="Get map of train legs across a time period",
     response_class=HTMLResponse,
 )
 async def get_train_map_from_time_period(
@@ -38,7 +38,7 @@ async def get_train_map_from_time_period(
 
 @router.get(
     "/year/{year}",
-    summary="Get map of train journeys across a year",
+    summary="Get map of train legs across a year",
     response_class=HTMLResponse,
 )
 async def get_train_map_from_year(year: int) -> str:
@@ -52,7 +52,9 @@ async def get_train_map_from_year(year: int) -> str:
 
 
 @router.get(
-    "/leg/{leg_id}", summary="Get a map for a leg", response_class=HTMLResponse
+    "/leg/{leg_id}",
+    summary="Get a map for a particular train leg",
+    response_class=HTMLResponse,
 )
 async def get_leg_map_for_leg_id(leg_id: int) -> str:
     with connect() as (conn, _):
@@ -61,7 +63,7 @@ async def get_leg_map_for_leg_id(leg_id: int) -> str:
 
 @router.get(
     "/route",
-    summary="Get route between two stations",
+    summary="Get route between two train stations",
     response_class=HTMLResponse,
 )
 async def get_route_between_stations(
@@ -118,7 +120,7 @@ async def get_route_between_stations(
 
 @router.post(
     "/data",
-    summary="Get map of train journeys from a data set",
+    summary="Get map of train legs from a data set",
     response_class=HTMLResponse,
 )
 async def get_train_map_from_data(legs: list[LegData]) -> str:

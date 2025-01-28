@@ -8,7 +8,7 @@ from api.utils.database import connect
 router = APIRouter(prefix="/legs", tags=["train/legs"])
 
 
-@router.get("", summary="Get legs")
+@router.get("", summary="Get train legs across a time period")
 async def get_legs(
     start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
 ) -> list[ShortLeg]:
@@ -17,14 +17,14 @@ async def get_legs(
         return legs
 
 
-@router.get("/year/{year}", summary="Get legs")
+@router.get("/year/{year}", summary="Get train legs across a year")
 async def get_legs_from_year(year: int) -> list[ShortLeg]:
     with connect() as (conn, _):
         legs = select_legs(conn, datetime(year, 1, 1), datetime(year, 12, 31))
         return legs
 
 
-@router.get("/{leg_id}", summary="Get train leg")
+@router.get("/{leg_id}", summary="Get particular train leg")
 async def get_leg(leg_id: int) -> ShortLeg:
     with connect() as (conn, _):
         legs = select_legs(conn, search_leg_id=leg_id)
