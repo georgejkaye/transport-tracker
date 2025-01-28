@@ -7,7 +7,7 @@ from typing import Optional
 from networkx import MultiDiGraph
 from shapely import LineString, Point
 
-from api.data.leg import ShortLeg, ShortLegCall
+from api.data.leg import ShortLeg, ShortLegCall, short_leg_call_to_point_times
 from api.data.points import StationPoint, get_relevant_station_points
 from api.network.network import (
     get_edge_from_endpoints,
@@ -183,7 +183,7 @@ def get_linestring_for_leg(
                         first_point.name,
                         first_point.platform,
                         first_point.point,
-                        leg_calls[0],
+                        short_leg_call_to_point_times(leg_calls[0]),
                     )
                 ],
                 None,
@@ -210,7 +210,7 @@ def get_linestring_for_leg(
                             point_to_test.name,
                             point_to_test.platform,
                             point_to_test.point,
-                            call,
+                            short_leg_call_to_point_times(call),
                         )
                     ]
                     platform_paths.append((new_stations, new_path))

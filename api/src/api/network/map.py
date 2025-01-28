@@ -1,8 +1,10 @@
+from tkinter import NO
+from api.data.services import ShortTrainService
 import folium
 
 from bs4 import BeautifulSoup
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from networkx import MultiDiGraph
 from psycopg import Connection
@@ -12,10 +14,10 @@ from pydantic import Field
 from shapely import LineString, Point
 
 from api.utils.database import connect
-from api.data.stations import ShortTrainStation
 from api.data.leg import (
     ShortLeg,
     ShortLegCall,
+    ShortLegSegment,
     get_operator_colour_from_leg,
     select_legs,
 )
@@ -464,3 +466,76 @@ def get_leg_map_page_from_leg_data(
     )
     html = get_leg_map([], leg_lines, StationInfo(True))
     return html
+
+
+@dataclass
+class ShortLegWithGeometry:
+    id: int
+    leg_start: datetime
+    services: dict[str, ShortTrainService]
+    calls: list[ShortLegCall]
+    stocks: list[ShortLegSegment]
+    distance: Optional[Decimal]
+    duration: Optional[timedelta]
+    geometry: Optional[list[tuple[Decimal, Decimal]]]
+
+
+def short_leg_to_short_leg_with_geometry(leg: ShortLeg) -> ShortLegWithGeometry:
+    return ShortLegWithGeometry(
+        leg.id,
+        leg.leg_start,
+        leg.services,
+        leg.calls,
+        leg.stocks,
+        leg.distance,
+        leg.duration,
+        None,
+    )
+
+
+def short_legs_to_short_legs_with_geometries(
+    legs: list[ShortLeg],
+) -> list[ShortLegWithGeometry]:
+    return [short_leg_to_short_leg_with_geometry(leg) for leg in legs]
+
+
+def get_short_leg_with_geometry(
+    network: MultiDiGraph,
+    leg: ShortLeg,
+    station_points: dict[str, dict[str | None, StationPoint]],
+) -> ShortLegWithGeometry:
+    result = get_linestring_for_leg(network, leg.calls, station_points)
+    if result is None:
+        coords = None
+    else:
+        (_, line_string) = result
+        coords = [
+            (Decimal(coord[1]), Decimal(coord[0]))
+            for coord in line_string.coords
+        ]
+    return ShortLegWithGeometry(
+        leg.id,
+        leg.leg_start,
+        leg.services,
+        leg.calls,
+        leg.stocks,
+        leg.distance,
+        leg.duration,
+        coords,
+    )
+
+
+def get_short_legs_with_geometries(
+    conn: Connection, network: MultiDiGraph, legs: list[ShortLeg]
+) -> list[ShortLegWithGeometry]:
+    stations: set[tuple[str, Optional[str]]] = set()
+    for leg in legs:
+        for call in leg.calls:
+            stations.add((call.station.crs, call.platform))
+    station_points = get_station_points_from_crses(conn, list(stations))
+    legs_with_geometries: list[ShortLegWithGeometry] = []
+    for leg in legs:
+        legs_with_geometries.append(
+            get_short_leg_with_geometry(network, leg, station_points)
+        )
+    return legs_with_geometries

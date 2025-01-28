@@ -1,11 +1,19 @@
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional
-from api.data.stations import ShortTrainStation
-from api.utils.database import register_type
 from psycopg import Connection
 from shapely import Point
 
-from api.data.leg import ShortLegCall
+from api.utils.database import register_type
+from api.data.stations import ShortTrainStation
+
+
+@dataclass
+class PointTimes:
+    plan_dep: Optional[datetime]
+    plan_arr: Optional[datetime]
+    act_dep: Optional[datetime]
+    act_arr: Optional[datetime]
 
 
 @dataclass
@@ -14,7 +22,7 @@ class StationPoint:
     name: str
     platform: Optional[str]
     point: Point
-    call: Optional[ShortLegCall] = None
+    call: Optional[PointTimes] = None
 
 
 @dataclass

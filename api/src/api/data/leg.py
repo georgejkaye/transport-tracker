@@ -2,11 +2,14 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Callable, Optional
+from networkx import MultiDiGraph
 from psycopg import Connection, Cursor
+from shapely import LineString, Point
 
 from api.utils.database import register_type
 from api.utils.times import change_timezone
 from api.data.toc import BrandData, OperatorData
+from api.data.points import PointTimes, get_station_points_from_crses
 from api.data.services import (
     LegCall,
     ShortAssociatedService,
@@ -173,6 +176,12 @@ class ShortLegCall:
     associated_service: Optional[list[ShortAssociatedService]]
     leg_stock: Optional[list[StockReport]]
     mileage: Optional[Decimal]
+
+
+def short_leg_call_to_point_times(leg_call: ShortLegCall) -> PointTimes:
+    return PointTimes(
+        leg_call.plan_arr, leg_call.plan_dep, leg_call.act_arr, leg_call.act_dep
+    )
 
 
 @dataclass
@@ -380,6 +389,7 @@ def select_legs(
         "SELECT SelectLegs(%s, %s, %s)",
         [search_start, search_end, search_leg_id],
     ).fetchall()
+
     return [row[0] for row in rows]
 
 
