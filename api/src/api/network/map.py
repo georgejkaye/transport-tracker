@@ -1,3 +1,4 @@
+from api.network.network import merge_linestrings
 import folium
 
 from bs4 import BeautifulSoup
@@ -13,6 +14,7 @@ from shapely import LineString, Point
 
 from api.utils.database import connect
 from api.data.stations import (
+    ShortTrainStation,
     StationPoint,
     get_station_points_from_crses,
     get_station_points_from_names,
@@ -190,35 +192,34 @@ def get_leg_line(
     )
 
 
-@dataclass
-class BaseLegData:
-    board_crs: str
-    board_name: str
-    alight_crs: str
-    alight_name: str
-
-
-def get_leg_line_for_station_pair(
+def get_leg_line_for_call_list(
     network: MultiDiGraph,
-    leg_data: BaseLegData,
+    leg_data: list[ShortTrainStation],
     station_points: dict[str, dict[Optional[str], StationPoint]],
 ) -> Optional[LegLine]:
-    path = find_shortest_path_between_stations(
-        network,
-        leg_data.board_crs,
-        None,
-        leg_data.alight_crs,
-        None,
-        station_points,
-    )
-    if path is None:
-        return None
-    (source_point, target_point, linestring) = path
+    previous_call = leg_data[0]
+    paths = []
+    for call in leg_data[1:]:
+        result = find_shortest_path_between_stations(
+            network,
+            previous_call.crs,
+            None,
+            call.crs,
+            None,
+            station_points,
+        )
+        if result is None:
+            return None
+        paths.append(result)
+        previous_call = call
+
+    line_strings = [path for (_, _, path) in paths]
+    complete_line = merge_linestrings(line_strings)
     leg_line = LegLine(
-        leg_data.board_name,
-        leg_data.alight_name,
-        [source_point, target_point],
-        linestring,
+        leg_data[0].name,
+        leg_data[-1].name,
+        [paths[0][0], paths[-1][1]],
+        complete_line,
         "#000000",
         0,
         0,
@@ -228,12 +229,12 @@ def get_leg_line_for_station_pair(
 
 def get_leg_lines_for_leg_data(
     network: MultiDiGraph,
-    leg_data: list[BaseLegData],
+    leg_data: list[list[ShortTrainStation]],
     station_points: dict[str, dict[Optional[str], StationPoint]],
 ) -> list[LegLine]:
     leg_lines = []
     for leg in leg_data:
-        leg_line = get_leg_line_for_station_pair(network, leg, station_points)
+        leg_line = get_leg_line_for_call_list(network, leg, station_points)
         if leg_line is not None:
             leg_lines.append(leg_line)
     return leg_lines
@@ -274,6 +275,7 @@ def get_leg_map_page(
 class LegData:
     board_station: str = Field(alias="from")
     alight_station: str = Field(alias="to")
+    via: Optional[list[str]] = None
 
 
 def get_leg_map_page_from_leg_data(
@@ -283,6 +285,9 @@ def get_leg_map_page_from_leg_data(
     for leg in legs:
         stations.add((leg.board_station, None))
         stations.add((leg.alight_station, None))
+        if leg.via is not None:
+            for via_station in leg.via:
+                stations.add((via_station, None))
     with connect() as (conn, _):
         (name_to_station_dict, station_points) = get_station_points_from_names(
             conn, list(stations)
@@ -291,14 +296,12 @@ def get_leg_map_page_from_leg_data(
     for leg in legs:
         board_station = name_to_station_dict[leg.board_station]
         alight_station = name_to_station_dict[leg.alight_station]
-        base_leg_data.append(
-            BaseLegData(
-                board_station.crs,
-                board_station.name,
-                alight_station.crs,
-                alight_station.name,
-            )
-        )
+        calls = [board_station]
+        if leg.via is not None:
+            for via_station in leg.via:
+                calls.append(name_to_station_dict[via_station])
+        calls.append(alight_station)
+        base_leg_data.append(calls)
 
     leg_lines = get_leg_lines_for_leg_data(
         network, base_leg_data, station_points

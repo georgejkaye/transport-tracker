@@ -708,7 +708,10 @@ def get_station_points_from_names(
     ).fetchall()
     name_to_station_dict = {}
     for row in rows:
-        name_to_station_dict[row[2]] = ShortTrainStation(row[1], row[0])
+        row = row[0]
+        name_to_station_dict[row.search_name] = ShortTrainStation(
+            row.name, row.crs
+        )
     return (
         name_to_station_dict,
         get_station_point_dict([row[0] for row in rows]),
