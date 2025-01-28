@@ -47,7 +47,6 @@ class LegLine:
 def add_call_marker(
     call: StationPoint,
     colour: str,
-    map: folium.Element,
     group: Optional[folium.FeatureGroup] = None,
 ):
     marker = folium.Marker(
@@ -99,14 +98,14 @@ def get_leg_map(
         )
         line_group.add_child(line)
         if plot_endpoints:
-            add_call_marker(leg_line.calls[0], "blue", m, endpoint_group)
-            add_call_marker(leg_line.calls[-1], "blue", m, endpoint_group)
+            add_call_marker(leg_line.calls[0], "blue", endpoint_group)
+            add_call_marker(leg_line.calls[-1], "blue", endpoint_group)
         if plot_calls:
             for call in leg_line.calls[1:-2]:
-                add_call_marker(call, "green", m, call_group)
+                add_call_marker(call, "green", call_group)
     line_group.add_to(m)
-    endpoint_group.add_to(m)
     call_group.add_to(m)
+    endpoint_group.add_to(m)
     folium.LayerControl().add_to(m)
     return m.get_root().render()
 

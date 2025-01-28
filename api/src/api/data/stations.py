@@ -593,6 +593,7 @@ def get_station_point_from_crs_and_platform(
 @dataclass
 class StationPoint:
     crs: str
+    name: str
     platform: Optional[str]
     point: Point
 
@@ -602,7 +603,7 @@ def string_of_station_point(station_point: StationPoint) -> str:
         platform_string = ""
     else:
         platform_string = f": platform {station_point.platform}"
-    return f"{station_point.crs}{platform_string}"
+    return f"{station_point.name}{platform_string}"
 
 
 @dataclass
@@ -617,15 +618,51 @@ class StationAndPlatform:
     platform: Optional[str]
 
 
+@dataclass
+class StationPointCrsSearchResult:
+    crs: str
+    name: str
+    station_points: list[StationLocation]
+
+
+def register_station_and_points(
+    station_crs: str, station_name: str, station_points: list[StationLocation]
+) -> StationPointCrsSearchResult:
+    return StationPointCrsSearchResult(
+        station_crs, station_name, station_points
+    )
+
+
+@dataclass
+class StationPointNameSearchResult:
+    crs: str
+    name: str
+    search_name: str
+    station_points: list[StationLocation]
+
+
+def register_station_name_and_points(
+    station_crs: str,
+    station_name: str,
+    search_name: str,
+    station_points: list[StationLocation],
+) -> StationPointNameSearchResult:
+    return StationPointNameSearchResult(
+        station_crs, station_name, search_name, station_points
+    )
+
+
 def get_station_point_dict(
-    rows: list, crs_index: int, point_index: int
+    rows: (
+        list[StationPointCrsSearchResult] | list[StationPointNameSearchResult]
+    ),
 ) -> dict[str, dict[Optional[str], StationPoint]]:
     station_point_dict = {}
     for row in rows:
-        station_point_dict[row[crs_index]] = {}
-        for point in row[point_index]:
-            station_point_dict[row[crs_index]][point.platform] = StationPoint(
-                row[crs_index], point.platform, point.point
+        station_point_dict[row.crs] = {}
+        for point in row.station_points:
+            station_point_dict[row.crs][point.platform] = StationPoint(
+                row.crs, row.name, point.platform, point.point
             )
     return station_point_dict
 
@@ -640,19 +677,20 @@ def get_station_points(
     conn: Connection,
 ) -> dict[str, dict[Optional[str], StationPoint]]:
     register_type(conn, "StationLatLon", register_station_latlon)
-    rows = conn.execute("SELECT * FROM GetStationPoints()").fetchall()
-    return get_station_point_dict(rows, 0, 2)
+    rows = conn.execute("SELECT GetStationPoints()").fetchall()
+    return get_station_point_dict([row[0] for row in rows])
 
 
 def get_station_points_from_crses(
     conn: Connection, stations: list[tuple[str, Optional[str]]]
 ) -> dict[str, dict[Optional[str], StationPoint]]:
     register_type(conn, "StationLatLon", register_station_latlon)
+    register_type(conn, "StationAndPoints", register_station_and_points)
     rows = conn.execute(
-        "SELECT * FROM GetStationPointsFromCrses(%s::StationCrsAndPlatform[])",
+        "SELECT GetStationPointsFromCrses(%s::StationCrsAndPlatform[])",
         [stations],
     ).fetchall()
-    return get_station_point_dict(rows, 0, 2)
+    return get_station_point_dict([row[0] for row in rows])
 
 
 def get_station_points_from_names(
@@ -661,14 +699,20 @@ def get_station_points_from_names(
     dict[str, ShortTrainStation], dict[str, dict[Optional[str], StationPoint]]
 ]:
     register_type(conn, "StationLatLon", register_station_latlon)
+    register_type(
+        conn, "StationNameAndPoints", register_station_name_and_points
+    )
     rows = conn.execute(
-        "SELECT * FROM GetStationPointsFromNames(%s::StationNameAndPlatform[])",
+        "SELECT GetStationPointsFromNames(%s::StationNameAndPlatform[])",
         [stations],
     ).fetchall()
     name_to_station_dict = {}
     for row in rows:
         name_to_station_dict[row[2]] = ShortTrainStation(row[1], row[0])
-    return (name_to_station_dict, get_station_point_dict(rows, 0, 3))
+    return (
+        name_to_station_dict,
+        get_station_point_dict([row[0] for row in rows]),
+    )
 
 
 def get_relevant_station_points(
