@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 from fastapi import FastAPI, HTTPException
 
-from api.data.stats import Stats, get_stats
+from api.data.stats import Stats, get_train_stats
 from api.utils.database import connect
 from api.utils.environment import get_env_variable
 from api.data.leg import ShortLeg, select_legs
@@ -33,69 +33,6 @@ app = FastAPI(
 )
 
 app.include_router(train.router)
-
-
-@app.get("/train", summary="Get train stats across an optional range")
-async def get_train_stats(
-    start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
-) -> Stats:
-    with connect() as (conn, _):
-        try:
-            return get_stats(conn, start_date, end_date)
-        except RuntimeError:
-            raise HTTPException(500, "Could not get stats")
-
-
-@app.get("/train/year/{year}", summary="Get train stats across a year")
-async def get_train_stats_from_year(
-    year: int,
-) -> Stats:
-    with connect() as (conn, _):
-        try:
-            return get_stats(conn, datetime(year, 1, 1), datetime(year, 12, 31))
-        except RuntimeError:
-            raise HTTPException(500, "Could not get stats")
-
-
-@app.get("/train/legs", summary="Get legs")
-async def get_legs(
-    start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
-) -> list[ShortLeg]:
-    with connect() as (conn, _):
-        legs = select_legs(conn, start_date, end_date)
-        return legs
-
-
-@app.get("/train/legs/year/{year}", summary="Get legs")
-async def get_legs_from_year(year: int) -> list[ShortLeg]:
-    with connect() as (conn, _):
-        legs = select_legs(conn, datetime(year, 1, 1), datetime(year, 12, 31))
-        return legs
-
-
-@app.get("/train/leg/{leg_id}", summary="Get train leg")
-async def get_leg(leg_id: int) -> ShortLeg:
-    with connect() as (conn, _):
-        legs = select_legs(conn, search_leg_id=leg_id)
-        if len(legs) != 1:
-            raise HTTPException(status_code=404, detail="Leg not found")
-        return legs[0]
-
-
-@app.get("/train/stations", summary="Get train stations")
-async def get_train_stations() -> list[StationData]:
-    with connect() as (_, cur):
-        stations = select_stations(cur)
-        return stations
-
-
-@app.get("/train/station/{station_crs}", summary="Get train station")
-async def get_train_station(station_crs: str) -> StationData:
-    with connect() as (_, cur):
-        station = select_station(cur, station_crs)
-        if station is None:
-            raise HTTPException(status_code=404, detail="Station not found")
-        return station
 
 
 def start():

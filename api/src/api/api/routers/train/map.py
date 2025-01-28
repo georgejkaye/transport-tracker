@@ -18,11 +18,11 @@ from api.network.map import (
 )
 from api.api.network import network
 
-router = APIRouter(prefix="/map")
+router = APIRouter(prefix="/map", tags=["train/map"])
 
 
 @router.get(
-    "/",
+    "",
     summary="Get map of train journeys across a time period",
     response_class=HTMLResponse,
 )
@@ -51,13 +51,12 @@ async def get_train_map_from_year(year: int) -> str:
             raise HTTPException(500, "Could not get stats")
 
 
-@router.post(
-    "/data",
-    summary="Get map of train journeys from a data set",
-    response_class=HTMLResponse,
+@router.get(
+    "/leg/{leg_id}", summary="Get a map for a leg", response_class=HTMLResponse
 )
-async def get_train_map_from_data(legs: list[LegData]) -> str:
-    return get_leg_map_page_from_leg_data(network, legs)
+async def get_leg_map_for_leg_id(leg_id: int) -> str:
+    with connect() as (conn, _):
+        return get_leg_map_page(network, conn, search_leg_id=leg_id)
 
 
 @router.get(
@@ -117,9 +116,10 @@ async def get_route_between_stations(
         )
 
 
-@router.get(
-    "/leg/{leg_id}", summary="Get a map for a leg", response_class=HTMLResponse
+@router.post(
+    "/data",
+    summary="Get map of train journeys from a data set",
+    response_class=HTMLResponse,
 )
-async def get_leg_map_for_leg_id(leg_id: int) -> str:
-    with connect() as (conn, _):
-        return get_leg_map_page(network, conn, search_leg_id=leg_id)
+async def get_train_map_from_data(legs: list[LegData]) -> str:
+    return get_leg_map_page_from_leg_data(network, legs)

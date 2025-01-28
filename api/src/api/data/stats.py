@@ -167,7 +167,7 @@ def register_stats(
     )
 
 
-def get_stats(
+def get_train_stats(
     conn: Connection,
     search_start: Optional[datetime] = None,
     search_end: Optional[datetime] = None,
