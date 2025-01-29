@@ -325,13 +325,17 @@ export interface TrainLeg {
   distance?: number
   // duration in minutes
   duration?: number
+  geometry?: [number, number][]
 }
 
 export const getLegOrigin = (leg: TrainLeg) => leg.calls[0]
 export const getLegDestination = (leg: TrainLeg) =>
   leg.calls[leg.calls.length - 1]
 
-export const responseToLeg = (data: any) => {
+const responseToGeometry = (data: [string, string][]): [number, number][] =>
+  data.map((point) => [parseFloat(point[0]), parseFloat(point[1])])
+
+export const responseToLeg = (data: any): TrainLeg => {
   let services = []
   for (const id in data["services"]) {
     let service = data["services"][id]
@@ -344,6 +348,9 @@ export const responseToLeg = (data: any) => {
   } catch {
     duration = undefined
   }
+  const geometry = !data["geometry"]
+    ? undefined
+    : responseToGeometry(data["geometry"])
   return {
     id: data["id"],
     start: new Date(data["leg_start"]),
@@ -352,5 +359,6 @@ export const responseToLeg = (data: any) => {
     stock: data["stocks"].map(responseToTrainLegSegment),
     distance: !data["distance"] ? undefined : parseFloat(data["distance"]),
     duration,
+    geometry,
   }
 }

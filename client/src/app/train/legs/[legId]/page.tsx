@@ -12,11 +12,9 @@ import { Line } from "@/app/line"
 import { Loader } from "@/app/loader"
 import {
   dateToLongString,
-  dateToTimeString,
   getDurationString,
   getMilesAndChainsString,
   getTrainServiceString,
-  maybeDateToTimeString,
   TrainLeg,
   TrainLegCall,
   TrainLegSegment,
@@ -26,6 +24,25 @@ import {
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import Map from "react-map-gl/maplibre"
+
+const TrainLegMap = (props: {
+  calls: TrainLegCall[]
+  geometry?: [number, number][]
+}) => {
+  return (
+    <Map
+      className="jell"
+      initialViewState={{
+        longitude: -122.4,
+        latitude: 37.8,
+        zoom: 14,
+      }}
+      style={{ width: 600, height: 400 }}
+      mapStyle="https://demotiles.maplibre.org/style.json"
+    />
+  )
+}
 
 const TrainLegService = (props: { service: TrainService }) => {
   let { service } = props
@@ -201,6 +218,7 @@ const Page = ({ params }: { params: { legId: string } }) => {
         }`}
       </h1>
       <div className="text-xl">{dateToLongString(leg.start)}</div>
+      <TrainLegMap calls={leg.calls} geometry={leg.geometry} />
       <Line />
       <TrainLegStats leg={leg} />
       <Line />

@@ -22,7 +22,7 @@ export const getLegs = async (): Promise<TrainLeg[]> => {
 export const getTrainLeg = async (
   legId: number
 ): Promise<TrainLeg | undefined> => {
-  let endpoint = `/api/train/legs/${legId}`
+  let endpoint = `/api/train/legs/${legId}?fetch_geometries=true`
   try {
     let response = await axios.get(endpoint)
     let data = response.data
