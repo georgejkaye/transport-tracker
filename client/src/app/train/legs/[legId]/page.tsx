@@ -31,16 +31,17 @@ const TrainLegMap = (props: {
   geometry?: [number, number][]
 }) => {
   return (
-    <Map
-      className="jell"
-      initialViewState={{
-        longitude: -122.4,
-        latitude: 37.8,
-        zoom: 14,
-      }}
-      style={{ width: 600, height: 400 }}
-      mapStyle="https://demotiles.maplibre.org/style.json"
-    />
+    <div className="py-10">
+      <Map
+        initialViewState={{
+          longitude: 0,
+          latitude: 50,
+          zoom: 4,
+        }}
+        style={{ width: 600, height: 400 }}
+        mapStyle="https://demotiles.maplibre.org/style.json"
+      />
+    </div>
   )
 }
 
