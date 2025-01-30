@@ -95,5 +95,7 @@ secrets:
     file: db.secret
   natrail_secret:
     file: natrail.secret
+  maptiler_secret:
+    file: maptiler.secret
 volumes:
   pgdata:

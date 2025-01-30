@@ -24,12 +24,32 @@ import {
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import Map from "react-map-gl/maplibre"
+import { Layer, Map, Source } from "react-map-gl/maplibre"
+import { FeatureCollection } from "geojson"
+
+const geometryToGeoJson = (
+  geometry: [number, number][]
+): FeatureCollection => ({
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      geometry: {
+        type: "LineString",
+        coordinates: geometry,
+      },
+      properties: {},
+    },
+  ],
+})
 
 const TrainLegMap = (props: {
   calls: TrainLegCall[]
   geometry?: [number, number][]
 }) => {
+  let { calls, geometry } = props
+  console.log(geometry)
+  let geojson = geometry == undefined ? undefined : geometryToGeoJson(geometry)
   return (
     <div className="py-10">
       <Map
@@ -39,8 +59,21 @@ const TrainLegMap = (props: {
           zoom: 4,
         }}
         style={{ width: 600, height: 400 }}
-        mapStyle="https://demotiles.maplibre.org/style.json"
-      />
+        mapStyle="https://api.maptiler.com/maps/streets-v2/style.json?key=eGNO3STJJMAIGpREfPUF"
+      >
+        {!geometry ? (
+          ""
+        ) : (
+          <Source id="geometry" type="geojson" data={geojson}>
+            <Layer
+              id="leg_line"
+              type="line"
+              source="geometry"
+              paint={{ "line-color": "#000000", "line-width": 5 }}
+            />
+          </Source>
+        )}
+      </Map>
     </div>
   )
 }
