@@ -58,6 +58,7 @@ services:
     environment:
       API_URL: ${SERVER_PROTOCOL}://${API_HOST}
       CLIENT_PORT: ${CLIENT_PORT}
+      NEXT_PUBLIC_MAPTILER_KEY: ${MAPTILER_KEY}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.trains_client.rule=Host(`${CLIENT_HOST}`)"

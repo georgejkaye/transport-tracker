@@ -82,6 +82,7 @@ services:
     environment:
       API_URL: "http://api:${API_PORT}"
       CLIENT_PORT: ${CLIENT_PORT}
+      NEXT_PUBLIC_MAPTILER_KEY: ${MAPTILER_KEY}
     depends_on:
       - api
     volumes:
@@ -95,7 +96,5 @@ secrets:
     file: db.secret
   natrail_secret:
     file: natrail.secret
-  maptiler_secret:
-    file: maptiler.secret
 volumes:
   pgdata:

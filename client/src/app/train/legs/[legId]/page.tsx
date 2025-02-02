@@ -239,7 +239,7 @@ const TrainLegMap = (props: { leg: TrainLeg }) => {
       <Map
         initialViewState={initialViewState}
         style={{ height: 800 }}
-        mapStyle="https://api.maptiler.com/maps/streets-v2/style.json?key=eGNO3STJJMAIGpREfPUF"
+        mapStyle={`https://api.maptiler.com/maps/streets-v2/style.json?key=${process.env.NEXT_PUBLIC_MAPTILER_KEY}`}
       >
         <FullscreenControl position="top-left" />
         <NavigationControl position="top-left" />
