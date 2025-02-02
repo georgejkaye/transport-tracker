@@ -86,28 +86,37 @@ const gbMidpointLng = -2.547855
 const gbMidpointLat = 54.00366
 const boundingBoxPadding = 0.05
 
-// https://github.com/visgl/react-maplibre/blob/1.0-release/examples/controls/src/pin.tsx
-const ICON = `M20.2,15.7L20.2,15.7c1.1-1.6,1.8-3.6,1.8-5.7c0-5.6-4.5-10-10-10S2,4.5,2,10c0,2,0.6,3.9,1.6,5.4c0,0.1,0.1,0.2,0.2,0.3
-  c0,0,0.1,0.1,0.1,0.2c0.2,0.3,0.4,0.6,0.7,0.9c2.6,3.1,7.4,7.6,7.4,7.6s4.8-4.5,7.4-7.5c0.2-0.3,0.5-0.6,0.7-0.9
-  C20.1,15.8,20.2,15.8,20.2,15.7z`
-
 const pinStyle = (colour: string) => ({
   cursor: "pointer",
   fill: colour,
   stroke: "none",
 })
 
-const Pin = (props: { size: number; colour: string }) => (
-  <svg height={props.size} viewBox="0 0 24 24" style={pinStyle(props.colour)}>
-    <path d={ICON} />
+const Pin = (props: {
+  size: number
+  fillColour: string
+  strokeColour: string
+}) => (
+  <svg height={props.size} viewBox="0 0 48 48" style={{ cursor: "pointer" }}>
+    <circle
+      cx="24"
+      cy="24"
+      r="18"
+      style={{
+        fill: props.fillColour,
+        stroke: props.strokeColour,
+        strokeWidth: 7,
+      }}
+    />
   </svg>
 )
 
 const LegCallMarker = (props: {
+  leg: TrainLeg
   call: TrainLegCall
-  setStationPopUp: Dispatch<SetStateAction<TrainLegCall | undefined>>
+  setCurrentStation: Dispatch<SetStateAction<TrainLegCall | undefined>>
 }) => {
-  let { call, setStationPopUp } = props
+  let { leg, call, setCurrentStation: setCurrentStation } = props
   let { delay, text } =
     call.planDep && call.actDep
       ? getDelayOrUndefined(call.planDep, call.actDep)
@@ -122,20 +131,76 @@ const LegCallMarker = (props: {
   ) : (
     <Marker longitude={call.point[0]} latitude={call.point[1]} anchor="bottom">
       <div
-        onMouseEnter={() => setStationPopUp(call)}
-        onMouseLeave={() => setStationPopUp(undefined)}
+        onMouseEnter={() => setCurrentStation(call)}
+        onMouseLeave={() => setCurrentStation(undefined)}
       >
-        <Pin size={20} colour={getDelayStyle(delay)} />
+        <Pin
+          size={28}
+          fillColour={getDelayStyle(delay)}
+          strokeColour={getLegColour(leg)}
+        />
       </div>
     </Marker>
   )
 }
 
+const StationPopup = (props: {
+  currentStation: TrainLegCall
+  stationPoint: [number, number]
+  setCurrentStation: Dispatch<SetStateAction<TrainLegCall | undefined>>
+}) => {
+  let { currentStation, stationPoint, setCurrentStation } = props
+  return (
+    <Popup
+      anchor="top"
+      longitude={stationPoint[0]}
+      latitude={stationPoint[1]}
+      onClose={() => setCurrentStation(undefined)}
+    >
+      <div className="flex flex-col p-1 gap-2">
+        <div>
+          <b>
+            {currentStation.station.name} [{currentStation.station.crs}]
+          </b>
+        </div>
+        <div className="flex flex-row gap-2">
+          <div>
+            {currentStation.planArr
+              ? dateToTimeString(currentStation.planArr)
+              : ""}
+          </div>
+          <div>
+            <b>
+              {currentStation.actArr
+                ? dateToTimeString(currentStation.actArr)
+                : ""}
+            </b>
+          </div>
+          <Delay plan={currentStation.planArr} act={currentStation.actArr} />
+          <div>
+            {currentStation.planDep
+              ? dateToTimeString(currentStation.planDep)
+              : ""}
+          </div>
+          <div>
+            <b>
+              {currentStation.actDep
+                ? dateToTimeString(currentStation.actDep)
+                : ""}
+            </b>
+          </div>
+          <Delay plan={currentStation.planDep} act={currentStation.actDep} />
+        </div>
+      </div>
+    </Popup>
+  )
+}
+
 const TrainLegMap = (props: { leg: TrainLeg }) => {
   let { leg } = props
-  const [stationPopUp, setStationPopUp] = useState<TrainLegCall | undefined>(
-    undefined
-  )
+  const [currentStation, setCurrentStation] = useState<
+    TrainLegCall | undefined
+  >(undefined)
   let data = getLineAndBoundingBox(leg)
   let layerStyle = getLineLayer(leg)
   let initialViewState: Partial<ViewState> & { bounds?: LngLatBoundsLike } =
@@ -156,7 +221,11 @@ const TrainLegMap = (props: { leg: TrainLeg }) => {
   let markers = useMemo(
     () =>
       leg.calls.map((call) => (
-        <LegCallMarker call={call} setStationPopUp={setStationPopUp} />
+        <LegCallMarker
+          leg={leg}
+          call={call}
+          setCurrentStation={setCurrentStation}
+        />
       )),
     []
   )
@@ -178,49 +247,12 @@ const TrainLegMap = (props: { leg: TrainLeg }) => {
           </Source>
         )}
         {markers}
-        {stationPopUp && stationPopUp.point && (
-          <Popup
-            anchor="top"
-            longitude={stationPopUp.point[0]}
-            latitude={stationPopUp.point[1]}
-            onClose={() => setStationPopUp(undefined)}
-          >
-            <div className="flex flex-col p-1 gap-2">
-              <div>
-                <b>
-                  {stationPopUp.station.name} [{stationPopUp.station.crs}]
-                </b>
-              </div>
-              <div className="flex flex-row gap-2">
-                <div>
-                  {stationPopUp.planArr
-                    ? dateToTimeString(stationPopUp.planArr)
-                    : ""}
-                </div>
-                <div>
-                  <b>
-                    {stationPopUp.actArr
-                      ? dateToTimeString(stationPopUp.actArr)
-                      : ""}
-                  </b>
-                </div>
-                <Delay plan={stationPopUp.planArr} act={stationPopUp.actArr} />
-                <div>
-                  {stationPopUp.planDep
-                    ? dateToTimeString(stationPopUp.planDep)
-                    : ""}
-                </div>
-                <div>
-                  <b>
-                    {stationPopUp.actDep
-                      ? dateToTimeString(stationPopUp.actDep)
-                      : ""}
-                  </b>
-                </div>
-                <Delay plan={stationPopUp.planDep} act={stationPopUp.actDep} />
-              </div>
-            </div>
-          </Popup>
+        {currentStation && currentStation.point && (
+          <StationPopup
+            currentStation={currentStation}
+            stationPoint={currentStation.point}
+            setCurrentStation={setCurrentStation}
+          />
         )}
       </Map>
     </div>
