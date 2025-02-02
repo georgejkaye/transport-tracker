@@ -1,5 +1,6 @@
 from tkinter import NO
-from api.data.services import ShortTrainService
+from api.data.services import ShortAssociatedService, ShortTrainService
+from api.data.stations import ShortTrainStation
 import folium
 
 from bs4 import BeautifulSoup
@@ -18,6 +19,7 @@ from api.data.leg import (
     ShortLeg,
     ShortLegCall,
     ShortLegSegment,
+    StockReport,
     get_operator_colour_from_leg,
     select_legs,
 )
@@ -469,11 +471,42 @@ def get_leg_map_page_from_leg_data(
 
 
 @dataclass
+class ShortLegCallWithGeometry:
+    station: ShortTrainStation
+    platform: Optional[str]
+    plan_arr: Optional[datetime]
+    plan_dep: Optional[datetime]
+    act_arr: Optional[datetime]
+    act_dep: Optional[datetime]
+    associated_service: Optional[list[ShortAssociatedService]]
+    leg_stock: Optional[list[StockReport]]
+    mileage: Optional[Decimal]
+    point: Optional[tuple[Decimal, Decimal]]
+
+
+def short_leg_call_to_short_leg_call_with_geometry(
+    leg_call: ShortLegCall,
+) -> ShortLegCallWithGeometry:
+    return ShortLegCallWithGeometry(
+        leg_call.station,
+        leg_call.platform,
+        leg_call.plan_arr,
+        leg_call.plan_dep,
+        leg_call.act_arr,
+        leg_call.act_dep,
+        leg_call.associated_service,
+        leg_call.leg_stock,
+        leg_call.mileage,
+        None,
+    )
+
+
+@dataclass
 class ShortLegWithGeometry:
     id: int
     leg_start: datetime
     services: dict[str, ShortTrainService]
-    calls: list[ShortLegCall]
+    calls: list[ShortLegCallWithGeometry]
     stocks: list[ShortLegSegment]
     distance: Optional[Decimal]
     duration: Optional[timedelta]
@@ -485,7 +518,10 @@ def short_leg_to_short_leg_with_geometry(leg: ShortLeg) -> ShortLegWithGeometry:
         leg.id,
         leg.leg_start,
         leg.services,
-        leg.calls,
+        [
+            short_leg_call_to_short_leg_call_with_geometry(leg_call)
+            for leg_call in leg.calls
+        ],
         leg.stocks,
         leg.distance,
         leg.duration,
@@ -507,17 +543,41 @@ def get_short_leg_with_geometry(
     result = get_linestring_for_leg(network, leg.calls, station_points)
     if result is None:
         coords = None
+        calls_with_geometry = [
+            short_leg_call_to_short_leg_call_with_geometry(leg_call)
+            for leg_call in leg.calls
+        ]
     else:
-        (_, line_string) = result
+        (points, line_string) = result
         coords = [
-            (Decimal(coord[1]), Decimal(coord[0]))
+            (Decimal(coord[0]), Decimal(coord[1]))
             for coord in line_string.coords
         ]
+        calls_with_geometry = []
+        for i, leg_call in enumerate(leg.calls):
+            station_point = points[i]
+            calls_with_geometry.append(
+                ShortLegCallWithGeometry(
+                    leg_call.station,
+                    leg_call.platform,
+                    leg_call.plan_arr,
+                    leg_call.plan_dep,
+                    leg_call.act_arr,
+                    leg_call.act_dep,
+                    leg_call.associated_service,
+                    leg_call.leg_stock,
+                    leg_call.mileage,
+                    (
+                        Decimal(station_point.point.x),
+                        Decimal(station_point.point.y),
+                    ),
+                )
+            )
     return ShortLegWithGeometry(
         leg.id,
         leg.leg_start,
         leg.services,
-        leg.calls,
+        calls_with_geometry,
         leg.stocks,
         leg.distance,
         leg.duration,
