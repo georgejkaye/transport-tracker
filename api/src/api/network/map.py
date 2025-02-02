@@ -28,7 +28,10 @@ from api.data.points import (
     get_station_points_from_crses,
     get_station_points_from_names,
 )
-from api.network.network import merge_linestrings
+from api.network.network import (
+    get_node_id_from_station_point,
+    merge_linestrings,
+)
 from api.network.pathfinding import (
     find_shortest_path_between_stations,
     get_linestring_for_leg,
@@ -556,6 +559,8 @@ def get_short_leg_with_geometry(
         calls_with_geometry = []
         for i, leg_call in enumerate(leg.calls):
             station_point = points[i]
+            station_point_id = get_node_id_from_station_point(station_point)
+            station_node = network.nodes[station_point_id]
             calls_with_geometry.append(
                 ShortLegCallWithGeometry(
                     leg_call.station,
@@ -568,8 +573,8 @@ def get_short_leg_with_geometry(
                     leg_call.leg_stock,
                     leg_call.mileage,
                     (
-                        Decimal(station_point.point.x),
-                        Decimal(station_point.point.y),
+                        Decimal(station_node["x"]),
+                        Decimal(station_node["y"]),
                     ),
                 )
             )
