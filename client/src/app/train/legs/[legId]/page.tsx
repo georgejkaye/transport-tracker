@@ -86,12 +86,6 @@ const gbMidpointLng = -2.547855
 const gbMidpointLat = 54.00366
 const boundingBoxPadding = 0.05
 
-const pinStyle = (colour: string) => ({
-  cursor: "pointer",
-  fill: colour,
-  stroke: "none",
-})
-
 const Pin = (props: {
   size: number
   fillColour: string
@@ -114,9 +108,9 @@ const Pin = (props: {
 const LegCallMarker = (props: {
   leg: TrainLeg
   call: TrainLegCall
-  setCurrentStation: Dispatch<SetStateAction<TrainLegCall | undefined>>
+  setCurrentLegCall: Dispatch<SetStateAction<TrainLegCall | undefined>>
 }) => {
-  let { leg, call, setCurrentStation: setCurrentStation } = props
+  let { leg, call, setCurrentLegCall } = props
   let { delay, text } =
     call.planDep && call.actDep
       ? getDelayOrUndefined(call.planDep, call.actDep)
@@ -126,14 +120,15 @@ const LegCallMarker = (props: {
           delay: 0,
           text: "",
         }
+  const onClickMarker = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    setCurrentLegCall(call)
+  }
   return !call.point ? (
     ""
   ) : (
-    <Marker longitude={call.point[0]} latitude={call.point[1]} anchor="bottom">
-      <div
-        onMouseEnter={() => setCurrentStation(call)}
-        onMouseLeave={() => setCurrentStation(undefined)}
-      >
+    <Marker longitude={call.point[0]} latitude={call.point[1]} anchor="center">
+      <div onClick={onClickMarker}>
         <Pin
           size={28}
           fillColour={getDelayStyle(delay)}
@@ -144,18 +139,18 @@ const LegCallMarker = (props: {
   )
 }
 
-const StationPopup = (props: {
+const LegCallPopup = (props: {
   currentStation: TrainLegCall
   stationPoint: [number, number]
-  setCurrentStation: Dispatch<SetStateAction<TrainLegCall | undefined>>
+  setCurrentLegCall: Dispatch<SetStateAction<TrainLegCall | undefined>>
 }) => {
-  let { currentStation, stationPoint, setCurrentStation } = props
+  let { currentStation, stationPoint, setCurrentLegCall } = props
   return (
     <Popup
       anchor="top"
       longitude={stationPoint[0]}
       latitude={stationPoint[1]}
-      onClose={() => setCurrentStation(undefined)}
+      onClose={() => setCurrentLegCall(undefined)}
       closeButton={false}
     >
       <div className="flex flex-col p-1 gap-2">
@@ -229,7 +224,7 @@ const TrainLegMap = (props: { leg: TrainLeg }) => {
         <LegCallMarker
           leg={leg}
           call={call}
-          setCurrentStation={setCurrentStation}
+          setCurrentLegCall={setCurrentStation}
         />
       )),
     []
@@ -253,10 +248,10 @@ const TrainLegMap = (props: { leg: TrainLeg }) => {
         )}
         {markers}
         {currentStation && currentStation.point && (
-          <StationPopup
+          <LegCallPopup
             currentStation={currentStation}
             stationPoint={currentStation.point}
-            setCurrentStation={setCurrentStation}
+            setCurrentLegCall={setCurrentStation}
           />
         )}
       </Map>
