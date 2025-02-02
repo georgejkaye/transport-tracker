@@ -156,14 +156,16 @@ const StationPopup = (props: {
       longitude={stationPoint[0]}
       latitude={stationPoint[1]}
       onClose={() => setCurrentStation(undefined)}
+      closeButton={false}
     >
       <div className="flex flex-col p-1 gap-2">
         <div>
-          <b>
+          <b className="text-lg mb-2">
             {currentStation.station.name} [{currentStation.station.crs}]
           </b>
         </div>
         <div className="flex flex-row gap-2">
+          <div className="w-5 text-left mr-2">arr</div>
           <div>
             {currentStation.planArr
               ? dateToTimeString(currentStation.planArr)
@@ -177,6 +179,9 @@ const StationPopup = (props: {
             </b>
           </div>
           <Delay plan={currentStation.planArr} act={currentStation.actArr} />
+        </div>
+        <div className="flex flex-row gap-2">
+          <div className="w-5 text-left mr-2">dep</div>
           <div>
             {currentStation.planDep
               ? dateToTimeString(currentStation.planDep)
