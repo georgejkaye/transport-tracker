@@ -1,18 +1,30 @@
 "use client"
 
 import { getTrainLeg } from "@/app/data"
+import bbox from "@turf/bbox"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react"
 import {
-  Delay,
-  getDelayOrUndefined,
-  PlanActTime,
-  ShortStationLink,
-  StationLink,
-} from "@/app/leg"
-import { Line } from "@/app/line"
-import { Loader } from "@/app/loader"
+  Layer,
+  LineLayer,
+  LngLatBoundsLike,
+  Map,
+  Source,
+  ViewState,
+  Marker,
+  FullscreenControl,
+  NavigationControl,
+  ScaleControl,
+  Popup,
+} from "react-map-gl/maplibre"
+import { FeatureCollection, Position } from "geojson"
+
 import {
   dateToLongString,
+  dateToTimeString,
   getDurationString,
+  getLegColour,
   getMilesAndChainsString,
   getTrainServiceString,
   TrainLeg,
@@ -21,15 +33,27 @@ import {
   TrainService,
   TrainStockReport,
 } from "@/app/structs"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { Layer, Map, Source } from "react-map-gl/maplibre"
-import { FeatureCollection } from "geojson"
+import {
+  Delay,
+  getDelayOrUndefined,
+  getDelayStyle,
+  PlanActTime,
+  ShortStationLink,
+} from "@/app/leg"
+import { Line } from "@/app/line"
+import { Loader } from "@/app/loader"
 
-const geometryToGeoJson = (
-  geometry: [number, number][]
-): FeatureCollection => ({
+const getLineLayer = (leg: TrainLeg): LineLayer => ({
+  id: "line",
+  source: "geometry",
+  type: "line",
+  paint: {
+    "line-width": 5,
+    "line-color": getLegColour(leg),
+  },
+})
+
+const getLineFeatureCollection = (geometry: Position[]): FeatureCollection => ({
   type: "FeatureCollection",
   features: [
     {
@@ -43,35 +67,160 @@ const geometryToGeoJson = (
   ],
 })
 
-const TrainLegMap = (props: {
-  calls: TrainLegCall[]
-  geometry?: [number, number][]
+const getLineAndBoundingBox = (leg: TrainLeg) => {
+  if (!leg.geometry) {
+    return undefined
+  }
+  let line = getLineFeatureCollection(leg.geometry)
+  let [minLng, minLat, maxLng, maxLat] = bbox(line)
+  return {
+    line,
+    minLng,
+    minLat,
+    maxLng,
+    maxLat,
+  }
+}
+
+const gbMidpointLng = -2.547855
+const gbMidpointLat = 54.00366
+const boundingBoxPadding = 0.05
+
+// https://github.com/visgl/react-maplibre/blob/1.0-release/examples/controls/src/pin.tsx
+const ICON = `M20.2,15.7L20.2,15.7c1.1-1.6,1.8-3.6,1.8-5.7c0-5.6-4.5-10-10-10S2,4.5,2,10c0,2,0.6,3.9,1.6,5.4c0,0.1,0.1,0.2,0.2,0.3
+  c0,0,0.1,0.1,0.1,0.2c0.2,0.3,0.4,0.6,0.7,0.9c2.6,3.1,7.4,7.6,7.4,7.6s4.8-4.5,7.4-7.5c0.2-0.3,0.5-0.6,0.7-0.9
+  C20.1,15.8,20.2,15.8,20.2,15.7z`
+
+const pinStyle = (colour: string) => ({
+  cursor: "pointer",
+  fill: colour,
+  stroke: "none",
+})
+
+const Pin = (props: { size: number; colour: string }) => (
+  <svg height={props.size} viewBox="0 0 24 24" style={pinStyle(props.colour)}>
+    <path d={ICON} />
+  </svg>
+)
+
+const LegCallMarker = (props: {
+  call: TrainLegCall
+  setStationPopUp: Dispatch<SetStateAction<TrainLegCall | undefined>>
 }) => {
-  let { calls, geometry } = props
-  console.log(geometry)
-  let geojson = geometry == undefined ? undefined : geometryToGeoJson(geometry)
+  let { call, setStationPopUp } = props
+  let { delay, text } =
+    call.planDep && call.actDep
+      ? getDelayOrUndefined(call.planDep, call.actDep)
+      : call.planArr && call.actArr
+      ? getDelayOrUndefined(call.planArr, call.actArr)
+      : {
+          delay: 0,
+          text: "",
+        }
+  return !call.point ? (
+    ""
+  ) : (
+    <Marker longitude={call.point[0]} latitude={call.point[1]} anchor="bottom">
+      <div
+        onMouseEnter={() => setStationPopUp(call)}
+        onMouseLeave={() => setStationPopUp(undefined)}
+      >
+        <Pin size={20} colour={getDelayStyle(delay)} />
+      </div>
+    </Marker>
+  )
+}
+
+const TrainLegMap = (props: { leg: TrainLeg }) => {
+  let { leg } = props
+  const [stationPopUp, setStationPopUp] = useState<TrainLegCall | undefined>(
+    undefined
+  )
+  let data = getLineAndBoundingBox(leg)
+  let layerStyle = getLineLayer(leg)
+  let initialViewState: Partial<ViewState> & { bounds?: LngLatBoundsLike } =
+    !data
+      ? {
+          longitude: gbMidpointLng,
+          latitude: gbMidpointLat,
+          zoom: 8,
+        }
+      : {
+          bounds: [
+            data.minLng - boundingBoxPadding,
+            data.minLat - boundingBoxPadding,
+            data.maxLng + boundingBoxPadding,
+            data.maxLat + boundingBoxPadding,
+          ],
+        }
+  let markers = useMemo(
+    () =>
+      leg.calls.map((call) => (
+        <LegCallMarker call={call} setStationPopUp={setStationPopUp} />
+      )),
+    []
+  )
   return (
-    <div className="py-10">
+    <div className="overflow-hidden">
       <Map
-        initialViewState={{
-          longitude: 0,
-          latitude: 50,
-          zoom: 4,
-        }}
-        style={{ width: 600, height: 400 }}
+        initialViewState={initialViewState}
+        style={{ height: 800 }}
         mapStyle="https://api.maptiler.com/maps/streets-v2/style.json?key=eGNO3STJJMAIGpREfPUF"
       >
-        {!geometry ? (
+        <FullscreenControl position="top-left" />
+        <NavigationControl position="top-left" />
+        <ScaleControl />
+        {!data ? (
           ""
         ) : (
-          <Source id="geometry" type="geojson" data={geojson}>
-            <Layer
-              id="leg_line"
-              type="line"
-              source="geometry"
-              paint={{ "line-color": "#000000", "line-width": 5 }}
-            />
+          <Source id="geometry" type="geojson" data={data.line}>
+            <Layer {...layerStyle} />
           </Source>
+        )}
+        {markers}
+        {stationPopUp && stationPopUp.point && (
+          <Popup
+            anchor="top"
+            longitude={stationPopUp.point[0]}
+            latitude={stationPopUp.point[1]}
+            onClose={() => setStationPopUp(undefined)}
+          >
+            <div className="flex flex-col p-1 gap-2">
+              <div>
+                <b>
+                  {stationPopUp.station.name} [{stationPopUp.station.crs}]
+                </b>
+              </div>
+              <div className="flex flex-row gap-2">
+                <div>
+                  {stationPopUp.planArr
+                    ? dateToTimeString(stationPopUp.planArr)
+                    : ""}
+                </div>
+                <div>
+                  <b>
+                    {stationPopUp.actArr
+                      ? dateToTimeString(stationPopUp.actArr)
+                      : ""}
+                  </b>
+                </div>
+                <Delay plan={stationPopUp.planArr} act={stationPopUp.actArr} />
+                <div>
+                  {stationPopUp.planDep
+                    ? dateToTimeString(stationPopUp.planDep)
+                    : ""}
+                </div>
+                <div>
+                  <b>
+                    {stationPopUp.actDep
+                      ? dateToTimeString(stationPopUp.actDep)
+                      : ""}
+                  </b>
+                </div>
+                <Delay plan={stationPopUp.planDep} act={stationPopUp.actDep} />
+              </div>
+            </div>
+          </Popup>
         )}
       </Map>
     </div>
@@ -245,14 +394,14 @@ const Page = ({ params }: { params: { legId: string } }) => {
   return !leg ? (
     <Loader />
   ) : (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 mx-4">
       <h1 className="text-2xl font-bold">
         {`${leg.calls[0].station.name} to ${
           leg.calls[leg.calls.length - 1].station.name
         }`}
       </h1>
       <div className="text-xl">{dateToLongString(leg.start)}</div>
-      <TrainLegMap calls={leg.calls} geometry={leg.geometry} />
+      <TrainLegMap leg={leg} />
       <Line />
       <TrainLegStats leg={leg} />
       <Line />

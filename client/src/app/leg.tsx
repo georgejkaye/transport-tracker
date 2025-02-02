@@ -12,7 +12,7 @@ import TrainOutlinedIcon from "@mui/icons-material/TrainOutlined"
 export const LegIconLink = (props: { id: number }) => {
   let { id } = props
   return (
-    <Link className={linkStyle} href={`/train/leg/${id}`}>
+    <Link className={linkStyle} href={`/train/legs/${id}`}>
       <TrainOutlinedIcon />
     </Link>
   )
@@ -72,18 +72,18 @@ export const getDelayOrUndefined = (
   return getDelay(plan, act)
 }
 
-const getDelayStyle = (delay: number | undefined) =>
+export const getDelayStyle = (delay: number | undefined) =>
   delay === undefined
     ? ""
     : delay <= -5
-    ? "text-green-600"
+    ? "#43a047"
     : delay < 0
-    ? "text-green-400"
+    ? "#66bb6a"
     : delay === 0
-    ? "text-gray-400"
+    ? "#bdbdbd"
     : delay < 5
-    ? "text-red-400"
-    : "text-red-600"
+    ? "#ef5350"
+    : "#e53935"
 
 const getDurationString = (origin: Date, destination: Date) => {
   let duration = destination.getTime() - origin.getTime()
@@ -113,14 +113,18 @@ export const Delay = (props: {
   let { plan, act } = props
   let { delay, text } = getDelayOrUndefined(plan, act)
   let style = getDelayStyle(delay)
-  return <div className={`${style} ${delayWidth} text-center`}>{text}</div>
+  return (
+    <div className={`${delayWidth} text-center`} style={{ color: style }}>
+      {text}
+    </div>
+  )
 }
 
 export const ShortStationLink = (props: { station: TrainStation }) => {
   let { station } = props
   return (
     <div className="flex-1 flex-wrap">
-      <Link className={linkStyle} href={`/train/station/${station.crs}`}>
+      <Link className={linkStyle} href={`/train/stations/${station.crs}`}>
         {station.name}
       </Link>
     </div>

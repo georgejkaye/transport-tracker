@@ -3,28 +3,16 @@
 import { useEffect, useState } from "react"
 import {
   dateToShortString,
-  dateToTimeString,
   getLegDestination,
   getLegOrigin,
   getMilesAndChainsString,
   TrainLeg,
-  TrainStation,
-  TrainLegCall,
   durationToHoursAndMinutes,
   getDurationString,
   getMaybeDurationString,
 } from "./structs"
 import { getLegs } from "./data"
-import {
-  Delay,
-  Duration,
-  EndpointSection,
-  LegIconLink,
-  StationLink,
-  TotalStat,
-} from "./leg"
-import Link from "next/link"
-import { linkStyle } from "./styles"
+import { EndpointSection, LegIconLink, TotalStat } from "./leg"
 import { Loader } from "./loader"
 
 const LegRow = (props: { leg: TrainLeg }) => {

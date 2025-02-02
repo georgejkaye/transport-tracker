@@ -30,6 +30,10 @@ export default function RootLayout({
         <main className="items-center flex flex-col justify-between py-4">
           {children}
         </main>
+        <link
+          href="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.css"
+          rel="stylesheet"
+        />
       </body>
     </html>
   )
