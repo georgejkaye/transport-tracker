@@ -7,7 +7,6 @@ import {
   getLegOrigin,
   getMilesAndChainsString,
   TrainLeg,
-  durationToHoursAndMinutes,
   getDurationString,
   getMaybeDurationString,
 } from "./structs"
@@ -43,8 +42,6 @@ const LegRow = (props: { leg: TrainLeg }) => {
           </div>
         </div>
       </div>
-      {/* <Duration origin={origin.planDep} destination={destination.planArr} />
-       */}
     </div>
   )
 }
@@ -62,7 +59,6 @@ const TotalLegStats = (props: { legs: TrainLeg[] }) => {
     },
     { distance: 0, duration: 0 }
   )
-  let { hours, minutes } = durationToHoursAndMinutes(duration)
   return (
     <div className="flex flex-row flex-wrap gap-4 justify-center">
       <TotalStat title="Legs" value={`${legs.length}`} />

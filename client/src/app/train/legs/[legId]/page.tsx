@@ -25,6 +25,7 @@ import {
   dateToTimeString,
   getDurationString,
   getLegColour,
+  getLegOperator,
   getMilesAndChainsString,
   getTrainServiceString,
   TrainLeg,
@@ -42,6 +43,7 @@ import {
 } from "@/app/leg"
 import { Line } from "@/app/line"
 import { Loader } from "@/app/loader"
+import { linkStyle } from "@/app/styles"
 
 const getLineLayer = (leg: TrainLeg): LineLayer => ({
   id: "line",
@@ -124,11 +126,18 @@ const LegCallMarker = (props: {
     e.stopPropagation()
     setCurrentLegCall(call)
   }
+  const onMouseEnterMarker = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    setCurrentLegCall(call)
+  }
+  const onMouseLeaveMarker = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+  }
   return !call.point ? (
     ""
   ) : (
     <Marker longitude={call.point[0]} latitude={call.point[1]} anchor="center">
-      <div onClick={onClickMarker}>
+      <div onMouseEnter={onMouseEnterMarker} onClick={onClickMarker}>
         <Pin
           size={28}
           fillColour={getDelayStyle(delay)}
@@ -140,57 +149,70 @@ const LegCallMarker = (props: {
 }
 
 const LegCallPopup = (props: {
-  currentStation: TrainLegCall
+  currentLegCall: TrainLegCall
   stationPoint: [number, number]
   setCurrentLegCall: Dispatch<SetStateAction<TrainLegCall | undefined>>
 }) => {
-  let { currentStation, stationPoint, setCurrentLegCall } = props
+  let { currentLegCall, stationPoint, setCurrentLegCall } = props
   return (
     <Popup
-      anchor="top"
+      anchor="bottom"
       longitude={stationPoint[0]}
       latitude={stationPoint[1]}
       onClose={() => setCurrentLegCall(undefined)}
       closeButton={false}
+      offset={15}
+      maxWidth="60"
     >
-      <div className="flex flex-col p-1 gap-2">
+      <div className="flex flex-col px-1 gap-2">
         <div>
-          <b className="text-lg mb-2">
-            {currentStation.station.name} [{currentStation.station.crs}]
-          </b>
-        </div>
-        <div className="flex flex-row gap-2">
-          <div className="w-5 text-left mr-2">arr</div>
           <div>
-            {currentStation.planArr
-              ? dateToTimeString(currentStation.planArr)
-              : ""}
-          </div>
-          <div>
-            <b>
-              {currentStation.actArr
-                ? dateToTimeString(currentStation.actArr)
-                : ""}
+            <b className={`text-lg mb-2 ${linkStyle}`}>
+              <Link href={`/train/stations/${currentLegCall.station.crs}`}>
+                {currentLegCall.station.name} [{currentLegCall.station.crs}]
+              </Link>
             </b>
           </div>
-          <Delay plan={currentStation.planArr} act={currentStation.actArr} />
+          {currentLegCall.platform && (
+            <div>platform {currentLegCall.platform}</div>
+          )}
         </div>
-        <div className="flex flex-row gap-2">
-          <div className="w-5 text-left mr-2">dep</div>
-          <div>
-            {currentStation.planDep
-              ? dateToTimeString(currentStation.planDep)
-              : ""}
-          </div>
-          <div>
-            <b>
-              {currentStation.actDep
-                ? dateToTimeString(currentStation.actDep)
+        {(currentLegCall.planArr || currentLegCall.actArr) && (
+          <div className="flex flex-row gap-2">
+            <div className="w-5 text-left mr-2">arr</div>
+            <div>
+              {currentLegCall.planArr
+                ? dateToTimeString(currentLegCall.planArr)
                 : ""}
-            </b>
+            </div>
+            <div>
+              <b>
+                {currentLegCall.actArr
+                  ? dateToTimeString(currentLegCall.actArr)
+                  : ""}
+              </b>
+            </div>
+            <Delay plan={currentLegCall.planArr} act={currentLegCall.actArr} />
           </div>
-          <Delay plan={currentStation.planDep} act={currentStation.actDep} />
-        </div>
+        )}
+        {(currentLegCall.planDep || currentLegCall.actDep) && (
+          <div className="flex flex-row gap-2">
+            <div className="w-5 text-left mr-2">dep</div>
+            <div>
+              {currentLegCall.planDep
+                ? dateToTimeString(currentLegCall.planDep)
+                : ""}
+            </div>
+            <div>
+              <b>
+                {currentLegCall.actDep
+                  ? dateToTimeString(currentLegCall.actDep)
+                  : ""}
+              </b>
+            </div>
+            <Delay plan={currentLegCall.planDep} act={currentLegCall.actDep} />
+          </div>
+        )}
       </div>
     </Popup>
   )
@@ -249,7 +271,7 @@ const TrainLegMap = (props: { leg: TrainLeg }) => {
         {markers}
         {currentStation && currentStation.point && (
           <LegCallPopup
-            currentStation={currentStation}
+            currentLegCall={currentStation}
             stationPoint={currentStation.point}
             setCurrentLegCall={setCurrentStation}
           />
@@ -271,8 +293,8 @@ const TrainLegService = (props: { service: TrainService }) => {
 const TrainLegServices = (props: { services: TrainService[] }) => {
   let { services } = props
   return (
-    <div>
-      <h2 className="font-bold text-lg mb-2">Services</h2>
+    <div className="flex-1">
+      <div className="font-bold text-xl mb-2">Services</div>
       <div className="flex flex-row">
         {services.map((service, i) => (
           <TrainLegService key={i} service={service} />
@@ -373,13 +395,18 @@ const TrainStockReportLine = (props: { stock: TrainStockReport }) => {
   )
 }
 
-const TrainLegStockSegment = (props: { segment: TrainLegSegment }) => {
-  let { segment } = props
+const TrainLegStockSegment = (props: {
+  isOnlySegment: boolean
+  segment: TrainLegSegment
+}) => {
+  let { isOnlySegment, segment } = props
   return (
     <div>
-      <h3 className="font-bold text-lg pb-2">
-        {segment.start.name} to {segment.end.name}
-      </h3>
+      {!isOnlySegment && (
+        <h3 className="font-bold text-lg pb-2">
+          {segment.start.name} to {segment.end.name}
+        </h3>
+      )}
       <ul className="flex flex-col gap-2 list-disc">
         {segment.stocks.map((stock, i) => (
           <TrainStockReportLine key={i} stock={stock} />
@@ -392,11 +419,15 @@ const TrainLegStockSegment = (props: { segment: TrainLegSegment }) => {
 const TrainLegStockSegments = (props: { segments: TrainLegSegment[] }) => {
   let { segments } = props
   return (
-    <div>
+    <div className="flex-1">
       <h2 className="font-bold text-xl pb-2">Rolling stock</h2>
       <div className="flex flex-col gap-4">
         {segments.map((segment, i) => (
-          <TrainLegStockSegment segment={segment} key={i} />
+          <TrainLegStockSegment
+            isOnlySegment={segments.length == 1}
+            segment={segment}
+            key={i}
+          />
         ))}
       </div>
     </div>
@@ -426,20 +457,27 @@ const Page = ({ params }: { params: { legId: string } }) => {
   return !leg ? (
     <Loader />
   ) : (
-    <div className="flex flex-col gap-4 mx-4">
-      <h1 className="text-2xl font-bold">
+    <div className="flex flex-col gap-4 mx-4 my-2">
+      <h1 className="text-3xl font-bold">
         {`${leg.calls[0].station.name} to ${
           leg.calls[leg.calls.length - 1].station.name
         }`}
       </h1>
-      <div className="text-xl">{dateToLongString(leg.start)}</div>
+      <div className="flex flex-col lg:flex-row gap-2 items-baseline">
+        <div className="text-xl">{dateToLongString(leg.start)}</div>
+        <div>operated by {getLegOperator(leg)}</div>
+      </div>
       <TrainLegMap leg={leg} />
       <Line />
       <TrainLegStats leg={leg} />
       <Line />
-      <TrainLegServices services={leg.services} />
-      <Line />
-      <TrainLegStockSegments segments={leg.stock} />
+      <div className="flex flex-col lg:flex-row gap-4">
+        <TrainLegServices services={leg.services} />
+        <div className="lg:hidden">
+          <Line />
+        </div>
+        <TrainLegStockSegments segments={leg.stock} />
+      </div>
       <Line />
       <TrainLegCalls calls={leg.calls} />
     </div>

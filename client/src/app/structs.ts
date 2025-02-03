@@ -367,3 +367,8 @@ export const getLegColour = (leg: TrainLeg) => {
   const service = leg.services[0]
   return service.brand ? service.brand.bg : service.operator.bg
 }
+
+export const getLegOperator = (leg: TrainLeg) => {
+  const service = leg.services[0]
+  return service.brand ? service.brand.name : service.operator.name
+}

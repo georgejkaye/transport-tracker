@@ -28,7 +28,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <TopBar />
         <main className="items-center flex flex-col justify-between p-4 flex">
-          <div className="w-full lg:w-[100rem]">{children}</div>
+          <div className="w-full lg:w-[64rem]">{children}</div>
         </main>
         <link
           href="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.css"
