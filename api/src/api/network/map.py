@@ -1,4 +1,3 @@
-from tkinter import NO
 from api.data.services import ShortAssociatedService, ShortTrainService
 from api.data.stations import ShortTrainStation
 import folium
