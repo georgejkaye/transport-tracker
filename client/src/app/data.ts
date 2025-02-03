@@ -19,6 +19,20 @@ export const getLegs = async (): Promise<TrainLeg[]> => {
   }
 }
 
+export const getLegsForYear = async (year: number): Promise<TrainLeg[]> => {
+  let yearString = year.toString().padStart(4, "0")
+  let endpoint = `/api/train/legs/year/${yearString}?fetch_geometries=true`
+  try {
+    let response = await axios.get(endpoint)
+    let data = response.data
+    let legs = data.map(responseToLeg)
+    return legs
+  } catch (e) {
+    console.log(e)
+    return []
+  }
+}
+
 export const getTrainLeg = async (
   legId: number
 ): Promise<TrainLeg | undefined> => {

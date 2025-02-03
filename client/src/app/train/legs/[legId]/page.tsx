@@ -53,6 +53,9 @@ const getLineLayer = (leg: TrainLeg): LineLayer => ({
     "line-width": 5,
     "line-color": getLegColour(leg),
   },
+  layout: {
+    "line-cap": "round",
+  },
 })
 
 const getLineFeatureCollection = (geometry: Position[]): FeatureCollection => ({
