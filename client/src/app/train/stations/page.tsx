@@ -58,8 +58,8 @@ const Page = () => {
     <div>
       <h1 className="text-2xl font-bold mb-2">Railway stations</h1>
       <div className="flex flex-col gap-2">
-        {stations.map((station, i) => (
-          <div key={i} className="flex flex-col gap-2">
+        {stations.map((station) => (
+          <div key={station.crs} className="flex flex-col gap-2">
             <Line />
             <StationRow station={station} />
           </div>

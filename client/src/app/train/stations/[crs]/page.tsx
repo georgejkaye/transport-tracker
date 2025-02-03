@@ -234,8 +234,8 @@ const StationLegs = (props: {
   let { station, legs } = props
   return (
     <div className="flex flex-col gap-4">
-      {legs.map((leg, i) => (
-        <div key={i} className="flex flex-col">
+      {legs.map((leg) => (
+        <div key={leg.id} className="flex flex-col">
           <StationLeg station={station} leg={leg} />{" "}
         </div>
       ))}
