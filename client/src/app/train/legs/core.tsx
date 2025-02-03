@@ -147,6 +147,6 @@ export const LegList = (props: { legs: TrainLeg[] }) =>
   props.legs.map((leg, i) => (
     <div className="flex flex-col gap-2" key={i}>
       <hr className="h-px border-0 bg-gray-600" />
-      <LegRow leg={leg} />
+      <LegRow key={leg.id} leg={leg} />
     </div>
   ))

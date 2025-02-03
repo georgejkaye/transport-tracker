@@ -245,8 +245,9 @@ const TrainLegMap = (props: { leg: TrainLeg }) => {
         }
   let markers = useMemo(
     () =>
-      leg.calls.map((call) => (
+      leg.calls.map((call, i) => (
         <LegCallMarker
+          key={i}
           leg={leg}
           call={call}
           setCurrentLegCall={setCurrentStation}
@@ -299,8 +300,8 @@ const TrainLegServices = (props: { services: TrainService[] }) => {
     <div className="flex-1">
       <div className="font-bold text-xl mb-2">Services</div>
       <div className="flex flex-row">
-        {services.map((service, i) => (
-          <TrainLegService key={i} service={service} />
+        {services.map((service) => (
+          <TrainLegService key={service.id} service={service} />
         ))}
       </div>
     </div>
