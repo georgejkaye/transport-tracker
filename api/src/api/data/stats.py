@@ -2,9 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Optional
-from webbrowser import Opera
 
-from api.data.database import connect, register_type
+from api.utils.database import register_type
 from psycopg import Connection
 
 
@@ -168,7 +167,7 @@ def register_stats(
     )
 
 
-def get_stats(
+def get_train_stats(
     conn: Connection,
     search_start: Optional[datetime] = None,
     search_end: Optional[datetime] = None,
@@ -186,8 +185,3 @@ def get_stats(
     if row is None:
         raise RuntimeError("Could not get stats")
     return row[0]
-
-
-if __name__ == "__main__":
-    with connect() as (conn, _):
-        print(get_stats(conn))

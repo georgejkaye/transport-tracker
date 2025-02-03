@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from psycopg import Connection, Cursor
 from psycopg.types.composite import CompositeInfo, register_composite
 
-from api.data.environment import get_env_variable, get_secret
+from api.utils.environment import get_env_variable, get_secret
 
 load_dotenv()
 

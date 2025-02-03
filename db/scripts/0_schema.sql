@@ -83,11 +83,24 @@ CREATE TABLE Station (
     operator_id INTEGER NOT NULL,
     brand_id INTEGER,
     station_img TEXT,
-    latitude DECIMAL,
-    longitude DECIMAL,
     FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
     FOREIGN KEY (brand_id) REFERENCES Brand(brand_id),
     CONSTRAINT valid_brand CHECK (IsValidBrand(brand_id, operator_id))
+);
+
+CREATE TABLE StationName (
+    station_crs CHARACTER(3) NOT NULL,
+    alternate_station_name TEXT NOT NULL,
+    FOREIGN KEY (station_crs) REFERENCES Station(station_crs)
+);
+
+CREATE TABLE StationPoint (
+    station_crs CHARACTER(3),
+    platform TEXT,
+    latitude DECIMAL NOT NULL,
+    longitude DECIMAL NOT NULL,
+    FOREIGN KEY (station_crs) REFERENCES Station(station_crs),
+    CONSTRAINT point_unique UNIQUE NULLS NOT DISTINCT (station_crs, platform)
 );
 
 CREATE TABLE Service (

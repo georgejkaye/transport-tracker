@@ -54,8 +54,8 @@ export interface TrainStation {
 }
 
 export const responseToTrainStation = (data: any) => ({
-  crs: data["crs"],
-  name: data["name"],
+  crs: data.crs,
+  name: data.name,
 })
 
 export interface OperatorData {
@@ -67,11 +67,11 @@ export interface OperatorData {
 }
 
 export const responseToOperatorData = (data: any) => ({
-  id: data["id"],
-  name: data["name"],
-  code: data["code"],
-  fg: data["fg"],
-  bg: data["bg"],
+  id: data.id,
+  name: data.name,
+  code: data.code,
+  fg: data.fg,
+  bg: data.bg,
 })
 
 export interface BrandData {
@@ -83,11 +83,11 @@ export interface BrandData {
 }
 
 export const responseToBrandData = (data: any) => ({
-  id: data["id"],
-  name: data["name"],
-  code: data["code"],
-  fg: data["fg"],
-  bg: data["bg"],
+  id: data.id,
+  name: data.name,
+  code: data.code,
+  fg: data.fg,
+  bg: data.bg,
 })
 
 export interface TrainStationLegData {
@@ -107,19 +107,19 @@ export interface TrainStationLegData {
 }
 
 export const responseToTrainStationLegData = (data: any) => ({
-  id: data["id"],
-  platform: data["platform"],
-  origin: responseToTrainStation(data["origin"]),
-  destination: responseToTrainStation(data["destination"]),
-  stopTime: responseToDate(data["stop_time"]),
-  planArr: responseToDate(data["plan_arr"]),
-  actArr: responseToDate(data["act_arr"]),
-  planDep: responseToDate(data["plan_dep"]),
-  actDep: responseToDate(data["act_dep"]),
-  before: data["calls_before"],
-  after: data["calls_after"],
-  operator: responseToOperatorData(data["operator"]),
-  brand: !data["brand"] ? undefined : responseToBrandData(data["brand"]),
+  id: data.id,
+  platform: data.platform,
+  origin: responseToTrainStation(data.origin),
+  destination: responseToTrainStation(data.destination),
+  stopTime: responseToDate(data.stop_time),
+  planArr: responseToDate(data.plan_arr),
+  actArr: responseToDate(data.act_arr),
+  planDep: responseToDate(data.plan_dep),
+  actDep: responseToDate(data.act_dep),
+  before: data.calls_before,
+  after: data.calls_after,
+  operator: responseToOperatorData(data.operator),
+  brand: !data.brand ? undefined : responseToBrandData(data["brand"]),
 })
 
 export interface TrainStationData {
@@ -135,15 +135,15 @@ export interface TrainStationData {
 }
 
 export const responseToTrainStationData = (data: any) => ({
-  name: data["name"],
-  crs: data["crs"],
-  operator: responseToOperatorData(data["operator"]),
-  brand: !data["brand"] ? undefined : responseToBrandData(data["brand"]),
-  legs: data["legs"].map(responseToTrainStationLegData),
-  starts: data["starts"],
-  finishes: data["finishes"],
-  intermediates: data["passes"],
-  img: !data["img"] ? undefined : data["img"],
+  name: data.name,
+  crs: data.crs,
+  operator: responseToOperatorData(data.operator),
+  brand: !data.brand ? undefined : responseToBrandData(data["brand"]),
+  legs: data.legs.map(responseToTrainStationLegData),
+  starts: data.starts,
+  finishes: data.finishes,
+  intermediates: data.passes,
+  img: !data.img ? undefined : data["img"],
 })
 
 export const enum AssociationType {
@@ -172,9 +172,9 @@ export interface AssociatedTrainService {
 }
 
 export const responseToAssociatedTrainService = (data: any) => ({
-  id: data["service_id"],
-  runDate: data["service_run_date"],
-  association: responseToAssociationType(data["association"]),
+  id: data.service_id,
+  runDate: data.service_run_date,
+  association: responseToAssociationType(data.association),
 })
 
 export interface TrainCall {
@@ -189,14 +189,14 @@ export interface TrainCall {
 }
 
 export const responseToTrainCall = (data: any) => ({
-  station: responseToTrainStation(data["station"]),
-  platform: data["platform"],
-  planArr: responseToDate(data["plan_arr"]),
-  planDep: responseToDate(data["plan_dep"]),
-  actArr: responseToDate(data["act_arr"]),
-  actDep: responseToDate(data["act_dep"]),
+  station: responseToTrainStation(data.station),
+  platform: data.platform,
+  planArr: responseToDate(data.plan_arr),
+  planDep: responseToDate(data.plan_dep),
+  actArr: responseToDate(data.act_arr),
+  actDep: responseToDate(data.act_dep),
   assocs: !data.assocs ? [] : data.assocs.map(responseToAssociatedTrainService),
-  mileage: !data["mileage"] ? null : parseFloat(data["mileage"]),
+  mileage: !data.mileage ? null : parseFloat(data["mileage"]),
 })
 
 export interface TrainService {
@@ -206,28 +206,24 @@ export interface TrainService {
   serviceStart: Date
   origins: TrainStation[]
   destinations: TrainStation[]
-  operatorId: string
-  operatorName: string
-  brandId?: string
-  brandName?: string
+  operator: OperatorData
+  brand?: BrandData
   power?: string
   calls: TrainCall[]
   assocs: AssociatedTrainService[]
 }
 
 export const responseToTrainService = (data: any) => ({
-  id: data["service_id"],
-  headcode: data["headcode"],
-  runDate: new Date(data["run_date"]),
-  serviceStart: new Date(data["service_start"]),
-  origins: data["origins"].map(responseToTrainStation),
-  destinations: data["destinations"].map(responseToTrainStation),
-  operatorName: data["operator_name"],
-  operatorId: data["operator_id"],
-  brandId: data["brand_id"],
-  brandName: data["brand_name"],
-  power: data["power"],
-  calls: data["calls"].map(responseToTrainCall),
+  id: data.service_id,
+  headcode: data.headcode,
+  runDate: new Date(data.run_date),
+  serviceStart: new Date(data.service_start),
+  origins: data.origins.map(responseToTrainStation),
+  destinations: data.destinations.map(responseToTrainStation),
+  operator: responseToOperatorData(data.operator),
+  brand: !data.brand.id ? undefined : responseToBrandData(data.brand),
+  power: data.power,
+  calls: data.calls.map(responseToTrainCall),
   assocs: !data.assocs ? [] : data.assocs.map(responseToAssociatedTrainService),
 })
 
@@ -238,10 +234,10 @@ const getServiceEndpointString = (stations: TrainStation[]) => {
     let stationName = station.name
     if (i == 0) {
       returnString = stationName
-    } else if (i == stations.length - 2) {
-      returnString = `& ${stationName}`
+    } else if (i == stations.length - 1) {
+      returnString = `${returnString} & ${stationName}`
     } else {
-      returnString = `, ${stationName}`
+      returnString = `${returnString}, ${stationName}`
     }
   }
   return returnString
@@ -262,13 +258,13 @@ export interface TrainStockReport {
 }
 
 export const responseToTrainStockReport = (data: any) => ({
-  classNo: data["class_no"] ? data["class_no"] : undefined,
-  subclassNo: data["subclass_no"] ? data["subclass_no"] : undefined,
-  stockNo: data["stock_no"] ? data["stock_no"] : undefined,
-  cars: !data["cars"]
+  classNo: data.class_no ? data["class_no"] : undefined,
+  subclassNo: data.subclass_no ? data["subclass_no"] : undefined,
+  stockNo: data.stock_no ? data["stock_no"] : undefined,
+  cars: !data.cars
     ? undefined
-    : data["cars"]["cars"]
-    ? data["cars"]["cars"]
+    : data.cars["cars"]
+    ? data.cars["cars"]
     : undefined,
 })
 
@@ -282,22 +278,26 @@ export interface TrainLegCall {
   associatedService?: AssociatedTrainService
   newStock?: TrainStockReport[]
   mileage?: number
+  point?: [number, number]
 }
 
 export const responseToTrainLegCall = (data: any) => ({
-  station: responseToTrainStation(data["station"]),
-  platform: data["platform"] ? data["platform"] : undefined,
-  planArr: responseToDate(data["plan_arr"]),
-  planDep: responseToDate(data["plan_dep"]),
-  actArr: responseToDate(data["act_arr"]),
-  actDep: responseToDate(data["act_dep"]),
-  associatedService: !data["associated_service"]
+  station: responseToTrainStation(data.station),
+  platform: data.platform ? data["platform"] : undefined,
+  planArr: responseToDate(data.plan_arr),
+  planDep: responseToDate(data.plan_dep),
+  actArr: responseToDate(data.act_arr),
+  actDep: responseToDate(data.act_dep),
+  associatedService: !data.associated_service
     ? undefined
-    : responseToAssociatedTrainService(data["associated_service"]),
-  newStock: !data["leg_stock"]
+    : responseToAssociatedTrainService(data.associated_service),
+  newStock: !data.leg_stock
     ? undefined
-    : data["leg_stock"].map(responseToTrainStockReport),
-  mileage: !data["mileage"] ? undefined : parseFloat(data["mileage"]),
+    : data.leg_stock.map(responseToTrainStockReport),
+  mileage: !data.mileage ? undefined : parseFloat(data["mileage"]),
+  point: !data.point
+    ? undefined
+    : [parseFloat(data.point[0]), parseFloat(data.point[1])],
 })
 
 export interface TrainLegSegment {
@@ -309,10 +309,10 @@ export interface TrainLegSegment {
 
 export const responseToTrainLegSegment = (data: any) => {
   return {
-    start: responseToTrainStation(data["start"]),
-    end: responseToTrainStation(data["end"]),
-    mileage: !data["mileage"] ? undefined : parseFloat(data["mileage"]),
-    stocks: data["stocks"].map(responseToTrainStockReport),
+    start: responseToTrainStation(data.start),
+    end: responseToTrainStation(data.end),
+    mileage: !data.mileage ? undefined : parseFloat(data["mileage"]),
+    stocks: data.stocks.map(responseToTrainStockReport),
   }
 }
 
@@ -325,32 +325,50 @@ export interface TrainLeg {
   distance?: number
   // duration in minutes
   duration?: number
+  geometry?: [number, number][]
 }
 
 export const getLegOrigin = (leg: TrainLeg) => leg.calls[0]
 export const getLegDestination = (leg: TrainLeg) =>
   leg.calls[leg.calls.length - 1]
 
-export const responseToLeg = (data: any) => {
+const responseToGeometry = (data: [string, string][]): [number, number][] =>
+  data.map((point) => [parseFloat(point[0]), parseFloat(point[1])])
+
+export const responseToLeg = (data: any): TrainLeg => {
   let services = []
-  for (const id in data["services"]) {
-    let service = data["services"][id]
+  for (const id in data.services) {
+    let service = data.services[id]
     services.push(responseToTrainService(service))
   }
   var duration
   try {
-    let { hours, minutes } = parse(data["duration"])
+    let { hours, minutes } = parse(data.duration)
     duration = (hours ? hours * 60 : 0) + (minutes ? minutes : 0)
   } catch {
     duration = undefined
   }
+  const geometry = !data.geometry
+    ? undefined
+    : responseToGeometry(data.geometry)
   return {
-    id: data["id"],
-    start: new Date(data["leg_start"]),
+    id: data.id,
+    start: new Date(data.leg_start),
     services,
-    calls: data["calls"].map(responseToTrainLegCall),
-    stock: data["stocks"].map(responseToTrainLegSegment),
-    distance: !data["distance"] ? undefined : parseFloat(data["distance"]),
+    calls: data.calls.map(responseToTrainLegCall),
+    stock: data.stocks.map(responseToTrainLegSegment),
+    distance: !data.distance ? undefined : parseFloat(data["distance"]),
     duration,
+    geometry,
   }
+}
+
+export const getLegColour = (leg: TrainLeg) => {
+  const service = leg.services[0]
+  return service.brand ? service.brand.bg : service.operator.bg
+}
+
+export const getLegOperator = (leg: TrainLeg) => {
+  const service = leg.services[0]
+  return service.brand ? service.brand.name : service.operator.name
 }

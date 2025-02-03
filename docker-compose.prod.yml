@@ -27,6 +27,9 @@ services:
       DB_PASSWORD: /run/secrets/db_secret
       DB_NAME: ${DB_NAME}
       TIMEZONE: ${TIMEZONE}
+      NETWORK_PATH: /app/data/${NETWORK_FILE}
+    volumes:
+      - ${DATA_DIR}:/app/data
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.trains_api.rule=Host(`${API_HOST}`)"
@@ -55,6 +58,7 @@ services:
     environment:
       API_URL: ${SERVER_PROTOCOL}://${API_HOST}
       CLIENT_PORT: ${CLIENT_PORT}
+      NEXT_PUBLIC_MAPTILER_KEY: ${MAPTILER_KEY}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.trains_client.rule=Host(`${CLIENT_HOST}`)"

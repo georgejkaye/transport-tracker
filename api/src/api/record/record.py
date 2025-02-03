@@ -1,6 +1,5 @@
 import decimal
 import json
-import psycopg
 
 from decimal import Decimal
 from enum import Enum
@@ -15,7 +14,7 @@ from api.data.leg import (
     insert_leg,
     string_of_enumerated_stock_report,
 )
-from api.data.network import (
+from api.data.mileage import (
     miles_and_chains_to_miles,
     string_of_miles_and_chains,
 )
@@ -51,7 +50,7 @@ from api.data.stock import (
     string_of_class_and_subclass,
     string_of_formation,
 )
-from api.interactive import (
+from api.utils.interactive import (
     PickMultiple,
     PickSingle,
     PickUnknown,
@@ -66,11 +65,11 @@ from api.interactive import (
     input_time,
     input_year,
 )
-from api.times import (
+from api.utils.times import (
     pad_front,
     add,
 )
-from api.debug import debug_msg
+from api.utils.debug import debug_msg
 
 
 def timedelta_from_string(str):
@@ -422,6 +421,8 @@ def get_unit_report(
                 stock_cars = None
             case PickSingle(form):
                 stock_cars = form
+    else:
+        return None
     return StockReport(
         stock_class_no, stock_subclass_no, stock_unit_no, stock_cars
     )

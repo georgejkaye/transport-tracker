@@ -1,15 +1,27 @@
-import axios, { AxiosError } from "axios"
+import axios from "axios"
 import {
   responseToLeg,
-  responseToTrainStation,
   responseToTrainStationData,
   TrainLeg,
-  TrainStation,
   TrainStationData,
 } from "./structs"
 
 export const getLegs = async (): Promise<TrainLeg[]> => {
-  let endpoint = "/api/train/legs"
+  let endpoint = "/api/train/legs/"
+  try {
+    let response = await axios.get(endpoint)
+    let data = response.data
+    let legs = data.map(responseToLeg)
+    return legs
+  } catch (e) {
+    console.log(e)
+    return []
+  }
+}
+
+export const getLegsForYear = async (year: number): Promise<TrainLeg[]> => {
+  let yearString = year.toString().padStart(4, "0")
+  let endpoint = `/api/train/legs/year/${yearString}?fetch_geometries=true`
   try {
     let response = await axios.get(endpoint)
     let data = response.data
@@ -24,7 +36,7 @@ export const getLegs = async (): Promise<TrainLeg[]> => {
 export const getTrainLeg = async (
   legId: number
 ): Promise<TrainLeg | undefined> => {
-  let endpoint = `/api/train/leg/${legId}`
+  let endpoint = `/api/train/legs/${legId}?fetch_geometries=true`
   try {
     let response = await axios.get(endpoint)
     let data = response.data
@@ -39,7 +51,7 @@ export const getTrainLeg = async (
 export const getTrainStationData = async (
   stationCrs: string
 ): Promise<TrainStationData | undefined> => {
-  let endpoint = `/api/train/station/${stationCrs}`
+  let endpoint = `/api/train/stations/${stationCrs}`
   try {
     let response = await axios.get(endpoint)
     let data = response.data

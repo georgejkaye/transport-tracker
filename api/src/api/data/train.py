@@ -1,6 +1,6 @@
-from api.data.credentials import Credentials
+from api.utils.credentials import Credentials
 
-from api.data.core import (
+from api.utils.request import (
     data_directory,
     download_binary,
     extract_gz,
@@ -65,7 +65,9 @@ def get_corpus_data_url() -> str:
 def download_corpus(corpus_credentials: Credentials):
     corpus_url = get_corpus_data_url()
     corpus_download_path = "data/corpus.gz"
-    download_binary(corpus_url, corpus_download_path, credentials=corpus_credentials)
+    download_binary(
+        corpus_url, corpus_download_path, credentials=corpus_credentials
+    )
     extract_gz(corpus_download_path, corpus_path, delete=True)
 
 
