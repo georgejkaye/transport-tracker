@@ -89,11 +89,18 @@ const getLineLayer = (): LineLayer => ({
   },
 })
 
+const boundingBoxPadding = 0.05
+
 export const LegMap = (props: { legs: TrainLeg[] }) => {
   let { legs } = props
   let data = getLinesAndBoundingBox(legs)
   let initialViewState: Partial<ViewState> & { bounds?: LngLatBoundsLike } = {
-    bounds: [data.minLng, data.minLat, data.maxLng, data.maxLat],
+    bounds: [
+      data.minLng - boundingBoxPadding,
+      data.minLat - boundingBoxPadding,
+      data.maxLng + boundingBoxPadding,
+      data.maxLat + boundingBoxPadding,
+    ],
   }
   let layerStyle = getLineLayer()
   return (
