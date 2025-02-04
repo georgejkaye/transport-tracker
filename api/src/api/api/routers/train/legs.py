@@ -31,7 +31,7 @@ async def get_legs(
         return legs
 
 
-@router.get("/year/{year}", summary="Get train legs across a year")
+@router.get("/years/{year}", summary="Get train legs across a year")
 async def get_legs_from_year(
     year: int, fetch_geometries: bool = False
 ) -> list[ShortLegWithGeometry]:

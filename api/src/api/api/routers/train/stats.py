@@ -19,7 +19,7 @@ async def get_train_stats_in_range(
             raise HTTPException(500, "Could not get stats")
 
 
-@router.get("/year/{year}", summary="Get train stats across a year")
+@router.get("/years/{year}", summary="Get train stats across a year")
 async def get_train_stats_from_year(
     year: int,
 ) -> Stats:
