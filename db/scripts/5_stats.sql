@@ -69,6 +69,18 @@ BEGIN
     SELECT
         StationCount.station_crs::CHARACTER(3),
         StationCount.station_name,
+        COALESCE(
+            StationCount.brand_name,
+            StationCount.operator_name
+        ) AS operator_name,
+        COALESCE(
+            StationCount.brand_id,
+            StationCount.operator_id
+        ) AS operator_id,
+        (CASE
+            WHEN StationCount.brand_id IS NOT NULL THEN true
+            ELSE false
+        END) AS is_brand,
         StationCount.boards,
         StationCount.alights,
         StationCount.intermediates
@@ -76,6 +88,10 @@ BEGIN
         SELECT
             StationCount.station_crs,
             Station.station_name,
+            Station.operator_id,
+            Station.brand_id,
+            Operator.operator_name,
+            Brand.brand_name,
             StationCount.boards,
             StationCount.alights,
             (
@@ -121,6 +137,10 @@ BEGIN
         ) StationCount
         INNER JOIN Station
         ON StationCount.station_crs = Station.station_crs
+        INNER JOIN Operator
+        ON Station.operator_id = Operator.operator_id
+        LEFT JOIN Brand
+        ON Station.brand_id = Brand.brand_id
     ) StationCount
     ORDER BY
         (StationCount.boards + StationCount.alights) DESC,

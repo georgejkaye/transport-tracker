@@ -216,6 +216,9 @@ CREATE TYPE OutLegStat AS (
 CREATE TYPE OutStationStat AS (
     station_crs CHARACTER(3),
     station_name TEXT,
+    operator_name TEXT,
+    operator_id INTEGER,
+    is_brand BOOLEAN,
     boards BIGINT,
     alights BIGINT,
     intermediates BIGINT

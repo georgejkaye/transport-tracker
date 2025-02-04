@@ -28,6 +28,9 @@ class LegStat:
 class StationStat:
     station_crs: str
     station_name: str
+    operator_id: int
+    operator_name: str
+    is_brand: bool
     boards: int
     alights: int
     intermediates: int
@@ -108,12 +111,22 @@ def register_leg_stat(
 def register_station_stat(
     station_crs: str,
     station_name: str,
+    operator_name: str,
+    operator_id: int,
+    is_brand: bool,
     boards: int,
     alights: int,
     intermediates: int,
 ):
     return StationStat(
-        station_crs, station_name, boards, alights, intermediates
+        station_crs,
+        station_name,
+        operator_id,
+        operator_name,
+        is_brand,
+        boards,
+        alights,
+        intermediates,
     )
 
 
