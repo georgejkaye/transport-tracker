@@ -1,3 +1,5 @@
+import { Duration } from "@mui/material"
+import internal from "stream"
 import { parse } from "tinyduration"
 
 export const durationToHoursAndMinutes = (duration: number) => ({
@@ -371,4 +373,64 @@ export const getLegColour = (leg: TrainLeg) => {
 export const getLegOperator = (leg: TrainLeg) => {
   const service = leg.services[0]
   return service.brand ? service.brand.name : service.operator.name
+}
+
+export interface LegStat {
+  id: number
+  boardTime: Date
+  boardCrs: string
+  boardName: string
+  alightTime: Date
+  alightCrs: string
+  alightName: string
+  distance: number
+  duration: Duration
+  delay: number
+  operatorId: number
+  operatorName: string
+  isBrand: boolean
+}
+
+export interface StationStat {
+  crs: string
+  name: string
+  boards: number
+  alights: number
+  intermediates: number
+}
+
+export interface OperatorStat {
+  id: number
+  name: string
+  isBrand: boolean
+  count: number
+  distance: number
+  duration: Duration
+  delay: number
+}
+
+export interface ClassStat {
+  stockClass: number
+  count: number
+  distance: number
+  duration: Duration
+}
+
+export interface UnitStat {
+  stockNumber: number
+  count: number
+  distance: number
+  duration: Duration
+}
+
+export interface Stats {
+  journeys: number
+  distance: number
+  duration: Duration
+  delay: number
+  legStats: LegStat[]
+  stationStats: StationStat[]
+  operatorStats: OperatorStat[]
+  classStats: ClassStat[]
+  unitStats: UnitStat[]
 }
