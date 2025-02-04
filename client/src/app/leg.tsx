@@ -152,9 +152,9 @@ export const StationLink = (props: {
 export const TotalStat = (props: { title: string; value: string }) => {
   let { title, value } = props
   return (
-    <div className="flex flex-row">
-      <div className="border-r border-gray-600 pr-2">{title}</div>
-      <div className="pl-2">{value}</div>
+    <div className="flex flex-row text-lg bg-blue-200 p-4 align-baseline rounded">
+      <div className="">{title}</div>
+      <div className="pl-2 font-bold text-xl">{value}</div>
     </div>
   )
 }

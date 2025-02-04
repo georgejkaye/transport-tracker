@@ -1,18 +1,17 @@
-import { Duration } from "@mui/material"
-import internal from "stream"
-import { parse } from "tinyduration"
+import { DatasetRounded } from "@mui/icons-material"
+import { parse as parseDuration, Duration } from "tinyduration"
 
 export const durationToHoursAndMinutes = (duration: number) => ({
   hours: Math.floor(duration / 60),
   minutes: duration % 60,
 })
 
-export const getDurationString = (duration: number) => {
-  let { hours, minutes } = durationToHoursAndMinutes(duration)
-  return `${hours}h ${minutes}m`
+export const getDurationString = (duration: Duration) => {
+  let { hours, minutes } = duration
+  return `${hours ?? 0}h ${minutes}m`
 }
 
-export const getMaybeDurationString = (duration: number | undefined) =>
+export const getMaybeDurationString = (duration: Duration | undefined) =>
   !duration ? "" : getDurationString(duration)
 
 export const mileageToMilesAndChains = (miles: number) => ({
@@ -325,8 +324,7 @@ export interface TrainLeg {
   calls: TrainLegCall[]
   stock: TrainLegSegment[]
   distance?: number
-  // duration in minutes
-  duration?: number
+  duration?: Duration
   geometry?: [number, number][]
 }
 
@@ -345,8 +343,7 @@ export const responseToLeg = (data: any): TrainLeg => {
   }
   var duration
   try {
-    let { hours, minutes } = parse(data.duration)
-    duration = (hours ? hours * 60 : 0) + (minutes ? minutes : 0)
+    duration = parseDuration(data.duration)
   } catch {
     duration = undefined
   }
@@ -391,13 +388,42 @@ export interface LegStat {
   isBrand: boolean
 }
 
+const responseToLegStat = (data: any) => ({
+  id: data.leg_id,
+  boardTime: Date.parse(data.board_time),
+  boardCrs: data.board_crs,
+  boardName: data.board_name,
+  alightTime: Date.parse(data.alight_time),
+  alightCrs: data.alight_crs,
+  alightName: data.alight_name,
+  distance: parseFloat(data.distance),
+  duration: parseDuration(data.duration),
+  delay: data.delay,
+  operatorId: data.operator_id,
+  operatorName: data.operator_name,
+  isBrand: data.is_brand,
+})
+
 export interface StationStat {
   crs: string
   name: string
+  operatorName: string
+  operatorId: number
   boards: number
   alights: number
   intermediates: number
 }
+
+const responseToStationStat = (data: any) => ({
+  crs: data.station_crs,
+  name: data.station_name,
+  operatorName: data.operator_name,
+  operatorId: data.operator_id,
+  isBrand: data.is_brand,
+  boards: data.boards,
+  alights: data.alights,
+  intermediates: data.intermediates,
+})
 
 export interface OperatorStat {
   id: number
@@ -409,6 +435,16 @@ export interface OperatorStat {
   delay: number
 }
 
+const responseToOperatorStat = (data: any) => ({
+  id: data.operator_id,
+  name: data.operator_name,
+  isBrand: data.is_brand,
+  count: data.count,
+  distance: parseFloat(data.distance),
+  duration: parseDuration(data.duration),
+  delay: data.delay,
+})
+
 export interface ClassStat {
   stockClass: number
   count: number
@@ -416,12 +452,26 @@ export interface ClassStat {
   duration: Duration
 }
 
+const responseToClassStat = (data: any) => ({
+  stockClass: data.stock_class,
+  count: data.count,
+  distance: parseFloat(data.distance),
+  duration: parseDuration(data.duration),
+})
+
 export interface UnitStat {
   stockNumber: number
   count: number
   distance: number
   duration: Duration
 }
+
+const responseToUnitStat = (data: any) => ({
+  stockNumber: data.stock_number,
+  count: data.count,
+  distance: parseFloat(data.distance),
+  duration: parseDuration(data.duration),
+})
 
 export interface Stats {
   journeys: number
@@ -434,3 +484,15 @@ export interface Stats {
   classStats: ClassStat[]
   unitStats: UnitStat[]
 }
+
+export const responseToStats = (data: any) => ({
+  journeys: data.journeys,
+  distance: data.distance,
+  duration: parseDuration(data.duration),
+  delay: data.delay,
+  legStats: data.leg_stats.map(responseToLegStat),
+  stationStats: data.station_stats.map(responseToStationStat),
+  operatorStats: data.operator_stats.map(responseToOperatorStat),
+  classStats: data.class_stats.map(responseToClassStat),
+  unitStats: data.unit_stats.map(responseToUnitStat),
+})

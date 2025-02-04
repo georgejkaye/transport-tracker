@@ -8,6 +8,8 @@ import {
   getMaybeDurationString,
   getDurationString,
   getLegColour,
+  Stats,
+  StationStat,
 } from "@/app/structs"
 import {
   Layer,
@@ -121,24 +123,54 @@ export const LegMap = (props: { legs: TrainLeg[] }) => {
   )
 }
 
-export const TotalLegStats = (props: { legs: TrainLeg[] }) => {
-  let { legs } = props
-  let { distance, duration } = legs.reduce(
-    ({ distance, duration }, cur) => {
-      let newDistance = !cur.distance ? 0 : cur.distance
-      let newDuration = !cur.duration ? 0 : cur.duration
-      return {
-        distance: distance + newDistance,
-        duration: duration + newDuration,
-      }
-    },
-    { distance: 0, duration: 0 }
-  )
+export const GeneralStats = (props: { stats: Stats }) => {
+  let { stats } = props
   return (
-    <div className="flex flex-row flex-wrap gap-4 justify-center">
-      <TotalStat title="Legs" value={`${legs.length}`} />
-      <TotalStat title="Distance" value={getMilesAndChainsString(distance)} />
-      <TotalStat title="Duration" value={getDurationString(duration)} />
+    <div className="flex flex-row flex-wrap gap-4 py-2">
+      <TotalStat title="Legs" value={`${stats.legStats.length}`} />
+      <TotalStat
+        title="Distance"
+        value={getMilesAndChainsString(stats.distance)}
+      />
+      <TotalStat title="Duration" value={getDurationString(stats.duration)} />
+    </div>
+  )
+}
+
+export const StationStats = (props: { stats: StationStat[] }) => {
+  let { stats } = props
+  return (
+    <div className="flex rounded flex-col border-2 border-red-400 pb-2">
+      <div className="bg-red-500 p-2 font-bold text-white">Stations</div>
+      <div className="flex flex-row p-2 gap-2 px-4">
+        <div className="font-bold w-10">Rank</div>
+        <div className="font-bold w-96">Station</div>
+        <div className="font-bold w-72">Operator</div>
+        <div className="font-bold w-14">Boards</div>
+        <div className="font-bold w-14">Alights</div>
+        <div className="font-bold w-14">Calls</div>
+        <div className="font-bold w-14">Total</div>
+      </div>
+      {stats.map((station, i) => (
+        <div
+          className={`p-2 flex flex-row gap-2 px-4 ${
+            i > 0 ? "border-t-2" : ""
+          }`}
+        >
+          <div className="w-10">{i + 1}</div>
+          <div className="w-96 flex flex-row">
+            <div className="w-12">{station.crs}</div>
+            <div>{station.name}</div>
+          </div>
+          <div className="w-72">{station.operatorName}</div>
+          <div className="w-14">{station.boards}</div>
+          <div className="w-14">{station.alights}</div>
+          <div className="w-14">{station.intermediates}</div>
+          <div className="w-14">
+            {station.boards + station.alights + station.intermediates}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

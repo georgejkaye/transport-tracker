@@ -1,37 +1,58 @@
 "use client"
 
-import { getLegsForYear } from "@/app/data"
+import { getLegsForYear, getStatsForYear } from "@/app/data"
 import { Loader } from "@/app/loader"
-import { TrainLeg } from "@/app/structs"
+import { Stats, TrainLeg } from "@/app/structs"
 import { useState, useEffect } from "react"
-import { TotalLegStats, LegList, LegMap } from "../../core"
+import { LegList, LegMap, GeneralStats, StationStats } from "../../core"
 import { useRouter } from "next/navigation"
 
 const Page = ({ params }: { params: { year: string } }) => {
   let { year } = params
   let router = useRouter()
+  const [validYear, setValidYear] = useState(false)
+  const [stats, setStats] = useState<Stats | undefined>(undefined)
   const [legs, setLegs] = useState<TrainLeg[] | undefined>(undefined)
   useEffect(() => {
     let yearNumber = parseInt(year)
     if (isNaN(yearNumber)) {
       router.push("/")
     } else {
+      setValidYear(true)
       const getLegData = async () => {
-        let legData = await getLegsForYear(parseInt(year))
-        setLegs(legData)
+        getStatsForYear(yearNumber, setStats)
+        getLegsForYear(yearNumber, setLegs)
       }
       getLegData()
     }
   }, [])
   return (
     <div>
-      {legs === undefined ? (
+      {!validYear ? (
         <Loader />
       ) : (
-        <div className="flex flex-col gap-4">
-          <TotalLegStats legs={legs} />
-          <LegMap legs={legs} />
-          <LegList legs={legs} />
+        <div>
+          <h1 className="font-bold text-3xl my-2">
+            Train journey stats for {year}
+          </h1>
+          <div>
+            {stats === undefined ? (
+              <Loader />
+            ) : (
+              <div className="flex flex-col gap-4">
+                <GeneralStats stats={stats} />
+                <StationStats stats={stats.stationStats} />
+                {legs === undefined ? (
+                  <Loader />
+                ) : (
+                  <div>
+                    <LegMap legs={legs} />
+                    <LegList legs={legs} />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
