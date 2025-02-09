@@ -7,29 +7,14 @@ import {
   dateToShortString,
   getMaybeDurationString,
   getDurationString,
-  getLegColour,
-  Stats,
   StationStat,
-  getBoardsPlusAlights,
   StationStatSorter,
   sortBy,
   getSorter,
   OperatorStat,
   OperatorStatSorter,
+  Stats,
 } from "@/app/structs"
-import {
-  Layer,
-  LineLayer,
-  LngLatBoundsLike,
-  Map,
-  Source,
-  ViewState,
-  FullscreenControl,
-  NavigationControl,
-  ScaleControl,
-} from "react-map-gl/maplibre"
-import { Feature, FeatureCollection } from "geojson"
-import bbox from "@turf/bbox"
 import { useEffect, useState } from "react"
 import { FaAngleUp, FaAngleDown } from "react-icons/fa6"
 
@@ -61,70 +46,6 @@ const LegRow = (props: { leg: TrainLeg }) => {
           </div>
         </div>
       </div>
-    </div>
-  )
-}
-
-const getLinesAndBoundingBox = (legs: TrainLeg[]) => {
-  let features: Feature[] = []
-  for (const leg of legs) {
-    if (leg.geometry) {
-      features.push({
-        type: "Feature",
-        geometry: { type: "LineString", coordinates: leg.geometry },
-        properties: { color: getLegColour(leg), width: 5 },
-      })
-    }
-  }
-  let featureCollection: FeatureCollection = {
-    type: "FeatureCollection",
-    features,
-  }
-  let [minLng, minLat, maxLng, maxLat] = bbox(featureCollection)
-  return { featureCollection, minLng, minLat, maxLng, maxLat }
-}
-
-const getLineLayer = (): LineLayer => ({
-  id: "line",
-  source: "geometry",
-  type: "line",
-  paint: {
-    "line-width": 5,
-    "line-color": ["get", "color"],
-  },
-  layout: {
-    "line-cap": "round",
-  },
-})
-
-const boundingBoxPadding = 0.05
-
-export const LegMap = (props: { legs: TrainLeg[] }) => {
-  let { legs } = props
-  let data = getLinesAndBoundingBox(legs)
-  let initialViewState: Partial<ViewState> & { bounds?: LngLatBoundsLike } = {
-    bounds: [
-      data.minLng - boundingBoxPadding,
-      data.minLat - boundingBoxPadding,
-      data.maxLng + boundingBoxPadding,
-      data.maxLat + boundingBoxPadding,
-    ],
-  }
-  let layerStyle = getLineLayer()
-  return (
-    <div className="overflow-hidden">
-      <Map
-        initialViewState={initialViewState}
-        style={{ height: 800 }}
-        mapStyle={`https://api.maptiler.com/maps/streets-v2/style.json?key=${process.env.NEXT_PUBLIC_MAPTILER_KEY}`}
-      >
-        <FullscreenControl position="top-left" />
-        <NavigationControl position="top-left" />
-        <ScaleControl />
-        <Source id="lines" type="geojson" data={data.featureCollection}>
-          <Layer {...layerStyle} />
-        </Source>
-      </Map>
     </div>
   )
 }
@@ -253,9 +174,7 @@ const SortableTable = <T,>(props: {
         (val, i) =>
           (extended || i < numberToShow) && (
             <div
-              className={`p-2 flex flex-row gap-2 px-4 ${
-                i > 0 ? "border-t-2" : ""
-              }`}
+              className={"p-2 flex flex-row gap-2 px-4 border-t-2"}
               key={getKey(val.value)}
             >
               {
@@ -275,7 +194,7 @@ const SortableTable = <T,>(props: {
           )
       )}
       <div
-        className="p-2 px-4 cursor-pointer hover:underline"
+        className="p-2 px-4 cursor-pointer hover:underline border-t-2"
         onClick={onClickToggleExtended}
       >
         {!extended ? "Show more..." : "Show fewer..."}
@@ -287,7 +206,7 @@ const SortableTable = <T,>(props: {
 export const StationStats = (props: { stats: StationStat[] }) => {
   let { stats } = props
   let stationColumn: TableColumn<StationStat> = {
-    style: "w-96",
+    style: "flex-1",
     title: "Station",
     getValue: (stn) => (
       <div className="flex flex-row gap-2">
@@ -424,7 +343,7 @@ export const StationStats = (props: { stats: StationStat[] }) => {
 export const OperatorStats = (props: { stats: OperatorStat[] }) => {
   let { stats } = props
   let operatorColumn: TableColumn<OperatorStat> = {
-    style: "w-96",
+    style: "w-96 flex-1",
     title: "Operator",
     getValue: (op) => op.name,
     getOrder: (t1, t2, natural) =>
@@ -433,7 +352,7 @@ export const OperatorStats = (props: { stats: OperatorStat[] }) => {
   }
   let countColumn: TableColumn<OperatorStat> = {
     style: "w-14",
-    title: "C",
+    title: "Legs",
     getValue: (op) => op.count,
     getOrder: (op1, op2, natural) =>
       sortBy(

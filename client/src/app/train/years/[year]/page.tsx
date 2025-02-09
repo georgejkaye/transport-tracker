@@ -6,12 +6,12 @@ import { Stats, TrainLeg } from "@/app/structs"
 import { useState, useEffect } from "react"
 import {
   LegList,
-  LegMap,
   GeneralStats,
   StationStats,
   OperatorStats,
 } from "@/app/train/years/core"
 import { useRouter } from "next/navigation"
+import { LegMap } from "@/app/train/years/map"
 
 const Page = ({ params }: { params: { year: string } }) => {
   let { year } = params
