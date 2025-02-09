@@ -9,6 +9,7 @@ import {
   LegMap,
   GeneralStats,
   StationStats,
+  OperatorStats,
 } from "@/app/train/years/core"
 import { useRouter } from "next/navigation"
 
@@ -47,6 +48,7 @@ const Page = ({ params }: { params: { year: string } }) => {
               <div className="flex flex-col gap-4">
                 <GeneralStats stats={stats} />
                 <StationStats stats={stats.stationStats} />
+                <OperatorStats stats={stats.operatorStats} />
                 {legs === undefined ? (
                   <Loader />
                 ) : (

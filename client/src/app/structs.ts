@@ -1,4 +1,3 @@
-import { DatasetRounded } from "@mui/icons-material"
 import { parse as parseDuration, Duration } from "tinyduration"
 
 export const getSorter = <T>(
@@ -31,10 +30,16 @@ export const durationToHoursAndMinutes = (duration: number) => ({
   minutes: duration % 60,
 })
 
+const durationToSeconds = (duration: Duration) =>
+  (duration.days ?? 0) * 86400 +
+  (duration.hours ?? 0) * 3600 +
+  (duration.minutes ?? 0) * 60 +
+  (duration.seconds ?? 0)
+
 export const getDurationString = (duration: Duration) => {
   let { days, hours, minutes } = duration
   let dayString = days ? `${days}d ` : ""
-  return `${dayString}${hours ?? 0}h ${minutes}m`
+  return `${dayString}${hours ?? 0}h ${minutes ?? 0}m`
 }
 
 export const getMaybeDurationString = (duration: Duration | undefined) =>
@@ -496,6 +501,19 @@ const responseToOperatorStat = (data: any) => ({
   duration: parseDuration(data.duration),
   delay: data.delay,
 })
+
+export namespace OperatorStatSorter {
+  export const byName = (op1: OperatorStat, op2: OperatorStat) =>
+    op1.name.localeCompare(op2.name)
+  export const byCount = (op1: OperatorStat, op2: OperatorStat) =>
+    op1.count - op2.count
+  export const byDuration = (op1: OperatorStat, op2: OperatorStat) =>
+    durationToSeconds(op1.duration) - durationToSeconds(op2.duration)
+  export const byDistance = (op1: OperatorStat, op2: OperatorStat) =>
+    op1.distance - op2.distance
+  export const byDelay = (op1: OperatorStat, op2: OperatorStat) =>
+    op1.delay - op2.delay
+}
 
 export interface ClassStat {
   stockClass: number

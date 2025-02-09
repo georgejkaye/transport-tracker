@@ -14,6 +14,8 @@ import {
   StationStatSorter,
   sortBy,
   getSorter,
+  OperatorStat,
+  OperatorStatSorter,
 } from "@/app/structs"
 import {
   Layer,
@@ -151,13 +153,14 @@ interface TableColumn<T> {
 
 const SortableTable = <T,>(props: {
   title: string
+  colour: string
   columns: TableColumn<T>[]
   values: T[]
   numberToShow: number
   getKey: (t: T) => string
   rankSort: (t1: T, t2: T, natural: boolean) => number
 }) => {
-  let { title, columns, values, numberToShow, getKey, rankSort } = props
+  let { title, colour, columns, values, numberToShow, getKey, rankSort } = props
   let [sortedValues, setSortedValues] = useState(
     values
       .toSorted((t1, t2) => rankSort(t1, t2, true))
@@ -218,8 +221,16 @@ const SortableTable = <T,>(props: {
   }
 
   return (
-    <div className="flex rounded flex-col border-2 border-red-400 pb-2">
-      <div className="bg-red-500 p-2 font-bold text-white">{title}</div>
+    <div
+      className="flex rounded flex-col border-2 pb-2"
+      style={{ borderColor: colour }}
+    >
+      <div
+        className="p-2 font-bold text-white"
+        style={{ backgroundColor: colour }}
+      >
+        {title}
+      </div>
       <div className="flex flex-row p-2 gap-2 px-4">
         {
           <ColumnHeader
@@ -390,6 +401,7 @@ export const StationStats = (props: { stats: StationStat[] }) => {
   return (
     <SortableTable
       title="Stations"
+      colour="#db2700"
       columns={columns}
       values={stats}
       numberToShow={10}
@@ -403,6 +415,97 @@ export const StationStats = (props: { stats: StationStat[] }) => {
           getSorter(StationStatSorter.byAlights, !natural),
           getSorter(StationStatSorter.byCalls, !natural),
           getSorter(StationStatSorter.byName, true)
+        )
+      }
+    />
+  )
+}
+
+export const OperatorStats = (props: { stats: OperatorStat[] }) => {
+  let { stats } = props
+  let operatorColumn: TableColumn<OperatorStat> = {
+    style: "w-96",
+    title: "Operator",
+    getValue: (op) => op.name,
+    getOrder: (t1, t2, natural) =>
+      sortBy(t1, t2, getSorter(OperatorStatSorter.byName, natural)),
+    naturalOrderAscending: true,
+  }
+  let countColumn: TableColumn<OperatorStat> = {
+    style: "w-14",
+    title: "C",
+    getValue: (op) => op.count,
+    getOrder: (op1, op2, natural) =>
+      sortBy(
+        op1,
+        op2,
+        getSorter(OperatorStatSorter.byCount, !natural),
+        getSorter(OperatorStatSorter.byName, true)
+      ),
+    naturalOrderAscending: false,
+  }
+  let distanceColumn: TableColumn<OperatorStat> = {
+    style: "w-32",
+    title: "Distance",
+    getValue: (op) => getMilesAndChainsString(op.distance),
+    getOrder: (op1, op2, natural) =>
+      sortBy(
+        op1,
+        op2,
+        getSorter(OperatorStatSorter.byDistance, !natural),
+        getSorter(OperatorStatSorter.byName, true)
+      ),
+    naturalOrderAscending: false,
+  }
+  let durationColumn: TableColumn<OperatorStat> = {
+    style: "w-24",
+    title: "Duration",
+    getValue: (op) => getDurationString(op.duration),
+    getOrder: (op1, op2, natural) =>
+      sortBy(
+        op1,
+        op2,
+        getSorter(OperatorStatSorter.byDuration, !natural),
+        getSorter(OperatorStatSorter.byName, true)
+      ),
+    naturalOrderAscending: false,
+  }
+  let delayColumn: TableColumn<OperatorStat> = {
+    style: "w-20",
+    title: "Delay",
+    getValue: (op) => op.delay,
+    getOrder: (op1, op2, natural) =>
+      sortBy(
+        op1,
+        op2,
+        getSorter(OperatorStatSorter.byDelay, !natural),
+        getSorter(OperatorStatSorter.byDuration, natural),
+        getSorter(OperatorStatSorter.byName, true)
+      ),
+    naturalOrderAscending: false,
+  }
+  let columns = [
+    operatorColumn,
+    countColumn,
+    distanceColumn,
+    durationColumn,
+    delayColumn,
+  ]
+  return (
+    <SortableTable
+      title="Operators"
+      colour="#0623af"
+      columns={columns}
+      values={stats}
+      numberToShow={10}
+      getKey={(op) => `${op.id}-${op.isBrand ? "B" : "O"}`}
+      rankSort={(op1, op2, natural) =>
+        sortBy(
+          op1,
+          op1,
+          getSorter(OperatorStatSorter.byCount, !natural),
+          getSorter(OperatorStatSorter.byDuration, !natural),
+          getSorter(OperatorStatSorter.byDistance, !natural)
         )
       }
     />
