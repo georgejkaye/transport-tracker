@@ -10,6 +10,10 @@ import {
   getLegColour,
   Stats,
   StationStat,
+  getBoardsPlusAlights,
+  StationStatSorter,
+  sortBy,
+  getSorter,
 } from "@/app/structs"
 import {
   Layer,
@@ -18,14 +22,14 @@ import {
   Map,
   Source,
   ViewState,
-  Marker,
   FullscreenControl,
   NavigationControl,
   ScaleControl,
-  Popup,
 } from "react-map-gl/maplibre"
-import { Feature, FeatureCollection, Position } from "geojson"
+import { Feature, FeatureCollection } from "geojson"
 import bbox from "@turf/bbox"
+import { useEffect, useState } from "react"
+import { FaAngleUp, FaAngleDown } from "react-icons/fa6"
 
 const LegRow = (props: { leg: TrainLeg }) => {
   let { leg } = props
@@ -137,41 +141,271 @@ export const GeneralStats = (props: { stats: Stats }) => {
   )
 }
 
-export const StationStats = (props: { stats: StationStat[] }) => {
-  let { stats } = props
+interface TableColumn<T> {
+  style: string
+  title: string
+  getValue: (t: T) => JSX.Element | string | number
+  getOrder: (t1: T, t2: T, natural: boolean) => number
+  naturalOrderAscending: boolean
+}
+
+const SortableTable = <T,>(props: {
+  title: string
+  columns: TableColumn<T>[]
+  values: T[]
+  numberToShow: number
+  getKey: (t: T) => string
+  rankSort: (t1: T, t2: T, natural: boolean) => number
+}) => {
+  let { title, columns, values, numberToShow, getKey, rankSort } = props
+  let [sortedValues, setSortedValues] = useState(
+    values
+      .toSorted((t1, t2) => rankSort(t1, t2, true))
+      .map((val, i) => ({ originalRank: i, value: val }))
+  )
+  let [sortingColumn, setSortingColumn] = useState(-1)
+  let [sortingNaturalOrder, setSortingNaturalOrder] = useState(true)
+  let [extended, setExtended] = useState(false)
+
+  useEffect(() => {
+    setSortedValues((values) =>
+      values.toSorted((t1, t2) =>
+        sortingColumn == -1
+          ? (t1.originalRank - t2.originalRank) * (sortingNaturalOrder ? 1 : -1)
+          : columns[sortingColumn].getOrder(
+              t1.value,
+              t2.value,
+              sortingNaturalOrder
+            )
+      )
+    )
+  }, [sortingColumn, sortingNaturalOrder])
+
+  const onClickToggleExtended = (_e: React.MouseEvent<HTMLDivElement>) =>
+    setExtended((prev) => !prev)
+
+  const ColumnHeader = (props: {
+    i: number
+    title: string
+    style: string
+    naturalOrderAscending: boolean
+  }) => {
+    let { i, title, style, naturalOrderAscending } = props
+    const onClickHeader = (_e: React.MouseEvent<HTMLDivElement>) => {
+      if (sortingColumn == i) {
+        setSortingNaturalOrder((prev) => !prev)
+      } else {
+        setSortingColumn(i)
+        setSortingNaturalOrder(true)
+      }
+    }
+    const SortingArrow = (props: { i: number }) =>
+      sortingColumn == props.i &&
+      (sortingNaturalOrder === naturalOrderAscending ? (
+        <FaAngleUp />
+      ) : (
+        <FaAngleDown />
+      ))
+    return (
+      <div
+        className={`flex flex-row gap-1 items-center font-bold ${style} cursor-pointer`}
+        onClick={onClickHeader}
+      >
+        <div>{title}</div>
+        <SortingArrow i={i} />
+      </div>
+    )
+  }
+
   return (
     <div className="flex rounded flex-col border-2 border-red-400 pb-2">
-      <div className="bg-red-500 p-2 font-bold text-white">Stations</div>
+      <div className="bg-red-500 p-2 font-bold text-white">{title}</div>
       <div className="flex flex-row p-2 gap-2 px-4">
-        <div className="font-bold w-10">Rank</div>
-        <div className="font-bold w-96">Station</div>
-        <div className="font-bold w-72">Operator</div>
-        <div className="font-bold w-14">Boards</div>
-        <div className="font-bold w-14">Alights</div>
-        <div className="font-bold w-14">Calls</div>
-        <div className="font-bold w-14">Total</div>
+        {
+          <ColumnHeader
+            i={-1}
+            title="#"
+            style="w-10"
+            naturalOrderAscending={true}
+          />
+        }
+        {columns.map((col, i) => (
+          <ColumnHeader
+            i={i}
+            title={col.title}
+            style={col.style}
+            naturalOrderAscending={col.naturalOrderAscending}
+          />
+        ))}
       </div>
-      {stats.map((station, i) => (
-        <div
-          className={`p-2 flex flex-row gap-2 px-4 ${
-            i > 0 ? "border-t-2" : ""
-          }`}
-        >
-          <div className="w-10">{i + 1}</div>
-          <div className="w-96 flex flex-row">
-            <div className="w-12">{station.crs}</div>
-            <div>{station.name}</div>
-          </div>
-          <div className="w-72">{station.operatorName}</div>
-          <div className="w-14">{station.boards}</div>
-          <div className="w-14">{station.alights}</div>
-          <div className="w-14">{station.intermediates}</div>
-          <div className="w-14">
-            {station.boards + station.alights + station.intermediates}
-          </div>
-        </div>
-      ))}
+      {sortedValues.map(
+        (val, i) =>
+          (extended || i < numberToShow) && (
+            <div
+              className={`p-2 flex flex-row gap-2 px-4 ${
+                i > 0 ? "border-t-2" : ""
+              }`}
+              key={getKey(val.value)}
+            >
+              {
+                <div className="w-10">
+                  <div>{val.originalRank + 1}</div>
+                </div>
+              }
+              {columns.map((col) => (
+                <div
+                  key={`${getKey(val.value)}-${col.title}`}
+                  className={col.style}
+                >
+                  {col.getValue(val.value)}
+                </div>
+              ))}
+            </div>
+          )
+      )}
+      <div
+        className="p-2 px-4 cursor-pointer hover:underline"
+        onClick={onClickToggleExtended}
+      >
+        {!extended ? "Show more..." : "Show fewer..."}
+      </div>
     </div>
+  )
+}
+
+export const StationStats = (props: { stats: StationStat[] }) => {
+  let { stats } = props
+  let stationColumn: TableColumn<StationStat> = {
+    style: "w-96",
+    title: "Station",
+    getValue: (stn) => (
+      <div className="flex flex-row gap-2">
+        <div className="font-bold w-12">{stn.crs}</div>
+        <div>{stn.name}</div>
+      </div>
+    ),
+    getOrder: (t1, t2, natural) =>
+      sortBy(t1, t2, getSorter(StationStatSorter.byName, natural)),
+    naturalOrderAscending: true,
+  }
+  let operatorColumn: TableColumn<StationStat> = {
+    style: "w-72",
+    title: "Operator",
+    getValue: (stn) => stn.operatorName,
+    getOrder: (t1, t2, natural) =>
+      sortBy(
+        t1,
+        t2,
+        getSorter(StationStatSorter.byOperator, natural),
+        getSorter(StationStatSorter.byName, natural)
+      ),
+    naturalOrderAscending: true,
+  }
+  let boardsColumn: TableColumn<StationStat> = {
+    style: "w-14",
+    title: "B",
+    getValue: (stn) => stn.boards,
+    getOrder: (stn1, stn2, natural) =>
+      sortBy(
+        stn1,
+        stn2,
+        getSorter(StationStatSorter.byBoards, !natural),
+        getSorter(StationStatSorter.byAlights, !natural),
+        getSorter(StationStatSorter.byCalls, !natural),
+        getSorter(StationStatSorter.byName, true)
+      ),
+    naturalOrderAscending: false,
+  }
+  let alightsColumn: TableColumn<StationStat> = {
+    style: "w-14",
+    title: "A",
+    getValue: (stn) => stn.alights,
+    getOrder: (stn1, stn2, natural) =>
+      sortBy(
+        stn1,
+        stn2,
+        getSorter(StationStatSorter.byAlights, !natural),
+        getSorter(StationStatSorter.byBoards, !natural),
+        getSorter(StationStatSorter.byCalls, !natural),
+        getSorter(StationStatSorter.byName, true)
+      ),
+    naturalOrderAscending: false,
+  }
+  let boardsPlusAlightsColumn: TableColumn<StationStat> = {
+    style: "w-14",
+    title: "B+A",
+    getValue: (stn) => stn.boards + stn.alights,
+    getOrder: (stn1, stn2, natural) =>
+      sortBy(
+        stn1,
+        stn2,
+        getSorter(StationStatSorter.byBoardsPlusAlights, !natural),
+        getSorter(StationStatSorter.byBoards, !natural),
+        getSorter(StationStatSorter.byAlights, !natural),
+        getSorter(StationStatSorter.byCalls, !natural),
+        getSorter(StationStatSorter.byName, true)
+      ),
+    naturalOrderAscending: false,
+  }
+  let callsColumn: TableColumn<StationStat> = {
+    style: "w-14",
+    title: "C",
+    getValue: (stn) => stn.intermediates,
+    getOrder: (stn1, stn2, natural) =>
+      sortBy(
+        stn1,
+        stn2,
+        getSorter(StationStatSorter.byCalls, !natural),
+        getSorter(StationStatSorter.byBoards, !natural),
+        getSorter(StationStatSorter.byAlights, !natural),
+        getSorter(StationStatSorter.byName, true)
+      ),
+    naturalOrderAscending: false,
+  }
+  let totalColumn: TableColumn<StationStat> = {
+    style: "w-14",
+    title: "T",
+    getValue: (stn) => stn.boards + stn.alights + stn.intermediates,
+    getOrder: (stn1, stn2, natural) =>
+      sortBy(
+        stn1,
+        stn2,
+        getSorter(StationStatSorter.byTotal, !natural),
+        getSorter(StationStatSorter.byBoards, !natural),
+        getSorter(StationStatSorter.byAlights, !natural),
+        getSorter(StationStatSorter.byCalls, !natural),
+        getSorter(StationStatSorter.byName, true)
+      ),
+    naturalOrderAscending: false,
+  }
+  let columns = [
+    stationColumn,
+    operatorColumn,
+    boardsColumn,
+    alightsColumn,
+    boardsPlusAlightsColumn,
+    callsColumn,
+    totalColumn,
+  ]
+  return (
+    <SortableTable
+      title="Stations"
+      columns={columns}
+      values={stats}
+      numberToShow={10}
+      getKey={(stn) => stn.crs}
+      rankSort={(stn1, stn2, natural) =>
+        sortBy(
+          stn1,
+          stn2,
+          getSorter(StationStatSorter.byBoardsPlusAlights, !natural),
+          getSorter(StationStatSorter.byBoards, !natural),
+          getSorter(StationStatSorter.byAlights, !natural),
+          getSorter(StationStatSorter.byCalls, !natural),
+          getSorter(StationStatSorter.byName, true)
+        )
+      }
+    />
   )
 }
 

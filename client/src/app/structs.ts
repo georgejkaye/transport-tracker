@@ -1,14 +1,40 @@
 import { DatasetRounded } from "@mui/icons-material"
 import { parse as parseDuration, Duration } from "tinyduration"
 
+export const getSorter = <T>(
+  sortFn: (t1: T, t2: T) => number,
+  asc: boolean
+) => ({
+  sortFn,
+  asc,
+})
+
+export const sortBy = <T>(
+  t1: T,
+  t2: T,
+  ...params: {
+    sortFn: (t1: T, t2: T) => number
+    asc: boolean
+  }[]
+) => {
+  for (const { sortFn, asc } of params) {
+    let result = sortFn(t1, t2) * (asc ? 1 : -1)
+    if (result != 0) {
+      return result
+    }
+  }
+  return 0
+}
+
 export const durationToHoursAndMinutes = (duration: number) => ({
   hours: Math.floor(duration / 60),
   minutes: duration % 60,
 })
 
 export const getDurationString = (duration: Duration) => {
-  let { hours, minutes } = duration
-  return `${hours ?? 0}h ${minutes}m`
+  let { days, hours, minutes } = duration
+  let dayString = days ? `${days}d ` : ""
+  return `${dayString}${hours ?? 0}h ${minutes}m`
 }
 
 export const getMaybeDurationString = (duration: Duration | undefined) =>
@@ -425,6 +451,32 @@ const responseToStationStat = (data: any) => ({
   intermediates: data.intermediates,
 })
 
+export const getBoardsPlusAlights = (stn: StationStat) =>
+  stn.boards + stn.alights
+
+export namespace StationStatSorter {
+  export const byName = (stn1: StationStat, stn2: StationStat) =>
+    stn1.name.localeCompare(stn2.name)
+
+  export const byOperator = (stn1: StationStat, stn2: StationStat) =>
+    stn1.operatorName.localeCompare(stn2.operatorName)
+
+  export const byBoards = (stn1: StationStat, stn2: StationStat) =>
+    stn1.boards - stn2.boards
+
+  export const byAlights = (stn1: StationStat, stn2: StationStat) =>
+    stn1.alights - stn2.alights
+
+  export const byBoardsPlusAlights = (stn1: StationStat, stn2: StationStat) =>
+    stn1.boards + stn1.alights - (stn2.boards + stn2.alights)
+
+  export const byCalls = (stn1: StationStat, stn2: StationStat) =>
+    stn1.intermediates - stn2.intermediates
+
+  export const byTotal = (stn1: StationStat, stn2: StationStat) =>
+    stn1.boards + stn1.alights - (stn2.boards + stn2.alights)
+}
+
 export interface OperatorStat {
   id: number
   name: string
@@ -492,7 +544,11 @@ export const responseToStats = (data: any) => ({
   delay: data.delay,
   legStats: data.leg_stats.map(responseToLegStat),
   stationStats: data.station_stats.map(responseToStationStat),
-  operatorStats: data.operator_stats.map(responseToOperatorStat),
-  classStats: data.class_stats.map(responseToClassStat),
-  unitStats: data.unit_stats.map(responseToUnitStat),
+  operatorStats: !data.operator_stats
+    ? []
+    : data.operator_stats.map(responseToOperatorStat),
+  classStats: !data.class_stats
+    ? []
+    : data.class_stats.map(responseToClassStat),
+  unitStats: !data.unit_stats ? [] : data.unit_stats.map(responseToUnitStat),
 })
