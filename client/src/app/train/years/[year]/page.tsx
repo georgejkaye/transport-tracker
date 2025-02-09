@@ -4,7 +4,12 @@ import { getLegsForYear, getStatsForYear } from "@/app/data"
 import { Loader } from "@/app/loader"
 import { Stats, TrainLeg } from "@/app/structs"
 import { useState, useEffect } from "react"
-import { LegList, LegMap, GeneralStats, StationStats } from "../../core"
+import {
+  LegList,
+  LegMap,
+  GeneralStats,
+  StationStats,
+} from "@/app/train/years/core"
 import { useRouter } from "next/navigation"
 
 const Page = ({ params }: { params: { year: string } }) => {

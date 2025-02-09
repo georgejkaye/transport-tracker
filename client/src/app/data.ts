@@ -46,7 +46,7 @@ export const getStatsForYear = async (
   setStats: Dispatch<SetStateAction<Stats | undefined>>
 ): Promise<void> => {
   let yearString = getYearString(year)
-  let endpoint = `/api/train/stats/years/${yearString}`
+  let endpoint = `/api/train/stats/years/${yearString}?fetch_geometries=false`
   try {
     let response = await axios.get(endpoint)
     let data = response.data
