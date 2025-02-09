@@ -529,6 +529,17 @@ const responseToClassStat = (data: any) => ({
   duration: parseDuration(data.duration),
 })
 
+export namespace ClassStatSorter {
+  export const byClassNumber = (cls1: ClassStat, cls2: ClassStat) =>
+    cls1.stockClass - cls2.stockClass
+  export const byCount = (cls1: ClassStat, cls2: ClassStat) =>
+    cls1.count - cls2.count
+  export const byDistance = (cls1: ClassStat, cls2: ClassStat) =>
+    cls1.distance - cls2.distance
+  export const byDuration = (cls1: ClassStat, cls2: ClassStat) =>
+    durationToSeconds(cls1.duration) - durationToSeconds(cls2.duration)
+}
+
 export interface UnitStat {
   stockNumber: number
   count: number
@@ -542,6 +553,17 @@ const responseToUnitStat = (data: any) => ({
   distance: parseFloat(data.distance),
   duration: parseDuration(data.duration),
 })
+
+export namespace UnitStatSorter {
+  export const byUnitNumber = (cls1: UnitStat, cls2: UnitStat) =>
+    cls1.stockNumber - cls2.stockNumber
+  export const byCount = (cls1: UnitStat, cls2: UnitStat) =>
+    cls1.count - cls2.count
+  export const byDistance = (cls1: UnitStat, cls2: UnitStat) =>
+    cls1.distance - cls2.distance
+  export const byDuration = (cls1: UnitStat, cls2: UnitStat) =>
+    durationToSeconds(cls1.duration) - durationToSeconds(cls2.duration)
+}
 
 export interface Stats {
   journeys: number

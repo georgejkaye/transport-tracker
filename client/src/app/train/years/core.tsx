@@ -14,6 +14,10 @@ import {
   OperatorStat,
   OperatorStatSorter,
   Stats,
+  ClassStat,
+  ClassStatSorter,
+  UnitStat,
+  UnitStatSorter,
 } from "@/app/structs"
 import { useEffect, useState } from "react"
 import { FaAngleUp, FaAngleDown } from "react-icons/fa6"
@@ -143,7 +147,7 @@ const SortableTable = <T,>(props: {
 
   return (
     <div
-      className="flex rounded flex-col border-2 pb-2"
+      className="flex rounded flex-col border-2 pb-2 flex-1"
       style={{ borderColor: colour }}
     >
       <div
@@ -193,12 +197,14 @@ const SortableTable = <T,>(props: {
             </div>
           )
       )}
-      <div
-        className="p-2 px-4 cursor-pointer hover:underline border-t-2"
-        onClick={onClickToggleExtended}
-      >
-        {!extended ? "Show more..." : "Show fewer..."}
-      </div>
+      {values.length > numberToShow && (
+        <div
+          className="p-2 px-4 cursor-pointer hover:underline border-t-2"
+          onClick={onClickToggleExtended}
+        >
+          {!extended ? "Show more..." : "Show fewer..."}
+        </div>
+      )}
     </div>
   )
 }
@@ -421,10 +427,154 @@ export const OperatorStats = (props: { stats: OperatorStat[] }) => {
       rankSort={(op1, op2, natural) =>
         sortBy(
           op1,
-          op1,
+          op2,
           getSorter(OperatorStatSorter.byCount, !natural),
           getSorter(OperatorStatSorter.byDuration, !natural),
           getSorter(OperatorStatSorter.byDistance, !natural)
+        )
+      }
+    />
+  )
+}
+
+export const ClassStats = (props: { stats: ClassStat[] }) => {
+  let { stats } = props
+  let classColumn: TableColumn<ClassStat> = {
+    style: "flex-1",
+    title: "Class",
+    getValue: (cls) => `Class ${cls.stockClass}`,
+    getOrder: (t1, t2, natural) =>
+      sortBy(t1, t2, getSorter(ClassStatSorter.byClassNumber, natural)),
+    naturalOrderAscending: true,
+  }
+  let countColumn: TableColumn<ClassStat> = {
+    style: "w-14",
+    title: "Legs",
+    getValue: (cls) => cls.count,
+    getOrder: (cls1, cls2, natural) =>
+      sortBy(
+        cls1,
+        cls2,
+        getSorter(ClassStatSorter.byCount, !natural),
+        getSorter(ClassStatSorter.byClassNumber, true)
+      ),
+    naturalOrderAscending: false,
+  }
+  let distanceColumn: TableColumn<ClassStat> = {
+    style: "w-32",
+    title: "Distance",
+    getValue: (op) => getMilesAndChainsString(op.distance),
+    getOrder: (cls1, cls2, natural) =>
+      sortBy(
+        cls1,
+        cls2,
+        getSorter(ClassStatSorter.byDistance, !natural),
+        getSorter(ClassStatSorter.byClassNumber, true)
+      ),
+    naturalOrderAscending: false,
+  }
+  let durationColumn: TableColumn<ClassStat> = {
+    style: "w-24",
+    title: "Duration",
+    getValue: (cls) => getDurationString(cls.duration),
+    getOrder: (cls1, cls2, natural) =>
+      sortBy(
+        cls1,
+        cls2,
+        getSorter(ClassStatSorter.byDuration, !natural),
+        getSorter(ClassStatSorter.byClassNumber, true)
+      ),
+    naturalOrderAscending: false,
+  }
+  let columns = [classColumn, countColumn, distanceColumn, durationColumn]
+  return (
+    <SortableTable
+      title="Classes"
+      colour="#008f3e"
+      columns={columns}
+      values={stats}
+      numberToShow={10}
+      getKey={(cls) => cls.stockClass.toString()}
+      rankSort={(cls1, cls2, natural) =>
+        sortBy(
+          cls1,
+          cls2,
+          getSorter(ClassStatSorter.byCount, !natural),
+          getSorter(ClassStatSorter.byDuration, !natural),
+          getSorter(ClassStatSorter.byDistance, !natural)
+        )
+      }
+    />
+  )
+}
+
+export const UnitStats = (props: { stats: UnitStat[] }) => {
+  let { stats } = props
+  let classColumn: TableColumn<UnitStat> = {
+    style: "flex-1",
+    title: "Unit no",
+    getValue: (unit) => unit.stockNumber,
+    getOrder: (t1, t2, natural) =>
+      sortBy(t1, t2, getSorter(UnitStatSorter.byUnitNumber, natural)),
+    naturalOrderAscending: true,
+  }
+  let countColumn: TableColumn<UnitStat> = {
+    style: "w-14",
+    title: "Legs",
+    getValue: (unit) => unit.count,
+    getOrder: (unit1, unit2, natural) =>
+      sortBy(
+        unit1,
+        unit2,
+        getSorter(UnitStatSorter.byCount, !natural),
+        getSorter(UnitStatSorter.byDistance, !natural),
+        getSorter(UnitStatSorter.byDuration, !natural),
+        getSorter(UnitStatSorter.byUnitNumber, true)
+      ),
+    naturalOrderAscending: false,
+  }
+  let distanceColumn: TableColumn<UnitStat> = {
+    style: "w-32",
+    title: "Distance",
+    getValue: (op) => getMilesAndChainsString(op.distance),
+    getOrder: (cls1, cls2, natural) =>
+      sortBy(
+        cls1,
+        cls2,
+        getSorter(UnitStatSorter.byDistance, !natural),
+        getSorter(UnitStatSorter.byUnitNumber, true)
+      ),
+    naturalOrderAscending: false,
+  }
+  let durationColumn: TableColumn<UnitStat> = {
+    style: "w-24",
+    title: "Duration",
+    getValue: (cls) => getDurationString(cls.duration),
+    getOrder: (cls1, cls2, natural) =>
+      sortBy(
+        cls1,
+        cls2,
+        getSorter(UnitStatSorter.byDuration, !natural),
+        getSorter(UnitStatSorter.byUnitNumber, true)
+      ),
+    naturalOrderAscending: false,
+  }
+  let columns = [classColumn, countColumn, distanceColumn, durationColumn]
+  return (
+    <SortableTable
+      title="Units"
+      colour="#6200a1"
+      columns={columns}
+      values={stats}
+      numberToShow={10}
+      getKey={(unit) => unit.stockNumber.toString()}
+      rankSort={(unit1, unit2, natural) =>
+        sortBy(
+          unit1,
+          unit2,
+          getSorter(UnitStatSorter.byCount, !natural),
+          getSorter(UnitStatSorter.byDuration, !natural),
+          getSorter(UnitStatSorter.byDistance, !natural)
         )
       }
     />
