@@ -233,6 +233,10 @@ export const StationStats = (props: { stats: StationStat[] }) => {
         t1,
         t2,
         getSorter(StationStatSorter.byOperator, natural),
+        getSorter(StationStatSorter.byBoardsPlusAlights, !natural),
+        getSorter(StationStatSorter.byBoards, !natural),
+        getSorter(StationStatSorter.byAlights, !natural),
+        getSorter(StationStatSorter.byCalls, !natural),
         getSorter(StationStatSorter.byName, natural)
       ),
     naturalOrderAscending: true,
