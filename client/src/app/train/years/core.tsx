@@ -1,4 +1,11 @@
-import { LegIconLink, EndpointSection, TotalStat } from "@/app/leg"
+import {
+  LegIconLink,
+  EndpointSection,
+  TotalStat,
+  getDelayStyle,
+  getDelay,
+  getDelayString,
+} from "@/app/leg"
 import {
   TrainLeg,
   getMilesAndChainsString,
@@ -18,7 +25,10 @@ import {
   ClassStatSorter,
   UnitStat,
   UnitStatSorter,
+  LegStat,
+  LegStatSorter,
 } from "@/app/structs"
+import Link from "next/link"
 import { useEffect, useState } from "react"
 import { FaAngleUp, FaAngleDown } from "react-icons/fa6"
 
@@ -74,6 +84,7 @@ interface TableColumn<T> {
   getValue: (t: T) => JSX.Element | string | number
   getOrder: (t1: T, t2: T, natural: boolean) => number
   naturalOrderAscending: boolean
+  allowSortingBy: boolean
 }
 
 const SortableTable = <T,>(props: {
@@ -117,14 +128,17 @@ const SortableTable = <T,>(props: {
     title: string
     style: string
     naturalOrderAscending: boolean
+    allowSortingBy: boolean
   }) => {
-    let { i, title, style, naturalOrderAscending } = props
+    let { i, title, style, naturalOrderAscending, allowSortingBy } = props
     const onClickHeader = (_e: React.MouseEvent<HTMLDivElement>) => {
-      if (sortingColumn == i) {
-        setSortingNaturalOrder((prev) => !prev)
-      } else {
-        setSortingColumn(i)
-        setSortingNaturalOrder(true)
+      if (allowSortingBy) {
+        if (sortingColumn == i) {
+          setSortingNaturalOrder((prev) => !prev)
+        } else {
+          setSortingColumn(i)
+          setSortingNaturalOrder(true)
+        }
       }
     }
     const SortingArrow = (props: { i: number }) =>
@@ -136,7 +150,9 @@ const SortableTable = <T,>(props: {
       ))
     return (
       <div
-        className={`flex flex-row gap-1 items-center font-bold ${style} cursor-pointer`}
+        className={`flex flex-row gap-1 items-center font-bold ${style} ${
+          allowSortingBy ? "cursor-pointer" : ""
+        }`}
         onClick={onClickHeader}
       >
         <div>{title}</div>
@@ -163,6 +179,7 @@ const SortableTable = <T,>(props: {
             title="#"
             style="w-10"
             naturalOrderAscending={true}
+            allowSortingBy={true}
           />
         }
         {columns.map((col, i) => (
@@ -171,6 +188,7 @@ const SortableTable = <T,>(props: {
             title={col.title}
             style={col.style}
             naturalOrderAscending={col.naturalOrderAscending}
+            allowSortingBy={col.allowSortingBy}
           />
         ))}
       </div>
@@ -223,6 +241,7 @@ export const StationStats = (props: { stats: StationStat[] }) => {
     getOrder: (t1, t2, natural) =>
       sortBy(t1, t2, getSorter(StationStatSorter.byName, natural)),
     naturalOrderAscending: true,
+    allowSortingBy: true,
   }
   let operatorColumn: TableColumn<StationStat> = {
     style: "w-72",
@@ -240,6 +259,7 @@ export const StationStats = (props: { stats: StationStat[] }) => {
         getSorter(StationStatSorter.byName, natural)
       ),
     naturalOrderAscending: true,
+    allowSortingBy: true,
   }
   let boardsColumn: TableColumn<StationStat> = {
     style: "w-14",
@@ -255,6 +275,7 @@ export const StationStats = (props: { stats: StationStat[] }) => {
         getSorter(StationStatSorter.byName, true)
       ),
     naturalOrderAscending: false,
+    allowSortingBy: true,
   }
   let alightsColumn: TableColumn<StationStat> = {
     style: "w-14",
@@ -270,6 +291,7 @@ export const StationStats = (props: { stats: StationStat[] }) => {
         getSorter(StationStatSorter.byName, true)
       ),
     naturalOrderAscending: false,
+    allowSortingBy: true,
   }
   let boardsPlusAlightsColumn: TableColumn<StationStat> = {
     style: "w-14",
@@ -286,6 +308,7 @@ export const StationStats = (props: { stats: StationStat[] }) => {
         getSorter(StationStatSorter.byName, true)
       ),
     naturalOrderAscending: false,
+    allowSortingBy: true,
   }
   let callsColumn: TableColumn<StationStat> = {
     style: "w-14",
@@ -301,6 +324,7 @@ export const StationStats = (props: { stats: StationStat[] }) => {
         getSorter(StationStatSorter.byName, true)
       ),
     naturalOrderAscending: false,
+    allowSortingBy: true,
   }
   let totalColumn: TableColumn<StationStat> = {
     style: "w-14",
@@ -317,6 +341,7 @@ export const StationStats = (props: { stats: StationStat[] }) => {
         getSorter(StationStatSorter.byName, true)
       ),
     naturalOrderAscending: false,
+    allowSortingBy: true,
   }
   let columns = [
     stationColumn,
@@ -359,6 +384,7 @@ export const OperatorStats = (props: { stats: OperatorStat[] }) => {
     getOrder: (t1, t2, natural) =>
       sortBy(t1, t2, getSorter(OperatorStatSorter.byName, natural)),
     naturalOrderAscending: true,
+    allowSortingBy: true,
   }
   let countColumn: TableColumn<OperatorStat> = {
     style: "w-14",
@@ -372,6 +398,7 @@ export const OperatorStats = (props: { stats: OperatorStat[] }) => {
         getSorter(OperatorStatSorter.byName, true)
       ),
     naturalOrderAscending: false,
+    allowSortingBy: true,
   }
   let distanceColumn: TableColumn<OperatorStat> = {
     style: "w-32",
@@ -385,6 +412,7 @@ export const OperatorStats = (props: { stats: OperatorStat[] }) => {
         getSorter(OperatorStatSorter.byName, true)
       ),
     naturalOrderAscending: false,
+    allowSortingBy: true,
   }
   let durationColumn: TableColumn<OperatorStat> = {
     style: "w-24",
@@ -398,6 +426,7 @@ export const OperatorStats = (props: { stats: OperatorStat[] }) => {
         getSorter(OperatorStatSorter.byName, true)
       ),
     naturalOrderAscending: false,
+    allowSortingBy: true,
   }
   let delayColumn: TableColumn<OperatorStat> = {
     style: "w-20",
@@ -412,6 +441,7 @@ export const OperatorStats = (props: { stats: OperatorStat[] }) => {
         getSorter(OperatorStatSorter.byName, true)
       ),
     naturalOrderAscending: false,
+    allowSortingBy: true,
   }
   let columns = [
     operatorColumn,
@@ -450,6 +480,7 @@ export const ClassStats = (props: { stats: ClassStat[] }) => {
     getOrder: (t1, t2, natural) =>
       sortBy(t1, t2, getSorter(ClassStatSorter.byClassNumber, natural)),
     naturalOrderAscending: true,
+    allowSortingBy: true,
   }
   let countColumn: TableColumn<ClassStat> = {
     style: "w-14",
@@ -463,6 +494,7 @@ export const ClassStats = (props: { stats: ClassStat[] }) => {
         getSorter(ClassStatSorter.byClassNumber, true)
       ),
     naturalOrderAscending: false,
+    allowSortingBy: true,
   }
   let distanceColumn: TableColumn<ClassStat> = {
     style: "w-32",
@@ -476,6 +508,7 @@ export const ClassStats = (props: { stats: ClassStat[] }) => {
         getSorter(ClassStatSorter.byClassNumber, true)
       ),
     naturalOrderAscending: false,
+    allowSortingBy: true,
   }
   let durationColumn: TableColumn<ClassStat> = {
     style: "w-24",
@@ -489,6 +522,7 @@ export const ClassStats = (props: { stats: ClassStat[] }) => {
         getSorter(ClassStatSorter.byClassNumber, true)
       ),
     naturalOrderAscending: false,
+    allowSortingBy: true,
   }
   let columns = [classColumn, countColumn, distanceColumn, durationColumn]
   return (
@@ -521,6 +555,7 @@ export const UnitStats = (props: { stats: UnitStat[] }) => {
     getOrder: (t1, t2, natural) =>
       sortBy(t1, t2, getSorter(UnitStatSorter.byUnitNumber, natural)),
     naturalOrderAscending: true,
+    allowSortingBy: true,
   }
   let countColumn: TableColumn<UnitStat> = {
     style: "w-14",
@@ -536,6 +571,7 @@ export const UnitStats = (props: { stats: UnitStat[] }) => {
         getSorter(UnitStatSorter.byUnitNumber, true)
       ),
     naturalOrderAscending: false,
+    allowSortingBy: true,
   }
   let distanceColumn: TableColumn<UnitStat> = {
     style: "w-32",
@@ -549,6 +585,7 @@ export const UnitStats = (props: { stats: UnitStat[] }) => {
         getSorter(UnitStatSorter.byUnitNumber, true)
       ),
     naturalOrderAscending: false,
+    allowSortingBy: true,
   }
   let durationColumn: TableColumn<UnitStat> = {
     style: "w-24",
@@ -562,6 +599,7 @@ export const UnitStats = (props: { stats: UnitStat[] }) => {
         getSorter(UnitStatSorter.byUnitNumber, true)
       ),
     naturalOrderAscending: false,
+    allowSortingBy: true,
   }
   let columns = [classColumn, countColumn, distanceColumn, durationColumn]
   return (
@@ -580,6 +618,110 @@ export const UnitStats = (props: { stats: UnitStat[] }) => {
           getSorter(UnitStatSorter.byDuration, !natural),
           getSorter(UnitStatSorter.byDistance, !natural)
         )
+      }
+    />
+  )
+}
+
+export const LegStats = (props: { stats: LegStat[] }) => {
+  let { stats } = props
+  let dateColumn: TableColumn<LegStat> = {
+    style: "w-28",
+    title: "Date",
+    getValue: (leg) => dateToShortString(leg.boardTime),
+    getOrder: (t1, t2, natural) =>
+      sortBy(t1, t2, getSorter(LegStatSorter.byDate, natural)),
+    naturalOrderAscending: true,
+    allowSortingBy: true,
+  }
+  let descriptionColumn: TableColumn<LegStat> = {
+    style: "flex-1",
+    title: "Leg",
+    getValue: (leg) => (
+      <Link href={`/train/legs/${leg.id}`}>
+        <div>
+          <b>{leg.boardName}</b> to <b>{leg.alightName}</b>
+        </div>
+      </Link>
+    ),
+    getOrder: (t1, t2, natural) =>
+      sortBy(t1, t2, getSorter(LegStatSorter.byDate, natural)),
+    naturalOrderAscending: true,
+    allowSortingBy: false,
+  }
+  let operatorColumn: TableColumn<LegStat> = {
+    style: "w-10",
+    title: "",
+    getValue: (leg) => leg.operatorCode,
+    getOrder: (t1, t2, natural) =>
+      sortBy(t1, t2, getSorter(LegStatSorter.byDate, true)),
+    naturalOrderAscending: true,
+    allowSortingBy: false,
+  }
+  let distanceColumn: TableColumn<LegStat> = {
+    style: "w-28",
+    title: "Distance",
+    getValue: (leg) => getMilesAndChainsString(leg.distance),
+    getOrder: (t1, t2, natural) =>
+      sortBy(
+        t1,
+        t2,
+        getSorter(LegStatSorter.byDistance, !natural),
+        getSorter(LegStatSorter.byDate, true)
+      ),
+    naturalOrderAscending: false,
+    allowSortingBy: true,
+  }
+  let durationColumn: TableColumn<LegStat> = {
+    style: "w-28",
+    title: "Duration",
+    getValue: (leg) => getDurationString(leg.duration),
+    getOrder: (t1, t2, natural) =>
+      sortBy(
+        t1,
+        t2,
+        getSorter(LegStatSorter.byDuration, !natural),
+        getSorter(LegStatSorter.byDate, true)
+      ),
+    naturalOrderAscending: false,
+    allowSortingBy: true,
+  }
+  let delayColumn: TableColumn<LegStat> = {
+    style: "w-16",
+    title: "Delay",
+    getValue: (leg) => (
+      <div style={{ color: getDelayStyle(leg.delay) }}>
+        {getDelayString(leg.delay)}
+      </div>
+    ),
+    getOrder: (t1, t2, natural) =>
+      sortBy(
+        t1,
+        t2,
+        getSorter(LegStatSorter.byDelay, !natural),
+        getSorter(LegStatSorter.byDate, true)
+      ),
+    naturalOrderAscending: false,
+    allowSortingBy: true,
+  }
+  let columns = [
+    dateColumn,
+    descriptionColumn,
+    operatorColumn,
+    distanceColumn,
+    durationColumn,
+    delayColumn,
+  ]
+  return (
+    <SortableTable
+      title="Legs"
+      colour="#008eb5"
+      columns={columns}
+      values={stats}
+      numberToShow={10}
+      getKey={(leg) => leg.id.toString()}
+      rankSort={(leg1, leg2, natural) =>
+        sortBy(leg1, leg2, getSorter(LegStatSorter.byDate, natural))
       }
     />
   )

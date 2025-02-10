@@ -4,7 +4,7 @@ import Link from "next/link"
 import { linkStyle } from "./styles"
 
 const YearLink = (props: { year: number }) => (
-  <Link className="cursor-pointer" href={`/train/legs/years/${props.year}`}>
+  <Link className="cursor-pointer" href={`/train/years/${props.year}`}>
     <div className="p-4 text-xl rounded bg-blue-400">{props.year}</div>
   </Link>
 )

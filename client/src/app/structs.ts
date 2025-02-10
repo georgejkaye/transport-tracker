@@ -415,25 +415,38 @@ export interface LegStat {
   duration: Duration
   delay: number
   operatorId: number
+  operatorCode: string
   operatorName: string
   isBrand: boolean
 }
 
 const responseToLegStat = (data: any) => ({
   id: data.leg_id,
-  boardTime: Date.parse(data.board_time),
+  boardTime: new Date(Date.parse(data.board_time)),
   boardCrs: data.board_crs,
   boardName: data.board_name,
-  alightTime: Date.parse(data.alight_time),
+  alightTime: new Date(Date.parse(data.alight_time)),
   alightCrs: data.alight_crs,
   alightName: data.alight_name,
   distance: parseFloat(data.distance),
   duration: parseDuration(data.duration),
   delay: data.delay,
   operatorId: data.operator_id,
+  operatorCode: data.operator_code,
   operatorName: data.operator_name,
   isBrand: data.is_brand,
 })
+
+export namespace LegStatSorter {
+  export const byDate = (leg1: LegStat, leg2: LegStat) =>
+    leg1.boardTime.getTime() - leg2.boardTime.getTime()
+  export const byDistance = (leg1: LegStat, leg2: LegStat) =>
+    leg1.distance - leg2.distance
+  export const byDuration = (leg1: LegStat, leg2: LegStat) =>
+    durationToSeconds(leg1.duration) - durationToSeconds(leg2.duration)
+  export const byDelay = (leg1: LegStat, leg2: LegStat) =>
+    leg1.delay - leg2.delay
+}
 
 export interface StationStat {
   crs: string

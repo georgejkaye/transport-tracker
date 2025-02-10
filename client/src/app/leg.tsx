@@ -39,10 +39,12 @@ export const EndpointSection = (props: {
   )
 }
 
+export const getDelayString = (delay: number) =>
+  delay < 0 ? delay.toString() : delay > 0 ? `+${delay.toString()}` : "•"
+
 export const getDelay = (plan: Date, act: Date) => {
   let delay = (act.getTime() - plan.getTime()) / 1000 / 60
-  let delayString =
-    delay < 0 ? delay.toString() : delay > 0 ? `+${delay.toString()}` : "•"
+  let delayString = getDelayString(delay)
   return {
     delay,
     text: delayString,
