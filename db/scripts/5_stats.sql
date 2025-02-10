@@ -247,6 +247,7 @@ BEGIN
         LegStat.duration,
         LegStat.delay,
         LegStat.operator_id,
+        LegStat.operator_code,
         LegStat.operator_name,
         LegStat.is_brand
     FROM (
@@ -283,6 +284,7 @@ BEGIN
                 )
             ) / 60)::INTEGER AS delay,
             COALESCE(Brand.brand_id, Operator.operator_id) AS operator_id,
+            COALESCE(Brand.brand_code, Operator.operator_code) AS operator_code,
             COALESCE(Brand.brand_name, Operator.operator_name) AS operator_name,
             (
                 CASE

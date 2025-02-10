@@ -209,6 +209,7 @@ CREATE TYPE OutLegStat AS (
     duration INTERVAL,
     delay INTEGER,
     operator_id INTEGER,
+    operator_code CHARACTER(2),
     operator_name TEXT,
     is_brand BOOLEAN
 );

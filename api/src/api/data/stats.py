@@ -20,6 +20,7 @@ class LegStat:
     duration: timedelta
     delay: int
     operator_id: int
+    operator_code: str
     operator_name: str
     is_brand: bool
 
@@ -88,6 +89,7 @@ def register_leg_stat(
     duration: timedelta,
     delay: int,
     operator_id: int,
+    operator_code: str,
     operator_name: str,
     is_brand: bool,
 ):
@@ -103,6 +105,7 @@ def register_leg_stat(
         duration,
         delay,
         operator_id,
+        operator_code,
         operator_name,
         is_brand,
     )
