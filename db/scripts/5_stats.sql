@@ -443,7 +443,11 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT LegStat.run_date, LegStat.board_name, LegStat.alight_name, LegStat.delay
+    SELECT
+        LegStat.run_date,
+        LegStat.board_name,
+        LegStat.alight_name,
+        LegStat.delay
     FROM (SELECT * FROM GetLegStats(p_start_date, p_end_date)) LegStat
     WHERE LegStat.delay IS NOT NULL
     ORDER BY LegStat.delay DESC;
@@ -465,7 +469,11 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT LegStat.run_date, LegStat.board_name, LegStat.alight_name, LegStat.distance
+    SELECT
+        LegStat.run_date,
+        LegStat.board_name,
+        LegStat.alight_name,
+        LegStat.distance
     FROM (SELECT * FROM GetLegStats(p_start_date, p_end_date)) LegStat
     WHERE LegStat.distance IS NOT NULL
     ORDER BY LegStat.distance DESC;
@@ -487,7 +495,11 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT LegStat.run_date, LegStat.board_name, LegStat.alight_name, LegStat.duration
+    SELECT
+        LegStat.run_date,
+        LegStat.board_name,
+        LegStat.alight_name,
+        LegStat.duration
     FROM (SELECT * FROM GetLegStats(p_start_date, p_end_date)) LegStat
     WHERE LegStat.duration IS NOT NULL
     ORDER BY LegStat.duration DESC;
@@ -548,7 +560,13 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION GetLegLines( p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL, p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL) RETURNS TABLE ( board_crs CHARACTER(3), board_name TEXT, board_latitude DECIMAL,
+CREATE OR REPLACE FUNCTION GetLegLines(
+    p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+) RETURNS TABLE (
+    board_crs CHARACTER(3),
+    board_name TEXT,
+    board_latitude DECIMAL,
     board_longitude DECIMAL,
     alight_crs CHARACTER(3),
     alight_name TEXT,

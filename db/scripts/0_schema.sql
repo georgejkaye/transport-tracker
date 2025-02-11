@@ -171,6 +171,7 @@ CREATE TABLE Leg (
 );
 
 CREATE TABLE LegCall (
+    leg_call_id SERIAL PRIMARY KEY,
     leg_id INT NOT NULL,
     arr_call_id INT,
     dep_call_id INT,
