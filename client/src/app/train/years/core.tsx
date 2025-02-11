@@ -28,6 +28,7 @@ import {
   LegStat,
   LegStatSorter,
 } from "@/app/structs"
+import { getListItemAvatarUtilityClass } from "@mui/material"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { FaAngleUp, FaAngleDown } from "react-icons/fa6"
@@ -184,6 +185,7 @@ const SortableTable = <T,>(props: {
         }
         {columns.map((col, i) => (
           <ColumnHeader
+            key={col.title}
             i={i}
             title={col.title}
             style={col.style}
@@ -223,6 +225,65 @@ const SortableTable = <T,>(props: {
           {!extended ? "Show more..." : "Show fewer..."}
         </div>
       )}
+    </div>
+  )
+}
+
+export interface SortProperty<T> {
+  name: string
+  getOrder: (t1: T, t2: T, natural: boolean) => number
+  naturalOrderAscending: boolean
+}
+
+export const SortableList = <T,>(props: {
+  title: string
+  colour: string
+  values: T[]
+  getItem: (t: T, i: number) => JSX.Element
+  sortProperties: SortProperty<T>[]
+  getKey: (t: T) => string
+  rankSort: (t1: T, t2: T, natural: boolean) => number
+}) => {
+  let { title, colour, values, getItem, sortProperties, rankSort, getKey } =
+    props
+  let [sortedValues, setSortedValues] = useState(
+    values
+      .toSorted((t1, t2) => rankSort(t1, t2, true))
+      .map((val, i) => ({ originalRank: i, value: val }))
+  )
+  let [sortingProperty, setSortingProperty] = useState(-1)
+  let [sortingNaturalOrder, setSortingNaturalOrder] = useState(true)
+  useEffect(() => {
+    setSortedValues((values) =>
+      values.toSorted((t1, t2) =>
+        sortingProperty == -1
+          ? (t1.originalRank - t2.originalRank) * (sortingNaturalOrder ? 1 : -1)
+          : sortProperties[sortingProperty].getOrder(
+              t1.value,
+              t2.value,
+              sortingNaturalOrder
+            )
+      )
+    )
+  }, [sortingProperty, sortingNaturalOrder])
+  return (
+    <div
+      className="flex rounded flex-col border-2 pb-2 flex-1"
+      style={{ borderColor: colour }}
+    >
+      <div
+        className="p-2 font-bold text-white"
+        style={{ backgroundColor: colour }}
+      >
+        {title}
+      </div>
+      <div className="flex flex-col">
+        {values.map((value, i) => (
+          <div key={getKey(value)} className="p-2 px-4 border-b-2">
+            {getItem(value, i)}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -352,26 +413,65 @@ export const StationStats = (props: { stats: StationStat[] }) => {
     callsColumn,
     totalColumn,
   ]
+  const getStationItem = (station: StationStat, i: number) => (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-row gap-2 flex-wrap">
+        <div className="w-10">{i}</div>
+        <div className="w-12">
+          <b>{station.crs}</b>
+        </div>
+        <div className="flex-1">{station.name}</div>
+        <div className="w-72">{station.operatorName}</div>
+      </div>
+      <div className="flex flex-row gap-4">
+        <div>{station.boards} B</div>
+        <div>{station.alights} A</div>
+        <div>{station.boards + station.alights} B+A</div>
+        <div>{station.intermediates} C</div>
+        <div>{station.boards + station.alights + station.intermediates} T</div>
+      </div>
+    </div>
+  )
+  const stationRankSort = (
+    stn1: StationStat,
+    stn2: StationStat,
+    natural: boolean
+  ) =>
+    sortBy(
+      stn1,
+      stn2,
+      getSorter(StationStatSorter.byBoardsPlusAlights, !natural),
+      getSorter(StationStatSorter.byBoards, !natural),
+      getSorter(StationStatSorter.byAlights, !natural),
+      getSorter(StationStatSorter.byCalls, !natural),
+      getSorter(StationStatSorter.byName, true)
+    )
+
   return (
-    <SortableTable
-      title="Stations"
-      colour="#db2700"
-      columns={columns}
-      values={stats}
-      numberToShow={10}
-      getKey={(stn) => stn.crs}
-      rankSort={(stn1, stn2, natural) =>
-        sortBy(
-          stn1,
-          stn2,
-          getSorter(StationStatSorter.byBoardsPlusAlights, !natural),
-          getSorter(StationStatSorter.byBoards, !natural),
-          getSorter(StationStatSorter.byAlights, !natural),
-          getSorter(StationStatSorter.byCalls, !natural),
-          getSorter(StationStatSorter.byName, true)
-        )
-      }
-    />
+    <div>
+      <div className="lg:hidden">
+        <SortableList
+          title="Stations"
+          colour="#db2700"
+          values={stats}
+          getItem={getStationItem}
+          sortProperties={[]}
+          getKey={(stn) => stn.crs}
+          rankSort={stationRankSort}
+        />
+      </div>
+      <div className="hidden lg:flex">
+        <SortableTable
+          title="Stations"
+          colour="#db2700"
+          columns={columns}
+          values={stats}
+          numberToShow={10}
+          getKey={(stn) => stn.crs}
+          rankSort={stationRankSort}
+        />
+      </div>
+    </div>
   )
 }
 
