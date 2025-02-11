@@ -66,7 +66,6 @@ const Page = ({ params }: { params: { year: string } }) => {
                 ) : (
                   <div>
                     <LegMap legs={legs} />
-                    <LegList legs={legs} />
                   </div>
                 )}
               </div>

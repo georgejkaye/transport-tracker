@@ -431,7 +431,11 @@ export const OperatorStats = (props: { stats: OperatorStat[] }) => {
   let delayColumn: TableColumn<OperatorStat> = {
     style: "w-20",
     title: "Delay",
-    getValue: (op) => op.delay,
+    getValue: (op) => (
+      <div style={{ color: getDelayStyle(op.delay) }}>
+        {getDelayString(op.delay)}
+      </div>
+    ),
     getOrder: (op1, op2, natural) =>
       sortBy(
         op1,

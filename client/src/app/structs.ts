@@ -430,7 +430,7 @@ const responseToLegStat = (data: any) => ({
   alightName: data.alight_name,
   distance: parseFloat(data.distance),
   duration: parseDuration(data.duration),
-  delay: data.delay,
+  delay: data.delay == null ? undefined : data.delay,
   operatorId: data.operator_id,
   operatorCode: data.operator_code,
   operatorName: data.operator_name,
@@ -512,7 +512,7 @@ const responseToOperatorStat = (data: any) => ({
   count: data.count,
   distance: parseFloat(data.distance),
   duration: parseDuration(data.duration),
-  delay: data.delay,
+  delay: data.delay == null ? undefined : data.delay,
 })
 
 export namespace OperatorStatSorter {
