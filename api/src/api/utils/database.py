@@ -1,4 +1,3 @@
-import abc
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, DecimalException
@@ -13,15 +12,24 @@ load_dotenv()
 
 
 class DbConnection:
-    def __init__(self):
-        pass
+    def __init__(
+        self,
+        db_name: Optional[str] = None,
+        db_user: Optional[str] = None,
+        db_password: Optional[str] = None,
+        db_host: Optional[str] = None,
+    ):
+        self.db_name = db_name or get_env_variable("DB_NAME")
+        self.db_user = db_user or get_env_variable("DB_USER")
+        self.db_password = db_password or get_secret("DB_PASSWORD")
+        self.db_host = db_host or get_env_variable("DB_HOST")
 
     def __enter__(self):
         self.conn = Connection.connect(
-            dbname=get_env_variable("DB_NAME"),
-            user=get_env_variable("DB_USER"),
-            password=get_secret("DB_PASSWORD"),
-            host=get_env_variable("DB_HOST"),
+            dbname=self.db_name,
+            user=self.db_user,
+            password=self.db_password,
+            host=self.db_host,
         )
         self.cur = self.conn.cursor()
         return (self.conn, self.cur)
@@ -31,8 +39,13 @@ class DbConnection:
         self.conn.close()
 
 
-def connect():
-    return DbConnection()
+def connect(
+    db_name: Optional[str] = None,
+    db_user: Optional[str] = None,
+    db_password: Optional[str] = None,
+    db_host: Optional[str] = None,
+):
+    return DbConnection(db_name, db_user, db_password, db_host)
 
 
 @dataclass
