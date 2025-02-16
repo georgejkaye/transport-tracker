@@ -49,3 +49,23 @@ def insert_bus_stops(conn: Connection, bus_stops: list[BusStopData]):
         "SELECT * FROM InsertBusStops(%s::BusStopData[])", [bus_stop_tuples]
     )
     conn.commit()
+
+
+@dataclass
+class BusStop:
+    id: int
+    atco: str
+    naptan: str
+    common_name: str
+    landmark: str
+    street: str
+    crossing: Optional[str]
+    indicator: Optional[str]
+    bearing: str
+    locality: str
+    parent_locality: Optional[str]
+    grandparent_locality: Optional[str]
+    town: Optional[str]
+    suburb: Optional[str]
+    latitude: Decimal
+    longitude: Decimal
