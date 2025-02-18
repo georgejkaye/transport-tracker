@@ -24,7 +24,51 @@ BEGIN
         latitude,
         longitude
     FROM BusStop
-    WHERE stop_name LIKE '%' || p_name || '%'
+    WHERE LOWER(stop_name) LIKE '%' || LOWER(p_name) || '%'
     ORDER BY stop_name ASC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetBusOperators (
+    p_name TEXT
+) RETURNS SETOF BusOperatorOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        bus_operator_id,
+        bus_operator_name,
+        bus_operator_code,
+        bus_operator_national_code,
+        bg_colour,
+        fg_colour
+    FROM BusOperator
+    WHERE LOWER(bus_operator_name) LIKE '%' || LOWER(p_name) || '%'
+    ORDER BY bus_operator_name ASC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetBusServices (
+    p_line_name TEXT,
+    p_operator_id INT
+) RETURNS SETOF BusServiceOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        bus_service_id,
+        bus_operator_id,
+        service_line,
+        service_description_outbound,
+        service_description_inbound,
+        bg_colour,
+        fg_colour
+    FROM BusService
+    WHERE LOWER(service_line) LIKE '%' || LOWER(p_line_name) || '%'
+    AND bus_operator_id = p_operator_id;
 END;
 $$;

@@ -34,3 +34,22 @@ CREATE TYPE BusStopOutData AS (
     latitude DECIMAL,
     longitude DECIMAL
 );
+
+CREATE TYPE BusOperatorOutData AS (
+    bus_operator_id INT,
+    bus_operator_name TEXT,
+    bus_operator_code TEXT,
+    bus_operator_national_code TEXT,
+    bg_colour TEXT,
+    fg_colour TEXT
+);
+
+CREATE TYPE BusServiceOutData AS (
+    bus_service_id INT,
+    bus_operator_id INT,
+    service_line TEXT,
+    service_description_outbound TEXT,
+    service_description_inbound TEXT,
+    bg_colour TEXT,
+    fg_colour TEXT
+);
