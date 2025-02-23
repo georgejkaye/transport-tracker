@@ -185,7 +185,7 @@ def get_departures_from_bus_stop_soup(
                 0,
             )
             departure_bustimes_journey_id = int(
-                departure_time_data.find("a")["href"].split("/")[0]
+                departure_time_data.find("a")["href"].split("/")[2]
             )
             departure = BusStopDeparture(
                 departure_service,
