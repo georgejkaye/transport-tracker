@@ -2,6 +2,7 @@ from calendar import c
 from datetime import datetime
 from typing import Optional
 from unittest.mock import NonCallableMagicMock
+from api.data.bus.service import get_bus_journey, get_bus_journey_url
 from api.data.bus.stop import (
     BusStop,
     BusStopDeparture,
@@ -88,7 +89,11 @@ def get_bus_leg_input(conn: Connection) -> Optional[BusStop]:
     )
 
     departures = get_departures_from_bus_stop(board_stop, board_datetime)
-    board_stop = get_bus_stop_departure_input(departures)
+    departure = get_bus_stop_departure_input(departures)
+    if departure is None:
+        return None
+
+    journey = get_bus_journey(conn, departure.bustimes_journey_id)
 
 
 if __name__ == "__main__":
