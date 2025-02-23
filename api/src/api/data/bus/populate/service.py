@@ -1,8 +1,12 @@
 from dataclasses import dataclass
+import io
+from os import PathLike
+from pathlib import Path
 import re
 import sys
 from typing import Optional
 import xml.etree.ElementTree as ET
+import zipfile
 
 from api.utils.database import connect
 from psycopg import Connection
@@ -133,7 +137,6 @@ def get_operator_and_lines_from_transxchange_node(
     operator = get_operator_from_transxchange_node(
         transxchange_node, namespaces
     )
-    print(operator)
     if operator is None:
         return None
     lines = get_services_from_transxchange_node(transxchange_node, namespaces)
@@ -184,7 +187,7 @@ def insert_services(
                 via_values.append(
                     (
                         service.outbound_desc.description,
-                        operator.code,
+                        operator.national_code,
                         True,
                         via,
                         i,
@@ -198,12 +201,16 @@ def insert_services(
                 via_values.append(
                     (
                         service.inbound_desc.description,
-                        operator.code,
+                        operator.national_code,
                         False,
                         via,
                         i,
                     )
                 )
+
+    print(operator_values)
+    print(service_values)
+    print(via_values)
 
     conn.execute(
         """SELECT InsertTransXChangeBusData(
@@ -216,16 +223,55 @@ def insert_services(
     conn.commit()
 
 
+def extract_data_from_bods_xml(
+    xml: str,
+) -> Optional[list[tuple[TransXChangeOperator, TransXChangeLine]]]:
+    root = ET.fromstring(xml)
+    namespaces = get_transxchange_namespaces(root)
+    return get_operator_and_lines_from_transxchange_node(root, namespaces)
+
+
+def extract_data_from_bods_zipfile(
+    zip: zipfile.ZipFile,
+) -> list[tuple[TransXChangeOperator, TransXChangeLine]]:
+    data = []
+    print("")
+    print("Found following files")
+    print("")
+    for file_name in zip.namelist():
+        print(f"\t{file_name}")
+    print("")
+    for file_name in zip.namelist():
+        file_path = zipfile.Path(zip, file_name)
+        file_extension = file_path.suffix
+        if file_extension == ".zip":
+            print(f"Recursing into {file_name}")
+            with zip.open(file_name) as child_zip:
+                child_filedata = io.BytesIO(child_zip.read())
+                with zipfile.ZipFile(child_filedata) as child_zipfile:
+                    child_data = extract_data_from_bods_zipfile(child_zipfile)
+                    data = data + child_data
+        elif file_extension == ".xml":
+            print(f"Extracting data from {file_name}")
+            xml = file_path.read_text()
+            file_data = extract_data_from_bods_xml(xml)
+            if file_data is not None:
+                data = data + file_data
+    return data
+
+
+def extract_data_from_bods_zip(
+    zip_path: str | Path,
+) -> list[tuple[TransXChangeOperator, TransXChangeLine]]:
+    with zipfile.ZipFile(zip_path) as zip:
+        return extract_data_from_bods_zipfile(zip)
+
+
 if __name__ == "__main__":
     file_path = sys.argv[1]
-    tree = ET.parse(file_path)
-    root = tree.getroot()
-    namespaces = get_transxchange_namespaces(root)
-    results = get_operator_and_lines_from_transxchange_node(root, namespaces)
-    print(results)
-    if results is not None:
-        with connect("transport", "transport", "transport", "localhost") as (
-            conn,
-            _,
-        ):
-            insert_services(conn, results)
+    data = extract_data_from_bods_zip(file_path)
+    with connect("transport", "transport", "transport", "localhost") as (
+        conn,
+        _,
+    ):
+        insert_services(conn, data)
