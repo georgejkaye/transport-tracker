@@ -35,6 +35,12 @@ CREATE TYPE BusStopOutData AS (
     longitude DECIMAL
 );
 
+CREATE TYPE BusOperatorInData AS (
+    bus_operator_name TEXT,
+    bus_operator_code TEXT,
+    bus_operator_national_code TEXT
+);
+
 CREATE TYPE BusOperatorOutData AS (
     bus_operator_id INT,
     bus_operator_name TEXT,
@@ -42,6 +48,21 @@ CREATE TYPE BusOperatorOutData AS (
     bus_operator_national_code TEXT,
     bg_colour TEXT,
     fg_colour TEXT
+);
+
+CREATE TYPE BusServiceInData AS (
+    service_name TEXT,
+    service_operator_national_code TEXT,
+    service_outbound_description TEXT,
+    service_inbound_description TEXT
+);
+
+CREATE TYPE BusServiceViaInData AS (
+    service_description TEXT,
+    service_operator_national_code TEXT,
+    is_outbound BOOLEAN,
+    via_name TEXT,
+    via_index INT
 );
 
 CREATE TYPE BusServiceOutData AS (
