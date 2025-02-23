@@ -50,7 +50,10 @@ def input_text(message: str, default: str = "") -> Optional[str]:
 
 
 def number_in_range(
-    input: str, lower: Optional[int], upper: Optional[int], unknown: bool = False
+    input: str,
+    lower: Optional[int],
+    upper: Optional[int],
+    unknown: bool = False,
 ) -> bool | str:
     if unknown and input == "":
         return True
@@ -87,10 +90,11 @@ def input_number(
         default=default_string,
         validate=lambda x: number_in_range(x, lower, upper, unknown),
     ).ask()
+    if result is None:
+        return None
     if result == "":
         return None
-    else:
-        return int(result)
+    return int(result)
 
 
 def input_year(
@@ -224,7 +228,9 @@ class PickCancel:
 type PickChoice[T] = PickSingle[T] | PickMultiple[T] | PickUnknown | PickCancel
 
 
-def choice_from_object[T](object: T, display: Optional[Callable[[T], str]]) -> Choice:
+def choice_from_object[
+    T
+](object: T, display: Optional[Callable[[T], str]]) -> Choice:
     if display is None:
         title = str(object)
     else:
@@ -246,7 +252,9 @@ def input_select[
         choice_objects.append(Choice(title="Cancel", value=PickCancel()))
     if unknown:
         choice_objects.append(Choice(title="Unknown", value=PickUnknown()))
-    return select(message, choice_objects, use_shortcuts=True, instruction="").ask()
+    return select(
+        message, choice_objects, use_shortcuts=True, instruction=""
+    ).ask()
 
 
 def input_checkbox[
