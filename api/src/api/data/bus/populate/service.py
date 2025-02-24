@@ -186,6 +186,7 @@ def insert_services(
             for i, via in enumerate(service.outbound_desc.vias):
                 via_values.append(
                     (
+                        service.name,
                         service.outbound_desc.description,
                         operator.national_code,
                         True,
@@ -200,6 +201,7 @@ def insert_services(
             for i, via in enumerate(service.inbound_desc.vias):
                 via_values.append(
                     (
+                        service.name,
                         service.inbound_desc.description,
                         operator.national_code,
                         False,
