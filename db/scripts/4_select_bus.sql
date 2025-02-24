@@ -50,10 +50,8 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION GetBusServices (
-    p_line_name TEXT,
-    p_operator_id INT
-) RETURNS SETOF BusServiceOutData
+CREATE OR REPLACE FUNCTION GetBusServiceVias ()
+RETURNS SETOF BusServiceViaOutData
 LANGUAGE plpgsql
 AS
 $$
@@ -61,14 +59,82 @@ BEGIN
     RETURN QUERY
     SELECT
         bus_service_id,
-        bus_operator_id,
+        is_outbound,
+        ARRAY_AGG(
+            BusServiceViaData.via_name
+            ORDER BY BusServiceViaData.via_index
+        ) AS service_vias
+    FROM (
+        SELECT bus_service_id, via_name, via_index
+        FROM BusServiceViaData
+    ) BusServiceViaData
+    GROUP BY
+        BusServiceViaData.bus_service_id,
+        BusServiceViaData.is_outbound;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetBusServices()
+RETURNS SETOF BusServiceOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    WITH BusViaData AS (SELECT * FROM GetBusServiceVias())
+    SELECT
+        bus_service_id,
+        (
+            BusOperator.bus_operator_id,
+            BusOperator.bus_operator_name,
+            BusOperator.bus_operator_code,
+            BusOperator.bus_operator_national_code,
+            BusOperator.bg_colour,
+            BusOperator.fg_colour
+        )::BusOperatorOutData,
         service_line,
         service_description_outbound,
+        OutboundVia.service_vias AS service_outbound_vias,
         service_description_inbound,
+        InboundVia.service_vias AS service_inbound_vias,
         bg_colour,
         fg_colour
     FROM BusService
+    INNER JOIN BusViaData OutboundVia
+    ON OutboundVia.bus_service_id = BusService.bus_service_id
+    INNER JOIN BusViaData InboundVia
+    ON InboundVia.bus_service_id = BusService.bus_service_id
+    INNER JOIN BusOperator
+    ON BusOperator.bus_operator_id = BusService.bus_operator_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetBusServicesByOperatorId (
+    p_operator_id INT,
+    p_line_name TEXT
+) RETURNS SETOF BusServiceOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM GetBusServices()
     WHERE LOWER(service_line) LIKE '%' || LOWER(p_line_name) || '%'
     AND bus_operator_id = p_operator_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetBusServicesByOperatorName (
+    p_operator_name TEXT,
+    p_line_name TEXT
+) RETURNS SETOF BusServiceOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM GetBusServices()
+    WHERE LOWER(service_line) LIKE '%' || LOWER(p_line_name) || '%'
+    AND LOWER(service_operator) LIKE '%' || LOWER(p_operator_name) || '%';
 END;
 $$;

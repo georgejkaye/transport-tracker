@@ -58,6 +58,7 @@ CREATE TYPE BusServiceInData AS (
 );
 
 CREATE TYPE BusServiceViaInData AS (
+    service_name TEXT,
     service_description TEXT,
     service_operator_national_code TEXT,
     is_outbound BOOLEAN,
@@ -67,10 +68,18 @@ CREATE TYPE BusServiceViaInData AS (
 
 CREATE TYPE BusServiceOutData AS (
     bus_service_id INT,
-    bus_operator_id INT,
+    bus_operator BusOperatorOutData,
     service_line TEXT,
     service_description_outbound TEXT,
+    service_outbound_vias TEXT[],
     service_description_inbound TEXT,
+    service_inbound_vias TEXT[],
     bg_colour TEXT,
     fg_colour TEXT
+);
+
+CREATE TYPE BusServiceViaOutData AS (
+    bus_service_id INT,
+    is_outbound BOOLEAN,
+    bus_service_vias TEXT[]
 );

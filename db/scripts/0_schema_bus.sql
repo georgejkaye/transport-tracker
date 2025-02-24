@@ -21,9 +21,7 @@ CREATE TABLE BusOperator (
     bus_operator_id SERIAL PRIMARY KEY,
     bus_operator_name TEXT NOT NULL,
     bus_operator_code TEXT NOT NULL,
-    bus_operator_national_code UNIQUE TEXT NOT NULL,
-    bus_operator_license_name TEXT,
-    bus_operator_trading_name TEXT
+    bus_operator_national_code TEXT NOT NULL,
     bg_colour TEXT,
     fg_colour TEXT
 );
@@ -42,10 +40,9 @@ CREATE TABLE BusService (
 CREATE TABLE BusServiceVia (
     bus_service_id INT NOT NULL,
     is_outbound BOOLEAN NOT NULL,
-    via_name TEXT NOT NULL,
-    via_index INT NOT NULL,
+    via_description TEXT NOT NULL,
     FOREIGN KEY(bus_service_id) REFERENCES BusService(bus_service_id)
-);
+)
 
 CREATE TABLE BusJourney (
     bus_journey_id SERIAL PRIMARY KEY,

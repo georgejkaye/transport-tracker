@@ -113,8 +113,8 @@ BEGIN
             END
         AND
             v_via.service_operator_national_code
-            =
-            BusOperator.bus_operator_national_code
+                = BusOperator.bus_operator_national_code
+        AND v_via.service_name = BusService.service_name
         ),
         v_via.is_outbound,
         v_via.via_name,
