@@ -28,21 +28,29 @@ CREATE TABLE BusOperator (
 
 CREATE TABLE BusService (
     bus_service_id SERIAL PRIMARY KEY,
+    bods_line_id TEXT UNIQUE NOT NULL,
     bus_operator_id INT NOT NULL,
     service_line TEXT NOT NULL,
     service_description_outbound TEXT,
     service_description_inbound TEXT,
     bg_colour TEXT,
     fg_colour TEXT,
-    FOREIGN KEY(bus_operator_id) REFERENCES BusOperator(bus_operator_id)
+    FOREIGN KEY(bus_operator_id) REFERENCES BusOperator(bus_operator_id),
+    UNIQUE (
+        bus_service_id,
+        service_description_outbound,
+        service_description_inbound
+    )
 );
 
 CREATE TABLE BusServiceVia (
     bus_service_id INT NOT NULL,
     is_outbound BOOLEAN NOT NULL,
-    via_description TEXT NOT NULL,
-    FOREIGN KEY(bus_service_id) REFERENCES BusService(bus_service_id)
-)
+    via_name TEXT NOT NULL,
+    via_index INT NOT NULL,
+    FOREIGN KEY(bus_service_id) REFERENCES BusService(bus_service_id),
+    UNIQUE (bus_service_id, is_outbound, via_name, via_index)
+);
 
 CREATE TABLE BusJourney (
     bus_journey_id SERIAL PRIMARY KEY,

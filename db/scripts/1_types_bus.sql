@@ -51,14 +51,15 @@ CREATE TYPE BusOperatorOutData AS (
 );
 
 CREATE TYPE BusServiceInData AS (
-    service_name TEXT,
+    service_line TEXT,
+    bods_line_id TEXT,
     service_operator_national_code TEXT,
     service_outbound_description TEXT,
     service_inbound_description TEXT
 );
 
 CREATE TYPE BusServiceViaInData AS (
-    service_name TEXT,
+    service_line TEXT,
     service_description TEXT,
     service_operator_national_code TEXT,
     is_outbound BOOLEAN,

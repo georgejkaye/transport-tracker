@@ -71,6 +71,7 @@ $$
 BEGIN
     INSERT INTO BusService (
         bus_operator_id,
+        bods_line_id,
         service_line,
         service_description_outbound,
         service_description_inbound
@@ -81,7 +82,8 @@ BEGIN
             WHERE bus_operator_national_code
                 = v_service.service_operator_national_code
         ),
-        v_service.service_name,
+        v_service.bods_line_id,
+        v_service.service_line,
         v_service.service_outbound_description,
         v_service.service_inbound_description
     FROM UNNEST(p_services) AS v_service
@@ -114,7 +116,7 @@ BEGIN
         AND
             v_via.service_operator_national_code
                 = BusOperator.bus_operator_national_code
-        AND v_via.service_name = BusService.service_name
+        AND v_via.service_line = BusService.service_line
         ),
         v_via.is_outbound,
         v_via.via_name,
