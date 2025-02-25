@@ -3,6 +3,7 @@ import io
 from os import PathLike
 from pathlib import Path
 import re
+import string
 import sys
 from typing import Optional
 import xml.etree.ElementTree as ET
@@ -30,6 +31,7 @@ class TransXChangeLine:
 
 @dataclass
 class TransXChangeOperator:
+    id: str
     national_code: str
     code: str
     name: str
@@ -49,8 +51,12 @@ def get_line_description_from_description_node(
         description_vias = []
         for description_via in description_vias_node.findall("Via", namespaces):
             if description_via.text is not None:
-                description_vias.append(description_via.text)
-    return TransXChangeLineDescription(description_text, description_vias)
+                description_vias.append(
+                    string.capwords(description_via.text.replace(" to ", " - "))
+                )
+    return TransXChangeLineDescription(
+        string.capwords(description_text), description_vias
+    )
 
 
 def get_line_from_line_node(
@@ -115,6 +121,7 @@ def get_operator_from_transxchange_node(
     operator_node = operators_node.find("Operator", namespaces)
     if operator_node is None:
         return None
+    bods_operator_id = operators_node.attrib["id"]
     operator_code = operator_node.find("OperatorCode", namespaces)
     if operator_code is None or operator_code.text is None:
         return None
@@ -127,9 +134,10 @@ def get_operator_from_transxchange_node(
     if operator_short_name is None or operator_short_name.text is None:
         return None
     return TransXChangeOperator(
+        bods_operator_id,
         national_operator_code.text,
         operator_code.text,
-        operator_short_name.text,
+        string.capwords(operator_short_name.text),
     )
 
 

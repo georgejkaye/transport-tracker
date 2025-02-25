@@ -1,5 +1,6 @@
 import csv
 from decimal import Decimal
+import string
 import sys
 from typing import Optional
 from api.network.network import osgb36_to_wgs84_point
@@ -52,17 +53,27 @@ with open(stops_csv) as f:
                 stop = BusStopData(
                     row[atco_code_column],
                     row[naptan_code_column],
-                    row[common_name_column],
-                    row[landmark_column],
-                    row[street_column].title(),
-                    string_to_optional_string(row[crossing_column]),
+                    string.capwords(row[common_name_column]),
+                    string.capwords(row[landmark_column]),
+                    string.capwords(row[street_column]),
+                    string_to_optional_string(
+                        string.capwords(row[crossing_column])
+                    ),
                     string_to_optional_string(row[indicator_column]),
-                    row[bearing_column],
-                    row[locality_column],
-                    string_to_optional_string(row[parent_locality_column]),
-                    string_to_optional_string(row[grandparent_locality_column]),
-                    string_to_optional_string(row[town_column]),
-                    string_to_optional_string(row[suburb_column]),
+                    string.capwords(row[bearing_column]),
+                    string.capwords(row[locality_column]),
+                    string_to_optional_string(
+                        string.capwords(row[parent_locality_column])
+                    ),
+                    string_to_optional_string(
+                        string.capwords(row[grandparent_locality_column])
+                    ),
+                    string_to_optional_string(
+                        string.capwords(row[town_column])
+                    ),
+                    string_to_optional_string(
+                        string.capwords(row[suburb_column])
+                    ),
                     Decimal(wgs84_point.y),
                     Decimal(wgs84_point.x),
                 )

@@ -36,6 +36,7 @@ CREATE TYPE BusStopOutData AS (
 );
 
 CREATE TYPE BusOperatorInData AS (
+    bods_operator_id TEXT,
     bus_operator_name TEXT,
     bus_operator_code TEXT,
     bus_operator_national_code TEXT

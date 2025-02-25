@@ -19,11 +19,13 @@ CREATE TABLE BusStop (
 
 CREATE TABLE BusOperator (
     bus_operator_id SERIAL PRIMARY KEY,
+    bods_operator_id TEXT NOT NULL,
     bus_operator_name TEXT NOT NULL,
     bus_operator_code TEXT NOT NULL,
     bus_operator_national_code TEXT NOT NULL,
     bg_colour TEXT,
-    fg_colour TEXT
+    fg_colour TEXT,
+    CONSTRAINT UNIQUE (bus_operator_code, bus_operator_national_code)
 );
 
 CREATE TABLE BusService (

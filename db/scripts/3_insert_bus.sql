@@ -25,16 +25,16 @@ BEGIN
         v_stop.atco_code,
         v_stop.naptan_code,
         v_stop.stop_name,
-        INITCAP(v_stop.landmark_name),
-        INITCAP(v_stop.street_name),
-        INITCAP(v_stop.crossing_name),
+        v_stop.landmark_name,
+        v_stop.street_name,
+        v_stop.crossing_name,
         v_stop.indicator,
         v_stop.bearing,
-        INITCAP(v_stop.locality_name),
-        INITCAP(v_stop.parent_locality_name),
-        INITCAP(v_stop.grandparent_locality_name),
-        INITCAP(v_stop.town_name),
-        INITCAP(v_stop.suburb_name),
+        v_stop.locality_name,
+        v_stop.parent_locality_name,
+        v_stop.grandparent_locality_name,
+        v_stop.town_name,
+        v_stop.suburb_name,
         v_stop.latitude,
         v_stop.longitude
     FROM UNNEST(p_stops) AS v_stop;
@@ -49,10 +49,12 @@ AS
 $$
 BEGIN
     INSERT INTO BusOperator (
+        bods_operator_id,
         bus_operator_name,
         bus_operator_code,
         bus_operator_national_code
     ) SELECT
+        v_operator.bods_operator_id,
         v_operator.bus_operator_name,
         v_operator.bus_operator_code,
         v_operator.bus_operator_national_code
@@ -60,7 +62,6 @@ BEGIN
     ON CONFLICT DO NOTHING;
 END;
 $$;
-
 
 CREATE OR REPLACE FUNCTION InsertBusServices (
     p_services BusServiceInData[]
@@ -84,8 +85,8 @@ BEGIN
         ),
         v_service.bods_line_id,
         v_service.service_line,
-        INITCAP(v_service.service_outbound_description),
-        INITCAP(v_service.service_inbound_description)
+        v_service.service_outbound_description,
+        v_service.service_inbound_description
     FROM UNNEST(p_services) AS v_service
     ON CONFLICT DO NOTHING;
 END;
