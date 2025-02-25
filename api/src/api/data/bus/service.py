@@ -28,8 +28,10 @@ class BusService:
     bg_colour: Optional[str]
     fg_colour: Optional[str]
 
+
 def short_string_of_bus_service(service: BusService) -> str:
     return f"{service.line} {service.outbound} ({service.operator.name})"
+
 
 @dataclass
 class BusCall:
@@ -37,6 +39,7 @@ class BusCall:
     stop: BusStop
     plan_arr: datetime
     plan_dep: datetime
+
 
 @dataclass
 class BusJourney:
@@ -68,7 +71,7 @@ def get_bus_journey(
     if soup is None:
         return soup
     print(str(soup))
-    trip_script = soup.select_one("script#trip_data")
+    trip_script = soup.select_one("script#trip-data")
 
     if trip_script is None:
         return None
@@ -77,16 +80,16 @@ def get_bus_journey(
     service_operator = trip_script_dict["operator"]["name"]
     service_line = trip_script_dict["service"]["line_name"]
 
+    print(trip_script_dict)
+
     operator = get_operator_from_name(conn, service_operator)
-    service = get_service_from_line_and_operator(
-        conn, service_line, service_operator
-    )
 
     if operator is None:
         return None
 
-    service_line_name = breadcrumbs[1].text
-    print(service_line_name)
+    bus_service = get_service_from_line_and_operator_name(
+        conn, service_line, service_operator
+    )
 
     return BusJourney(bustimes_journey_id, bus_service, bus_calls)
 
@@ -134,13 +137,17 @@ def register_bus_service(
         fg_colour or "#000000",
     )
 
+
 def input_bus_service(services: list[BusService]) -> Optional[BusService]:
-    selection = input_select("Choose service", services, display=short_string_of_bus_service)
+    selection = input_select(
+        "Choose service", services, display=short_string_of_bus_service
+    )
     match selection:
         case PickSingle(service):
             return service
-        case _ :
+        case _:
             return None
+
 
 def get_service_from_line_and_operator_name(
     conn: Connection, service_line: str, service_operator: str
@@ -154,6 +161,7 @@ def get_service_from_line_and_operator_name(
     if len(rows) == 0:
         return None
     services = [row[0] for row in rows]
-    if len(services) >1 :
+    if len(services) > 1:
         return input_bus_service(services)
     else:
+        return services[0]
