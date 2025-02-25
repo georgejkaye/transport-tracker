@@ -25,16 +25,16 @@ BEGIN
         v_stop.atco_code,
         v_stop.naptan_code,
         v_stop.stop_name,
-        v_stop.landmark_name,
-        v_stop.street_name,
-        v_stop.crossing_name,
+        INITCAP(v_stop.landmark_name),
+        INITCAP(v_stop.street_name),
+        INITCAP(v_stop.crossing_name),
         v_stop.indicator,
         v_stop.bearing,
-        v_stop.locality_name,
-        v_stop.parent_locality_name,
-        v_stop.grandparent_locality_name,
-        v_stop.town_name,
-        v_stop.suburb_name,
+        INITCAP(v_stop.locality_name),
+        INITCAP(v_stop.parent_locality_name),
+        INITCAP(v_stop.grandparent_locality_name),
+        INITCAP(v_stop.town_name),
+        INITCAP(v_stop.suburb_name),
         v_stop.latitude,
         v_stop.longitude
     FROM UNNEST(p_stops) AS v_stop;
@@ -84,8 +84,8 @@ BEGIN
         ),
         v_service.bods_line_id,
         v_service.service_line,
-        v_service.service_outbound_description,
-        v_service.service_inbound_description
+        INITCAP(v_service.service_outbound_description),
+        INITCAP(v_service.service_inbound_description)
     FROM UNNEST(p_services) AS v_service
     ON CONFLICT DO NOTHING;
 END;
@@ -106,18 +106,7 @@ BEGIN
     ) SELECT
         (SELECT bus_service_id
         FROM BusService
-        INNER JOIN BusOperator
-        On BusService.bus_operator_id = BusOperator.bus_operator_id
-        WHERE v_via.service_description =
-            CASE WHEN v_via.is_outbound
-            THEN service_description_outbound
-            ELSE service_description_inbound
-            END
-        AND
-            v_via.service_operator_national_code
-                = BusOperator.bus_operator_national_code
-        AND v_via.service_line = BusService.service_line
-        ),
+        WHERE bods_line_id = v_via.bods_line_id),
         v_via.is_outbound,
         v_via.via_name,
         v_via.via_index

@@ -91,7 +91,7 @@ BEGIN
             BusOperator.bus_operator_national_code,
             BusOperator.bg_colour,
             BusOperator.fg_colour
-        )::BusOperatorOutData,
+        )::BusOperatorOutData AS service_operator,
         service_line,
         service_description_outbound,
         OutboundVia.service_vias AS service_outbound_vias,
@@ -118,9 +118,9 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT * FROM GetBusServices()
+    SELECT * FROM GetBusServices() AllBusService
     WHERE LOWER(service_line) LIKE '%' || LOWER(p_line_name) || '%'
-    AND bus_operator_id = p_operator_id;
+    AND (AllBusService.service_operator).bus_operator_id = p_operator_id;
 END;
 $$;
 
@@ -133,8 +133,8 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT * FROM GetBusServices()
+    SELECT * FROM GetBusServices() AllBusService
     WHERE LOWER(service_line) LIKE '%' || LOWER(p_line_name) || '%'
-    AND LOWER(service_operator) LIKE '%' || LOWER(p_operator_name) || '%';
+    AND LOWER((AllBusService.service_operator).bus_operator_name) LIKE '%' || LOWER(p_operator_name) || '%';
 END;
 $$;
