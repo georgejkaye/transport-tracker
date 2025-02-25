@@ -65,8 +65,8 @@ BEGIN
             ORDER BY BusServiceViaData.via_index
         ) AS service_vias
     FROM (
-        SELECT bus_service_id, via_name, via_index
-        FROM BusServiceViaData
+        SELECT bus_service_id, via_name, via_index, is_outbound
+        FROM BusServiceVia
     ) BusServiceViaData
     GROUP BY
         BusServiceViaData.bus_service_id,
@@ -83,7 +83,7 @@ BEGIN
     RETURN QUERY
     WITH BusViaData AS (SELECT * FROM GetBusServiceVias())
     SELECT
-        bus_service_id,
+        BusService.bus_service_id,
         (
             BusOperator.bus_operator_id,
             BusOperator.bus_operator_name,
@@ -92,17 +92,17 @@ BEGIN
             BusOperator.bg_colour,
             BusOperator.fg_colour
         )::BusOperatorOutData AS service_operator,
-        service_line,
-        service_description_outbound,
-        OutboundVia.service_vias AS service_outbound_vias,
-        service_description_inbound,
-        InboundVia.service_vias AS service_inbound_vias,
-        bg_colour,
-        fg_colour
+        BusService.service_line,
+        BusService.service_description_outbound,
+        OutboundVia.bus_service_vias AS service_outbound_vias,
+        BusService.service_description_inbound,
+        InboundVia.bus_service_vias AS service_inbound_vias,
+        BusService.bg_colour,
+        BusService.fg_colour
     FROM BusService
-    INNER JOIN BusViaData OutboundVia
+    LEFT JOIN BusViaData OutboundVia
     ON OutboundVia.bus_service_id = BusService.bus_service_id
-    INNER JOIN BusViaData InboundVia
+    LEFT JOIN BusViaData InboundVia
     ON InboundVia.bus_service_id = BusService.bus_service_id
     INNER JOIN BusOperator
     ON BusOperator.bus_operator_id = BusService.bus_operator_id;
