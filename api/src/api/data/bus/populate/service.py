@@ -23,6 +23,7 @@ class TransXChangeLineDescription:
 @dataclass
 class TransXChangeLine:
     name: str
+    id: str
     outbound_desc: Optional[TransXChangeLineDescription]
     inbound_desc: Optional[TransXChangeLineDescription]
 
@@ -55,6 +56,7 @@ def get_line_description_from_description_node(
 def get_line_from_line_node(
     line_node: ET.Element, namespaces: dict[str, str]
 ) -> Optional[TransXChangeLine]:
+    line_id = line_node.attrib["id"]
     line_name_node = line_node.find("LineName", namespaces)
     if line_name_node is None or line_name_node.text is None:
         return None
@@ -73,7 +75,7 @@ def get_line_from_line_node(
         inbound_desc = get_line_description_from_description_node(
             inbound_desc_node, namespaces
         )
-    return TransXChangeLine(line_name, outbound_desc, inbound_desc)
+    return TransXChangeLine(line_name, line_id, outbound_desc, inbound_desc)
 
 
 def get_lines_from_service_node(
@@ -166,6 +168,7 @@ def insert_services(
         service_values.append(
             (
                 service.name,
+                service.id,
                 operator.national_code,
                 (
                     None
@@ -186,9 +189,7 @@ def insert_services(
             for i, via in enumerate(service.outbound_desc.vias):
                 via_values.append(
                     (
-                        service.name,
-                        service.outbound_desc.description,
-                        operator.national_code,
+                        service.id,
                         True,
                         via,
                         i,
@@ -201,18 +202,12 @@ def insert_services(
             for i, via in enumerate(service.inbound_desc.vias):
                 via_values.append(
                     (
-                        service.name,
-                        service.inbound_desc.description,
-                        operator.national_code,
+                        service.id,
                         False,
                         via,
                         i,
                     )
                 )
-
-    print(operator_values)
-    print(service_values)
-    print(via_values)
 
     conn.execute(
         """SELECT InsertTransXChangeBusData(
