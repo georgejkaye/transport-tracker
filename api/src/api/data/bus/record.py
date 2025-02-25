@@ -93,7 +93,9 @@ def get_bus_leg_input(conn: Connection) -> Optional[BusStop]:
     if departure is None:
         return None
 
-    journey = get_bus_journey(conn, departure.bustimes_journey_id)
+    journey = get_bus_journey(
+        conn, departure.bustimes_journey_id, departure.dep_time
+    )
 
 
 if __name__ == "__main__":

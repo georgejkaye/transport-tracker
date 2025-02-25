@@ -15,6 +15,10 @@ utc = zoneinfo.ZoneInfo("UTC")
 local_timezone = zoneinfo.ZoneInfo(timezone_variable)
 
 
+def get_local_timezone() -> zoneinfo.ZoneInfo:
+    return local_timezone
+
+
 very = 5
 
 

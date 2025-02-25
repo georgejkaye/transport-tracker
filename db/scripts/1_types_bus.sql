@@ -83,3 +83,9 @@ CREATE TYPE BusServiceViaOutData AS (
     is_outbound BOOLEAN,
     bus_service_vias TEXT[]
 );
+
+CREATE TYPE BusCallInData AS (
+    atco_code INT,
+    plan_arr TIMESTAMP WITH TIME ZONE,
+    plan_dep TIMESTAMP WITH TIME ZONE
+);

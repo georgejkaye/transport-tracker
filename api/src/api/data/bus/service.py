@@ -1,13 +1,14 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 from typing import Optional
 
 from api.data.bus.operators import BusOperator, get_operator_from_name
-from api.data.bus.stop import BusStop
+from api.data.bus.stop import BusStop, BusStopDeparture
 from api.utils.database import register_type
 from api.utils.interactive import PickSingle, input_select
 from api.utils.request import get_soup
+from api.utils.times import get_local_timezone, make_timezone_aware
 from bs4 import BeautifulSoup
 from psycopg import Connection
 
@@ -42,10 +43,24 @@ class BusCall:
 
 
 @dataclass
+class BusCallIn:
+    atco: int
+    plan_arr: Optional[datetime]
+    plan_dep: Optional[datetime]
+
+
+@dataclass
 class BusJourney:
     id: int
     service: BusService
     calls: list[BusCall]
+
+
+@dataclass
+class BusJourneyIn:
+    id: int
+    service: BusService
+    calls: list[BusCallIn]
 
 
 @dataclass
@@ -64,34 +79,75 @@ def get_bus_journey_page(bustimes_journey_id: int) -> Optional[BeautifulSoup]:
     return get_soup(url)
 
 
+def get_call_datetime(
+    datetime_string: str,
+    run_date: datetime,
+    first_call_run_date: Optional[datetime],
+) -> datetime:
+    time_object = datetime.strptime(datetime_string, "HH:mm")
+
+    if (
+        first_call_run_date is not None
+        and time_object.time() < first_call_run_date.time()
+    ):
+        date_object = run_date + timedelta(days=1)
+    else:
+        date_object = run_date
+
+    datetime_object = datetime.combine(date_object.date(), time_object.time())
+    return make_timezone_aware(datetime_object)
+
+
 def get_bus_journey(
-    conn: Connection, bustimes_journey_id: int
-) -> Optional[BusJourney]:
+    conn: Connection,
+    bustimes_journey_id: int,
+    ref_stop: BusStop,
+    ref_departure: BusStopDeparture,
+) -> Optional[BusJourneyIn]:
     soup = get_bus_journey_page(bustimes_journey_id)
     if soup is None:
         return soup
-    print(str(soup))
-    trip_script = soup.select_one("script#trip-data")
 
+    trip_script = soup.select_one("script#trip-data")
     if trip_script is None:
         return None
 
     trip_script_dict = json.loads(trip_script.text)
     service_operator = trip_script_dict["operator"]["name"]
-    service_line = trip_script_dict["service"]["line_name"]
-
-    print(trip_script_dict)
 
     operator = get_operator_from_name(conn, service_operator)
-
     if operator is None:
         return None
 
+    service_line = trip_script_dict["service"]["line_name"]
     bus_service = get_service_from_line_and_operator_name(
         conn, service_line, service_operator
     )
+    if bus_service is None:
+        return None
 
-    return BusJourney(bustimes_journey_id, bus_service, bus_calls)
+    service_calls = trip_script_dict["times"]
+    is_after_ref = False
+    first_call_datetime = None
+    for call in service_calls:
+        call_id = call["stop"]["atco_code"]
+        if is_after_ref or call_id == ref_stop.atco:
+            is_after_ref = True
+
+        plan_arr_string = call["aimed_arrival_time"]
+        if plan_arr_string is not None:
+            plan_arr = datetime.strptime(plan_arr_string, "HH:mm")
+        else:
+            plan_arr = None
+        plan_dep_string = call["aimed_departure_time"]
+        if plan_dep_string is not None:
+            plan_dep = datetime.strptime(plan_dep_string, "HH:mm")
+        else:
+            plan_dep = None
+        call_object = BusCallIn(call_id, plan_arr, plan_dep)
+        service_call_objects.append(call_object)
+
+    return BusJourneyIn(bustimes_journey_id, bus_service, service_call_objects)
 
 
 def register_bus_operator(
