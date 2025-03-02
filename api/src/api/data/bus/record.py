@@ -1,8 +1,18 @@
 from calendar import c
 from datetime import datetime
 from typing import Optional
-from unittest.mock import NonCallableMagicMock
-from api.data.bus.service import get_bus_journey, get_bus_journey_url
+from api.data.bus.leg import BusLegIn
+from api.data.bus.operators import BusOperator
+from api.data.bus.service import (
+    BusCall,
+    BusCallIn,
+    BusJourney,
+    BusJourneyIn,
+    get_bus_journey,
+    get_bus_journey_url,
+    string_of_bus_call_in,
+    string_of_bus_journey_in,
+)
 from api.data.bus.stop import (
     BusStop,
     BusStopDeparture,
@@ -13,6 +23,7 @@ from api.data.bus.stop import (
     short_string_of_bus_stop,
     short_string_of_bus_stop_departure,
 )
+from api.data.bus.vehicle import BusVehicle, get_bus_vehicle_by_operator_and_id
 from api.utils.database import connect
 from api.utils.interactive import (
     PickSingle,
@@ -62,7 +73,26 @@ def get_bus_stop_departure_input(
             return None
 
 
-def get_bus_leg_input(conn: Connection) -> Optional[BusStop]:
+def get_alight_stop_input(
+    calls: list[BusCallIn], board_call_index: int
+) -> Optional[BusCallIn]:
+    possible_alight_calls = calls[board_call_index + 1 :]
+    alight_choice = input_select(
+        "Alight call", possible_alight_calls, string_of_bus_call_in
+    )
+
+
+def get_bus_vehicle(
+    conn: Connection, bus_operator: BusOperator
+) -> Optional[BusVehicle]:
+    vehicle_id = input_text("Vehicle id")
+    if vehicle_id is None:
+        return None
+    vehicle = get_bus_vehicle_by_operator_and_id(conn, bus_operator, vehicle_id)
+    return vehicle
+
+
+def get_bus_leg_input(conn: Connection) -> Optional[BusJourney]:
     board_stop = get_bus_stop_input(conn, prompt="Board stop")
     if board_stop is None:
         print("Could not get board stop")
@@ -93,9 +123,23 @@ def get_bus_leg_input(conn: Connection) -> Optional[BusStop]:
     if departure is None:
         return None
 
-    journey = get_bus_journey(
-        conn, departure.bustimes_journey_id, departure.dep_time
+    journey_and_board_call_index = get_bus_journey(
+        conn, departure.bustimes_journey_id, board_stop, departure
     )
+    if journey_and_board_call_index is None:
+        return None
+
+    (journey, board_call_index) = journey_and_board_call_index
+
+    alight_stop = get_alight_stop_input(journey.calls, board_call_index)
+    if alight_stop is None:
+        return None
+
+    vehicle = get_bus_vehicle(conn, journey.operator)
+    if vehicle is None:
+        return None
+
+    leg = BusLegIn(journey, board_stop.atco, alight_stop.atco, vehicle)
 
 
 if __name__ == "__main__":

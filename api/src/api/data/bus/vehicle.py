@@ -1,3 +1,4 @@
+import operator
 from api.utils.database import connect
 
 from dataclasses import dataclass
@@ -143,3 +144,40 @@ def get_bus_operator_vehicles(operator: BusOperator) -> list[BusVehicleIn]:
             )
             vehicles.append(vehicle_object)
     return vehicles
+
+
+def register_bus_vehicle(
+    bus_vehicle_id: int,
+    bus_operator: BusOperator,
+    operator_vehicle_id: str,
+    bustimes_vehicle_id: str,
+    vehicle_numberplate: str,
+    vehicle_model: str,
+    vehicle_livery_style: Optional[str],
+    vehicle_name: Optional[str],
+) -> BusVehicle:
+    return BusVehicle(
+        bus_vehicle_id,
+        bus_operator,
+        operator_vehicle_id,
+        bustimes_vehicle_id,
+        vehicle_numberplate,
+        vehicle_model,
+        vehicle_livery_style,
+        vehicle_name,
+    )
+
+
+def get_bus_vehicle_by_operator_and_id(
+    conn: Connection, bus_operator: BusOperator, operator_vehicle_id: str
+) -> Optional[BusVehicle]:
+    rows = conn.execute(
+        "SELECT GetBusVehicle(%s, %s)", [bus_operator.id, operator_vehicle_id]
+    ).fetchall()
+    if len(rows) > 1:
+        print("Multiple vehicles found")
+        return None
+    if len(rows) == 0:
+        print("No vehicles found")
+        return None
+    return rows[0][0]

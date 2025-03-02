@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 import json
 from typing import Optional
+from unittest.util import strclass
 
 from api.data.bus.operators import BusOperator, get_bus_operator_from_name
 from api.data.bus.stop import (
@@ -50,11 +51,22 @@ class BusCall:
 
 @dataclass
 class BusCallIn:
-    atco: int
+    atco: str
+    stop_name: str
     plan_arr: Optional[datetime]
     act_arr: Optional[datetime]
     plan_dep: Optional[datetime]
     act_dep: Optional[datetime]
+
+
+def string_of_bus_call_in(bus_call: BusCallIn) -> str:
+    if bus_call.plan_arr is not None:
+        time_string = f" arr {bus_call.plan_arr.strftime("%H:%M")}"
+    else:
+        time_string = ""
+    if bus_call.plan_dep is not None:
+        time_string = f"{time_string} dep {bus_call.plan_dep.strftime("%H:%M")}"
+    return f"{bus_call.stop_name}{time_string}"
 
 
 @dataclass
@@ -67,6 +79,7 @@ class BusJourney:
 @dataclass
 class BusJourneyIn:
     id: int
+    operator: BusOperator
     service: BusService
     calls: list[BusCallIn]
 
@@ -128,7 +141,7 @@ def get_bus_journey(
     bustimes_journey_id: int,
     ref_stop: BusStop,
     ref_departure: BusStopDeparture,
-) -> Optional[BusJourneyIn]:
+) -> Optional[tuple[BusJourneyIn, int]]:
     soup = get_bus_journey_page(bustimes_journey_id)
     if soup is None:
         return soup
@@ -158,9 +171,11 @@ def get_bus_journey(
     service_call_objects: list[BusCallIn] = []
 
     ref_departure_time = ref_departure.dep_time
+    board_call_index = None
 
-    for call in service_calls:
+    for i, call in enumerate(service_calls):
         call_id = call["stop"]["atco_code"]
+        call_name = call["stop"]["name"]
 
         plan_arr_string = call["aimed_arrival_time"]
         if plan_arr_string is not None:
@@ -206,13 +221,20 @@ def get_bus_journey(
                 else:
                     plan_dep_date = ref_departure_time.date()
             plan_arr = datetime.combine(plan_dep_date, plan_dep.time())
+        call_object = BusCallIn(
+            call_id, call_name, plan_arr, None, plan_dep, None
+        )
 
-        if call_id == ref_stop.atco:
+        if call_id == ref_stop.atco and not is_after_ref:
             is_after_ref = True
-        call_object = BusCallIn(call_id, plan_arr, None, plan_dep, None)
+            board_call_index = i
         service_call_objects.append(call_object)
-
-    return BusJourneyIn(bustimes_journey_id, bus_service, service_call_objects)
+    if board_call_index is None:
+        return None
+    journey = BusJourneyIn(
+        bustimes_journey_id, operator, bus_service, service_call_objects
+    )
+    return (journey, board_call_index)
 
 
 def register_bus_operator(
