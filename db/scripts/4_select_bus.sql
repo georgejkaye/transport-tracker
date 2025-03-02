@@ -150,7 +150,7 @@ $$
 BEGIN
     RETURN QUERY
     SELECT * FROM GetBusServices() AllBusService
-    WHERE LOWER(service_line) LIKE '%' || LOWER(p_line_name) || '%'
+    WHERE LOWER(service_line) = LOWER(p_line_name)
     AND (AllBusService.bus_operator).bus_operator_id = p_operator_id;
 END;
 $$;
@@ -165,7 +165,7 @@ $$
 BEGIN
     RETURN QUERY
     SELECT * FROM GetBusServices() AllBusService
-    WHERE LOWER(service_line) LIKE '%' || LOWER(p_line_name) || '%'
+    WHERE LOWER(service_line) = LOWER(p_line_name)
     AND
         LOWER((AllBusService.bus_operator).bus_operator_name)
         LIKE '%' || LOWER(p_operator_name) || '%';
