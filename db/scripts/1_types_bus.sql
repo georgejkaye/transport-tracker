@@ -103,3 +103,14 @@ CREATE TYPE BusVehicleInData AS (
     vehicle_livery_style TEXT,
     vehicle_name TEXT
 );
+
+CREATE TYPE BusVehicleOutData AS (
+    bus_vehicle_id INT,
+    bus_operator BusOperatorOutData,
+    operator_vehicle_id TEXT,
+    bustimes_vehicle_id TEXT,
+    vehicle_numberplate TEXT,
+    vehicle_model TEXT,
+    vehicle_livery_style TEXT,
+    vehicle_name TEXT
+);

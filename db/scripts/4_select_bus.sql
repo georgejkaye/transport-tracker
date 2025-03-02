@@ -190,3 +190,36 @@ BEGIN
         LIKE '%' || LOWER(p_operator_name) || '%';
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION GetBusVehicle (
+    p_operator_id INT,
+    p_vehicle_id TEXT
+) RETURNS SETOF BusVehicleOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        BusVehicle.bus_vehicle_id,
+        BusOperatorDetail.bus_operator,
+        BusVehicle.operator_vehicle_id,
+        BusVehicle.bustimes_vehicle_id,
+        BusVehicle.bus_numberplate,
+        BusModel.bus_model_name,
+        BusVehicle.bus_livery_style,
+        BusVehicle.bus_name
+    FROM BusVehicle
+    INNER JOIN (
+        SELECT
+            (BusOperatorObject.getbusoperators).bus_operator_id,
+            BusOperatorObject.getbusoperators AS bus_operator
+        FROM (SELECT GetBusOperators()) BusOperatorObject
+    ) BusOperatorDetail
+    ON BusOperatorDetail.bus_operator_id = BusVehicle.operator_id
+    INNER JOIN BusModel
+    ON BusModel.bus_model_id = BusVehicle.bus_model_id
+    WHERE (BusOperatorDetail.bus_operator).bus_operator_id = p_operator_id
+    AND BusVehicle.operator_vehicle_id = p_vehicle_id;
+END;
+$$;
