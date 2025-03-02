@@ -4,7 +4,11 @@ import json
 from typing import Optional
 
 from api.data.bus.operators import BusOperator, get_operator_from_name
-from api.data.bus.stop import BusStop, BusStopDeparture
+from api.data.bus.stop import (
+    BusStop,
+    BusStopDeparture,
+    get_bus_stops_from_atcos,
+)
 from api.utils.database import register_type
 from api.utils.interactive import PickSingle, input_select
 from api.utils.request import get_soup
@@ -31,7 +35,7 @@ class BusService:
 
 
 def short_string_of_bus_service(service: BusService) -> str:
-    return f"{service.line} {service.outbound} ({service.operator.name})"
+    return f"{service.line} {service.outbound.description} ({service.operator.name})"
 
 
 @dataclass
@@ -61,6 +65,23 @@ class BusJourneyIn:
     id: int
     service: BusService
     calls: list[BusCallIn]
+
+
+def string_of_bus_journey_in(
+    conn: Connection, bus_journey: BusJourneyIn
+) -> str:
+    return_string = f"{bus_journey.id}: {bus_journey.service.line} {bus_journey.service.outbound.description} ({bus_journey.service.operator.name})\n============="
+    atcos = [str(call.atco) for call in bus_journey.calls]
+    atco_bus_stop_dict = get_bus_stops_from_atcos(conn, atcos)
+    for call in bus_journey.calls:
+        stop = atco_bus_stop_dict[str(call.atco)]
+        call_string = f"{stop.locality} | {stop.common_name}"
+        if call.plan_arr is not None:
+            call_string = f"{call_string} arr {call.plan_arr.isoformat()}"
+        if call.plan_dep is not None:
+            call_string = f"{call_string} dep {call.plan_dep.isoformat()}"
+        return_string = f"{return_string}\n{call_string}"
+    return return_string
 
 
 @dataclass
@@ -123,27 +144,67 @@ def get_bus_journey(
     bus_service = get_service_from_line_and_operator_name(
         conn, service_line, service_operator
     )
+
     if bus_service is None:
         return None
 
     service_calls = trip_script_dict["times"]
     is_after_ref = False
     first_call_datetime = None
+    service_call_objects: list[BusCallIn] = []
+
+    ref_departure_time = ref_departure.dep_time
+
     for call in service_calls:
         call_id = call["stop"]["atco_code"]
-        if is_after_ref or call_id == ref_stop.atco:
-            is_after_ref = True
 
         plan_arr_string = call["aimed_arrival_time"]
         if plan_arr_string is not None:
-            plan_arr = datetime.strptime(plan_arr_string, "HH:mm")
+            plan_arr = datetime.strptime(plan_arr_string, "%H:%M")
         else:
             plan_arr = None
         plan_dep_string = call["aimed_departure_time"]
         if plan_dep_string is not None:
-            plan_dep = datetime.strptime(plan_dep_string, "HH:mm")
+            plan_dep = datetime.strptime(plan_dep_string, "%H:%M")
         else:
             plan_dep = None
+
+        if plan_arr is not None:
+            if not is_after_ref:
+                if plan_arr.time() <= ref_departure_time.time():
+                    plan_arr_date = ref_departure_time.date()
+                else:
+                    plan_arr_date = ref_departure_time.date() - timedelta(
+                        days=1
+                    )
+            else:
+                if plan_arr.time() <= ref_departure_time.time():
+                    plan_arr_date = ref_departure_time.date() + timedelta(
+                        days=1
+                    )
+                else:
+                    plan_arr_date = ref_departure_time.date()
+            plan_arr = datetime.combine(plan_arr_date, plan_arr.time())
+
+        if plan_dep is not None:
+            if not is_after_ref:
+                if plan_dep.time() <= ref_departure_time.time():
+                    plan_dep_date = ref_departure_time.date()
+                else:
+                    plan_dep_date = ref_departure_time.date() - timedelta(
+                        days=1
+                    )
+            else:
+                if plan_dep.time() <= ref_departure_time.time():
+                    plan_dep_date = ref_departure_time.date() + timedelta(
+                        days=1
+                    )
+                else:
+                    plan_dep_date = ref_departure_time.date()
+            plan_arr = datetime.combine(plan_dep_date, plan_dep.time())
+
+        if call_id == ref_stop.atco:
+            is_after_ref = True
         call_object = BusCallIn(call_id, plan_arr, plan_dep)
         service_call_objects.append(call_object)
 
@@ -211,7 +272,7 @@ def get_service_from_line_and_operator_name(
     register_type(conn, "BusOperatorOutData", register_bus_operator)
     register_type(conn, "BusServiceOutData", register_bus_service)
     rows = conn.execute(
-        "SELECT * FROM GetBusServicesByOperatorName(%s, %s)",
+        "SELECT GetBusServicesByOperatorName(%s, %s)",
         [service_operator, service_line],
     ).fetchall()
     if len(rows) == 0:
