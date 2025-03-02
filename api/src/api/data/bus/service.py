@@ -42,15 +42,19 @@ def short_string_of_bus_service(service: BusService) -> str:
 class BusCall:
     id: int
     stop: BusStop
-    plan_arr: datetime
-    plan_dep: datetime
+    plan_arr: Optional[datetime]
+    act_arr: Optional[datetime]
+    plan_dep: Optional[datetime]
+    act_dep: Optional[datetime]
 
 
 @dataclass
 class BusCallIn:
     atco: int
     plan_arr: Optional[datetime]
+    act_arr: Optional[datetime]
     plan_dep: Optional[datetime]
+    act_dep: Optional[datetime]
 
 
 @dataclass
@@ -205,7 +209,7 @@ def get_bus_journey(
 
         if call_id == ref_stop.atco:
             is_after_ref = True
-        call_object = BusCallIn(call_id, plan_arr, plan_dep)
+        call_object = BusCallIn(call_id, plan_arr, None, plan_dep, None)
         service_call_objects.append(call_object)
 
     return BusJourneyIn(bustimes_journey_id, bus_service, service_call_objects)
