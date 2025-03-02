@@ -28,8 +28,13 @@ town_column = 21
 suburb_column = 23
 eastings_column = 27
 northings_column = 28
+stop_type_column = 31
 
 stops = []
+
+standard_bus_stop_type = "BCT"
+station_bus_stop_type = "BCS"
+variable_bus_stop_type = "BCQ"
 
 
 def string_to_optional_string(string: str) -> Optional[str]:
@@ -45,7 +50,12 @@ with open(stops_csv) as f:
         if header:
             header = False
         else:
-            if row[naptan_code_column] != "":
+            stop_type = row[stop_type_column]
+            if stop_type in [
+                standard_bus_stop_type,
+                station_bus_stop_type,
+                variable_bus_stop_type,
+            ]:
                 osgb36_point = Point(
                     int(row[eastings_column]), int(row[northings_column])
                 )
