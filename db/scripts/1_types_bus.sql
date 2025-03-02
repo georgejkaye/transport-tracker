@@ -89,3 +89,17 @@ CREATE TYPE BusCallInData AS (
     plan_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE
 );
+
+CREATE TYPE BusModelInData AS (
+    model_name TEXT
+);
+
+CREATE TYPE BusVehicleInData AS (
+    operator_id INT,
+    operator_vehicle_id TEXT,
+    bustimes_vehicle_id TEXT,
+    vehicle_numberplate TEXT,
+    vehicle_model TEXT,
+    vehicle_livery_style TEXT,
+    vehicle_name TEXT
+);

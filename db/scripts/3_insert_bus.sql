@@ -130,3 +130,61 @@ BEGIN
     PERFORM InsertBusServiceVias(p_vias);
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION InsertBusModels (
+    p_models BusModelInData[]
+) RETURNS VOID
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    INSERT INTO BusModel (bus_model_name)
+    SELECT v_model.model_name
+    FROM UNNEST(p_models) AS v_model
+    ON CONFLICT DO NOTHING;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION InsertBusVehicles (
+    p_vehicles BusVehicleInData[]
+) RETURNS VOID
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    INSERT INTO BusVehicle (
+        operator_id,
+        operator_vehicle_id,
+        bustimes_vehicle_id,
+        bus_numberplate,
+        bus_model_id,
+        bus_livery_style,
+        bus_name
+    )
+    SELECT
+        v_vehicle.operator_id,
+        v_vehicle.operator_vehicle_id,
+        v_vehicle.bustimes_vehicle_id,
+        v_vehicle.vehicle_numberplate,
+        (SELECT bus_model_id
+        FROM BusModel
+        WHERE bus_model_name = v_vehicle.vehicle_model),
+        v_vehicle.vehicle_livery_style,
+        v_vehicle.vehicle_name
+    FROM UNNEST(p_vehicles) AS v_vehicle
+    ON CONFLICT DO NOTHING;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION InsertBusModelsAndVehicles (
+    p_models BusModelInData[],
+    p_vehicles BusVehicleInData[]
+) RETURNS VOID
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    PERFORM InsertBusModels(p_models);
+    PERFORM InsertBusVehicles(p_vehicles);
+END;
+$$;

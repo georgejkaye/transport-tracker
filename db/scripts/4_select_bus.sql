@@ -60,7 +60,26 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION GetBusOperators (
+CREATE OR REPLACE FUNCTION GetBusOperators ()
+RETURNS SETOF BusOperatorOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        bus_operator_id,
+        bus_operator_name,
+        bus_operator_code,
+        bus_operator_national_code,
+        bg_colour,
+        fg_colour
+    FROM BusOperator
+    ORDER BY bus_operator_name ASC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetBusOperatorsByName (
     p_name TEXT
 ) RETURNS SETOF BusOperatorOutData
 LANGUAGE plpgsql
