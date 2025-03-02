@@ -80,6 +80,11 @@ def get_alight_stop_input(
     alight_choice = input_select(
         "Alight call", possible_alight_calls, string_of_bus_call_in
     )
+    match alight_choice:
+        case PickSingle(choice):
+            return choice
+        case _:
+            return None
 
 
 def get_bus_vehicle(
