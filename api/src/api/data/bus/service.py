@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import json
 from typing import Optional
 
-from api.data.bus.operators import BusOperator, get_operator_from_name
+from api.data.bus.operators import BusOperator, get_bus_operator_from_name
 from api.data.bus.stop import (
     BusStop,
     BusStopDeparture,
@@ -136,7 +136,7 @@ def get_bus_journey(
     trip_script_dict = json.loads(trip_script.text)
     service_operator = trip_script_dict["operator"]["name"]
 
-    operator = get_operator_from_name(conn, service_operator)
+    operator = get_bus_operator_from_name(conn, service_operator)
     if operator is None:
         return None
 

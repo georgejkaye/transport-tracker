@@ -26,18 +26,24 @@ def register_bus_operator(
     return BusOperator(id, name, code, national_code, bg_colour, fg_colour)
 
 
-def get_operators_from_name(
-    conn: Connection, search_string: str
-) -> list[BusOperator]:
+def get_bus_operators(conn: Connection) -> list[BusOperator]:
     register_type(conn, "BusOperatorOutData", register_bus_operator)
-    rows = conn.execute("SELECT GetBusOperators(%s)", [search_string])
+    rows = conn.execute("SELECT GetBusOperators()")
     return [row[0] for row in rows]
 
 
-def get_operator_from_name(
+def get_bus_operators_from_name(
+    conn: Connection, search_string: str
+) -> list[BusOperator]:
+    register_type(conn, "BusOperatorOutData", register_bus_operator)
+    rows = conn.execute("SELECT GetBusOperatorsByName(%s)", [search_string])
+    return [row[0] for row in rows]
+
+
+def get_bus_operator_from_name(
     conn: Connection, search_string: str
 ) -> Optional[BusOperator]:
-    operators = get_operators_from_name(conn, search_string)
+    operators = get_bus_operators_from_name(conn, search_string)
     if len(operators) != 1:
         return None
     return operators[0]
