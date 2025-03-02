@@ -29,6 +29,37 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION GetBusStopsFromAtcos (
+    p_atcos TEXT[]
+) RETURNS SETOF BusStopOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        bus_stop_id,
+        atco_code,
+        naptan_code,
+        stop_name,
+        landmark_name,
+        street_name,
+        crossing_name,
+        indicator,
+        bearing,
+        locality_name,
+        parent_locality_name,
+        grandparent_locality_name,
+        town_name,
+        suburb_name,
+        latitude,
+        longitude
+    FROM BusStop
+    WHERE atco_code = ANY(p_atcos)
+    ORDER BY stop_name ASC;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION GetBusOperators (
     p_name TEXT
 ) RETURNS SETOF BusOperatorOutData
