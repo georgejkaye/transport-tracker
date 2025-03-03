@@ -65,7 +65,9 @@ CREATE TABLE BusCall (
     bus_journey_id INT NOT NULL,
     bus_stop_id INT NOT NULL,
     plan_arr TIMESTAMP WITH TIME ZONE,
+    act_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
+    act_dep TIMESTAMP WITH TIME ZONE,
     FOREIGN KEY(bus_journey_id) REFERENCES BusJourney(bus_journey_id),
     FOREIGN KEY(bus_stop_id) REFERENCES BusStop(bus_stop_id)
 );
@@ -98,7 +100,7 @@ $$
 BEGIN
     RETURN (
         SELECT bus_journey_id FROM BusCall WHERE bus_call_id = p_board_call_id
-    ) == (
+    ) = (
         SELECT bus_journey_id FROM BusCall WHERE bus_call_id = p_alight_call_id
     );
 END;
@@ -106,12 +108,14 @@ $$;
 
 CREATE TABLE BusLeg (
     bus_leg_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
     bus_vehicle_id INT,
     board_call_id INT NOT NULL,
     alight_call_id INT NOT NULL,
     FOREIGN KEY(board_call_id) REFERENCES BusCall(bus_call_id),
     FOREIGN KEY(alight_call_id) REFERENCES BusCall(bus_call_id),
     FOREIGN KEY(bus_vehicle_id) REFERENCES BusVehicle(bus_vehicle_id),
+    FOREIGN KEY(user_id) REFERENCES Traveller(user_id),
     CONSTRAINT calls_same_journey CHECK (
         CallsAreSameJourney(board_call_id, alight_call_id))
 );

@@ -220,7 +220,7 @@ def get_bus_journey(
                     )
                 else:
                     plan_dep_date = ref_departure_time.date()
-            plan_arr = datetime.combine(plan_dep_date, plan_dep.time())
+            plan_dep = datetime.combine(plan_dep_date, plan_dep.time())
         call_object = BusCallIn(
             call_id, call_name, plan_arr, None, plan_dep, None
         )

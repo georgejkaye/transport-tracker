@@ -85,7 +85,7 @@ CREATE TYPE BusServiceViaOutData AS (
 );
 
 CREATE TYPE BusCallInData AS (
-    atco_code INT,
+    atco_code TEXT,
     plan_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE
 );
@@ -125,14 +125,14 @@ CREATE TYPE BusCallInData AS (
 
 CREATE TYPE BusJourneyInData AS (
     bustimes_id TEXT,
-    operator BusOperatorInData,
     service_id INT,
-    journey_calls BusCallInData[],
-    journey_vehicle_id INT
+    journey_calls BusCallInData[]
 );
 
 CREATE TYPE BusLegInData AS (
+    user_id INT,
     journey BusJourneyInData,
+    vehicle_id INT,
     board_atco TEXT,
-    alight_atco TEXT,
+    alight_atco TEXT
 );

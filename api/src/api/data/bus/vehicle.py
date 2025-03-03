@@ -1,5 +1,6 @@
 import operator
-from api.utils.database import connect
+from api.data.bus.service import register_bus_operator
+from api.utils.database import connect, register_type
 
 from dataclasses import dataclass
 from typing import Optional
@@ -171,6 +172,8 @@ def register_bus_vehicle(
 def get_bus_vehicle_by_operator_and_id(
     conn: Connection, bus_operator: BusOperator, operator_vehicle_id: str
 ) -> Optional[BusVehicle]:
+    register_type(conn, "BusVehicleOutData", register_bus_vehicle)
+    register_type(conn, "BusOperatorOutData", register_bus_operator)
     rows = conn.execute(
         "SELECT GetBusVehicle(%s, %s)", [bus_operator.id, operator_vehicle_id]
     ).fetchall()
