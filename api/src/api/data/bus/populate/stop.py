@@ -4,6 +4,7 @@ import string
 import sys
 from typing import Optional
 from api.network.network import osgb36_to_wgs84_point
+from psycopg import Connection
 from shapely import Point
 
 from api.data.bus.stop import BusStopData, insert_bus_stops
@@ -43,51 +44,50 @@ def string_to_optional_string(string: str) -> Optional[str]:
     return string
 
 
-with open(stops_csv) as f:
-    reader = csv.reader(f, delimiter=",")
-    header = True
-    for row in reader:
-        if header:
-            header = False
-        else:
-            stop_type = row[stop_type_column]
-            if stop_type in [
-                standard_bus_stop_type,
-                station_bus_stop_type,
-                variable_bus_stop_type,
-            ]:
-                osgb36_point = Point(
-                    int(row[eastings_column]), int(row[northings_column])
-                )
-                wgs84_point = osgb36_to_wgs84_point(osgb36_point)
-                stop = BusStopData(
-                    row[atco_code_column],
-                    row[naptan_code_column],
-                    string.capwords(row[common_name_column]),
-                    string.capwords(row[landmark_column]),
-                    string.capwords(row[street_column]),
-                    string_to_optional_string(
-                        string.capwords(row[crossing_column])
-                    ),
-                    string_to_optional_string(row[indicator_column]),
-                    string.capwords(row[bearing_column]),
-                    string.capwords(row[locality_column]),
-                    string_to_optional_string(
-                        string.capwords(row[parent_locality_column])
-                    ),
-                    string_to_optional_string(
-                        string.capwords(row[grandparent_locality_column])
-                    ),
-                    string_to_optional_string(
-                        string.capwords(row[town_column])
-                    ),
-                    string_to_optional_string(
-                        string.capwords(row[suburb_column])
-                    ),
-                    Decimal(wgs84_point.y),
-                    Decimal(wgs84_point.x),
-                )
-                stops.append(stop)
-
-with connect(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]) as (conn, _):
+def populate_bus_stops(conn: Connection, stops_csv: str):
+    with open(stops_csv) as f:
+        reader = csv.reader(f, delimiter=",")
+        header = True
+        for row in reader:
+            if header:
+                header = False
+            else:
+                stop_type = row[stop_type_column]
+                if stop_type in [
+                    standard_bus_stop_type,
+                    station_bus_stop_type,
+                    variable_bus_stop_type,
+                ]:
+                    osgb36_point = Point(
+                        int(row[eastings_column]), int(row[northings_column])
+                    )
+                    wgs84_point = osgb36_to_wgs84_point(osgb36_point)
+                    stop = BusStopData(
+                        row[atco_code_column],
+                        row[naptan_code_column],
+                        string.capwords(row[common_name_column]),
+                        string.capwords(row[landmark_column]),
+                        string.capwords(row[street_column]),
+                        string_to_optional_string(
+                            string.capwords(row[crossing_column])
+                        ),
+                        string_to_optional_string(row[indicator_column]),
+                        string.capwords(row[bearing_column]),
+                        string.capwords(row[locality_column]),
+                        string_to_optional_string(
+                            string.capwords(row[parent_locality_column])
+                        ),
+                        string_to_optional_string(
+                            string.capwords(row[grandparent_locality_column])
+                        ),
+                        string_to_optional_string(
+                            string.capwords(row[town_column])
+                        ),
+                        string_to_optional_string(
+                            string.capwords(row[suburb_column])
+                        ),
+                        Decimal(wgs84_point.y),
+                        Decimal(wgs84_point.x),
+                    )
+                    stops.append(stop)
     insert_bus_stops(conn, stops)

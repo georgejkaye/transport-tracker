@@ -272,11 +272,6 @@ def extract_data_from_bods_zip(
         return extract_data_from_bods_zipfile(zip)
 
 
-if __name__ == "__main__":
-    file_path = sys.argv[1]
-    data = extract_data_from_bods_zip(file_path)
-    with connect("transport", "transport", "transport", "localhost") as (
-        conn,
-        _,
-    ):
-        insert_services(conn, data)
+def populate_bus_services(conn: Connection, bods_path: str):
+    data = extract_data_from_bods_zip(bods_path)
+    insert_services(conn, data)
