@@ -25,7 +25,7 @@ CREATE TABLE BusOperator (
     bus_operator_national_code TEXT NOT NULL,
     bg_colour TEXT,
     fg_colour TEXT,
-    CONSTRAINT UNIQUE (bus_operator_code, bus_operator_national_code)
+    UNIQUE (bus_operator_code, bus_operator_national_code)
 );
 
 CREATE TABLE BusService (
