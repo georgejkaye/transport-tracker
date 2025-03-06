@@ -10,8 +10,8 @@ from psycopg import Connection
 class BusLegIn:
     user_id: int
     journey: BusJourneyIn
-    board_stop_atco: str
-    alight_stop_atco: str
+    board_stop_index: int
+    alight_stop_index: int
     vehicle: Optional[BusVehicle]
 
 
@@ -36,8 +36,8 @@ def insert_leg(conn: Connection, leg: BusLegIn):
         leg.user_id,
         journey_tuple,
         leg.vehicle.id if leg.vehicle else None,
-        leg.board_stop_atco,
-        leg.alight_stop_atco,
+        leg.board_stop_index,
+        leg.alight_stop_index,
     )
     conn.execute("SELECT InsertBusLeg(%s)", [leg_tuple])
     conn.commit()
