@@ -57,7 +57,9 @@ CREATE TABLE BusServiceVia (
 CREATE TABLE BusJourney (
     bus_journey_id SERIAL PRIMARY KEY,
     bus_service_id INT NOT NULL,
-    FOREIGN KEY(bus_service_id) REFERENCES BusService(bus_service_id)
+    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    FOREIGN KEY(bus_service_id) REFERENCES BusService(bus_service_id),
+    UNIQUE (bus_service_id, start_time)
 );
 
 CREATE TABLE BusCall (
@@ -87,7 +89,9 @@ CREATE TABLE BusVehicle (
     bus_livery_style TEXT,
     bus_name TEXT,
     FOREIGN KEY(operator_id) REFERENCES BusOperator(bus_operator_id),
-    FOREIGN KEY(bus_model_id) REFERENCES BusModel(bus_model_id)
+    FOREIGN KEY(bus_model_id) REFERENCES BusModel(bus_model_id),
+    UNIQUE (operator_id, operator_vehicle_id),
+    UNIQUE (operator_id, bus_numberplate),
 );
 
 CREATE OR REPLACE FUNCTION CallsAreSameJourney(

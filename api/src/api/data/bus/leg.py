@@ -39,5 +39,5 @@ def insert_leg(conn: Connection, leg: BusLegIn):
         leg.board_stop_index,
         leg.alight_stop_index,
     )
-    conn.execute("SELECT InsertBusLeg(%s)", [leg_tuple])
+    conn.execute("SELECT InsertBusLeg(%s::BusLegInData)", [leg_tuple])
     conn.commit()
