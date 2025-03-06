@@ -171,7 +171,7 @@ def insert_services(
     via_values = []
     for operator, service in services:
         operator_values.append(
-            (operator.name, operator.code, operator.national_code)
+            (operator.id, operator.name, operator.code, operator.national_code)
         )
         service_values.append(
             (

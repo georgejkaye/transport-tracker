@@ -128,27 +128,33 @@ def get_bus_leg_input(conn: Connection, user: User) -> Optional[BusJourney]:
         conn, departure.bustimes_journey_id, board_stop, departure
     )
     if journey_and_board_call_index is None:
+        print("Could not get journey")
         return None
 
     (journey, board_call_index) = journey_and_board_call_index
 
-    alight_stop = get_alight_stop_input(journey.calls, board_call_index)
-    if alight_stop is None:
+    alight_call_and_index = get_alight_stop_input(
+        journey.calls, board_call_index
+    )
+    if alight_call_and_index is None:
         return None
+
+    (alight_call, alight_call_index) = alight_call_and_index
 
     vehicle = get_bus_vehicle(conn, journey.operator)
 
     leg = BusLegIn(
-        user.user_id, journey, board_stop.atco, alight_stop.atco, vehicle
+        user.user_id, journey, board_call_index, alight_call_index, vehicle
     )
 
     insert_leg(conn, leg)
 
 
 if __name__ == "__main__":
-    with connect("transport", "transport", "transport", "localhost") as (
+    with connect(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]) as (
         conn,
         _,
     ):
-        user = Traveller(1, "george")
-        get_bus_leg_input(conn, user)
+        user = input_user(conn)
+        if user is not None:
+            get_bus_leg_input(conn, user)

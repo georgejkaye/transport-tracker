@@ -28,7 +28,6 @@ class BusStopData:
 
 
 def insert_bus_stops(conn: Connection, bus_stops: list[BusStopData]):
-    print(bus_stops[0])
     bus_stop_tuples = [
         (
             bus_stop.atco,

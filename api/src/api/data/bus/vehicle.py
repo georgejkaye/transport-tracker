@@ -70,7 +70,12 @@ class BusVehicle:
 
 
 def get_bus_operator_vehicle_url(operator: BusOperator) -> str:
-    operator_slug = slugify(operator.name)
+    operator_slug = slugify(
+        operator.name.replace("'", "")
+        .replace("(", "")
+        .replace(")", "")
+        .replace("&", "")
+    )
     return f"https://bustimes.org/operators/{operator_slug}/vehicles"
 
 

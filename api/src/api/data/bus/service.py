@@ -151,25 +151,31 @@ def get_bus_journey(
 ) -> Optional[tuple[BusJourneyIn, int]]:
     soup = get_bus_journey_page(bustimes_journey_id)
     if soup is None:
+        print("Could not get journey page")
         return soup
 
     trip_script = soup.select_one("script#trip-data")
     if trip_script is None:
+        print("Could not get trip script")
         return None
 
     trip_script_dict = json.loads(trip_script.text)
-    service_operator = trip_script_dict["operator"]["name"]
+    service_operator_noc = trip_script_dict["operator"]["noc"]
 
-    operator = get_bus_operator_from_name(conn, service_operator)
+    operator = get_bus_operator_from_national_operator_code(
+        conn, service_operator_noc
+    )
     if operator is None:
+        print("Could not get operator")
         return None
 
     service_line = trip_script_dict["service"]["line_name"]
-    bus_service = get_service_from_line_and_operator_name(
-        conn, service_line, service_operator
+    bus_service = get_service_from_line_and_operator(
+        conn, service_line, operator
     )
 
     if bus_service is None:
+        print("Could not get service")
         return None
 
     service_calls = trip_script_dict["times"]
@@ -237,6 +243,7 @@ def get_bus_journey(
             board_call_index = i
         service_call_objects.append(call_object)
     if board_call_index is None:
+        print("Could not get board call")
         return None
     journey = BusJourneyIn(
         bustimes_journey_id, operator, bus_service, service_call_objects
@@ -297,6 +304,42 @@ def input_bus_service(services: list[BusService]) -> Optional[BusService]:
             return service
         case _:
             return None
+
+
+def get_service_from_line_and_operator_national_code(
+    conn: Connection, service_line: str, service_operator: str
+) -> Optional[BusService]:
+    register_type(conn, "BusOperatorOutData", register_bus_operator)
+    register_type(conn, "BusServiceOutData", register_bus_service)
+    rows = conn.execute(
+        "SELECT GetBusServicesByNationalOperatorCode(%s, %s)",
+        [service_operator, service_line],
+    ).fetchall()
+    if len(rows) == 0:
+        return None
+    services = [row[0] for row in rows]
+    if len(services) > 1:
+        return input_bus_service(services)
+    else:
+        return services[0]
+
+
+def get_service_from_line_and_operator(
+    conn: Connection, service_line: str, service_operator: BusOperator
+) -> Optional[BusService]:
+    register_type(conn, "BusOperatorOutData", register_bus_operator)
+    register_type(conn, "BusServiceOutData", register_bus_service)
+    rows = conn.execute(
+        "SELECT GetBusServicesByOperatorId(%s, %s)",
+        [service_operator.id, service_line],
+    ).fetchall()
+    if len(rows) == 0:
+        return None
+    services = [row[0] for row in rows]
+    if len(services) > 1:
+        return input_bus_service(services)
+    else:
+        return services[0]
 
 
 def get_service_from_line_and_operator_name(

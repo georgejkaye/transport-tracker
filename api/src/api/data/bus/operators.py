@@ -28,7 +28,7 @@ def register_bus_operator(
 
 def get_bus_operators(conn: Connection) -> list[BusOperator]:
     register_type(conn, "BusOperatorOutData", register_bus_operator)
-    rows = conn.execute("SELECT GetBusOperators()")
+    rows = conn.execute("SELECT GetBusOperators()").fetchall()
     return [row[0] for row in rows]
 
 
@@ -36,7 +36,9 @@ def get_bus_operators_from_name(
     conn: Connection, search_string: str
 ) -> list[BusOperator]:
     register_type(conn, "BusOperatorOutData", register_bus_operator)
-    rows = conn.execute("SELECT GetBusOperatorsByName(%s)", [search_string])
+    rows = conn.execute(
+        "SELECT GetBusOperatorsByName(%s)", [search_string]
+    ).fetchall()
     return [row[0] for row in rows]
 
 
@@ -47,3 +49,15 @@ def get_bus_operator_from_name(
     if len(operators) != 1:
         return None
     return operators[0]
+
+
+def get_bus_operator_from_national_operator_code(
+    conn: Connection, search_string: str
+) -> Optional[BusOperator]:
+    register_type(conn, "BusOperatorOutData", register_bus_operator)
+    rows = conn.execute(
+        "SELECT GetBusOperatorsByNationalOperatorCode(%s)", [search_string]
+    ).fetchall()
+    if len(rows) != 1:
+        return None
+    return [row[0] for row in rows][0]
