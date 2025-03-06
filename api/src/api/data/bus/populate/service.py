@@ -121,7 +121,7 @@ def get_operator_from_transxchange_node(
     operator_node = operators_node.find("Operator", namespaces)
     if operator_node is None:
         return None
-    bods_operator_id = operators_node.attrib["id"]
+    bods_operator_id = operator_node.attrib["id"]
     operator_code = operator_node.find("OperatorCode", namespaces)
     if operator_code is None or operator_code.text is None:
         return None

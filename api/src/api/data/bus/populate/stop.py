@@ -8,7 +8,6 @@ from psycopg import Connection
 from shapely import Point
 
 from api.data.bus.stop import BusStopData, insert_bus_stops
-from api.utils.database import connect
 
 # NaPTAN stops csv path
 # https://beta-naptan.dft.gov.uk/download/national
