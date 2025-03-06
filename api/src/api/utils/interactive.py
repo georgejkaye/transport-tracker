@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from math import ceil
 from typing import Callable, Optional
 from questionary import Choice, checkbox, confirm, select, text
 from termcolor import colored
@@ -255,6 +256,40 @@ def input_select[
     return select(
         message, choice_objects, use_shortcuts=True, instruction=""
     ).ask()
+
+
+def input_select_paginate[
+    T
+](
+    message: str, choices: list[T], display: Optional[Callable[[T], str]] = None
+) -> Optional[PickChoice[T]]:
+    partitions = []
+    size_of_partition = 34
+    number_of_partitions = ceil(len(choices) / size_of_partition)
+    for i in range(0, number_of_partitions):
+        current_partition = []
+        for j in range(0, size_of_partition):
+            choice_index = i * size_of_partition + j
+            if choice_index >= len(choices):
+                break
+            current_partition.append(choices[i * size_of_partition + j])
+        partitions.append(current_partition)
+    for i, partition in enumerate(partitions):
+        choice_objects = [
+            choice_from_object(choice, display) for choice in partition
+        ]
+        if i != len(partitions) - 1:
+            choice_objects.append(Choice(title="Next", value=PickUnknown()))
+        choice_objects.append(Choice(title="Cancel", value=PickCancel()))
+        page_choice = select(
+            message, choice_objects, use_shortcuts=True, instruction=""
+        ).ask()
+        match (page_choice):
+            case PickUnknown():
+                continue
+            case _:
+                return page_choice
+    return None
 
 
 def input_checkbox[

@@ -1,6 +1,8 @@
+import sys
 from time import sleep
 from api.data.bus.operators import get_bus_operators
 from api.data.bus.vehicle import get_bus_operator_vehicles, insert_bus_vehicles
+from api.utils.database import connect
 from psycopg import Connection
 
 

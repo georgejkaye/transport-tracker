@@ -1,21 +1,28 @@
+import json
+
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-import json
 from typing import Optional
-from unittest.util import strclass
+from bs4 import BeautifulSoup
+from psycopg import Connection
 
-from api.data.bus.operators import BusOperator, get_bus_operator_from_name
+from api.data.bus.operators import (
+    BusOperator,
+    get_bus_operator_from_name,
+    get_bus_operator_from_national_operator_code,
+)
 from api.data.bus.stop import (
     BusStop,
     BusStopDeparture,
     get_bus_stops_from_atcos,
 )
 from api.utils.database import register_type
-from api.utils.interactive import PickSingle, input_select
+from api.utils.interactive import (
+    PickSingle,
+    input_select_paginate,
+)
 from api.utils.request import get_soup
-from api.utils.times import get_local_timezone, make_timezone_aware
-from bs4 import BeautifulSoup
-from psycopg import Connection
+from api.utils.times import make_timezone_aware
 
 
 @dataclass
@@ -282,7 +289,7 @@ def register_bus_service(
 
 
 def input_bus_service(services: list[BusService]) -> Optional[BusService]:
-    selection = input_select(
+    selection = input_select_paginate(
         "Choose service", services, display=short_string_of_bus_service
     )
     match selection:

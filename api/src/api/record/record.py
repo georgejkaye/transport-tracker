@@ -61,6 +61,7 @@ from api.utils.interactive import (
     input_month,
     input_number,
     input_select,
+    input_select_paginate,
     input_text,
     input_time,
     input_year,
@@ -182,11 +183,10 @@ def get_station_from_input(
                 return match
         else:
             print("Multiple matches found: ")
-            choice = input_select(
+            choice = input_select_paginate(
                 "Select a station",
                 matches,
                 display=lambda x: x.name,
-                cancel=True,
             )
             match choice:
                 case PickSingle(stn):
@@ -218,10 +218,9 @@ def get_service_at_station(
     )
     if len(filtered_services) == 0:
         return None
-    choice = input_select(
+    choice = input_select_paginate(
         "Pick a service",
         filtered_services,
-        cancel=True,
         display=lambda x: string_of_service_at_station(x),
     )
     match choice:
@@ -335,11 +334,10 @@ def get_station_from_calls(
     current: LegCall,
     calls: list[LegCall],
 ) -> Optional[Tuple[LegCall, int, list[LegCall]]]:
-    end_call = input_select(
+    end_call = input_select_paginate(
         f"Stock formation from {current.station.name} until",
         [(i, call) for (i, call) in enumerate(calls)],
         display=lambda x: string_of_short_train_station(x[1].station),
-        unknown=True,
     )
     match end_call:
         case PickSingle((i, call)):
