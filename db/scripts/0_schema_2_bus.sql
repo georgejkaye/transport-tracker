@@ -22,7 +22,7 @@ CREATE TABLE BusOperator (
     bods_operator_id TEXT NOT NULL,
     bus_operator_name TEXT NOT NULL,
     bus_operator_code TEXT NOT NULL,
-    bus_operator_national_code TEXT NOT NULL,
+    bus_operator_national_code TEXT UNIQUE NOT NULL,
     bg_colour TEXT,
     fg_colour TEXT,
     UNIQUE (bus_operator_code, bus_operator_national_code)
