@@ -195,6 +195,23 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION GetBusServicesByNationalOperatorCode (
+    p_national_operator_code INT,
+    p_line_name TEXT
+) RETURNS SETOF BusServiceOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM GetBusServices() AllBusService
+    WHERE LOWER(service_line) = LOWER(p_line_name)
+    AND
+        (AllBusService.bus_operator).bus_operator_national_code =
+            p_national_operator_code;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION GetBusServicesByOperatorName (
     p_operator_name TEXT,
     p_line_name TEXT

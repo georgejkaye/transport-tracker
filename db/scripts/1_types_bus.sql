@@ -133,6 +133,6 @@ CREATE TYPE BusLegInData AS (
     user_id INT,
     journey BusJourneyInData,
     vehicle_id INT,
-    board_atco TEXT,
-    alight_atco TEXT
+    board_index INT,
+    alight_index INT
 );
