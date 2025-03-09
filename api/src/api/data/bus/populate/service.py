@@ -1,18 +1,19 @@
-from dataclasses import dataclass
-import io
-from os import PathLike
-from pathlib import Path
 import re
 import string
-import sys
-from typing import Optional
-import xml.etree.ElementTree as ET
 import zipfile
+import io
+import xml.etree.ElementTree as ET
 
-from api.utils.database import connect
+from pathlib import Path
+from dataclasses import dataclass
+from typing import Optional
 from psycopg import Connection
 
 xmlns_re = r"\{(.*)\}.*"
+
+bods_timetables_url = (
+    "https://data.bus-data.dft.gov.uk/timetable/download/bulk_archive"
+)
 
 
 @dataclass

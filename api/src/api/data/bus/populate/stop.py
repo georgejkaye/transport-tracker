@@ -9,6 +9,8 @@ from shapely import Point
 
 from api.data.bus.stop import BusStopData, insert_bus_stops
 
+naptan_stops_csv_url = "https://beta-naptan.dft.gov.uk/Download/National/csv"
+
 # NaPTAN stops csv path
 # https://beta-naptan.dft.gov.uk/download/national
 stops_csv = sys.argv[1]
