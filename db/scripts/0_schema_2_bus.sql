@@ -1,7 +1,7 @@
 CREATE TABLE BusStop (
     bus_stop_id SERIAL PRIMARY KEY,
-    atco_code TEXT NOT NULL,
-    naptan_code TEXT NOT NULL,
+    atco_code UNIQUE TEXT NOT NULL,
+    naptan_code UNIQUE TEXT NOT NULL,
     stop_name TEXT NOT NULL,
     landmark_name TEXT NOT NULL,
     street_name TEXT NOT NULL,
@@ -57,7 +57,6 @@ CREATE TABLE BusServiceVia (
 CREATE TABLE BusJourney (
     bus_journey_id SERIAL PRIMARY KEY,
     bus_service_id INT NOT NULL,
-    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
     FOREIGN KEY(bus_service_id) REFERENCES BusService(bus_service_id),
     UNIQUE (bus_service_id, start_time)
 );

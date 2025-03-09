@@ -48,6 +48,9 @@ def get_users(conn: Connection) -> list[User]:
 
 def input_user(conn: Connection) -> Optional[User]:
     users = get_users(conn)
+    if len(users) == 0:
+        print("No users found")
+        return None
     user = input_select(
         "Select user",
         users,

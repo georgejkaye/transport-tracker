@@ -225,22 +225,10 @@ AS
 $$
 DECLARE
     v_journey_id INT;
-    v_first_call BusCallInData;
-    v_start_time TIMESTAMP WITH TIME ZONE;
 BEGIN
-    SELECT (p_journey.journey_calls)[1] INTO v_first_call;
-    SELECT
-        COALESCE (
-            v_first_call.plan_dep,
-            v_first_call.plan_arr,
-            v_first_call.act_dep,
-            v_first_call.act_arr
-        )
-    INTO v_start_time;
     INSERT INTO BusJourney (
-        bus_service_id,
-        start_time
-    ) VALUES (p_journey.service_id, v_start_time)
+        bus_service_id
+    ) VALUES (p_journey.service_id)
     RETURNING bus_journey_id INTO v_journey_id;
     PERFORM InsertBusCalls(v_journey_id, p_journey.journey_calls);
     RETURN v_journey_id;
