@@ -49,14 +49,10 @@ AS
 $$
 BEGIN
     INSERT INTO BusOperator (
-        bods_operator_id,
         bus_operator_name,
-        bus_operator_code,
         bus_operator_national_code
     ) SELECT
-        v_operator.bods_operator_id,
         v_operator.bus_operator_name,
-        v_operator.bus_operator_code,
         v_operator.bus_operator_national_code
     FROM UNNEST(p_operators) AS v_operator
     ON CONFLICT DO NOTHING;
