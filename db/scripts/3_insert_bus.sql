@@ -113,7 +113,6 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION InsertTransXChangeBusData (
-    p_operators BusOperatorInData[],
     p_services BusServiceInData[],
     p_vias BusServiceViaInData[]
 ) RETURNS VOID
@@ -121,7 +120,6 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    PERFORM InsertBusOperators(p_operators);
     PERFORM InsertBusServices(p_services);
     PERFORM InsertBusServiceVias(p_vias);
 END;

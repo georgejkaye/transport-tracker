@@ -26,16 +26,9 @@ class TransXChangeLineDescription:
 class TransXChangeLine:
     name: str
     id: str
+    noc: str
     outbound_desc: Optional[TransXChangeLineDescription]
     inbound_desc: Optional[TransXChangeLineDescription]
-
-
-@dataclass
-class TransXChangeOperator:
-    id: str
-    national_code: str
-    code: str
-    name: str
 
 
 def get_line_description_from_description_node(
@@ -61,7 +54,7 @@ def get_line_description_from_description_node(
 
 
 def get_line_from_line_node(
-    line_node: ET.Element, namespaces: dict[str, str]
+    noc: str, line_node: ET.Element, namespaces: dict[str, str]
 ) -> Optional[TransXChangeLine]:
     line_id = line_node.attrib["id"]
     line_name_node = line_node.find("LineName", namespaces)
@@ -82,25 +75,27 @@ def get_line_from_line_node(
         inbound_desc = get_line_description_from_description_node(
             inbound_desc_node, namespaces
         )
-    return TransXChangeLine(line_name, line_id, outbound_desc, inbound_desc)
+    return TransXChangeLine(
+        line_name, line_id, noc, outbound_desc, inbound_desc
+    )
 
 
 def get_lines_from_service_node(
-    service_node: ET.Element, namespaces: dict[str, str]
+    noc: str, service_node: ET.Element, namespaces: dict[str, str]
 ) -> list[TransXChangeLine]:
     lines_node = service_node.find("Lines", namespaces)
     if lines_node is None:
         return []
     lines = []
     for line_node in lines_node.findall("Line", namespaces):
-        line = get_line_from_line_node(line_node, namespaces)
+        line = get_line_from_line_node(noc, line_node, namespaces)
         if line is not None:
             lines.append(line)
     return lines
 
 
 def get_services_from_transxchange_node(
-    transxchange_node: ET.Element, namespaces: dict[str, str]
+    noc: str, transxchange_node: ET.Element, namespaces: dict[str, str]
 ) -> list[TransXChangeLine]:
     services_node = transxchange_node.find("Services", namespaces)
     if services_node is None:
@@ -108,50 +103,38 @@ def get_services_from_transxchange_node(
     service_nodes = services_node.findall("Service", namespaces)
     services = []
     for service_node in service_nodes:
-        lines = get_lines_from_service_node(service_node, namespaces)
+        lines = get_lines_from_service_node(noc, service_node, namespaces)
         services = services + lines
     return services
 
 
-def get_operator_from_transxchange_node(
+def get_noc_from_transxchange_node(
     transxchange_node: ET.Element, namespaces: dict[str, str]
-) -> Optional[TransXChangeOperator]:
+) -> Optional[str]:
     operators_node = transxchange_node.find("Operators", namespaces)
     if operators_node is None:
         return None
     operator_node = operators_node.find("Operator", namespaces)
     if operator_node is None:
         return None
-    bods_operator_id = operator_node.attrib["id"]
-    operator_code = operator_node.find("OperatorCode", namespaces)
-    if operator_code is None or operator_code.text is None:
-        return None
     national_operator_code = operator_node.find(
         "NationalOperatorCode", namespaces
     )
     if national_operator_code is None or national_operator_code.text is None:
         return None
-    operator_short_name = operator_node.find("OperatorShortName", namespaces)
-    if operator_short_name is None or operator_short_name.text is None:
-        return None
-    return TransXChangeOperator(
-        bods_operator_id,
-        national_operator_code.text,
-        operator_code.text,
-        string.capwords(operator_short_name.text),
-    )
+    return national_operator_code.text
 
 
-def get_operator_and_lines_from_transxchange_node(
+def get_lines_from_transxchange_node(
     transxchange_node: ET.Element, namespaces: dict[str, str]
-) -> Optional[list[tuple[TransXChangeOperator, TransXChangeLine]]]:
-    operator = get_operator_from_transxchange_node(
-        transxchange_node, namespaces
-    )
-    if operator is None:
+) -> Optional[list[TransXChangeLine]]:
+    noc = get_noc_from_transxchange_node(transxchange_node, namespaces)
+    if noc is None:
         return None
-    lines = get_services_from_transxchange_node(transxchange_node, namespaces)
-    return [(operator, line) for line in lines]
+    lines = get_services_from_transxchange_node(
+        noc, transxchange_node, namespaces
+    )
+    return lines
 
 
 def get_transxchange_namespaces(root: ET.Element) -> dict[str, str]:
@@ -165,20 +148,16 @@ def get_transxchange_namespaces(root: ET.Element) -> dict[str, str]:
 
 def insert_services(
     conn: Connection,
-    services: list[tuple[TransXChangeOperator, TransXChangeLine]],
+    services: list[TransXChangeLine],
 ):
-    operator_values = []
     service_values = []
     via_values = []
-    for operator, service in services:
-        operator_values.append(
-            (operator.id, operator.name, operator.code, operator.national_code)
-        )
+    for service in services:
         service_values.append(
             (
                 service.name,
                 service.id,
-                operator.national_code,
+                service.noc,
                 (
                     None
                     if service.outbound_desc is None
@@ -220,26 +199,25 @@ def insert_services(
 
     conn.execute(
         """SELECT InsertTransXChangeBusData(
-            %s::BusOperatorInData[],
             %s::BusServiceInData[],
             %s::BusServiceViaInData[]
         )""",
-        [operator_values, service_values, via_values],
+        [service_values, via_values],
     )
     conn.commit()
 
 
 def extract_data_from_bods_xml(
     xml: str,
-) -> Optional[list[tuple[TransXChangeOperator, TransXChangeLine]]]:
+) -> Optional[list[TransXChangeLine]]:
     root = ET.fromstring(xml)
     namespaces = get_transxchange_namespaces(root)
-    return get_operator_and_lines_from_transxchange_node(root, namespaces)
+    return get_lines_from_transxchange_node(root, namespaces)
 
 
 def extract_data_from_bods_zipfile(
     zip: zipfile.ZipFile,
-) -> list[tuple[TransXChangeOperator, TransXChangeLine]]:
+) -> list[TransXChangeLine]:
     data = []
     print("")
     print("Found following files")
@@ -268,7 +246,7 @@ def extract_data_from_bods_zipfile(
 
 def extract_data_from_bods_zip(
     zip_path: str | Path,
-) -> list[tuple[TransXChangeOperator, TransXChangeLine]]:
+) -> list[TransXChangeLine]:
     with zipfile.ZipFile(zip_path) as zip:
         return extract_data_from_bods_zipfile(zip)
 
