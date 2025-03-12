@@ -64,9 +64,12 @@ def insert_operators(conn: Connection, operators: list[TravelineOperator]):
     conn.commit()
 
 
-def populate_bus_operators(conn: Connection, traveline_xml_path: str):
+def populate_bus_operators(
+    conn: Connection, traveline_xml_path: str
+) -> list[TravelineOperator]:
     data = extract_operator_data_from_traveline_xml(traveline_xml_path)
     insert_operators(conn, data)
+    return data
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional
+from api.data.bus.populate.operators import TravelineOperator
 from psycopg import Connection
 
 xmlns_re = r"\{(.*)\}.*"
@@ -126,10 +127,12 @@ def get_noc_from_transxchange_node(
 
 
 def get_lines_from_transxchange_node(
-    transxchange_node: ET.Element, namespaces: dict[str, str]
+    transxchange_node: ET.Element,
+    namespaces: dict[str, str],
+    operator_nocs: set[str],
 ) -> Optional[list[TransXChangeLine]]:
     noc = get_noc_from_transxchange_node(transxchange_node, namespaces)
-    if noc is None:
+    if noc is None or noc not in operator_nocs:
         return None
     lines = get_services_from_transxchange_node(
         noc, transxchange_node, namespaces
@@ -208,15 +211,15 @@ def insert_services(
 
 
 def extract_data_from_bods_xml(
-    xml: str,
+    xml: str, operator_nocs: set[str]
 ) -> Optional[list[TransXChangeLine]]:
     root = ET.fromstring(xml)
     namespaces = get_transxchange_namespaces(root)
-    return get_lines_from_transxchange_node(root, namespaces)
+    return get_lines_from_transxchange_node(root, namespaces, operator_nocs)
 
 
 def extract_data_from_bods_zipfile(
-    zip: zipfile.ZipFile,
+    zip: zipfile.ZipFile, operator_nocs: set[str]
 ) -> list[TransXChangeLine]:
     data = []
     print("")
@@ -233,24 +236,28 @@ def extract_data_from_bods_zipfile(
             with zip.open(file_name) as child_zip:
                 child_filedata = io.BytesIO(child_zip.read())
                 with zipfile.ZipFile(child_filedata) as child_zipfile:
-                    child_data = extract_data_from_bods_zipfile(child_zipfile)
+                    child_data = extract_data_from_bods_zipfile(
+                        child_zipfile, operator_nocs
+                    )
                     data = data + child_data
         elif file_extension == ".xml":
             print(f"Extracting data from {file_name}")
             xml = file_path.read_text()
-            file_data = extract_data_from_bods_xml(xml)
+            file_data = extract_data_from_bods_xml(xml, operator_nocs)
             if file_data is not None:
                 data = data + file_data
     return data
 
 
 def extract_data_from_bods_zip(
-    zip_path: str | Path,
+    zip_path: str | Path, operator_nocs: set[str]
 ) -> list[TransXChangeLine]:
     with zipfile.ZipFile(zip_path) as zip:
-        return extract_data_from_bods_zipfile(zip)
+        return extract_data_from_bods_zipfile(zip, operator_nocs)
 
 
-def populate_bus_services(conn: Connection, bods_path: str):
-    data = extract_data_from_bods_zip(bods_path)
+def populate_bus_services(
+    conn: Connection, operator_nocs: set[str], bods_path: str
+):
+    data = extract_data_from_bods_zip(bods_path, operator_nocs)
     insert_services(conn, data)
