@@ -1,13 +1,16 @@
 import csv
-from decimal import Decimal
 import string
 import sys
+
+from decimal import Decimal
 from typing import Optional
-from api.network.network import osgb36_to_wgs84_point
 from psycopg import Connection
 from shapely import Point
 
+from api.utils.interactive import information
+
 from api.data.bus.stop import BusStopData, insert_bus_stops
+from api.network.network import osgb36_to_wgs84_point
 
 naptan_stops_csv_url = "https://beta-naptan.dft.gov.uk/Download/National/csv"
 
@@ -45,10 +48,12 @@ def string_to_optional_string(string: str) -> Optional[str]:
     return string
 
 
-def populate_bus_stops(conn: Connection, stops_csv: str):
-    with open(stops_csv) as f:
+def get_bus_stops_from_stops_csv(stops_csv_path: str) -> list[BusStopData]:
+    with open(stops_csv_path) as f:
         reader = csv.reader(f, delimiter=",")
         header = True
+        row_count = sum(1 for row in reader) - 1
+        current_row = 1
         for row in reader:
             if header:
                 header = False
@@ -91,4 +96,11 @@ def populate_bus_stops(conn: Connection, stops_csv: str):
                         Decimal(wgs84_point.x),
                     )
                     stops.append(stop)
+    return stops
+
+
+def populate_bus_stops(conn: Connection, stops_csv: str):
+    information("Retrieving bus stops")
+    stops = get_bus_stops_from_stops_csv(stops_csv)
+    information("Inserting bus stops")
     insert_bus_stops(conn, stops)

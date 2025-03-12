@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 
 from api.utils.database import connect
+from api.utils.interactive import information
 from numpy import insert
 from psycopg import Connection
 
@@ -67,7 +68,9 @@ def insert_operators(conn: Connection, operators: list[TravelineOperator]):
 def populate_bus_operators(
     conn: Connection, traveline_xml_path: str
 ) -> list[TravelineOperator]:
+    information("Retrieving bus operators")
     data = extract_operator_data_from_traveline_xml(traveline_xml_path)
+    information("Inserting bus operators")
     insert_operators(conn, data)
     return data
 

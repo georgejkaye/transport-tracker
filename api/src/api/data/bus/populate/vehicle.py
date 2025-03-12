@@ -3,20 +3,23 @@ from time import sleep
 from api.data.bus.operators import get_bus_operators
 from api.data.bus.vehicle import get_bus_operator_vehicles, insert_bus_vehicles
 from api.utils.database import connect
+from api.utils.interactive import information
 from psycopg import Connection
 
 
 def populate_bus_vehicles(conn: Connection):
-    operators = get_bus_operators(conn)
+    information("Retrieving bus vehicles")
 
+    operators = get_bus_operators(conn)
     all_operator_vehicles = []
 
     for operator in operators:
-        print(f"Getting vehicles for {operator.name}")
+        information(f"Populating bus vehicles for {operator.name}")
         operator_vehicles = get_bus_operator_vehicles(operator)
         all_operator_vehicles = all_operator_vehicles + operator_vehicles
         sleep(1)
 
+    information("Inserting bus vehicles")
     insert_bus_vehicles(conn, all_operator_vehicles)
     conn.commit()
 

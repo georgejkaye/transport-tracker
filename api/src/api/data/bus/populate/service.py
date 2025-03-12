@@ -8,6 +8,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional
 from api.data.bus.populate.operators import TravelineOperator
+from api.utils.interactive import information
 from psycopg import Connection
 
 xmlns_re = r"\{(.*)\}.*"
@@ -222,17 +223,10 @@ def extract_data_from_bods_zipfile(
     zip: zipfile.ZipFile, operator_nocs: set[str]
 ) -> list[TransXChangeLine]:
     data = []
-    print("")
-    print("Found following files")
-    print("")
-    for file_name in zip.namelist():
-        print(f"\t{file_name}")
-    print("")
     for file_name in zip.namelist():
         file_path = zipfile.Path(zip, file_name)
         file_extension = file_path.suffix
         if file_extension == ".zip":
-            print(f"Recursing into {file_name}")
             with zip.open(file_name) as child_zip:
                 child_filedata = io.BytesIO(child_zip.read())
                 with zipfile.ZipFile(child_filedata) as child_zipfile:
@@ -241,7 +235,7 @@ def extract_data_from_bods_zipfile(
                     )
                     data = data + child_data
         elif file_extension == ".xml":
-            print(f"Extracting data from {file_name}")
+            information(f"Reading service file {file_name}")
             xml = file_path.read_text()
             file_data = extract_data_from_bods_xml(xml, operator_nocs)
             if file_data is not None:
@@ -259,5 +253,7 @@ def extract_data_from_bods_zip(
 def populate_bus_services(
     conn: Connection, operator_nocs: set[str], bods_path: str
 ):
+    information("Retrieving bus services")
     data = extract_data_from_bods_zip(bods_path, operator_nocs)
+    information("Inserting bus services")
     insert_services(conn, data)
