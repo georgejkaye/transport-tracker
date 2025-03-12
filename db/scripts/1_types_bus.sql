@@ -1,4 +1,4 @@
-CREATE TYPE BusStopData AS (
+CREATE TYPE BusStopInData AS (
     atco_code TEXT,
     naptan_code TEXT,
     stop_name TEXT,
@@ -80,12 +80,6 @@ CREATE TYPE BusServiceViaOutData AS (
     bus_service_id INT,
     is_outbound BOOLEAN,
     bus_service_vias TEXT[]
-);
-
-CREATE TYPE BusCallInData AS (
-    atco_code TEXT,
-    plan_arr TIMESTAMP WITH TIME ZONE,
-    plan_dep TIMESTAMP WITH TIME ZONE
 );
 
 CREATE TYPE BusModelInData AS (

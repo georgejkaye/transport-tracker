@@ -1,5 +1,5 @@
 CREATE OR REPLACE FUNCTION InsertBusStops (
-    p_stops BusStopData[]
+    p_stops BusStopInData[]
 ) RETURNS VOID
 LANGUAGE plpgsql
 AS
