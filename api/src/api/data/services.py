@@ -239,8 +239,6 @@ def get_calls_between_stations(
             if assoc_type is None and boarded:
                 dep_call = call
         if boarded:
-            if dep_call is None:
-                raise RuntimeError("Cannot be boarded with no departure call")
             leg_call = LegCall(
                 call.station, arr_call, dep_call, call_mileage, assoc_type
             )

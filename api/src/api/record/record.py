@@ -66,6 +66,7 @@ from api.utils.interactive import (
     input_year,
 )
 from api.utils.times import (
+    make_timezone_aware,
     pad_front,
     add,
 )
@@ -575,7 +576,8 @@ def get_datetime(start: Optional[datetime] = None) -> datetime:
     time = input_time(default=default_time)
     if time is None:
         raise RuntimeError()
-    return datetime(year, month, date, time.hour, time.minute)
+    input_datetime = datetime(year, month, date, time.hour, time.minute)
+    return make_timezone_aware(input_datetime)
 
 
 def record_new_leg(
