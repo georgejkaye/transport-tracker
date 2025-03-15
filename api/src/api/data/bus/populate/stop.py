@@ -52,8 +52,6 @@ def get_bus_stops_from_stops_csv(stops_csv_path: str) -> list[BusStopData]:
     with open(stops_csv_path) as f:
         reader = csv.reader(f, delimiter=",")
         header = True
-        row_count = sum(1 for row in reader) - 1
-        current_row = 1
         for row in reader:
             if header:
                 header = False
@@ -96,6 +94,7 @@ def get_bus_stops_from_stops_csv(stops_csv_path: str) -> list[BusStopData]:
                         Decimal(wgs84_point.x),
                     )
                     stops.append(stop)
+    information(f"Retrieved {len(stops)} bus stops")
     return stops
 
 

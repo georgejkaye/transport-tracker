@@ -49,7 +49,7 @@ def insert_bus_stops(conn: Connection, bus_stops: list[BusStopData]):
         for bus_stop in bus_stops
     ]
     conn.execute(
-        "SELECT * FROM InsertBusStops(%s::BusStopData[])", [bus_stop_tuples]
+        "SELECT * FROM InsertBusStops(%s::BusStopInData[])", [bus_stop_tuples]
     )
     conn.commit()
 
