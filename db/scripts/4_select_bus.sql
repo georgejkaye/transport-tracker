@@ -70,7 +70,6 @@ BEGIN
     SELECT
         bus_operator_id,
         bus_operator_name,
-        bus_operator_code,
         bus_operator_national_code,
         bg_colour,
         fg_colour
@@ -90,7 +89,6 @@ BEGIN
     SELECT
         bus_operator_id,
         bus_operator_name,
-        bus_operator_code,
         bus_operator_national_code,
         bg_colour,
         fg_colour
@@ -111,7 +109,6 @@ BEGIN
     SELECT
         bus_operator_id,
         bus_operator_name,
-        bus_operator_code,
         bus_operator_national_code,
         bg_colour,
         fg_colour

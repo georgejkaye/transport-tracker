@@ -9,7 +9,6 @@ from psycopg import Connection
 class BusOperator:
     id: int
     name: str
-    code: str
     national_code: str
     bg_colour: Optional[str]
     fg_colour: Optional[str]
@@ -18,12 +17,11 @@ class BusOperator:
 def register_bus_operator(
     id: int,
     name: str,
-    code: str,
     national_code: str,
     bg_colour: Optional[str],
     fg_colour: Optional[str],
 ) -> BusOperator:
-    return BusOperator(id, name, code, national_code, bg_colour, fg_colour)
+    return BusOperator(id, name, national_code, bg_colour, fg_colour)
 
 
 def get_bus_operators(conn: Connection) -> list[BusOperator]:

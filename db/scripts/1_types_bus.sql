@@ -43,7 +43,6 @@ CREATE TYPE BusOperatorInData AS (
 CREATE TYPE BusOperatorOutData AS (
     bus_operator_id INT,
     bus_operator_name TEXT,
-    bus_operator_code TEXT,
     bus_operator_national_code TEXT,
     bg_colour TEXT,
     fg_colour TEXT
