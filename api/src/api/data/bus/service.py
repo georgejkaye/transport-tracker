@@ -8,8 +8,8 @@ from psycopg import Connection
 
 from api.data.bus.operators import (
     BusOperator,
-    get_bus_operator_from_name,
     get_bus_operator_from_national_operator_code,
+    register_bus_operator,
 )
 from api.data.bus.stop import (
     BusStop,
@@ -249,24 +249,6 @@ def get_bus_journey(
         bustimes_journey_id, operator, bus_service, service_call_objects
     )
     return (journey, board_call_index)
-
-
-def register_bus_operator(
-    bus_operator_id: int,
-    bus_operator_name: str,
-    bus_operator_code: str,
-    bus_operator_national_code: str,
-    bg_colour: Optional[str],
-    fg_colour: Optional[str],
-) -> BusOperator:
-    return BusOperator(
-        bus_operator_id,
-        bus_operator_name,
-        bus_operator_code,
-        bus_operator_national_code,
-        bg_colour or "#000000",
-        fg_colour or "#ffffff",
-    )
 
 
 def register_bus_service(

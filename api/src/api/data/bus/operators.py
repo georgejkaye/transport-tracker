@@ -21,7 +21,9 @@ def register_bus_operator(
     bg_colour: Optional[str],
     fg_colour: Optional[str],
 ) -> BusOperator:
-    return BusOperator(id, name, national_code, bg_colour, fg_colour)
+    return BusOperator(
+        id, name, national_code, bg_colour or "#ffffff", fg_colour or "#000000"
+    )
 
 
 def get_bus_operators(conn: Connection) -> list[BusOperator]:

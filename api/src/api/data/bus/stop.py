@@ -75,7 +75,7 @@ class BusStop:
 
 
 def short_string_of_bus_stop(bus_stop: BusStop) -> str:
-    return f"{bus_stop.common_name} ({bus_stop.indicator}), {bus_stop.locality}"
+    return f"{bus_stop.atco}: {bus_stop.common_name} ({bus_stop.indicator}), {bus_stop.locality}"
 
 
 def register_bus_stop(
@@ -168,6 +168,8 @@ def get_departures_from_bus_stop_soup(
     soup: BeautifulSoup,
 ) -> list[BusStopDeparture]:
     departure_input_boxes = soup.select("#departures input")
+    if len(departure_input_boxes) == 0:
+        return []
     search_date_value = datetime.strptime(
         str(departure_input_boxes[0]["value"]), "%Y-%m-%d"
     )

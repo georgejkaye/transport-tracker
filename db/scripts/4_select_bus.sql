@@ -25,7 +25,7 @@ BEGIN
         longitude
     FROM BusStop
     WHERE LOWER(stop_name) LIKE '%' || LOWER(p_name) || '%'
-    ORDER BY stop_name ASC;
+    ORDER BY stop_name ASC, locality_name ASC, atco_code ASC;
 END;
 $$;
 
@@ -56,7 +56,7 @@ BEGIN
         longitude
     FROM BusStop
     WHERE atco_code = ANY(p_atcos)
-    ORDER BY stop_name ASC;
+    ORDER BY stop_name ASC, locality_name ASC, atco_code ASC;
 END;
 $$;
 
@@ -155,7 +155,6 @@ BEGIN
         (
             BusOperator.bus_operator_id,
             BusOperator.bus_operator_name,
-            BusOperator.bus_operator_code,
             BusOperator.bus_operator_national_code,
             BusOperator.bg_colour,
             BusOperator.fg_colour
