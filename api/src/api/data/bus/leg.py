@@ -20,6 +20,7 @@ def insert_leg(conn: Connection, leg: BusLegIn):
     for call in leg.journey.calls:
         call_tuples.append(
             (
+                call.index,
                 call.atco,
                 call.plan_arr,
                 call.act_arr,

@@ -193,6 +193,7 @@ $$
 BEGIN
     INSERT INTO BusCall (
         bus_journey_id,
+        call_index,
         bus_stop_id,
         plan_arr,
         act_arr,
@@ -200,6 +201,7 @@ BEGIN
         act_dep
     ) SELECT
         p_journey_id,
+        v_call.call_index,
         (SELECT bus_stop_id
         FROM BusStop
         WHERE v_call.stop_atco = BusStop.atco_code),
@@ -262,14 +264,16 @@ BEGIN
     SELECT InsertBusJourney(p_leg.journey) INTO v_journey_id;
     INSERT INTO BusLeg (
         user_id,
+        bus_journey_id,
         bus_vehicle_id,
-        board_call_id,
-        alight_call_id
+        board_call_index,
+        alight_call_index
     ) VALUES (
         p_leg.user_id,
+        v_journey_id,
         p_leg.vehicle_id,
-        GetBusCallIdFromJourneyCallIndex(v_journey_id, p_leg.board_index),
-        GetBusCallIdFromJourneyCallIndex(v_journey_id, p_leg.alight_index)
+        p_leg.board_index,
+        p_leg.alight_index
     );
 END;
 $$;

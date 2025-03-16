@@ -60,6 +60,7 @@ CREATE TABLE BusJourney (
 CREATE TABLE BusCall (
     bus_call_id SERIAL PRIMARY KEY,
     bus_journey_id INT NOT NULL,
+    call_index INT NOT NULL,
     bus_stop_id INT NOT NULL,
     plan_arr TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
@@ -89,32 +90,31 @@ CREATE TABLE BusVehicle (
     UNIQUE (operator_id, bus_numberplate)
 );
 
-CREATE OR REPLACE FUNCTION CallsAreSameJourney(
-    p_board_call_id INT,
-    p_alight_call_id INT
+CREATE OR REPLACE FUNCTION CallIndexIsWithinJourney(
+    p_journey_id INT,
+    p_call_index INT
 ) RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
     RETURN (
-        SELECT bus_journey_id FROM BusCall WHERE bus_call_id = p_board_call_id
-    ) = (
-        SELECT bus_journey_id FROM BusCall WHERE bus_call_id = p_alight_call_id
-    );
+        SELECT COUNT(*) FROM BusCall WHERE bus_journey_id = p_journey_id
+    ) > p_call_index;
 END;
 $$;
 
 CREATE TABLE BusLeg (
     bus_leg_id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
+    bus_journey_id INT NOT NULL,
     bus_vehicle_id INT,
-    board_call_id INT NOT NULL,
-    alight_call_id INT NOT NULL,
-    FOREIGN KEY(board_call_id) REFERENCES BusCall(bus_call_id),
-    FOREIGN KEY(alight_call_id) REFERENCES BusCall(bus_call_id),
+    board_call_index INT NOT NULL,
+    alight_call_index INT NOT NULL,
     FOREIGN KEY(bus_vehicle_id) REFERENCES BusVehicle(bus_vehicle_id),
     FOREIGN KEY(user_id) REFERENCES Traveller(user_id),
-    CONSTRAINT calls_same_journey CHECK (
-        CallsAreSameJourney(board_call_id, alight_call_id))
+    CONSTRAINT board_call_within_journey CHECK (
+        CallIndexIsWithinJourney(bus_journey_id, board_call_index)),
+    CONSTRAINT alight_call_within_journey CHECK (
+        CallIndexIsWithinJourney(bus_journey_id, alight_call_index))
 );

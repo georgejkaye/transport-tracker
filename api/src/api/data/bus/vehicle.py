@@ -1,14 +1,12 @@
-import operator
 from api.data.bus.service import register_bus_operator
-from api.utils.database import connect, register_type
+from api.utils.database import register_type
 
 from dataclasses import dataclass
 from typing import Optional
 from bs4 import BeautifulSoup
 from psycopg import Connection
-from slugify import slugify
 
-from api.data.bus.operators import BusOperator, get_bus_operator_from_name
+from api.data.bus.operators import BusOperator
 from api.utils.request import get_soup
 
 
@@ -75,21 +73,6 @@ def get_bus_operator_url(operator: BusOperator) -> str:
 
 def get_bus_operator_page(operator: BusOperator) -> Optional[BeautifulSoup]:
     url = get_bus_operator_url(operator)
-    return get_soup(url)
-
-
-def get_bus_operator_vehicle_url(bustimes_operator_name: str) -> str:
-    return f"https://bustimes.org/operators/{bustimes_operator_name}/vehicles"
-
-
-def get_bus_operator_vehicles_page(
-    bustimes_operator_name: str,
-) -> Optional[BeautifulSoup]:
-    operator_name_slug = slugify(
-        bustimes_operator_name,
-        replacements=[["'", ""], ["(", ""], [")", ""], ["&", ""]],
-    )
-    url = get_bus_operator_vehicle_url(operator_name_slug)
     return get_soup(url)
 
 

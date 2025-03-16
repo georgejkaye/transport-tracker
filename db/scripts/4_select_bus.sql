@@ -212,7 +212,22 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    WITH BusViaData AS (SELECT * FROM GetBusServiceVias())
+    WITH BusViaData AS (
+        SELECT
+            bus_service_id,
+            is_outbound,
+            ARRAY_AGG(
+                BusServiceViaData.via_name
+                ORDER BY BusServiceViaData.via_index
+            ) AS service_vias
+        FROM (
+            SELECT bus_service_id, via_name, via_index, is_outbound
+            FROM BusServiceVia
+        ) BusServiceViaData
+        GROUP BY
+            BusServiceViaData.bus_service_id,
+            BusServiceViaData.is_outbound
+    )
     SELECT
         BusService.bus_service_id,
         (
@@ -224,15 +239,41 @@ BEGIN
         )::BusOperatorOutData AS service_operator,
         BusService.service_line,
         BusService.service_description_outbound,
-        OutboundVia.bus_service_vias AS service_outbound_vias,
+        OutboundVia.service_vias AS service_outbound_vias,
         BusService.service_description_inbound,
-        InboundVia.bus_service_vias AS service_inbound_vias,
+        InboundVia.service_vias AS service_inbound_vias,
         BusService.bg_colour,
         BusService.fg_colour
     FROM BusService
-    LEFT JOIN BusViaData OutboundVia
+    LEFT JOIN (
+        SELECT
+            bus_service_id,
+            ARRAY_AGG(
+                BusServiceViaData.via_name
+                ORDER BY BusServiceViaData.via_index
+            ) AS service_vias
+        FROM (
+            SELECT bus_service_id, via_name, via_index
+            FROM BusServiceVia
+            WHERE is_outbound = 'true'
+        ) BusServiceViaData
+        GROUP BY BusServiceViaData.bus_service_id
+     ) OutboundVia
     ON OutboundVia.bus_service_id = BusService.bus_service_id
-    LEFT JOIN BusViaData InboundVia
+    LEFT JOIN (
+        SELECT
+            bus_service_id,
+            ARRAY_AGG(
+                BusServiceViaData.via_name
+                ORDER BY BusServiceViaData.via_index
+            ) AS service_vias
+        FROM (
+            SELECT bus_service_id, via_name, via_index
+            FROM BusServiceVia
+            WHERE is_outbound = 'false'
+        ) BusServiceViaData
+        GROUP BY BusServiceViaData.bus_service_id
+     ) InboundVia
     ON InboundVia.bus_service_id = BusService.bus_service_id
     INNER JOIN BusOperator
     ON BusOperator.bus_operator_id = BusService.bus_operator_id;
@@ -316,8 +357,12 @@ BEGIN
     ON BusOperatorDetail.bus_operator_id = BusVehicle.operator_id
     INNER JOIN BusModel
     ON BusModel.bus_model_id = BusVehicle.bus_model_id
-    WHERE (BusOperatorDetail.bus_operator).bus_operator_id = p_operator_id
-    AND BusVehicle.operator_vehicle_id = p_vehicle_id;
+    WHERE
+        p_operator_id IS NULL
+        OR (BusOperatorDetail.bus_operator).bus_operator_id = p_operator_id
+    AND
+        p_vehicle_id IS NULL
+        OR BusVehicle.operator_vehicle_id = p_vehicle_id;
 END;
 $$;
 
@@ -332,6 +377,8 @@ BEGIN
     WITH BusStopOut AS (
         SELECT GetBusStopsByJourney(p_journey_id) AS bus_stop_out)
     SELECT
+        BusCall.bus_call_id,
+        BusCall.call_index,
         BusStopOut.bus_stop_out,
         BusCall.plan_arr,
         BusCall.act_arr,
@@ -343,6 +390,47 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION GetBusCalls ()
+RETURNS SETOF BusCallOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    WITH BusStopOut AS (SELECT GetBusStops() AS bus_stop_out)
+    SELECT
+        BusCall.bus_call_id,
+        BusCall.bus_journey_id,
+        BusCall.call_index,
+        BusStopOut.bus_stop_out,
+        BusCall.plan_arr,
+        BusCall.act_arr,
+        BusCall.plan_dep,
+        BusCall.act_dep
+    FROM BusCall
+    INNER JOIN (
+        SELECT (
+            bus_stop_id,
+            atco_code,
+            naptan_code,
+            stop_name,
+            landmark_name,
+            street_name,
+            crossing_name,
+            indicator,
+            bearing,
+            locality_name,
+            parent_locality_name,
+            grandparent_locality_name,
+            town_name,
+            suburb_name,
+            latitude,
+            longitude)::BusStopOutData AS bus_stop_out
+        FROM BusStop
+    ) BusStopOut
+    ON (BusStopOut.bus_stop_out).bus_stop_id = BusCall.bus_stop_id;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION GetBusJourneys (
     p_journey_id INT
@@ -353,3 +441,49 @@ $$
 BEGIN
     RETURN QUERY
     SELECT
+        BusJourney.bus_journey_id AS journey_id,
+        BusServiceOut.bus_service_out AS journey_service,
+        BusCallArrayOut.bus_calls AS journey_calls
+        FROM BusJourney
+        INNER JOIN (
+            SELECT GetBusServices() AS bus_service_out
+        ) BusServiceOut
+        ON BusJourney.bus_service_id
+            = (BusServiceOut.bus_service_out).bus_service_id
+        INNER JOIN (
+            SELECT
+                (BusCallOut.bus_call_out).journey_id,
+                ARRAY_AGG(
+                    BusCallOut.bus_call_out
+                    ORDER BY (BusCallOut.bus_call_out).call_index)
+                    AS bus_calls
+            FROM
+                (SELECT GetBusCalls() AS bus_call_out) BusCallOut
+            GROUP BY (BusCallOut.bus_call_out).journey_id) BusCallArrayOut
+        ON BusJourney.bus_journey_id = BusCallArrayOut.journey_id
+        WHERE p_journey_id IS NULL OR p_journey_id = BusJourney.bus_journey_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetBusLegs(
+    p_leg_id INT
+) RETURNS SETOF BusLegOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        BusLeg.bus_leg_id,
+        BusJourneyOut.bus_journey_out,
+        BusVehicleOut.bus_vehicle_out,
+        (BusJourneyOut.bus_journey_out).journey_calls[
+            BusLeg.board_call_index:BusLeg.alight_call_index]
+    FROM BusLeg
+    INNER JOIN (SELECT GetBusJourneys(NULL) AS bus_journey_out) BusJourneyOut
+    ON BusLeg.bus_journey_id = (BusJourneyOut.bus_journey_out).journey_id
+    INNER JOIN (SELECT GetBusVehicles(NULL, NULL) AS bus_vehicle_out) BusVehicleOut
+    ON BusLeg.bus_vehicle_id = (BusVehicleOut.bus_vehicle_out).bus_vehicle_id
+    WHERE p_leg_id IS NULL OR p_leg_id = BusLeg.bus_leg_id;
+END;
+$$;
