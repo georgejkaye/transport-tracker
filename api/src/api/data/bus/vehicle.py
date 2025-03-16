@@ -69,20 +69,23 @@ class BusVehicle:
     name: Optional[str]
 
 
-def get_bus_operator_vehicle_url(operator: BusOperator) -> str:
-    operator_slug = slugify(
-        operator.name.replace("'", "")
-        .replace("(", "")
-        .replace(")", "")
-        .replace("&", "")
-    )
-    return f"https://bustimes.org/operators/{operator_slug}/vehicles"
+def get_bus_operator_url(operator: BusOperator) -> str:
+    return f"https://bustimes.org/operators/{operator.national_code}"
+
+
+def get_bus_operator_page(operator: BusOperator) -> Optional[BeautifulSoup]:
+    url = get_bus_operator_url(operator)
+    return get_soup(url)
+
+
+def get_bus_operator_vehicle_url(bustimes_operator_name: str) -> str:
+    return f"https://bustimes.org/operators/{bustimes_operator_name}/vehicles"
 
 
 def get_bus_operator_vehicles_page(
-    operator: BusOperator,
+    bustimes_operator_name: str,
 ) -> Optional[BeautifulSoup]:
-    url = get_bus_operator_vehicle_url(operator)
+    url = get_bus_operator_vehicle_url(bustimes_operator_name)
     return get_soup(url)
 
 
@@ -94,7 +97,14 @@ name_column_title = "Name"
 
 
 def get_bus_operator_vehicles(operator: BusOperator) -> list[BusVehicleIn]:
-    vehicles_soup = get_bus_operator_vehicles_page(operator)
+    operator_soup = get_bus_operator_page(operator)
+    if operator_soup is None:
+        return []
+    header = operator_soup.select_one("h1")
+    if header is None:
+        return []
+    bustimes_operator_name = header.text
+    vehicles_soup = get_bus_operator_vehicles_page(bustimes_operator_name)
     if vehicles_soup is None:
         return []
     header_cols = vehicles_soup.select("table.fleet th")
