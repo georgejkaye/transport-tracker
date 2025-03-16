@@ -12,7 +12,7 @@ router = APIRouter(prefix="/stats", tags=["train/stats"])
 async def get_train_stats_in_range(
     start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
 ) -> Stats:
-    with connect() as (conn, _):
+    with connect() as conn:
         try:
             return get_train_stats(conn, start_date, end_date)
         except RuntimeError:
@@ -23,7 +23,7 @@ async def get_train_stats_in_range(
 async def get_train_stats_from_year(
     year: int,
 ) -> Stats:
-    with connect() as (conn, _):
+    with connect() as conn:
         try:
             return get_train_stats(
                 conn, datetime(year, 1, 1), datetime(year, 12, 31)

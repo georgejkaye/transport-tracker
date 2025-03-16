@@ -29,7 +29,7 @@ router = APIRouter(prefix="/map", tags=["train/map"])
 async def get_train_map_from_time_period(
     start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
 ) -> str:
-    with connect() as (conn, _):
+    with connect() as conn:
         try:
             return get_leg_map_page(
                 network, conn, StationInfo(True), start_date, end_date
@@ -44,7 +44,7 @@ async def get_train_map_from_time_period(
     response_class=HTMLResponse,
 )
 async def get_train_map_from_year(year: int) -> str:
-    with connect() as (conn, _):
+    with connect() as conn:
         try:
             return get_leg_map_page(
                 network,
@@ -63,7 +63,7 @@ async def get_train_map_from_year(year: int) -> str:
     response_class=HTMLResponse,
 )
 async def get_leg_map_for_leg_id(leg_id: int) -> str:
-    with connect() as (conn, _):
+    with connect() as conn:
         return get_leg_map_page(network, conn, CallInfo(), search_leg_id=leg_id)
 
 
@@ -78,7 +78,7 @@ async def get_route_between_stations(
     from_platform: Optional[str] = None,
     to_platform: Optional[str] = None,
 ) -> str:
-    with connect() as (conn, cur):
+    with connect() as conn:
         from_station = select_station_from_crs(cur, from_crs)
         if from_station is None:
             raise HTTPException(

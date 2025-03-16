@@ -1,17 +1,16 @@
 from typing import Optional
 
 from dataclasses import dataclass
-from psycopg import Cursor
+from psycopg import Connection
 
 
-def select_operator_id(cur: Cursor, operator_name: str) -> Optional[str]:
+def select_operator_id(conn: Connection, operator_name: str) -> Optional[str]:
     statement = """
         SELECT operator_id
         FROM Operator
         WHERE operator_name = %(name)s
     """
-    cur.execute(statement, {"name": operator_name})
-    rows = cur.fetchall()
+    rows = conn.execute(statement, {"name": operator_name}).fetchall()
     if len(rows) != 1:
         return None
     row = rows[0]

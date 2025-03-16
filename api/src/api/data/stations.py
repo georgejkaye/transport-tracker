@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional
-from psycopg import Cursor
+from psycopg import Connection
 
 from api.utils.request import make_get_request
 from api.utils.credentials import get_api_credentials
@@ -71,28 +71,30 @@ def string_of_service_at_station(service: TrainServiceAtStation):
     return f"{service.headcode} {get_multiple_short_station_string(service.origins)} to {get_multiple_short_station_string(service.destinations)} plan {get_hourmin_string(service.plan_dep)} act {get_hourmin_string(service.act_dep)} ({service.operator_code})"
 
 
-def select_station_from_crs(cur: Cursor, crs: str) -> Optional[TrainStation]:
+def select_station_from_crs(
+    conn: Connection, crs: str
+) -> Optional[TrainStation]:
     query = """
         SELECT
             station_name, operator_id, brand_id FROM Station
         WHERE UPPER(station_crs) = UPPER(%(crs)s)
     """
-    cur.execute(query, {"crs": crs})
-    rows = cur.fetchall()
+    rows = conn.execute(query, {"crs": crs}).fetchall()
     if len(rows) == 0 or len(rows) > 1:
         return None
     row = rows[0]
     return TrainStation(row[0], crs.upper(), row[1], row[2])
 
 
-def select_station_from_name(cur: Cursor, name: str) -> Optional[TrainStation]:
+def select_station_from_name(
+    conn: Connection, name: str
+) -> Optional[TrainStation]:
     query = """
         SELECT station_name, station_crs, operator_id, brand_id
         FROM Station
         WHERE LOWER(station_name) = LOWER(%(name)s)
     """
-    cur.execute(query, {"name": name})
-    rows = cur.fetchall()
+    rows = conn.execute(query, {"name": name}).fetchall()
     if not len(rows) == 1:
         return None
     row = rows[0]
@@ -100,24 +102,25 @@ def select_station_from_name(cur: Cursor, name: str) -> Optional[TrainStation]:
 
 
 def get_stations_from_substring(
-    cur: Cursor, substring: str
+    conn: Connection, substring: str
 ) -> list[TrainStation]:
     query = """
         SELECT station_name, station_crs, operator_id, brand_id
         FROM Station
         WHERE LOWER(station_name) LIKE '%%' || LOWER(%(subs)s) || '%%'
     """
-    cur.execute(query, {"subs": substring})
-    rows = cur.fetchall()
+    rows = conn.execute(query, {"subs": substring}).fetchall()
     return [TrainStation(row[0], row[1], row[2], row[3]) for row in rows]
 
 
 station_endpoint = "https://api.rtt.io/api/v1/json/search"
 
 
-def response_to_short_train_station(cur: Cursor, data) -> ShortTrainStation:
+def response_to_short_train_station(
+    conn: Connection, data
+) -> ShortTrainStation:
     name = data["description"]
-    station = select_station_from_name(cur, name)
+    station = select_station_from_name(conn, name)
     if station is None:
         print(f"No station with name {name} found. Please update the database.")
         exit(1)
@@ -156,7 +159,7 @@ def response_to_datetime(
 
 
 def response_to_service_at_station(
-    cur: Cursor, data: dict
+    conn: Connection, data: dict
 ) -> TrainServiceAtStation:
     id = data["serviceUid"]
     headcode = data["trainIdentity"]
@@ -164,11 +167,11 @@ def response_to_service_at_station(
     operator_name = data["atocName"]
     run_date = datetime.strptime(data["runDate"], "%Y-%m-%d")
     origins = [
-        response_to_short_train_station(cur, origin)
+        response_to_short_train_station(conn, origin)
         for origin in data["locationDetail"]["origin"]
     ]
     destinations = [
-        response_to_short_train_station(cur, destination)
+        response_to_short_train_station(conn, destination)
         for destination in data["locationDetail"]["destination"]
     ]
     plan_dep = response_to_datetime(
@@ -191,7 +194,7 @@ def response_to_service_at_station(
 
 
 def get_services_at_station(
-    cur: Cursor, station: TrainStation, dt: datetime
+    conn: Connection, station: TrainStation, dt: datetime
 ) -> list[TrainServiceAtStation]:
     endpoint = (
         f"{station_endpoint}/{station.crs}/{get_datetime_route(dt, True)}"
@@ -206,7 +209,7 @@ def get_services_at_station(
     services = []
     for service in data["services"]:
         if service["serviceType"] == "train":
-            services.append(response_to_service_at_station(cur, service))
+            services.append(response_to_service_at_station(conn, service))
     return services
 
 
@@ -245,7 +248,7 @@ class StationData:
 
 
 def select_stations(
-    cur: Cursor, _station_crs: Optional[str] = None
+    conn: Connection, station_crs: Optional[str] = None
 ) -> list[StationData]:
     statement = """
         SELECT
@@ -433,21 +436,20 @@ def select_stations(
         ) LegDetails
         ON LegDetails.station_crs = station.station_crs
     """
-    if _station_crs is not None:
+    if station_crs is not None:
         where_string = "WHERE Station.station_crs = %(crs)s"
-        crs_string = _station_crs.upper()
+        crs_string = station_crs.upper()
     else:
         where_string = ""
         crs_string = ""
     order_string = "ORDER BY Station.station_name ASC"
     full_statement = f"{statement}\n{where_string}\n{order_string}"
-    cur.execute(full_statement, {"crs": crs_string})
-    rows = cur.fetchall()
+    rows = conn.execute(full_statement, {"crs": crs_string}).fetchall()
     stations = []
     for row in rows:
         (
             station_name,
-            station_crs,
+            current_station_crs,
             operator_id,
             operator_name,
             operator_code,
@@ -514,7 +516,7 @@ def select_stations(
                 leg_objects.append(leg_data)
         data = StationData(
             station_name,
-            station_crs,
+            current_station_crs,
             operator_data,
             brand_data,
             leg_objects,
@@ -527,8 +529,8 @@ def select_stations(
     return stations
 
 
-def select_station(cur: Cursor, station_crs: str) -> Optional[StationData]:
-    result = select_stations(cur, _station_crs=station_crs)
+def select_station(conn: Connection, station_crs: str) -> Optional[StationData]:
+    result = select_stations(conn, station_crs)
     if result is None or len(result) != 1:
         return None
     return result[0]

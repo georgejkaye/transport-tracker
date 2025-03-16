@@ -15,7 +15,7 @@ if len(sys.argv) == 3:
 else:
     platform = None
 
-with connect() as (conn, _):
+with connect() as conn:
     station_points = get_station_points_from_crses(conn, [(crs, platform)])
 
 insert_station_node_to_network(

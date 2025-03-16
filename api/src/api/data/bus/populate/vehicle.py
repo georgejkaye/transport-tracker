@@ -2,7 +2,7 @@ import sys
 from time import sleep
 from api.data.bus.operators import get_bus_operators
 from api.data.bus.vehicle import get_bus_operator_vehicles, insert_bus_vehicles
-from api.utils.database import connect
+from api.utils.database import connect, get_db_connection_data_from_args
 from api.utils.interactive import information
 from psycopg import Connection
 
@@ -25,8 +25,6 @@ def populate_bus_vehicles(conn: Connection):
 
 
 if __name__ == "__main__":
-    with connect(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]) as (
-        conn,
-        _,
-    ):
+    connection_data = get_db_connection_data_from_args()
+    with connect(connection_data) as conn:
         populate_bus_vehicles(conn)

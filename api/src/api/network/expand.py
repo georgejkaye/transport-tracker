@@ -7,7 +7,7 @@ from api.network.network import (
 )
 from api.data.stations import get_station_points
 
-with connect() as (conn, _):
+with connect() as conn:
     station_points = get_station_points(conn)
 
 network = ox.load_graphml(sys.argv[1])

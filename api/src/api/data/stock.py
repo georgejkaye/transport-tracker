@@ -1,9 +1,7 @@
 from datetime import datetime
 from typing import Optional
-
 from dataclasses import dataclass
-from api.utils.database import NoEscape, connect, insert
-from psycopg import Connection, Cursor
+from psycopg import Connection
 
 
 @dataclass
@@ -97,7 +95,7 @@ class Stock:
 
 
 def get_operator_stock(
-    cur: Cursor, operator_code: str, run_date: datetime
+    conn: Connection, operator_code: str, run_date: datetime
 ) -> list[Stock]:
     query = """
         SELECT
@@ -124,8 +122,9 @@ def get_operator_stock(
             %(rundate)s <@ operation_range
         ORDER BY Stock.stock_class ASC, StockSubclass.stock_subclass ASC
     """
-    cur.execute(query, {"code": operator_code, "rundate": run_date.date()})
-    rows = cur.fetchall()
+    rows = conn.execute(
+        query, {"code": operator_code, "rundate": run_date.date()}
+    ).fetchall()
     stock = [
         Stock(row[0], row[1], row[2], row[3], row[4], row[5]) for row in rows
     ]
@@ -167,7 +166,7 @@ def string_of_formation(f: Formation) -> str:
 
 
 def select_stock_cars(
-    cur: Cursor, stock: Stock, run_date: datetime
+    conn: Connection, stock: Stock, run_date: datetime
 ) -> list[Formation]:
     statement = """
         SELECT DISTINCT cars FROM StockFormation
@@ -209,7 +208,7 @@ def select_stock_cars(
             {statement} AND brand_id = %(brand)s
         """
     statement = f"{statement} ORDER BY cars ASC"
-    cur.execute(
+    rows = conn.execute(
         statement,
         {
             "class_no": stock.class_no,
@@ -218,7 +217,6 @@ def select_stock_cars(
             "brand": stock.brand,
             "rundate": run_date.date(),
         },
-    )
-    rows = cur.fetchall()
+    ).fetchall()
     car_list = [Formation(row[0]) for row in rows]
     return car_list
