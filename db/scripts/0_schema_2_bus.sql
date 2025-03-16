@@ -1,7 +1,7 @@
 CREATE TABLE BusStop (
     bus_stop_id SERIAL PRIMARY KEY,
-    atco_code TEXT NOT NULL,
-    naptan_code TEXT UNIQUE NOT NULL,
+    atco_code TEXT UNIQUE NOT NULL,
+    naptan_code TEXT NOT NULL,
     stop_name TEXT NOT NULL,
     landmark_name TEXT NOT NULL,
     street_name TEXT NOT NULL,
