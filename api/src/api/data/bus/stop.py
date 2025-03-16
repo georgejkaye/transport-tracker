@@ -118,7 +118,9 @@ def register_bus_stop(
 
 def get_bus_stops(conn: Connection, search_string: str) -> list[BusStop]:
     register_type(conn, "BusStopOutData", register_bus_stop)
-    rows = conn.execute("SELECT GetBusStops(%s)", [search_string]).fetchall()
+    rows = conn.execute(
+        "SELECT GetBusStopsByName(%s)", [search_string]
+    ).fetchall()
     return [row[0] for row in rows]
 
 
@@ -126,7 +128,7 @@ def get_bus_stops_from_atcos(
     conn: Connection, atcos: list[str]
 ) -> dict[str, BusStop]:
     register_type(conn, "BusStopOutData", register_bus_stop)
-    rows = conn.execute("SELECT GetBusStopsFromAtcos(%s)", [atcos])
+    rows = conn.execute("SELECT GetBusStopsByAtco(%s)", [atcos])
     atco_bus_stop_dict = {}
     for row in rows:
         bus_stop = row[0]

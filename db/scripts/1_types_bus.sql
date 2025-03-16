@@ -114,10 +114,23 @@ CREATE TYPE BusCallInData AS (
     act_dep TIMESTAMP WITH TIME ZONE
 );
 
+CREATE TYPE BusCallOutData AS (
+    bus_stop BusStopOutData,
+    plan_arr TIMESTAMP WITH TIME ZONE,
+    act_arr TIMESTAMP WITH TIME ZONE,
+    plan_dep TIMESTAMP WITH TIME ZONE,
+    act_dep TIMESTAMP WITH TIME ZONE
+);
+
 CREATE TYPE BusJourneyInData AS (
     bustimes_id TEXT,
     service_id INT,
     journey_calls BusCallInData[]
+);
+
+CREATE TYPE BusJourneyOutData AS (
+    service BusServiceOutData,
+    calls BusCallOutData[]
 );
 
 CREATE TYPE BusLegInData AS (
@@ -126,4 +139,11 @@ CREATE TYPE BusLegInData AS (
     vehicle_id INT,
     board_index INT,
     alight_index INT
+);
+
+CREATE TYPE BusLegOutData AS (
+    leg_id INT,
+    journey BusJourneyOutData,
+    vehicle BusVehicleOutData,
+    calls BusCallOutData[]
 );

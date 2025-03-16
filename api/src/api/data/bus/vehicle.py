@@ -190,7 +190,7 @@ def get_bus_vehicle_by_operator_and_id(
     register_type(conn, "BusVehicleOutData", register_bus_vehicle)
     register_type(conn, "BusOperatorOutData", register_bus_operator)
     rows = conn.execute(
-        "SELECT GetBusVehicle(%s, %s)", [bus_operator.id, operator_vehicle_id]
+        "SELECT GetBusVehicles(%s, %s)", [bus_operator.id, operator_vehicle_id]
     ).fetchall()
     if len(rows) > 1:
         print("Multiple vehicles found")

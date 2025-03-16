@@ -1,4 +1,33 @@
-CREATE OR REPLACE FUNCTION GetBusStops (
+CREATE OR REPLACE FUNCTION GetBusStops ()
+RETURNS SETOF BusStopOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        bus_stop_id,
+        atco_code,
+        naptan_code,
+        stop_name,
+        landmark_name,
+        street_name,
+        crossing_name,
+        indicator,
+        bearing,
+        locality_name,
+        parent_locality_name,
+        grandparent_locality_name,
+        town_name,
+        suburb_name,
+        latitude,
+        longitude
+    FROM BusStop
+    ORDER BY stop_name ASC, locality_name ASC, atco_code ASC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetBusStopsByName (
     p_name TEXT
 ) RETURNS SETOF BusStopOutData
 LANGUAGE plpgsql
@@ -29,7 +58,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION GetBusStopsFromAtcos (
+CREATE OR REPLACE FUNCTION GetBusStopsByAtco (
     p_atcos TEXT[]
 ) RETURNS SETOF BusStopOutData
 LANGUAGE plpgsql
@@ -56,6 +85,40 @@ BEGIN
         longitude
     FROM BusStop
     WHERE atco_code = ANY(p_atcos)
+    ORDER BY stop_name ASC, locality_name ASC, atco_code ASC;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetBusStopsByJourney (
+    p_journey_id INT
+)
+RETURNS SETOF BusStopOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        BusStop.bus_stop_id,
+        atco_code,
+        naptan_code,
+        stop_name,
+        landmark_name,
+        street_name,
+        crossing_name,
+        indicator,
+        bearing,
+        locality_name,
+        parent_locality_name,
+        grandparent_locality_name,
+        town_name,
+        suburb_name,
+        latitude,
+        longitude
+    FROM BusStop
+    INNER JOIN BusCall
+    ON BusStop.bus_stop_id = BusCall.bus_stop_id
+    WHERE BusCall.bus_journey_id = p_journey_id
     ORDER BY stop_name ASC, locality_name ASC, atco_code ASC;
 END;
 $$;
@@ -225,7 +288,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION GetBusVehicle (
+CREATE OR REPLACE FUNCTION GetBusVehicles (
     p_operator_id INT,
     p_vehicle_id TEXT
 ) RETURNS SETOF BusVehicleOutData
@@ -257,3 +320,36 @@ BEGIN
     AND BusVehicle.operator_vehicle_id = p_vehicle_id;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION GetBusCallsByJourney (
+    p_journey_id INT
+) RETURNS SETOF BusCallOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    WITH BusStopOut AS (
+        SELECT GetBusStopsByJourney(p_journey_id) AS bus_stop_out)
+    SELECT
+        BusStopOut.bus_stop_out,
+        BusCall.plan_arr,
+        BusCall.act_arr,
+        BusCall.plan_dep,
+        BusCall.act_dep
+    FROM BusCall
+    INNER JOIN BusStopOut
+    ON (BusStopOut.bus_stop_out).bus_stop_id = BusCall.bus_stop_id;
+END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION GetBusJourneys (
+    p_journey_id INT
+) RETURNS SETOF BusJourneyOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT

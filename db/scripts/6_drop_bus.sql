@@ -23,8 +23,11 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
+    DROP TYPE BusLegOutData;
     DROP TYPE BusLegInData;
+    DROP TYPE BusJourneyOutData;
     DROP TYPE BusJourneyInData;
+    DROP TYPE BusCallOutData;
     DROP TYPE BusCallInData;
     DROP TYPE BusVehicleOutData;
     DROP TYPE BusVehicleInData;
@@ -77,7 +80,7 @@ BEGIN
     DROP FUNCTION GetBusServicesByOperatorId;
     DROP FUNCTION GetBusServicesByNationalOperatorCode;
     DROP FUNCTION GetBusServicesByOperatorName;
-    DROP FUNCTION GetBusVehicle;
+    DROP FUNCTION GetBusVehicles;
 END;
 $$;
 
