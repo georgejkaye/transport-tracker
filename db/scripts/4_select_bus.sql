@@ -465,25 +465,101 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION GetBusLegs(
-    p_leg_id INT
-) RETURNS SETOF BusLegOutData
+CREATE OR REPLACE VIEW BusLegData AS
+SELECT
+    BusLeg.bus_leg_id AS leg_id,
+    BusJourneyOut.bus_journey_out AS leg_journey,
+    BusVehicleOut.bus_vehicle_out AS leg_vehicle,
+    (BusJourneyOut.bus_journey_out).journey_calls[
+        BusLeg.board_call_index + 1:BusLeg.alight_call_index + 1]
+        AS leg_calls
+FROM BusLeg
+INNER JOIN (SELECT GetBusJourneys(NULL) AS bus_journey_out) BusJourneyOut
+ON BusLeg.bus_journey_id = (BusJourneyOut.bus_journey_out).journey_id
+INNER JOIN (SELECT GetBusVehicles(NULL, NULL) AS bus_vehicle_out) BusVehicleOut
+ON BusLeg.bus_vehicle_id = (BusVehicleOut.bus_vehicle_out).bus_vehicle_id;
+
+CREATE OR REPLACE FUNCTION GetBusLegs()
+RETURNS SETOF BusLegOutData
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT
-        BusLeg.bus_leg_id,
-        BusJourneyOut.bus_journey_out,
-        BusVehicleOut.bus_vehicle_out,
-        (BusJourneyOut.bus_journey_out).journey_calls[
-            BusLeg.board_call_index:BusLeg.alight_call_index]
-    FROM BusLeg
-    INNER JOIN (SELECT GetBusJourneys(NULL) AS bus_journey_out) BusJourneyOut
-    ON BusLeg.bus_journey_id = (BusJourneyOut.bus_journey_out).journey_id
-    INNER JOIN (SELECT GetBusVehicles(NULL, NULL) AS bus_vehicle_out) BusVehicleOut
-    ON BusLeg.bus_vehicle_id = (BusVehicleOut.bus_vehicle_out).bus_vehicle_id
-    WHERE p_leg_id IS NULL OR p_leg_id = BusLeg.bus_leg_id;
+    SELECT * FROM BusLegData;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetBusLegsByDatetime(
+    p_search_start TIMESTAMP WITH TIME ZONE,
+    p_search_end TIMESTAMP WITH TIME ZONE
+)
+RETURNS SETOF BusLegOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM BusLegData
+    WHERE COALESCE(
+        (BusLegData.leg_calls)[1].plan_dep,
+        (BusLegData.leg_calls)[1].act_dep,
+        (BusLegData.leg_calls)[1].plan_arr,
+        (BusLegData.leg_calls)[1].act_arr) >= p_search_start
+    AND COALESCE(
+        (BusLegData.leg_calls)[1].plan_dep,
+        (BusLegData.leg_calls)[1].act_dep,
+        (BusLegData.leg_calls)[1].plan_arr,
+        (BusLegData.leg_calls)[1].act_arr) <= p_search_end;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetBusLegsByStartDatetime(
+    p_search_start TIMESTAMP WITH TIME ZONE
+)
+RETURNS SETOF BusLegOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM BusLegData
+    WHERE COALESCE(
+        (BusLegData.leg_calls)[1].plan_dep,
+        (BusLegData.leg_calls)[1].act_dep,
+        (BusLegData.leg_calls)[1].plan_arr,
+        (BusLegData.leg_calls)[1].act_arr) >= p_search_start;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetBusLegsByEndDatetime(
+    p_search_end TIMESTAMP WITH TIME ZONE
+)
+RETURNS SETOF BusLegOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM BusLegData
+    WHERE COALESCE(
+        (BusLegData.leg_calls)[1].plan_dep,
+        (BusLegData.leg_calls)[1].act_dep,
+        (BusLegData.leg_calls)[1].plan_arr,
+        (BusLegData.leg_calls)[1].act_arr) <= p_search_end;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetBusLegsByIds(
+    p_leg_ids INT[]
+)
+RETURNS SETOF BusLegOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM BusLegData
+    WHERE BusLegData.leg_id = ANY(p_leg_ids);
 END;
 $$;

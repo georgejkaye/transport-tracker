@@ -3,7 +3,7 @@ CREATE TABLE BusStop (
     atco_code TEXT UNIQUE NOT NULL,
     naptan_code TEXT NOT NULL,
     stop_name TEXT NOT NULL,
-    landmark_name TEXT NOT NULL,
+    landmark_name TEXT,
     street_name TEXT NOT NULL,
     crossing_name TEXT,
     indicator TEXT,

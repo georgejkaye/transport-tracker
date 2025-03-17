@@ -13,7 +13,7 @@ class BusStopData:
     atco: str
     naptan: str
     common_name: str
-    landmark: str
+    landmark: Optional[str]
     street: str
     crossing: Optional[str]
     indicator: Optional[str]

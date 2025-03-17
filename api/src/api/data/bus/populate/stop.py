@@ -70,7 +70,9 @@ def get_bus_stops_from_stops_csv(stops_csv_path: str) -> list[BusStopData]:
                         row[atco_code_column],
                         row[naptan_code_column],
                         string.capwords(row[common_name_column]),
-                        string.capwords(row[landmark_column]),
+                        string_to_optional_string(
+                            string.capwords(row[landmark_column])
+                        ),
                         string.capwords(row[street_column]),
                         string_to_optional_string(
                             string.capwords(row[crossing_column])
