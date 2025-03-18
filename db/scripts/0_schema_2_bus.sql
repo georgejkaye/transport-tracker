@@ -51,25 +51,6 @@ CREATE TABLE BusServiceVia (
     UNIQUE (bus_service_id, is_outbound, via_name, via_index)
 );
 
-CREATE TABLE BusJourney (
-    bus_journey_id SERIAL PRIMARY KEY,
-    bus_service_id INT NOT NULL,
-    FOREIGN KEY(bus_service_id) REFERENCES BusService(bus_service_id)
-);
-
-CREATE TABLE BusCall (
-    bus_call_id SERIAL PRIMARY KEY,
-    bus_journey_id INT NOT NULL,
-    call_index INT NOT NULL,
-    bus_stop_id INT NOT NULL,
-    plan_arr TIMESTAMP WITH TIME ZONE,
-    act_arr TIMESTAMP WITH TIME ZONE,
-    plan_dep TIMESTAMP WITH TIME ZONE,
-    act_dep TIMESTAMP WITH TIME ZONE,
-    FOREIGN KEY(bus_journey_id) REFERENCES BusJourney(bus_journey_id),
-    FOREIGN KEY(bus_stop_id) REFERENCES BusStop(bus_stop_id)
-);
-
 CREATE TABLE BusModel (
     bus_model_id SERIAL PRIMARY KEY,
     bus_model_name TEXT UNIQUE NOT NULL
@@ -90,6 +71,27 @@ CREATE TABLE BusVehicle (
     UNIQUE (operator_id, bus_numberplate)
 );
 
+CREATE TABLE BusJourney (
+    bus_journey_id SERIAL PRIMARY KEY,
+    bus_service_id INT NOT NULL,
+    bus_vehicle_id INT,
+    FOREIGN KEY(bus_service_id) REFERENCES BusService(bus_service_id),
+    FOREIGN KEY(bus_vehicle_id) REFERENCES BusVehicle(bus_vehicle_id)
+);
+
+CREATE TABLE BusCall (
+    bus_call_id SERIAL PRIMARY KEY,
+    bus_journey_id INT NOT NULL,
+    call_index INT NOT NULL,
+    bus_stop_id INT NOT NULL,
+    plan_arr TIMESTAMP WITH TIME ZONE,
+    act_arr TIMESTAMP WITH TIME ZONE,
+    plan_dep TIMESTAMP WITH TIME ZONE,
+    act_dep TIMESTAMP WITH TIME ZONE,
+    FOREIGN KEY(bus_journey_id) REFERENCES BusJourney(bus_journey_id),
+    FOREIGN KEY(bus_stop_id) REFERENCES BusStop(bus_stop_id)
+);
+
 CREATE OR REPLACE FUNCTION CallIndexIsWithinJourney(
     p_journey_id INT,
     p_call_index INT
@@ -107,11 +109,9 @@ $$;
 CREATE TABLE BusLeg (
     bus_leg_id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
-    bus_journey_id INT NOT NULL,
-    bus_vehicle_id INT,
+    bus_journey_id INT,
     board_call_index INT NOT NULL,
     alight_call_index INT NOT NULL,
-    FOREIGN KEY(bus_vehicle_id) REFERENCES BusVehicle(bus_vehicle_id),
     FOREIGN KEY(user_id) REFERENCES Traveller(user_id),
     CONSTRAINT board_call_within_journey CHECK (
         CallIndexIsWithinJourney(bus_journey_id, board_call_index)),

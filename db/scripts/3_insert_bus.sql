@@ -223,8 +223,9 @@ DECLARE
     v_journey_id INT;
 BEGIN
     INSERT INTO BusJourney (
-        bus_service_id
-    ) VALUES (p_journey.service_id)
+        bus_service_id,
+        bus_vehicle_id
+    ) VALUES (p_journey.service_id, p_journey.vehicle_id)
     RETURNING bus_journey_id INTO v_journey_id;
     PERFORM InsertBusCalls(v_journey_id, p_journey.journey_calls);
     RETURN v_journey_id;
@@ -266,13 +267,11 @@ BEGIN
     INSERT INTO BusLeg (
         user_id,
         bus_journey_id,
-        bus_vehicle_id,
         board_call_index,
         alight_call_index
     ) SELECT
         v_user,
         v_journey_id,
-        p_leg.vehicle_id,
         p_leg.board_index,
         p_leg.alight_index
     FROM UNNEST(p_users) AS v_user;

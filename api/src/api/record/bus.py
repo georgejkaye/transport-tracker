@@ -3,6 +3,7 @@ from typing import Optional
 from api.data.bus.journey import (
     BusCallIn,
     BusJourney,
+    BusJourneyIn,
     get_bus_journey,
     string_of_bus_call_in,
 )
@@ -148,20 +149,26 @@ def get_bus_leg_input(
         print("Could not get journey")
         return None
 
-    (journey, board_call_index) = journey_and_board_call_index
+    (journey_timetable, board_call_index) = journey_and_board_call_index
 
     alight_call_and_index = get_alight_stop_input(
-        journey.calls, board_call_index
+        journey_timetable.calls, board_call_index
     )
     if alight_call_and_index is None:
         return None
 
     (alight_call, alight_call_index) = alight_call_and_index
 
-    vehicle = get_bus_vehicle(conn, journey.operator)
+    vehicle = get_bus_vehicle(conn, journey_timetable.operator)
 
-    leg = BusLegIn(journey, board_call_index, alight_call_index, vehicle)
-
+    journey = BusJourneyIn(
+        journey_timetable.id,
+        journey_timetable.operator,
+        journey_timetable.service,
+        journey_timetable.calls,
+        vehicle,
+    )
+    leg = BusLegIn(journey, board_call_index, alight_call_index)
     insert_leg(conn, users, leg)
 
 

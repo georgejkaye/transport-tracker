@@ -16,6 +16,7 @@ from api.data.bus.stop import (
     BusStopDeparture,
     get_bus_stops_from_atcos,
 )
+from api.data.bus.vehicle import BusVehicle
 from api.utils.request import get_soup
 from api.utils.times import make_timezone_aware
 from bs4 import BeautifulSoup
@@ -44,11 +45,20 @@ def string_of_bus_call_in(bus_call: BusCallIn) -> str:
 
 
 @dataclass
+class BusJourneyTimetable:
+    id: int
+    operator: BusOperator
+    service: BusService
+    calls: list[BusCallIn]
+
+
+@dataclass
 class BusJourneyIn:
     id: int
     operator: BusOperator
     service: BusService
     calls: list[BusCallIn]
+    vehicle: Optional[BusVehicle]
 
 
 def string_of_bus_journey_in(
@@ -101,7 +111,7 @@ def get_bus_journey(
     bustimes_journey_id: int,
     ref_stop: BusStop,
     ref_departure: BusStopDeparture,
-) -> Optional[tuple[BusJourneyIn, int]]:
+) -> Optional[tuple[BusJourneyTimetable, int]]:
     soup = get_bus_journey_page(bustimes_journey_id)
     if soup is None:
         print("Could not get journey page")
@@ -198,7 +208,7 @@ def get_bus_journey(
     if board_call_index is None:
         print("Could not get board call")
         return None
-    journey = BusJourneyIn(
+    journey = BusJourneyTimetable(
         bustimes_journey_id, operator, bus_service, service_call_objects
     )
     return (journey, board_call_index)
@@ -232,9 +242,15 @@ class BusJourney:
     id: int
     service: BusService
     calls: list[BusCall]
+    vehicle: Optional[BusVehicle]
 
 
 def register_bus_journey(
-    journey_id: int, journey_service: BusService, journey_calls: list[BusCall]
+    journey_id: int,
+    journey_service: BusService,
+    journey_calls: list[BusCall],
+    journey_vehicle: Optional[BusVehicle],
 ) -> BusJourney:
-    return BusJourney(journey_id, journey_service, journey_calls)
+    return BusJourney(
+        journey_id, journey_service, journey_calls, journey_vehicle
+    )

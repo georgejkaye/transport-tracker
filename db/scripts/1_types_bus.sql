@@ -129,18 +129,19 @@ CREATE TYPE BusCallOutData AS (
 CREATE TYPE BusJourneyInData AS (
     bustimes_id TEXT,
     service_id INT,
-    journey_calls BusCallInData[]
+    journey_calls BusCallInData[],
+    vehicle_id INT
 );
 
 CREATE TYPE BusJourneyOutData AS (
     journey_id INT,
     journey_service BusServiceOutData,
-    journey_calls BusCallOutData[]
+    journey_calls BusCallOutData[],
+    journey_vehicle BusVehicleOutData
 );
 
 CREATE TYPE BusLegInData AS (
     journey BusJourneyInData,
-    vehicle_id INT,
     board_index INT,
     alight_index INT
 );
@@ -149,6 +150,5 @@ CREATE TYPE BusLegOutData AS (
     leg_id INT,
     user_id UserOutPublicData,
     leg_journey BusJourneyOutData,
-    leg_vehicle BusVehicleOutData,
     leg_calls BusCallOutData[]
 );

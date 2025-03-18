@@ -23,7 +23,6 @@ class BusLegIn:
     journey: BusJourneyIn
     board_stop_index: int
     alight_stop_index: int
-    vehicle: Optional[BusVehicle]
 
 
 def insert_leg(conn: Connection, users: list[User], leg: BusLegIn):
@@ -43,10 +42,10 @@ def insert_leg(conn: Connection, users: list[User], leg: BusLegIn):
         leg.journey.id,
         leg.journey.service.id,
         call_tuples,
+        leg.journey.vehicle.id if leg.journey.vehicle else None,
     )
     leg_tuple = (
         journey_tuple,
-        leg.vehicle.id if leg.vehicle else None,
         leg.board_stop_index,
         leg.alight_stop_index,
     )
@@ -62,7 +61,6 @@ class BusLeg:
     id: int
     user: UserPublic
     journey: BusJourney
-    vehicle: Optional[BusVehicle]
     calls: list[BusCall]
 
 
@@ -70,10 +68,9 @@ def register_bus_leg(
     leg_id: int,
     user: UserPublic,
     leg_journey: BusJourney,
-    leg_vehicle: Optional[BusVehicle],
     leg_calls: list[BusCall],
 ) -> BusLeg:
-    return BusLeg(leg_id, user, leg_journey, leg_vehicle, leg_calls)
+    return BusLeg(leg_id, user, leg_journey, leg_calls)
 
 
 def register_leg_types(conn: Connection):

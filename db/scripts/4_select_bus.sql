@@ -356,10 +356,7 @@ BEGIN
     ) BusOperatorDetail
     ON BusOperatorDetail.bus_operator_id = BusVehicle.operator_id
     INNER JOIN BusModel
-    ON BusModel.bus_model_id = BusVehicle.bseleceus_model_id
-    INNER JOIN (
-
-    )
+    ON BusModel.bus_model_id = BusVehicle.bus_model_id
     WHERE
         p_operator_id IS NULL
         OR (BusOperatorDetail.bus_operator).bus_operator_id = p_operator_id
@@ -368,6 +365,25 @@ BEGIN
         OR BusVehicle.operator_vehicle_id = p_vehicle_id;
 END;
 $$;
+
+CREATE OR REPLACE VIEW BusVehicleData AS
+SELECT
+    BusVehicle.bus_vehicle_id,
+    BusOperatorOut.operator_out
+FROM BusVehicle
+INNER JOIN (
+    SELECT (
+        bus_operator_id,
+        bus_operator_name,
+        bus_operator_national_code,
+        bg_colour,
+        fg_colour)::BusOperatorOutData AS operator_out
+    FROM BusOperator
+) BusOperatorOut
+ON (BusOperatorOut.operator_out).bus_operator_id = BusVehicle.operator_id;
+INNER JOIN (
+
+)
 
 CREATE OR REPLACE FUNCTION GetBusCallsByJourney (
     p_journey_id INT
@@ -446,7 +462,8 @@ BEGIN
     SELECT
         BusJourney.bus_journey_id AS journey_id,
         BusServiceOut.bus_service_out AS journey_service,
-        BusCallArrayOut.bus_calls AS journey_calls
+        BusCallArrayOut.bus_calls AS journey_calls,
+        BusVehicleOut.bus_vehicle_out AS journey_vehicle
         FROM BusJourney
         INNER JOIN (
             SELECT GetBusServices() AS bus_service_out
@@ -464,6 +481,8 @@ BEGIN
                 (SELECT GetBusCalls() AS bus_call_out) BusCallOut
             GROUP BY (BusCallOut.bus_call_out).journey_id) BusCallArrayOut
         ON BusJourney.bus_journey_id = BusCallArrayOut.journey_id
+        INNER JOIN (SELECT GetBusVehicles(NULL, NULL) AS bus_vehicle_out) BusVehicleOut
+        ON BusJourney.bus_vehicle_id = (BusVehicleOut.bus_vehicle_out).bus_vehicle_id
         WHERE p_journey_id IS NULL OR p_journey_id = BusJourney.bus_journey_id;
 END;
 $$;
@@ -473,15 +492,12 @@ SELECT
     BusLeg.bus_leg_id AS leg_id,
     UserOut.user_out AS leg_user,
     BusJourneyOut.bus_journey_out AS leg_journey,
-    BusVehicleOut.bus_vehicle_out AS leg_vehicle,
     (BusJourneyOut.bus_journey_out).journey_calls[
         BusLeg.board_call_index + 1:BusLeg.alight_call_index + 1]
         AS leg_calls
 FROM BusLeg
 INNER JOIN (SELECT GetBusJourneys(NULL) AS bus_journey_out) BusJourneyOut
 ON BusLeg.bus_journey_id = (BusJourneyOut.bus_journey_out).journey_id
-INNER JOIN (SELECT GetBusVehicles(NULL, NULL) AS bus_vehicle_out) BusVehicleOut
-ON BusLeg.bus_vehicle_id = (BusVehicleOut.bus_vehicle_out).bus_vehicle_id
 INNER JOIN (
     SELECT (user_id, user_name, display_name)::UserOutPublicData AS user_out
     FROM Traveller
