@@ -3,7 +3,9 @@ import uvicorn
 from fastapi import FastAPI
 
 from api.utils.environment import get_env_variable
+
 from api.api.routers.bus import bus
+from api.api.routers.train import train
 
 
 app = FastAPI(
@@ -21,6 +23,7 @@ app = FastAPI(
     },
 )
 
+app.include_router(train.router)
 app.include_router(bus.router)
 
 

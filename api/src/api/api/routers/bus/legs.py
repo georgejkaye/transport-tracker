@@ -1,5 +1,8 @@
+from fastapi import APIRouter
 from datetime import datetime
 from typing import Optional
+
+from api.utils.database import connect_with_env
 from api.data.bus.leg import (
     BusLeg,
     select_bus_leg_by_id,
@@ -8,16 +11,15 @@ from api.data.bus.leg import (
     select_bus_legs_by_end_datetime,
     select_bus_legs_by_start_datetime,
 )
-from api.utils.database import connect_with_env
-from fastapi import APIRouter
 
 
-router = APIRouter(prefix="/legs", tags=["train/legs"])
+router = APIRouter(prefix="/legs", tags=["bus/legs"])
 
 
 @router.get("", summary="Get bus legs")
 async def get_legs(
-    search_start: Optional[datetime], search_end: Optional[datetime]
+    search_start: Optional[datetime] = None,
+    search_end: Optional[datetime] = None,
 ) -> list[BusLeg]:
     with connect_with_env() as conn:
         if search_start and search_end:
