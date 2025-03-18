@@ -253,6 +253,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION InsertBusLeg (
+    p_users INT[],
     p_leg BusLegInData
 ) RETURNS VOID
 LANGUAGE plpgsql
@@ -268,12 +269,12 @@ BEGIN
         bus_vehicle_id,
         board_call_index,
         alight_call_index
-    ) VALUES (
-        p_leg.user_id,
+    ) SELECT
+        v_user,
         v_journey_id,
         p_leg.vehicle_id,
         p_leg.board_index,
         p_leg.alight_index
-    );
+    FROM UNNEST(p_users) AS v_user;
 END;
 $$;

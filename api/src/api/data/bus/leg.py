@@ -13,21 +13,20 @@ from api.data.bus.operators import register_bus_operator
 from api.data.bus.service import register_bus_service
 from api.data.bus.stop import register_bus_stop
 from api.data.bus.vehicle import BusVehicle, register_bus_vehicle
-from api.data.leg import register_operator_data
+from api.user import User, UserPublic, register_user, register_user_public
 from api.utils.database import register_type
 from psycopg import Connection
 
 
 @dataclass
 class BusLegIn:
-    user_id: int
     journey: BusJourneyIn
     board_stop_index: int
     alight_stop_index: int
     vehicle: Optional[BusVehicle]
 
 
-def insert_leg(conn: Connection, leg: BusLegIn):
+def insert_leg(conn: Connection, users: list[User], leg: BusLegIn):
     call_tuples = []
     for call in leg.journey.calls:
         call_tuples.append(
@@ -46,19 +45,22 @@ def insert_leg(conn: Connection, leg: BusLegIn):
         call_tuples,
     )
     leg_tuple = (
-        leg.user_id,
         journey_tuple,
         leg.vehicle.id if leg.vehicle else None,
         leg.board_stop_index,
         leg.alight_stop_index,
     )
-    conn.execute("SELECT InsertBusLeg(%s::BusLegInData)", [leg_tuple])
+    user_ids = [user.user_id for user in users]
+    conn.execute(
+        "SELECT InsertBusLeg(%s, %s::BusLegInData)", [user_ids, leg_tuple]
+    )
     conn.commit()
 
 
 @dataclass
 class BusLeg:
     id: int
+    user: UserPublic
     journey: BusJourney
     vehicle: Optional[BusVehicle]
     calls: list[BusCall]
@@ -66,14 +68,16 @@ class BusLeg:
 
 def register_bus_leg(
     leg_id: int,
+    user: UserPublic,
     leg_journey: BusJourney,
     leg_vehicle: Optional[BusVehicle],
     leg_calls: list[BusCall],
 ) -> BusLeg:
-    return BusLeg(leg_id, leg_journey, leg_vehicle, leg_calls)
+    return BusLeg(leg_id, user, leg_journey, leg_vehicle, leg_calls)
 
 
 def register_leg_types(conn: Connection):
+    register_type(conn, "UserOutPublicData", register_user_public)
     register_type(conn, "BusOperatorOutData", register_bus_operator)
     register_type(conn, "BusStopOutData", register_bus_stop)
     register_type(conn, "BusJourneyOutData", register_bus_journey)

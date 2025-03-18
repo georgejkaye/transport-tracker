@@ -356,7 +356,10 @@ BEGIN
     ) BusOperatorDetail
     ON BusOperatorDetail.bus_operator_id = BusVehicle.operator_id
     INNER JOIN BusModel
-    ON BusModel.bus_model_id = BusVehicle.bus_model_id
+    ON BusModel.bus_model_id = BusVehicle.bseleceus_model_id
+    INNER JOIN (
+
+    )
     WHERE
         p_operator_id IS NULL
         OR (BusOperatorDetail.bus_operator).bus_operator_id = p_operator_id
@@ -468,6 +471,7 @@ $$;
 CREATE OR REPLACE VIEW BusLegData AS
 SELECT
     BusLeg.bus_leg_id AS leg_id,
+    UserOut.user_out AS leg_user,
     BusJourneyOut.bus_journey_out AS leg_journey,
     BusVehicleOut.bus_vehicle_out AS leg_vehicle,
     (BusJourneyOut.bus_journey_out).journey_calls[
@@ -477,7 +481,12 @@ FROM BusLeg
 INNER JOIN (SELECT GetBusJourneys(NULL) AS bus_journey_out) BusJourneyOut
 ON BusLeg.bus_journey_id = (BusJourneyOut.bus_journey_out).journey_id
 INNER JOIN (SELECT GetBusVehicles(NULL, NULL) AS bus_vehicle_out) BusVehicleOut
-ON BusLeg.bus_vehicle_id = (BusVehicleOut.bus_vehicle_out).bus_vehicle_id;
+ON BusLeg.bus_vehicle_id = (BusVehicleOut.bus_vehicle_out).bus_vehicle_id
+INNER JOIN (
+    SELECT (user_id, user_name, display_name)::UserOutPublicData AS user_out
+    FROM Traveller
+) UserOut
+ON BusLeg.user_id = (UserOut.user_out).user_id;
 
 CREATE OR REPLACE FUNCTION GetBusLegs()
 RETURNS SETOF BusLegOutData

@@ -1,5 +1,11 @@
 from datetime import datetime, timedelta
 from typing import Optional
+from api.data.bus.journey import (
+    BusCallIn,
+    BusJourney,
+    get_bus_journey,
+    string_of_bus_call_in,
+)
 from psycopg import Connection
 
 from api.utils.database import connect, get_db_connection_data_from_args
@@ -16,12 +22,6 @@ from api.utils.interactive import (
 from api.user import User, input_user
 from api.data.bus.leg import BusLegIn, insert_leg
 from api.data.bus.operators import BusOperator
-from api.data.bus.service import (
-    BusCallIn,
-    BusJourney,
-    get_bus_journey,
-    string_of_bus_call_in,
-)
 from api.data.bus.stop import (
     BusStop,
     BusStopDeparture,
@@ -91,7 +91,9 @@ def get_bus_vehicle(
     return vehicle
 
 
-def get_bus_leg_input(conn: Connection, user: User) -> Optional[BusJourney]:
+def get_bus_leg_input(
+    conn: Connection, users: list[User]
+) -> Optional[BusJourney]:
     board_stop = get_bus_stop_input(conn, prompt="Board stop")
     if board_stop is None:
         print("Could not get board stop")
@@ -158,16 +160,14 @@ def get_bus_leg_input(conn: Connection, user: User) -> Optional[BusJourney]:
 
     vehicle = get_bus_vehicle(conn, journey.operator)
 
-    leg = BusLegIn(
-        user.user_id, journey, board_call_index, alight_call_index, vehicle
-    )
+    leg = BusLegIn(journey, board_call_index, alight_call_index, vehicle)
 
-    insert_leg(conn, leg)
+    insert_leg(conn, users, leg)
 
 
 if __name__ == "__main__":
     connection_data = get_db_connection_data_from_args()
     with connect(connection_data) as conn:
-        user = input_user(conn)
-        if user is not None:
-            get_bus_leg_input(conn, user)
+        users = input_user(conn)
+        if users is not None:
+            get_bus_leg_input(conn, users)
