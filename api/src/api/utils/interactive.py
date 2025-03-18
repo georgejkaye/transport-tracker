@@ -229,9 +229,9 @@ class PickCancel:
 type PickChoice[T] = PickSingle[T] | PickMultiple[T] | PickUnknown | PickCancel
 
 
-def choice_from_object[
-    T
-](object: T, display: Optional[Callable[[T], str]]) -> Choice:
+def choice_from_object[T](
+    object: T, display: Optional[Callable[[T], str]]
+) -> Choice:
     if display is None:
         title = str(object)
     else:
@@ -239,9 +239,7 @@ def choice_from_object[
     return Choice(title=title, value=PickSingle(object))
 
 
-def input_select[
-    T
-](
+def input_select[T](
     message: str,
     choices: list[T],
     display: Optional[Callable[[T], str]] = None,
@@ -258,9 +256,7 @@ def input_select[
     ).ask()
 
 
-def input_select_paginate[
-    T
-](
+def input_select_paginate[T](
     message: str, choices: list[T], display: Optional[Callable[[T], str]] = None
 ) -> Optional[PickChoice[T]]:
     partitions = []
@@ -292,16 +288,19 @@ def input_select_paginate[
     return None
 
 
-def input_checkbox[
-    T
-](
-    message: str, choices: list[T], display: Optional[Callable[[T], str]] = None
+def input_checkbox[T](
+    message: str,
+    choices: list[T],
+    display: Optional[Callable[[T], str]] = None,
+    allow_none=False,
 ) -> Optional[PickMultiple[T]]:
     choice_objects = [choice_from_object(choice, display) for choice in choices]
     result = checkbox(message, choice_objects).ask()
     if result is None:
         return None
     answers = []
+    if not allow_none and len(result) == 0:
+        return None
     for res in result:
         match res:
             case PickSingle(choice):
