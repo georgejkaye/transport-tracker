@@ -358,11 +358,11 @@ BEGIN
     INNER JOIN BusModel
     ON BusModel.bus_model_id = BusVehicle.bus_model_id
     WHERE
-        p_operator_id IS NULL
-        OR (BusOperatorDetail.bus_operator).bus_operator_id = p_operator_id
+        (p_operator_id IS NULL
+        OR (BusOperatorDetail.bus_operator).bus_operator_id = p_operator_id)
     AND
-        p_vehicle_id IS NULL
-        OR BusVehicle.operator_vehicle_id = p_vehicle_id;
+        (p_vehicle_id IS NULL
+        OR BusVehicle.operator_vehicle_id = p_vehicle_id);
 END;
 $$;
 
