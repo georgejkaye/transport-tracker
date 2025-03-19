@@ -146,9 +146,36 @@ CREATE TYPE BusLegInData AS (
     alight_index INT
 );
 
+CREATE TYPE BusOperatorOverviewOutData AS (
+    operator_id INT,
+    operator_name TEXT,
+    operator_national_code TEXT
+);
+
+CREATE TYPE BusServiceOverviewOutData AS (
+    service_id INT,
+    service_line TEXT
+);
+
 CREATE TYPE BusLegOutData AS (
     leg_id INT,
     user_id UserOutPublicData,
     leg_journey BusJourneyOutData,
     leg_calls BusCallOutData[]
+);
+
+CREATE TYPE BusStopOverviewOutData AS (
+    bus_stop_id BIGINT,
+    stop_atco TEXT,
+    stop_name TEXT,
+    stop_locality TEXT
+);
+
+CREATE TYPE BusLegOverviewOutData AS (
+    leg_id INT,
+    bus_service BusServiceOverviewOutData,
+    bus_operator BusOperatorOverviewOutData,
+    leg_start BusStopOverviewOutData,
+    leg_end BusStopOverviewOutData,
+    leg_duration INTERVAL
 );

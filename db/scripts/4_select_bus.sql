@@ -369,7 +369,9 @@ $$;
 CREATE OR REPLACE VIEW BusVehicleData AS
 SELECT
     BusVehicle.bus_vehicle_id,
-    BusOperatorOut.operator_out
+    BusVehicleLegOut.user_id,
+    BusOperatorOut.operator_out,
+    BusVehicleLegOut.vehicle_leg
 FROM BusVehicle
 INNER JOIN (
     SELECT (
@@ -380,10 +382,53 @@ INNER JOIN (
         fg_colour)::BusOperatorOutData AS operator_out
     FROM BusOperator
 ) BusOperatorOut
-ON (BusOperatorOut.operator_out).bus_operator_id = BusVehicle.operator_id;
+ON (BusOperatorOut.operator_out).bus_operator_id = BusVehicle.operator_id
 INNER JOIN (
-
-)
+    SELECT
+        BusJourney.bus_vehicle_id,
+        BusLeg.user_id,
+        ARRAY_AGG((
+            BusLeg.bus_leg_id,
+            (
+                BusService.bus_service_id,
+                BusService.service_line
+            )::BusServiceOverviewOutData,
+            (
+                BusOperator.bus_operator_id,
+                BusOperator.bus_operator_name,
+                BusOperator.bus_operator_national_code
+            )::BusOperatorOverviewOutData,
+            BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1],
+            BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1],
+            INTERVAL '1 day')::BusLegOverviewOutData) AS vehicle_leg
+    FROM BusLeg
+    INNER JOIN BusJourney
+    ON BusLeg.bus_journey_id = BusJourney.bus_journey_id
+    INNER JOIN BusService
+    ON BusJourney.bus_service_id = BusService.bus_service_id
+    INNER JOIN BusOperator
+    ON BusService.bus_operator_id = BusOperator.bus_operator_id
+    INNER JOIN (
+        SELECT
+            BusJourney.bus_journey_id,
+            ARRAY_AGG((
+                BusStop.bus_stop_id,
+                BusStop.atco_code,
+                BusStop.stop_name,
+                BusStop.locality_name
+            )::BusStopOverviewOutData ORDER BY call_index)
+                AS bus_journey_call
+        FROM BusCall
+        INNER JOIN BusJourney
+        ON BusCall.bus_journey_id = BusJourney.bus_journey_id
+        INNER JOIN BusStop
+        ON BusCall.bus_stop_id = BusStop.bus_stop_id
+        GROUP BY BusJourney.bus_journey_id
+    ) BusJourneyCall
+    ON BusJourney.bus_journey_id = BusJourneyCall.bus_journey_id
+    GROUP BY (bus_vehicle_id, user_id)
+) BusVehicleLegOut
+ON BusVehicleLegOut.bus_vehicle_id = BusVehicle.bus_vehicle_id;
 
 CREATE OR REPLACE FUNCTION GetBusCallsByJourney (
     p_journey_id INT
