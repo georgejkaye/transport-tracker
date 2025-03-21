@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from api.data.bus.journey import (
@@ -9,9 +9,13 @@ from api.data.bus.journey import (
     register_bus_call,
     register_bus_journey,
 )
-from api.data.bus.operators import register_bus_operator
-from api.data.bus.service import register_bus_service
-from api.data.bus.stop import register_bus_stop
+from api.data.bus.operators import BusOperator, register_bus_operator
+from api.data.bus.service import (
+    register_bus_service,
+)
+from api.data.bus.stop import (
+    register_bus_stop,
+)
 from api.data.bus.vehicle import BusVehicle, register_bus_vehicle
 from api.user import User, UserPublic, register_user, register_user_public
 from api.utils.database import register_type

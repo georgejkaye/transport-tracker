@@ -168,14 +168,23 @@ CREATE TYPE BusStopOverviewOutData AS (
     bus_stop_id BIGINT,
     stop_atco TEXT,
     stop_name TEXT,
-    stop_locality TEXT
+    stop_locality TEXT,
+    stop_street TEXT
 );
 
 CREATE TYPE BusLegOverviewOutData AS (
     leg_id INT,
     bus_service BusServiceOverviewOutData,
-    bus_operator BusOperatorOverviewOutData,
+    bus_operator BusOperatorOutData,
     leg_start BusStopOverviewOutData,
     leg_end BusStopOverviewOutData,
     leg_duration INTERVAL
+);
+
+CREATE TYPE BusVehicleOverviewOutData AS (
+    vehicle_id INT,
+    vehicle_name TEXT,
+    vehicle_numberplate TEXT,
+    vehicle_operator BusOperatorOutData,
+    vehicle_legs BusLegOverviewOutData[]
 );

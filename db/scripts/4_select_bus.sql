@@ -368,10 +368,12 @@ $$;
 
 CREATE OR REPLACE VIEW BusVehicleData AS
 SELECT
-    BusVehicle.bus_vehicle_id,
-    BusVehicleLegOut.user_id,
-    BusOperatorOut.operator_out,
-    BusVehicleLegOut.vehicle_leg
+    BusVehicleLegOut.user_id AS user_id,
+    BusVehicle.bus_vehicle_id AS vehicle_id,
+    BusVehicle.bus_name AS vehicle_name,
+    BusVehicle.bus_numberplate AS vehicle_numberplate,
+    BusOperatorOut.operator_out AS vehicle_operator,
+    BusVehicleLegOut.vehicle_legs
 FROM BusVehicle
 INNER JOIN (
     SELECT (
@@ -396,11 +398,13 @@ INNER JOIN (
             (
                 BusOperator.bus_operator_id,
                 BusOperator.bus_operator_name,
-                BusOperator.bus_operator_national_code
-            )::BusOperatorOverviewOutData,
+                BusOperator.bus_operator_national_code,
+                BusOperator.bg_colour,
+                BusOperator.fg_colour
+            )::BusOperatorOutData,
             BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1],
             BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1],
-            INTERVAL '1 day')::BusLegOverviewOutData) AS vehicle_leg
+            INTERVAL '1 day')::BusLegOverviewOutData) AS vehicle_legs
     FROM BusLeg
     INNER JOIN BusJourney
     ON BusLeg.bus_journey_id = BusJourney.bus_journey_id
@@ -415,7 +419,8 @@ INNER JOIN (
                 BusStop.bus_stop_id,
                 BusStop.atco_code,
                 BusStop.stop_name,
-                BusStop.locality_name
+                BusStop.locality_name,
+                BusStop.street_name
             )::BusStopOverviewOutData ORDER BY call_index)
                 AS bus_journey_call
         FROM BusCall
@@ -429,6 +434,25 @@ INNER JOIN (
     GROUP BY (bus_vehicle_id, user_id)
 ) BusVehicleLegOut
 ON BusVehicleLegOut.bus_vehicle_id = BusVehicle.bus_vehicle_id;
+
+CREATE OR REPLACE FUNCTION GetBusVehicleOverviewByUser (
+    p_user_id INT
+) RETURNS SETOF BusVehicleOverviewOutData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        vehicle_id,
+        vehicle_name,
+        vehicle_numberplate,
+        vehicle_operator,
+        vehicle_legs
+    FROM BusVehicleData
+    WHERE user_id = p_user_id;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION GetBusCallsByJourney (
     p_journey_id INT
