@@ -36,14 +36,14 @@ CREATE TYPE BusStopOutData AS (
 );
 
 CREATE TYPE BusOperatorInData AS (
-    bus_operator_name TEXT,
-    bus_operator_national_code TEXT
+    operator_name TEXT,
+    national_operator_code TEXT
 );
 
 CREATE TYPE BusOperatorOutData AS (
     bus_operator_id INT,
-    bus_operator_name TEXT,
-    bus_operator_national_code TEXT,
+    operator_name TEXT,
+    national_operator_code TEXT,
     bg_colour TEXT,
     fg_colour TEXT
 );
@@ -67,9 +67,9 @@ CREATE TYPE BusServiceOutData AS (
     bus_service_id INT,
     bus_operator BusOperatorOutData,
     service_line TEXT,
-    service_description_outbound TEXT,
+    description_outbound TEXT,
     service_outbound_vias TEXT[],
-    service_description_inbound TEXT,
+    description_inbound TEXT,
     service_inbound_vias TEXT[],
     bg_colour TEXT,
     fg_colour TEXT
@@ -87,8 +87,8 @@ CREATE TYPE BusModelInData AS (
 
 CREATE TYPE BusVehicleInData AS (
     operator_id INT,
-    operator_vehicle_id TEXT,
-    bustimes_vehicle_id TEXT,
+    vehicle_number TEXT,
+    bustimes_id TEXT,
     vehicle_numberplate TEXT,
     vehicle_model TEXT,
     vehicle_livery_style TEXT,
@@ -98,8 +98,8 @@ CREATE TYPE BusVehicleInData AS (
 CREATE TYPE BusVehicleOutData AS (
     bus_vehicle_id INT,
     bus_operator BusOperatorOutData,
-    operator_vehicle_id TEXT,
-    bustimes_vehicle_id TEXT,
+    vehicle_number TEXT,
+    bustimes_id TEXT,
     vehicle_numberplate TEXT,
     vehicle_model TEXT,
     vehicle_livery_style TEXT,
@@ -148,7 +148,7 @@ CREATE TYPE BusLegInData AS (
 
 CREATE TYPE BusOperatorOverviewOutData AS (
     operator_id INT,
-    operator_name TEXT,
+    name TEXT,
     operator_national_code TEXT
 );
 

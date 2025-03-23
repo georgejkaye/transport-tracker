@@ -13,8 +13,8 @@ from api.utils.request import get_soup
 @dataclass
 class BusVehicleIn:
     operator_id: int
-    operator_vehicle_id: str
-    bustimes_vehicle_id: str
+    vehicle_number: str
+    bustimes_id: str
     numberplate: str
     model: Optional[str]
     livery_style: Optional[str]
@@ -26,7 +26,9 @@ def string_of_bus_vehicle_in(bus_vehicle: BusVehicleIn) -> str:
     if bus_vehicle.name is not None:
         string_brackets = f"{string_brackets}/{bus_vehicle.name}"
     string_brackets = f"{string_brackets})"
-    return f"{bus_vehicle.operator_vehicle_id} {string_brackets} - {bus_vehicle.model}"
+    return (
+        f"{bus_vehicle.vehicle_number} {string_brackets} - {bus_vehicle.model}"
+    )
 
 
 def insert_bus_vehicles(conn: Connection, bus_vehicles: list[BusVehicleIn]):
@@ -41,8 +43,8 @@ def insert_bus_vehicles(conn: Connection, bus_vehicles: list[BusVehicleIn]):
         bus_vehicle_tuples.append(
             (
                 bus_vehicle.operator_id,
-                bus_vehicle.operator_vehicle_id,
-                bus_vehicle.bustimes_vehicle_id,
+                bus_vehicle.vehicle_number,
+                bus_vehicle.bustimes_id,
                 bus_vehicle.numberplate,
                 bus_vehicle.model,
                 bus_vehicle.livery_style,
@@ -59,8 +61,8 @@ def insert_bus_vehicles(conn: Connection, bus_vehicles: list[BusVehicleIn]):
 class BusVehicle:
     id: int
     operator: BusOperator
-    operator_vehicle_id: str
-    bustimes_vehicle_id: str
+    vehicle_number: str
+    bustimes_id: str
     numberplate: str
     model: Optional[str]
     livery_style: Optional[str]
@@ -157,8 +159,8 @@ def get_bus_operator_vehicles(operator: BusOperator) -> list[BusVehicleIn]:
 def register_bus_vehicle(
     bus_vehicle_id: int,
     bus_operator: BusOperator,
-    operator_vehicle_id: str,
-    bustimes_vehicle_id: str,
+    vehicle_number: str,
+    bustimes_id: str,
     vehicle_numberplate: str,
     vehicle_model: str,
     vehicle_livery_style: Optional[str],
@@ -167,8 +169,8 @@ def register_bus_vehicle(
     return BusVehicle(
         bus_vehicle_id,
         bus_operator,
-        operator_vehicle_id,
-        bustimes_vehicle_id,
+        vehicle_number,
+        bustimes_id,
         vehicle_numberplate,
         vehicle_model,
         vehicle_livery_style,
@@ -177,12 +179,12 @@ def register_bus_vehicle(
 
 
 def get_bus_vehicle_by_operator_and_id(
-    conn: Connection, bus_operator: BusOperator, operator_vehicle_id: str
+    conn: Connection, bus_operator: BusOperator, vehicle_number: str
 ) -> Optional[BusVehicle]:
     register_type(conn, "BusVehicleOutData", register_bus_vehicle)
     register_type(conn, "BusOperatorOutData", register_bus_operator)
     rows = conn.execute(
-        "SELECT GetBusVehicles(%s, %s)", [bus_operator.id, operator_vehicle_id]
+        "SELECT GetBusVehicles(%s, %s)", [bus_operator.id, vehicle_number]
     ).fetchall()
     if len(rows) > 1:
         print("Multiple vehicles found")

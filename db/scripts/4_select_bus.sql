@@ -132,12 +132,12 @@ BEGIN
     RETURN QUERY
     SELECT
         bus_operator_id,
-        bus_operator_name,
-        bus_operator_national_code,
+        operator_name,
+        national_operator_code,
         bg_colour,
         fg_colour
     FROM BusOperator
-    ORDER BY bus_operator_name ASC;
+    ORDER BY operator_name ASC;
 END;
 $$;
 
@@ -151,13 +151,13 @@ BEGIN
     RETURN QUERY
     SELECT
         bus_operator_id,
-        bus_operator_name,
-        bus_operator_national_code,
+        operator_name,
+        national_operator_code,
         bg_colour,
         fg_colour
     FROM BusOperator
-    WHERE LOWER(bus_operator_name) LIKE '%' || LOWER(p_name) || '%'
-    ORDER BY bus_operator_name ASC;
+    WHERE LOWER(operator_name) LIKE '%' || LOWER(p_name) || '%'
+    ORDER BY operator_name ASC;
 END;
 $$;
 
@@ -171,13 +171,13 @@ BEGIN
     RETURN QUERY
     SELECT
         bus_operator_id,
-        bus_operator_name,
-        bus_operator_national_code,
+        operator_name,
+        national_operator_code,
         bg_colour,
         fg_colour
     FROM BusOperator
-    WHERE LOWER(bus_operator_national_code) = LOWER(p_noc)
-    ORDER BY bus_operator_name ASC;
+    WHERE LOWER(national_operator_code) = LOWER(p_noc)
+    ORDER BY operator_name ASC;
 END;
 $$;
 
@@ -232,15 +232,15 @@ BEGIN
         BusService.bus_service_id,
         (
             BusOperator.bus_operator_id,
-            BusOperator.bus_operator_name,
-            BusOperator.bus_operator_national_code,
+            BusOperator.operator_name,
+            BusOperator.national_operator_code,
             BusOperator.bg_colour,
             BusOperator.fg_colour
         )::BusOperatorOutData AS service_operator,
         BusService.service_line,
-        BusService.service_description_outbound,
+        BusService.description_outbound,
         OutboundVia.service_vias AS service_outbound_vias,
-        BusService.service_description_inbound,
+        BusService.description_inbound,
         InboundVia.service_vias AS service_inbound_vias,
         BusService.bg_colour,
         BusService.fg_colour
@@ -307,13 +307,13 @@ BEGIN
     SELECT * FROM GetBusServices() AllBusService
     WHERE LOWER(service_line) = LOWER(p_line_name)
     AND
-        (AllBusService.bus_operator).bus_operator_national_code =
+        (AllBusService.bus_operator).national_operator_code =
             p_national_operator_code;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetBusServicesByOperatorName (
-    p_operator_name TEXT,
+    p_name TEXT,
     p_line_name TEXT
 ) RETURNS SETOF BusServiceOutData
 LANGUAGE plpgsql
@@ -324,8 +324,8 @@ BEGIN
     SELECT * FROM GetBusServices() AllBusService
     WHERE LOWER(service_line) = LOWER(p_line_name)
     AND
-        LOWER((AllBusService.bus_operator).bus_operator_name)
-        LIKE '%' || LOWER(p_operator_name) || '%';
+        LOWER((AllBusService.bus_operator).operator_name)
+        LIKE '%' || LOWER(p_name) || '%';
 END;
 $$;
 
@@ -341,12 +341,12 @@ BEGIN
     SELECT
         BusVehicle.bus_vehicle_id,
         BusOperatorDetail.bus_operator,
-        BusVehicle.operator_vehicle_id,
-        BusVehicle.bustimes_vehicle_id,
-        BusVehicle.bus_numberplate,
+        BusVehicle.vehicle_number,
+        BusVehicle.bustimes_id,
+        BusVehicle.numberplate,
         BusModel.bus_model_name,
-        BusVehicle.bus_livery_style,
-        BusVehicle.bus_name
+        BusVehicle.livery_style,
+        BusVehicle.operator_name
     FROM BusVehicle
     INNER JOIN (
         SELECT
@@ -362,7 +362,7 @@ BEGIN
         OR (BusOperatorDetail.bus_operator).bus_operator_id = p_operator_id)
     AND
         (p_vehicle_id IS NULL
-        OR BusVehicle.operator_vehicle_id = p_vehicle_id);
+        OR BusVehicle.vehicle_number = p_vehicle_id);
 END;
 $$;
 
@@ -370,9 +370,9 @@ CREATE OR REPLACE VIEW BusVehicleData AS
 SELECT
     BusVehicleLegOut.user_id AS user_id,
     BusVehicle.bus_vehicle_id AS vehicle_id,
-    BusVehicle.operator_vehicle_id AS vehicle_number,
-    BusVehicle.bus_name AS vehicle_name,
-    BusVehicle.bus_numberplate AS vehicle_numberplate,
+    BusVehicle.vehicle_number AS vehicle_number,
+    BusVehicle.operator_name AS vehicle_name,
+    BusVehicle.numberplate AS vehicle_numberplate,
     BusOperatorOut.operator_out AS vehicle_operator,
     BusVehicleLegOut.vehicle_legs,
     BusVehicleLegOut.vehicle_duration
@@ -380,8 +380,8 @@ FROM BusVehicle
 INNER JOIN (
     SELECT (
         bus_operator_id,
-        bus_operator_name,
-        bus_operator_national_code,
+        operator_name,
+        national_operator_code,
         bg_colour,
         fg_colour)::BusOperatorOutData AS operator_out
     FROM BusOperator
@@ -399,8 +399,8 @@ INNER JOIN (
             )::BusServiceOverviewOutData,
             (
                 BusOperator.bus_operator_id,
-                BusOperator.bus_operator_name,
-                BusOperator.bus_operator_national_code,
+                BusOperator.operator_name,
+                BusOperator.national_operator_code,
                 BusOperator.bg_colour,
                 BusOperator.fg_colour
             )::BusOperatorOutData,

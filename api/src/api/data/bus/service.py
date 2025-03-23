@@ -40,9 +40,9 @@ def register_bus_service(
     bus_service_id: int,
     bus_operator: BusOperator,
     service_line: str,
-    service_description_outbound: str,
+    description_outbound: str,
     service_outbound_vias: list[str],
-    service_description_inbound: str,
+    description_inbound: str,
     service_inbound_vias: list[str],
     bg_colour: Optional[str],
     fg_colour: Optional[str],
@@ -51,12 +51,8 @@ def register_bus_service(
         bus_service_id,
         bus_operator,
         service_line,
-        BusServiceDescription(
-            service_description_outbound, service_outbound_vias
-        ),
-        BusServiceDescription(
-            service_description_inbound, service_inbound_vias
-        ),
+        BusServiceDescription(description_outbound, service_outbound_vias),
+        BusServiceDescription(description_inbound, service_inbound_vias),
         bg_colour or "#ffffff",
         fg_colour or "#000000",
     )

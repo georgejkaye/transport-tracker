@@ -19,8 +19,8 @@ CREATE TABLE BusStop (
 
 CREATE TABLE BusOperator (
     bus_operator_id SERIAL PRIMARY KEY,
-    bus_operator_name TEXT NOT NULL,
-    bus_operator_national_code TEXT UNIQUE NOT NULL,
+    operator_name TEXT NOT NULL,
+    national_operator_code TEXT UNIQUE NOT NULL,
     bg_colour TEXT,
     fg_colour TEXT
 );
@@ -30,15 +30,15 @@ CREATE TABLE BusService (
     bods_line_id TEXT UNIQUE NOT NULL,
     bus_operator_id INT NOT NULL,
     service_line TEXT NOT NULL,
-    service_description_outbound TEXT,
-    service_description_inbound TEXT,
+    description_outbound TEXT,
+    description_inbound TEXT,
     bg_colour TEXT,
     fg_colour TEXT,
     FOREIGN KEY(bus_operator_id) REFERENCES BusOperator(bus_operator_id),
     UNIQUE (
         bus_service_id,
-        service_description_outbound,
-        service_description_inbound
+        description_outbound,
+        description_inbound
     )
 );
 
@@ -59,16 +59,16 @@ CREATE TABLE BusModel (
 CREATE TABLE BusVehicle (
     bus_vehicle_id SERIAL PRIMARY KEY,
     operator_id INT NOT NULL,
-    operator_vehicle_id TEXT,
-    bustimes_vehicle_id TEXT,
-    bus_numberplate TEXT NOT NULL,
+    vehicle_number TEXT,
+    bustimes_id TEXT,
+    numberplate TEXT NOT NULL,
     bus_model_id INT,
-    bus_livery_style TEXT,
-    bus_name TEXT,
+    livery_style TEXT,
+    operator_name TEXT,
     FOREIGN KEY(operator_id) REFERENCES BusOperator(bus_operator_id),
     FOREIGN KEY(bus_model_id) REFERENCES BusModel(bus_model_id),
-    UNIQUE (operator_id, operator_vehicle_id),
-    UNIQUE (operator_id, bus_numberplate)
+    UNIQUE (operator_id, vehicle_number),
+    UNIQUE (operator_id, numberplate)
 );
 
 CREATE TABLE BusJourney (

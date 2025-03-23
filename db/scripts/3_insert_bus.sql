@@ -49,11 +49,11 @@ AS
 $$
 BEGIN
     INSERT INTO BusOperator (
-        bus_operator_name,
-        bus_operator_national_code
+        operator_name,
+        national_operator_code
     ) SELECT
-        v_operator.bus_operator_name,
-        v_operator.bus_operator_national_code
+        v_operator.operator_name,
+        v_operator.national_operator_code
     FROM UNNEST(p_operators) AS v_operator
     ON CONFLICT DO NOTHING;
 END;
@@ -70,13 +70,13 @@ BEGIN
         bus_operator_id,
         bods_line_id,
         service_line,
-        service_description_outbound,
-        service_description_inbound
+        description_outbound,
+        description_inbound
     ) SELECT
         (
             SELECT bus_operator_id
             FROM BusOperator
-            WHERE bus_operator_national_code
+            WHERE national_operator_code
                 = v_service.service_operator_national_code
         ),
         v_service.bods_line_id,
@@ -148,17 +148,17 @@ $$
 BEGIN
     INSERT INTO BusVehicle (
         operator_id,
-        operator_vehicle_id,
-        bustimes_vehicle_id,
-        bus_numberplate,
+        vehicle_number,
+        bustimes_id,
+        numberplate,
         bus_model_id,
-        bus_livery_style,
-        bus_name
+        livery_style,
+        operator_name
     )
     SELECT
         v_vehicle.operator_id,
-        v_vehicle.operator_vehicle_id,
-        v_vehicle.bustimes_vehicle_id,
+        v_vehicle.vehicle_number,
+        v_vehicle.bustimes_id,
         v_vehicle.vehicle_numberplate,
         (SELECT bus_model_id
         FROM BusModel
