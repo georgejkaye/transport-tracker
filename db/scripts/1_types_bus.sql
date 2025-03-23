@@ -172,19 +172,30 @@ CREATE TYPE BusStopOverviewOutData AS (
     stop_street TEXT
 );
 
+CREATE TYPE BusCallOverviewOutData AS (
+    bus_call_id INT,
+    bus_stop BusStopOverviewOutData,
+    plan_arr TIMESTAMP WITH TIME ZONE,
+    act_arr TIMESTAMP WITH TIME ZONE,
+    plan_dep TIMESTAMP WITH TIME ZONE,
+    act_dep TIMESTAMP WITH TIME ZONE
+);
+
 CREATE TYPE BusLegOverviewOutData AS (
     leg_id INT,
     bus_service BusServiceOverviewOutData,
     bus_operator BusOperatorOutData,
-    leg_start BusStopOverviewOutData,
-    leg_end BusStopOverviewOutData,
+    leg_start BusCallOverviewOutData,
+    leg_end BusCallOverviewOutData,
     leg_duration INTERVAL
 );
 
 CREATE TYPE BusVehicleOverviewOutData AS (
     vehicle_id INT,
+    vehicle_operator_id TEXT,
     vehicle_name TEXT,
     vehicle_numberplate TEXT,
     vehicle_operator BusOperatorOutData,
-    vehicle_legs BusLegOverviewOutData[]
+    vehicle_legs BusLegOverviewOutData[],
+    vehicle_duration INTERVAL
 );

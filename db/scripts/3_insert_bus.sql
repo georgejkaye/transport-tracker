@@ -232,27 +232,6 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION GetBusCallIdFromJourneyCallIndex (
-    p_journey_id INT,
-    p_call_index INT
-)
-RETURNS INT
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    RETURN (
-        SELECT bus_call_id
-        FROM BusCall
-        INNER JOIN BusStop
-        ON BusStop.bus_stop_id = BusCall.bus_stop_id
-        AND BusCall.bus_journey_id = p_journey_id
-        ORDER BY COALESCE(plan_dep, plan_arr, act_dep, act_arr)
-        LIMIT 1 OFFSET p_call_index
-    );
-END;
-$$;
-
 CREATE OR REPLACE FUNCTION InsertBusLeg (
     p_users INT[],
     p_leg BusLegInData

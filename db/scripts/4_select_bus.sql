@@ -370,10 +370,12 @@ CREATE OR REPLACE VIEW BusVehicleData AS
 SELECT
     BusVehicleLegOut.user_id AS user_id,
     BusVehicle.bus_vehicle_id AS vehicle_id,
+    BusVehicle.operator_vehicle_id AS vehicle_number,
     BusVehicle.bus_name AS vehicle_name,
     BusVehicle.bus_numberplate AS vehicle_numberplate,
     BusOperatorOut.operator_out AS vehicle_operator,
-    BusVehicleLegOut.vehicle_legs
+    BusVehicleLegOut.vehicle_legs,
+    BusVehicleLegOut.vehicle_duration
 FROM BusVehicle
 INNER JOIN (
     SELECT (
@@ -404,7 +406,31 @@ INNER JOIN (
             )::BusOperatorOutData,
             BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1],
             BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1],
-            INTERVAL '1 day')::BusLegOverviewOutData) AS vehicle_legs
+            COALESCE(
+                (BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1]).act_arr,
+                (BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1]).act_dep,
+                (BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1]).plan_arr,
+                (BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1]).plan_dep
+            ) -
+            COALESCE(
+                (BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1]).act_dep,
+                (BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1]).act_arr,
+                (BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1]).plan_dep,
+                (BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1]).plan_arr
+            ))::BusLegOverviewOutData) AS vehicle_legs,
+            SUM(
+                COALESCE(
+                    (BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1]).act_arr,
+                    (BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1]).act_dep,
+                    (BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1]).plan_arr,
+                    (BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1]).plan_dep
+                ) -
+                COALESCE(
+                    (BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1]).act_dep,
+                    (BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1]).act_arr,
+                    (BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1]).plan_dep,
+                    (BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1]).plan_arr
+            )) AS vehicle_duration
     FROM BusLeg
     INNER JOIN BusJourney
     ON BusLeg.bus_journey_id = BusJourney.bus_journey_id
@@ -416,13 +442,17 @@ INNER JOIN (
         SELECT
             BusJourney.bus_journey_id,
             ARRAY_AGG((
-                BusStop.bus_stop_id,
+                BusCall.bus_call_id,
+                (BusStop.bus_stop_id,
                 BusStop.atco_code,
                 BusStop.stop_name,
                 BusStop.locality_name,
-                BusStop.street_name
-            )::BusStopOverviewOutData ORDER BY call_index)
-                AS bus_journey_call
+                BusStop.street_name)::BusStopOverviewOutData,
+                BusCall.plan_arr,
+                BusCall.act_arr,
+                BusCall.plan_dep,
+                BusCall.act_dep
+            )::BusCallOverviewOutData ORDER BY call_index) AS bus_journey_call
         FROM BusCall
         INNER JOIN BusJourney
         ON BusCall.bus_journey_id = BusJourney.bus_journey_id
@@ -435,7 +465,7 @@ INNER JOIN (
 ) BusVehicleLegOut
 ON BusVehicleLegOut.bus_vehicle_id = BusVehicle.bus_vehicle_id;
 
-CREATE OR REPLACE FUNCTION GetBusVehicleOverviewByUser (
+CREATE OR REPLACE FUNCTION GetBusVehicleOverviews (
     p_user_id INT
 ) RETURNS SETOF BusVehicleOverviewOutData
 LANGUAGE plpgsql
@@ -443,12 +473,13 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT
-        vehicle_id,
+    SELECT vehicle_id,
+        vehicle_number,
         vehicle_name,
         vehicle_numberplate,
         vehicle_operator,
-        vehicle_legs
+        vehicle_legs,
+        vehicle_duration
     FROM BusVehicleData
     WHERE user_id = p_user_id;
 END;
@@ -573,18 +604,22 @@ INNER JOIN (
 ) UserOut
 ON BusLeg.user_id = (UserOut.user_out).user_id;
 
-CREATE OR REPLACE FUNCTION GetBusLegs()
+CREATE OR REPLACE FUNCTION GetBusLegs(
+    p_user_id INT
+)
 RETURNS SETOF BusLegOutData
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT * FROM BusLegData;
+    SELECT * FROM BusLegData
+    WHERE (BusLegData.leg_user).user_id = p_user_id;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetBusLegsByDatetime(
+    p_user_id INT,
     p_search_start TIMESTAMP WITH TIME ZONE,
     p_search_end TIMESTAMP WITH TIME ZONE
 )
@@ -595,7 +630,8 @@ $$
 BEGIN
     RETURN QUERY
     SELECT * FROM BusLegData
-    WHERE COALESCE(
+    WHERE (BusLegData.leg_user).user_id = p_user_id
+    AND COALESCE(
         (BusLegData.leg_calls)[1].plan_dep,
         (BusLegData.leg_calls)[1].act_dep,
         (BusLegData.leg_calls)[1].plan_arr,
@@ -609,6 +645,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetBusLegsByStartDatetime(
+    p_user_id INT,
     p_search_start TIMESTAMP WITH TIME ZONE
 )
 RETURNS SETOF BusLegOutData
@@ -618,7 +655,8 @@ $$
 BEGIN
     RETURN QUERY
     SELECT * FROM BusLegData
-    WHERE COALESCE(
+    WHERE (BusLegData.leg_user).user_id = p_user_id
+    AND COALESCE(
         (BusLegData.leg_calls)[1].plan_dep,
         (BusLegData.leg_calls)[1].act_dep,
         (BusLegData.leg_calls)[1].plan_arr,
@@ -627,6 +665,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetBusLegsByEndDatetime(
+    p_user_id INT,
     p_search_end TIMESTAMP WITH TIME ZONE
 )
 RETURNS SETOF BusLegOutData
@@ -636,7 +675,8 @@ $$
 BEGIN
     RETURN QUERY
     SELECT * FROM BusLegData
-    WHERE COALESCE(
+    WHERE (BusLegData.leg_user).user_id = p_user_id
+    AND COALESCE(
         (BusLegData.leg_calls)[1].plan_dep,
         (BusLegData.leg_calls)[1].act_dep,
         (BusLegData.leg_calls)[1].plan_arr,
@@ -645,6 +685,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetBusLegsByIds(
+    p_user_id INT,
     p_leg_ids INT[]
 )
 RETURNS SETOF BusLegOutData
@@ -654,6 +695,7 @@ $$
 BEGIN
     RETURN QUERY
     SELECT * FROM BusLegData
-    WHERE BusLegData.leg_id = ANY(p_leg_ids);
+    WHERE (BusLegData.leg_user).user_id = p_user_id
+    AND BusLegData.leg_id = ANY(p_leg_ids);
 END;
 $$;

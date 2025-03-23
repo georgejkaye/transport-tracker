@@ -23,6 +23,9 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
+    DROP TYPE BusVehicleOverviewOutData;
+    DROP TYPE BusLegOverviewOutData;
+    DROP TYPE BusStopOverviewOutData;
     DROP TYPE BusLegOutData;
     DROP TYPE BusLegInData;
     DROP TYPE BusJourneyOutData;
@@ -59,8 +62,18 @@ BEGIN
     DROP FUNCTION InsertBusModelsAndVehicles;
     DROP FUNCTION InsertBusCalls;
     DROP FUNCTION InsertBusJourney;
-    DROP FUNCTION GetBusCallIdFromJourneyCallIndex;
     DROP FUNCTION InsertBusLeg;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION DropBusViews ()
+RETURNS VOID
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    DROP VIEW BusVehicleData;
+    DROP VIEW BusLegData;
 END;
 $$;
 
@@ -81,6 +94,15 @@ BEGIN
     DROP FUNCTION GetBusServicesByNationalOperatorCode;
     DROP FUNCTION GetBusServicesByOperatorName;
     DROP FUNCTION GetBusVehicles;
+    DROP FUNCTION GetBusVehicleOverviews;
+    DROP FUNCTION GetBusCallsByJourney;
+    DROP FUNCTION GetBusCalls;
+    DROP FUNCTION GetBusJourneys;
+    DROP FUNCTION GetBusLegs;
+    DROP FUNCTION GetBusLegsByDatetime;
+    DROP FUNCTION GetBusLegsByStartDatetime;
+    DROP FUNCTION GetBusLegsByEndDatetime;
+    DROP FUNCTION GetBusLegsByIds;
 END;
 $$;
 
@@ -91,6 +113,7 @@ AS
 $$
 BEGIN
     PERFORM DropBusSelectFunctions();
+    PERFORM DropBusViews();
     PERFORM DropBusInsertFunctions();
     PERFORM DropBusTypes();
     PERFORM DropBusTables();

@@ -88,49 +88,56 @@ def register_leg_types(conn: Connection):
     register_type(conn, "BusServiceOutData", register_bus_service)
 
 
-def select_bus_legs(conn: Connection) -> list[BusLeg]:
+def select_bus_legs(conn: Connection, user_id: int) -> list[BusLeg]:
     register_leg_types(conn)
-    rows = conn.execute("SELECT GetBusLegs()").fetchall()
+    rows = conn.execute("SELECT GetBusLegs(%s)").fetchall()
     return [row[0] for row in rows]
 
 
 def select_bus_legs_by_datetime(
-    conn: Connection, search_start: datetime, search_end: datetime
+    conn: Connection, user_id: int, search_start: datetime, search_end: datetime
 ) -> list[BusLeg]:
     register_leg_types(conn)
     rows = conn.execute(
-        "SELECT GetBusLegsByDatetime(%s, %s)", [search_start, search_end]
+        "SELECT GetBusLegsByDatetime(%s, %s, %s)",
+        [user_id, search_start, search_end],
     ).fetchall()
     return [row[0] for row in rows]
 
 
 def select_bus_legs_by_start_datetime(
-    conn: Connection, search_start: datetime
+    conn: Connection, user_id: int, search_start: datetime
 ) -> list[BusLeg]:
     register_leg_types(conn)
     rows = conn.execute(
-        "SELECT GetBusLegsByStartDatetime(%s)", [search_start]
+        "SELECT GetBusLegsByStartDatetime(%s, %s)", [user_id, search_start]
     ).fetchall()
     return [row[0] for row in rows]
 
 
 def select_bus_legs_by_end_datetime(
-    conn: Connection, search_end: datetime
+    conn: Connection, user_id: int, search_end: datetime
 ) -> list[BusLeg]:
     register_leg_types(conn)
     rows = conn.execute(
-        "SELECT GetBusLegsByEngDatetime(%s)", [search_end]
+        "SELECT GetBusLegsByEngDatetime(%s, %s)", [user_id, search_end]
     ).fetchall()
     return [row[0] for row in rows]
 
 
-def select_bus_leg_by_id(conn: Connection, id: int) -> BusLeg:
+def select_bus_leg_by_id(conn: Connection, user_id: int, leg_id: int) -> BusLeg:
     register_leg_types(conn)
-    rows = conn.execute("SELECT GetBusLegsByIds(%s)", [[id]]).fetchall()
+    rows = conn.execute(
+        "SELECT GetBusLegsByIds(%s, %s)", [user_id, [leg_id]]
+    ).fetchall()
     return [row[0] for row in rows][0]
 
 
-def select_bus_legs_by_id(conn: Connection, ids: list[int]) -> list[BusLeg]:
+def select_bus_legs_by_id(
+    conn: Connection, user_id: int, leg_ids: list[int]
+) -> list[BusLeg]:
     register_leg_types(conn)
-    rows = conn.execute("SELECT GetBusLegsByIds(%s)", [ids]).fetchall()
+    rows = conn.execute(
+        "SELECT GetBusLegsByIds(%s, %s)", [user_id, leg_ids]
+    ).fetchall()
     return [row[0] for row in rows]
