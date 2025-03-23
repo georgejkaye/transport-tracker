@@ -12,11 +12,12 @@ from api.network.map import (
     short_legs_to_short_legs_with_geometries,
 )
 
-router = APIRouter(prefix="/legs", tags=["train/legs"])
+router = APIRouter(prefix="/legs", tags=["users/train/legs"])
 
 
 @router.get("", summary="Get train legs across a time period")
 async def get_legs(
+    user_id: int,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
     fetch_geometries: bool = False,
@@ -32,7 +33,7 @@ async def get_legs(
 
 @router.get("/year/{year}", summary="Get train legs across a year")
 async def get_legs_from_year(
-    year: int, fetch_geometries: bool = False
+    user_id: int, year: int, fetch_geometries: bool = False
 ) -> list[ShortLegWithGeometry]:
     with connect_with_env() as conn:
         legs = select_legs(
@@ -49,7 +50,7 @@ async def get_legs_from_year(
 
 @router.get("/{leg_id}", summary="Get particular train leg")
 async def get_leg(
-    leg_id: int, fetch_geometries: bool = False
+    user_id: int, leg_id: int, fetch_geometries: bool = False
 ) -> ShortLegWithGeometry:
     with connect_with_env() as conn:
         legs = select_legs(conn, search_leg_id=leg_id)

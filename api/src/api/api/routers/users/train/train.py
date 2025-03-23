@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from api.api.routers.train import legs, map, stations, stats
+from api.api.routers.users.train import legs, map, stations, stats
 
 
 router = APIRouter(prefix="/train")

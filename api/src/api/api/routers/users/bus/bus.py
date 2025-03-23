@@ -1,4 +1,4 @@
-from api.api.routers.bus import legs, vehicles
+from api.api.routers.users.bus import legs, vehicles
 from fastapi import APIRouter
 
 router = APIRouter(prefix="/bus")
