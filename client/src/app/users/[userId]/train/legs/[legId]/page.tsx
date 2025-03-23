@@ -152,11 +152,12 @@ const LegCallMarker = (props: {
 }
 
 const LegCallPopup = (props: {
+  userId: number
   currentLegCall: TrainLegCall
   stationPoint: [number, number]
   setCurrentLegCall: Dispatch<SetStateAction<TrainLegCall | undefined>>
 }) => {
-  let { currentLegCall, stationPoint, setCurrentLegCall } = props
+  let { userId, currentLegCall, stationPoint, setCurrentLegCall } = props
   return (
     <Popup
       anchor="bottom"
@@ -171,7 +172,9 @@ const LegCallPopup = (props: {
         <div>
           <div>
             <b className={`text-lg mb-2 ${linkStyle}`}>
-              <Link href={`/train/stations/${currentLegCall.station.crs}`}>
+              <Link
+                href={`/users/${userId}/train/stations/${currentLegCall.station.crs}`}
+              >
                 {currentLegCall.station.name} [{currentLegCall.station.crs}]
               </Link>
             </b>
@@ -221,8 +224,8 @@ const LegCallPopup = (props: {
   )
 }
 
-const TrainLegMap = (props: { leg: TrainLeg }) => {
-  let { leg } = props
+const TrainLegMap = (props: { userId: number; leg: TrainLeg }) => {
+  let { userId, leg } = props
   const [currentStation, setCurrentStation] = useState<
     TrainLegCall | undefined
   >(undefined)
@@ -275,6 +278,7 @@ const TrainLegMap = (props: { leg: TrainLeg }) => {
         {markers}
         {currentStation && currentStation.point && (
           <LegCallPopup
+            userId={userId}
             currentLegCall={currentStation}
             stationPoint={currentStation.point}
             setCurrentLegCall={setCurrentStation}
@@ -308,13 +312,13 @@ const TrainLegServices = (props: { services: TrainService[] }) => {
   )
 }
 
-const LegCallRow = (props: { call: TrainLegCall }) => {
-  let { call } = props
+const LegCallRow = (props: { userId: number; call: TrainLegCall }) => {
+  let { userId, call } = props
   let platformString = !call.platform ? "-" : call.platform
   return (
     <div className="flex flex-row gap-2 items-center">
       <div className="w-14 hidden md:block">{call.station.crs}</div>
-      <ShortStationLink station={call.station} />
+      <ShortStationLink userId={userId} station={call.station} />
       <div className="w-6 text-center">{platformString}</div>
       <div className="flex flex-col md:flex-row">
         <PlanActTime plan={call.planArr} act={call.actArr} />
@@ -343,8 +347,8 @@ const TrainLegStats = (props: { leg: TrainLeg }) => {
   )
 }
 
-const TrainLegCalls = (props: { calls: TrainLegCall[] }) => {
-  let { calls } = props
+const TrainLegCalls = (props: { userId: number; calls: TrainLegCall[] }) => {
+  let { userId, calls } = props
   return (
     <div>
       <h2 className="text-xl font-bold pb-2">Calls</h2>
@@ -353,7 +357,7 @@ const TrainLegCalls = (props: { calls: TrainLegCall[] }) => {
           return (
             <div className="flex flex-col gap-2" key={i}>
               <Line />
-              <LegCallRow call={call} />
+              <LegCallRow userId={userId} call={call} />
             </div>
           )
         })}
@@ -362,12 +366,15 @@ const TrainLegCalls = (props: { calls: TrainLegCall[] }) => {
   )
 }
 
-const TrainStockReportLine = (props: { stock: TrainStockReport }) => {
-  let { stock } = props
+const TrainStockReportLine = (props: {
+  userId: number
+  stock: TrainStockReport
+}) => {
+  let { userId, stock } = props
   let stockDescription = !stock.classNo ? (
     ""
   ) : (
-    <Link href={`/train/stock/${stock.classNo}`}>
+    <Link href={`/users/${userId}/train/stock/${stock.classNo}`}>
       {`Class ${stock.classNo}${
         !stock.subclassNo ? "" : `/${stock.subclassNo}`
       }`}
@@ -376,7 +383,9 @@ const TrainStockReportLine = (props: { stock: TrainStockReport }) => {
   let stockNumber = !stock.stockNo ? (
     ""
   ) : (
-    <Link href={`/train/stock/unit/${stock.stockNo}`}>{stock.stockNo}</Link>
+    <Link href={`/users/${userId}/train/stock/unit/${stock.stockNo}`}>
+      {stock.stockNo}
+    </Link>
   )
   let stockDescriptionElements = stock.stockNo ? (
     <div className="flex flex-row gap-2">
@@ -400,10 +409,11 @@ const TrainStockReportLine = (props: { stock: TrainStockReport }) => {
 }
 
 const TrainLegStockSegment = (props: {
+  userId: number
   isOnlySegment: boolean
   segment: TrainLegSegment
 }) => {
-  let { isOnlySegment, segment } = props
+  let { userId, isOnlySegment, segment } = props
   return (
     <div>
       {!isOnlySegment && (
@@ -413,21 +423,25 @@ const TrainLegStockSegment = (props: {
       )}
       <ul className="flex flex-col gap-2 list-disc">
         {segment.stocks.map((stock, i) => (
-          <TrainStockReportLine key={i} stock={stock} />
+          <TrainStockReportLine userId={userId} key={i} stock={stock} />
         ))}
       </ul>
     </div>
   )
 }
 
-const TrainLegStockSegments = (props: { segments: TrainLegSegment[] }) => {
-  let { segments } = props
+const TrainLegStockSegments = (props: {
+  userId: number
+  segments: TrainLegSegment[]
+}) => {
+  let { userId, segments } = props
   return (
     <div className="flex-1">
       <h2 className="font-bold text-xl pb-2">Rolling stock</h2>
       <div className="flex flex-col gap-4">
         {segments.map((segment, i) => (
           <TrainLegStockSegment
+            userId={userId}
             isOnlySegment={segments.length == 1}
             segment={segment}
             key={i}
@@ -438,17 +452,18 @@ const TrainLegStockSegments = (props: { segments: TrainLegSegment[] }) => {
   )
 }
 
-const Page = ({ params }: { params: { legId: string } }) => {
-  let { legId } = params
+const Page = ({ params }: { params: { userId: string; legId: string } }) => {
+  let { userId, legId } = params
+  let userIdNumber = parseInt(userId)
+  let legIdNumber = parseInt(userId)
   let router = useRouter()
   let [leg, setLeg] = useState<TrainLeg | undefined>(undefined)
   useEffect(() => {
-    let legIdNumber = parseInt(legId)
-    if (isNaN(legIdNumber)) {
+    if (isNaN(legIdNumber) || isNaN(userIdNumber)) {
       router.push("/")
     } else {
       const getLegData = async () => {
-        let legData = await getTrainLeg(legIdNumber)
+        let legData = await getTrainLeg(userIdNumber, legIdNumber)
         if (!legData) {
           router.push("/")
         } else {
@@ -471,7 +486,7 @@ const Page = ({ params }: { params: { legId: string } }) => {
         <div className="text-xl">{dateToLongString(leg.start)}</div>
         <div>operated by {getLegOperator(leg)}</div>
       </div>
-      <TrainLegMap leg={leg} />
+      <TrainLegMap userId={userIdNumber} leg={leg} />
       <Line />
       <TrainLegStats leg={leg} />
       <Line />
@@ -480,10 +495,10 @@ const Page = ({ params }: { params: { legId: string } }) => {
         <div className="lg:hidden">
           <Line />
         </div>
-        <TrainLegStockSegments segments={leg.stock} />
+        <TrainLegStockSegments userId={userIdNumber} segments={leg.stock} />
       </div>
       <Line />
-      <TrainLegCalls calls={leg.calls} />
+      <TrainLegCalls userId={userIdNumber} calls={leg.calls} />
     </div>
   )
 }

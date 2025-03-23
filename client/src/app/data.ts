@@ -6,8 +6,8 @@ import {
   TrainStationData,
 } from "./structs"
 
-export const getLegs = async (): Promise<TrainLeg[]> => {
-  let endpoint = "/api/train/legs/"
+export const getLegs = async (userId: number): Promise<TrainLeg[]> => {
+  let endpoint = `/api/users/${userId}/train/legs/`
   try {
     let response = await axios.get(endpoint)
     let data = response.data
@@ -19,9 +19,12 @@ export const getLegs = async (): Promise<TrainLeg[]> => {
   }
 }
 
-export const getLegsForYear = async (year: number): Promise<TrainLeg[]> => {
+export const getLegsForYear = async (
+  userId: number,
+  year: number
+): Promise<TrainLeg[]> => {
   let yearString = year.toString().padStart(4, "0")
-  let endpoint = `/api/train/legs/year/${yearString}?fetch_geometries=true`
+  let endpoint = `/api/users/${userId}/train/legs/year/${yearString}?fetch_geometries=true`
   try {
     let response = await axios.get(endpoint)
     let data = response.data
@@ -34,9 +37,10 @@ export const getLegsForYear = async (year: number): Promise<TrainLeg[]> => {
 }
 
 export const getTrainLeg = async (
+  userId: number,
   legId: number
 ): Promise<TrainLeg | undefined> => {
-  let endpoint = `/api/train/legs/${legId}?fetch_geometries=true`
+  let endpoint = `/api/users/${userId}/train/legs/${legId}?fetch_geometries=true`
   try {
     let response = await axios.get(endpoint)
     let data = response.data
@@ -49,9 +53,10 @@ export const getTrainLeg = async (
 }
 
 export const getTrainStationData = async (
+  userId: number,
   stationCrs: string
 ): Promise<TrainStationData | undefined> => {
-  let endpoint = `/api/train/stations/${stationCrs}`
+  let endpoint = `/api/users/${userId}/train/stations/${stationCrs}`
   try {
     let response = await axios.get(endpoint)
     let data = response.data
@@ -63,10 +68,10 @@ export const getTrainStationData = async (
   }
 }
 
-export const getTrainStations = async (): Promise<
-  TrainStationData[] | undefined
-> => {
-  let endpoint = `/api/train/stations`
+export const getTrainStations = async (
+  userId: number
+): Promise<TrainStationData[] | undefined> => {
+  let endpoint = `/api/users/${userId}/train/stations`
   try {
     let response = await axios.get(endpoint)
     let data = response.data

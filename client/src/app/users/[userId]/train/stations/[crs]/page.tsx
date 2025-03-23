@@ -14,33 +14,19 @@ import {
 } from "@/app/structs"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { Line } from "@/app/line"
-import {
-  Delay,
-  delayWidth,
-  EndpointSection,
-  getDelay,
-  LegIconLink,
-  PlanActTime,
-  StationLink,
-} from "@/app/leg"
+import { Delay, delayWidth, LegIconLink, PlanActTime } from "@/app/leg"
 import { linkStyle } from "@/app/styles"
 import Link from "next/link"
-import {
-  LineDashed,
-  StartTerminusSymbol,
-  StationSymbol,
-  EndTerminusSymbol,
-} from "@/app/svgs"
 
 const StationLegEndpoint = (props: {
+  userId: number
   crs: string
   station: TrainStation
   origin: boolean
   plan?: Date
   act?: Date
 }) => {
-  let { crs, station, origin, plan, act } = props
+  let { userId, crs, station, origin, plan, act } = props
   let endpointFlavourText = origin ? "from" : "to"
   let stationNameStyle = "w-48"
   return (
@@ -52,7 +38,7 @@ const StationLegEndpoint = (props: {
         <div className={`font-bold ${stationNameStyle}`}>{station.name}</div>
       ) : (
         <Link
-          href={`/train/station/${station.crs}`}
+          href={`/users/${userId}/train/station/${station.crs}`}
           className={`${linkStyle} ${stationNameStyle}`}
         >
           {station.name}
@@ -85,6 +71,7 @@ const StationLegPlanActTime = (props: { plan?: Date; act?: Date }) => {
 }
 
 interface StationLegProps {
+  userId: number
   leg: TrainStationLegData
   originStyle: string
   destinationStyle: string
@@ -95,6 +82,7 @@ interface StationLegProps {
 }
 
 const StationLegMobile = ({
+  userId,
   leg,
   originStyle,
   destinationStyle,
@@ -107,7 +95,7 @@ const StationLegMobile = ({
     className={`flex flex-col mx-4 gap-1 border-2 border-gray-400 rounded-xl overflow-hidden ${passStyle}`}
   >
     <div className="flex flex-row gap-4 m-2 p-1 align-center">
-      <LegIconLink id={leg.id} />
+      <LegIconLink userId={userId} legId={leg.id} />
       <div className="flex flex-col md:flex-row flex-1">
         <div>
           <div className="flex flex-row gap-2 items-center pb-2">
@@ -122,14 +110,14 @@ const StationLegMobile = ({
             <div className="flex flex-row gap-1">
               <Link
                 className={`${originStyle} ${linkStyle}`}
-                href={`/train/station/${leg.origin.crs}`}
+                href={`/users/${userId}/train/station/${leg.origin.crs}`}
               >
                 {leg.origin.name}
               </Link>
               <div>to</div>
               <Link
                 className={`${destinationStyle} ${linkStyle}`}
-                href={`/train/station/${leg.destination.crs}`}
+                href={`/users/${userId}/train/station/${leg.destination.crs}`}
               >
                 {leg.destination.name}
               </Link>
@@ -148,6 +136,7 @@ const StationLegMobile = ({
 )
 
 const StationLegWide = ({
+  userId,
   leg,
   originStyle,
   destinationStyle,
@@ -159,18 +148,18 @@ const StationLegWide = ({
   <div className="flex flex-row rounded-xl border-2 border-gray-300 mx-2 gap-2 overflow-hidden">
     <div className="flex flex-row p-2">
       {" "}
-      <LegIconLink id={leg.id} />
+      <LegIconLink userId={userId} legId={leg.id} />
       <div className="w-28">{dateToShortString(leg.stopTime)}</div>
       <Link
         className={`${originStyle} ${linkStyle}`}
-        href={`/train/station/${leg.origin.crs}`}
+        href={`/users/${userId}/train/station/${leg.origin.crs}`}
       >
         {leg.origin.name}
       </Link>
       <PlanActTime plan={leg.planArr} act={leg.actArr} />
       <Link
         className={`${destinationStyle} ${linkStyle}`}
-        href={`/train/station/${leg.destination.crs}`}
+        href={`/users/${userId}/train/station/${leg.destination.crs}`}
       >
         {leg.destination.name}
       </Link>
@@ -186,10 +175,11 @@ const StationLegWide = ({
 )
 
 const StationLeg = (props: {
+  userId: number
   station: TrainStation
   leg: TrainStationLegData
 }) => {
-  let { station, leg } = props
+  let { userId, station, leg } = props
   let boardsAtThisStation = leg.origin.crs === station.crs
   let alightsAtThisStation = leg.destination.crs === station.crs
   let operatorText = leg.brand ? leg.brand.name : leg.operator.name
@@ -203,6 +193,7 @@ const StationLeg = (props: {
     <div>
       <div className="md:hidden">
         <StationLegMobile
+          userId={userId}
           leg={leg}
           originStyle={originStyle}
           destinationStyle={destinationStyle}
@@ -214,6 +205,7 @@ const StationLeg = (props: {
       </div>
       <div className="hidden md:block">
         <StationLegWide
+          userId={userId}
           leg={leg}
           originStyle={originStyle}
           destinationStyle={destinationStyle}
@@ -228,28 +220,29 @@ const StationLeg = (props: {
 }
 
 const StationLegs = (props: {
+  userId: number
   station: TrainStation
   legs: TrainStationLegData[]
 }) => {
-  let { station, legs } = props
+  let { userId, station, legs } = props
   return (
     <div className="flex flex-col gap-4">
       {legs.map((leg) => (
         <div key={leg.id} className="flex flex-col">
-          <StationLeg station={station} leg={leg} />{" "}
+          <StationLeg userId={userId} station={station} leg={leg} />{" "}
         </div>
       ))}
     </div>
   )
 }
 
-const Page = ({ params }: { params: { crs: string } }) => {
-  let { crs } = params
+const Page = ({ params }: { params: { userId: string; crs: string } }) => {
+  let { userId, crs } = params
   let router = useRouter()
   let [station, setStation] = useState<TrainStationData | undefined>(undefined)
   useEffect(() => {
     const getStationData = async () => {
-      let stationData = await getTrainStationData(crs)
+      let stationData = await getTrainStationData(parseInt(userId), crs)
       if (!stationData) {
         router.push("/")
       } else {
@@ -282,7 +275,11 @@ const Page = ({ params }: { params: { crs: string } }) => {
           </>
         )}
       </div>
-      <StationLegs station={station} legs={station.legs} />
+      <StationLegs
+        userId={parseInt(userId)}
+        station={station}
+        legs={station.legs}
+      />
     </div>
   )
 }

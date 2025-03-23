@@ -22,11 +22,11 @@ import {
   ScaleControl,
   Popup,
 } from "react-map-gl/maplibre"
-import { Feature, FeatureCollection, Position } from "geojson"
+import { Feature, FeatureCollection } from "geojson"
 import bbox from "@turf/bbox"
 
-const LegRow = (props: { leg: TrainLeg }) => {
-  let { leg } = props
+const LegRow = (props: { userId: number; leg: TrainLeg }) => {
+  let { userId, leg } = props
   let mileString = !leg.distance ? "" : getMilesAndChainsString(leg.distance)
   let origin = getLegOrigin(leg)
   let destination = getLegDestination(leg)
@@ -34,7 +34,7 @@ const LegRow = (props: { leg: TrainLeg }) => {
     <div className="flex flex-row gap-4 justify-center">
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex flex-row gap-2 lg:w-80 items-center">
-          <LegIconLink id={leg.id} />
+          <LegIconLink userId={userId} legId={leg.id} />
           <div className="text-xs lg:hidden">•</div>
           <div className="lg:px-2">{dateToShortString(leg.start)}</div>
           <div className="text-xs lg:hidden">•</div>
@@ -45,11 +45,15 @@ const LegRow = (props: { leg: TrainLeg }) => {
         <div className="flex flex-col md:flex-row gap-2">
           <div className="flex flex-row gap-2 items-center">
             <div className="text-right w-10 text-xs lg:hidden">from</div>
-            <EndpointSection call={origin} origin={true} />
+            <EndpointSection userId={userId} call={origin} origin={true} />
           </div>
           <div className="flex flex-row gap-2 items-center">
             <div className="text-right w-10 text-xs lg:hidden">to</div>
-            <EndpointSection call={destination} origin={false} />
+            <EndpointSection
+              userId={userId}
+              call={destination}
+              origin={false}
+            />
           </div>
         </div>
       </div>
@@ -143,10 +147,10 @@ export const TotalLegStats = (props: { legs: TrainLeg[] }) => {
   )
 }
 
-export const LegList = (props: { legs: TrainLeg[] }) =>
+export const LegList = (props: { userId: number; legs: TrainLeg[] }) =>
   props.legs.map((leg, i) => (
     <div className="flex flex-col gap-2" key={i}>
       <hr className="h-px border-0 bg-gray-600" />
-      <LegRow key={leg.id} leg={leg} />
+      <LegRow userId={props.userId} key={leg.id} leg={leg} />
     </div>
   ))
