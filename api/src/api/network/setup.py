@@ -20,7 +20,7 @@ else:
 
 projected_network = ox.project_graph(network, to_crs=osgb36)
 
-with connect() as (conn, _):
+with connect() as conn:
     station_points = get_station_points(conn)
 
 projected_network = insert_node_dict_to_network(

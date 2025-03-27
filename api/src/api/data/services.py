@@ -7,7 +7,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Optional
 from bs4 import BeautifulSoup
-from psycopg import Connection, Cursor
+from psycopg import Connection
 
 from api.utils.request import get_soup, make_get_request
 from api.utils.credentials import get_api_credentials
@@ -307,7 +307,7 @@ def response_to_time(
 
 
 def response_to_call(
-    cur: Cursor,
+    conn: Connection,
     service_id: str,
     service_soup: Optional[BeautifulSoup],
     run_date: datetime,
@@ -348,7 +348,7 @@ def response_to_call(
                 else:
                     subsoup = True
                 associated_service = get_service_from_id(
-                    cur,
+                    conn,
                     assoc_uid,
                     assoc_date,
                     current_uid,
@@ -401,7 +401,7 @@ def response_to_call(
 
 
 def get_service_from_id(
-    cur: Cursor,
+    conn: Connection,
     service_id: str,
     run_date: datetime,
     parent: Optional[str] = None,
@@ -419,11 +419,11 @@ def get_service_from_id(
         headcode = data["trainIdentity"]
         power = data.get("powerType")
         origins = [
-            response_to_short_train_station(cur, origin)
+            response_to_short_train_station(conn, origin)
             for origin in data["origin"]
         ]
         destinations = [
-            response_to_short_train_station(cur, destination)
+            response_to_short_train_station(conn, destination)
             for destination in data["destination"]
         ]
         operator_name = data["atocName"]
@@ -438,7 +438,7 @@ def get_service_from_id(
         for i, loc in enumerate(data["locations"]):
             if loc.get("crs") is not None:
                 call = response_to_call(
-                    cur,
+                    conn,
                     service_id,
                     service_soup,
                     run_date,
@@ -501,7 +501,7 @@ def stops_at_station(
 
 
 def filter_services_by_time_and_stop(
-    cur: Cursor,
+    conn: Connection,
     earliest: datetime,
     latest: datetime,
     origin: TrainStation,
@@ -516,7 +516,7 @@ def filter_services_by_time_and_stop(
         max_string_length = max(max_string_length, len(string))
         information(string.ljust(max_string_length), end="\r")
         full_service = get_service_from_id(
-            cur, service.id, service.run_date, soup=False
+            conn, service.id, service.run_date, soup=False
         )
         if full_service and stops_at_station(
             full_service, origin.crs, destination.crs
@@ -573,9 +573,7 @@ def get_miles_and_chains_from_call_div(
     return miles_and_chains_to_miles(miles_int, chains_int)
 
 
-def insert_services(
-    conn: Connection, cur: Cursor, services: list[TrainServiceRaw]
-):
+def insert_services(conn: Connection, services: list[TrainServiceRaw]):
     service_values = []
     endpoint_values = []
     call_values = []
@@ -638,7 +636,7 @@ def insert_services(
                         string_of_associated_type(divide.association),
                     )
                 )
-    cur.execute(
+    conn.execute(
         """
         SELECT * FROM InsertServices(
             %s::service_data[],

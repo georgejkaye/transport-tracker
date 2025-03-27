@@ -2,14 +2,12 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Callable, Optional
-from networkx import MultiDiGraph
-from psycopg import Connection, Cursor
-from shapely import LineString, Point
+from psycopg import Connection
 
 from api.utils.database import register_type
 from api.utils.times import change_timezone
 from api.data.toc import BrandData, OperatorData
-from api.data.points import PointTimes, get_station_points_from_crses
+from api.data.points import PointTimes
 from api.data.services import (
     LegCall,
     ShortAssociatedService,
@@ -70,27 +68,27 @@ class Leg:
     stock: list[LegSegmentStock]
 
 
-def get_value_or_none[
-    T, U
-](get: Callable[[T], U | None], obj: T | None) -> U | None:
+def get_value_or_none[T, U](
+    get: Callable[[T], U | None], obj: T | None
+) -> U | None:
     if obj is None:
         return None
     return get(obj)
 
 
-def apply_to_optional[
-    T, U
-](t: Optional[T], fn: Callable[[T], U]) -> Optional[U]:
+def apply_to_optional[T, U](
+    t: Optional[T], fn: Callable[[T], U]
+) -> Optional[U]:
     if t is None:
         return None
     return fn(t)
 
 
-def insert_leg(conn: Connection, cur: Cursor, leg: Leg):
+def insert_leg(conn: Connection, leg: Leg):
     services = [leg.service]
     for assoc in leg.service.divides + leg.service.joins:
         services.append(assoc.service)
-    insert_services(conn, cur, services)
+    insert_services(conn, services)
     leg_values = leg.distance
     call_values = []
     for call in leg.calls:
@@ -152,7 +150,7 @@ def insert_leg(conn: Connection, cur: Cursor, leg: Leg):
                     stock_cars,
                 )
             )
-    cur.execute(
+    conn.execute(
         """
         SELECT * FROM InsertLeg(
             %s::decimal,

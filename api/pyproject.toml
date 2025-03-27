@@ -25,6 +25,8 @@ fastapi = "^0.115.6"
 psycopg = "^3.2.3"
 folium = "^0.19.3"
 osmnx = "^2.0.1"
+python-slugify = "^8.0.4"
+cssutils = "^2.11.1"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.5.1"

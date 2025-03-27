@@ -22,6 +22,7 @@ PGPASSWORD=$PASSWORD pg_dump --column-inserts --data-only \
     --table=stocksegment \
     --table=stockreport \
     --table=stocksegmentreport \
+    --table=busstop \
     -h $DB_HOST \
     -d $DB_NAME \
     -U $DB_USER > /db/scripts/99_populate.sql

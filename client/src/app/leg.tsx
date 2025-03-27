@@ -9,25 +9,26 @@ import {
 import { linkStyle } from "./styles"
 import TrainOutlinedIcon from "@mui/icons-material/TrainOutlined"
 
-export const LegIconLink = (props: { id: number }) => {
-  let { id } = props
+export const LegIconLink = (props: { userId: number; legId: number }) => {
+  let { userId, legId } = props
   return (
-    <Link className={linkStyle} href={`/train/legs/${id}`}>
+    <Link className={linkStyle} href={`/users/${userId}/train/legs/${legId}`}>
       <TrainOutlinedIcon />
     </Link>
   )
 }
 
 export const EndpointSection = (props: {
+  userId: number
   call: TrainLegCall
   origin: boolean
 }) => {
-  let { call, origin } = props
+  let { userId, call, origin } = props
   let planTime = origin ? call.planDep : call.planArr
   let actTime = origin ? call.actDep : call.actArr
   return (
     <div className="flex flex-row">
-      <StationLink station={call.station} />
+      <StationLink userId={userId} station={call.station} />
       <div className="flex flex-row gap-2">
         <div className="w-10 hidden">
           {!planTime ? "" : dateToTimeString(planTime)}
@@ -120,11 +121,17 @@ export const Delay = (props: {
   )
 }
 
-export const ShortStationLink = (props: { station: TrainStation }) => {
-  let { station } = props
+export const ShortStationLink = (props: {
+  userId: number
+  station: TrainStation
+}) => {
+  let { userId, station } = props
   return (
     <div className="flex-1 flex-wrap">
-      <Link className={linkStyle} href={`/train/stations/${station.crs}`}>
+      <Link
+        className={linkStyle}
+        href={`/users/${userId}/train/stations/${station.crs}`}
+      >
         {station.name}
       </Link>
     </div>
@@ -132,16 +139,17 @@ export const ShortStationLink = (props: { station: TrainStation }) => {
 }
 
 export const StationLink = (props: {
+  userId: number
   station: TrainStation
   style?: string
 }) => {
-  let { station, style } = props
+  let { userId, station, style } = props
   let styleText = !style ? "" : style
   return (
     <div className="w-56 flex-wrap">
       <Link
         className={`${linkStyle} ${styleText}`}
-        href={`/train/station/${station.crs}`}
+        href={`/users/${userId}/train/stations/${station.crs}`}
       >
         {station.name}
       </Link>

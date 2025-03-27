@@ -1,7 +1,7 @@
-import abc
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, DecimalException
+import sys
 from typing import Any, Optional
 from dotenv import load_dotenv
 from psycopg import Connection, Cursor
@@ -12,27 +12,55 @@ from api.utils.environment import get_env_variable, get_secret
 load_dotenv()
 
 
+@dataclass
+class DbConnectionData:
+    db_name: Optional[str]
+    db_user: Optional[str]
+    db_password: Optional[str]
+    db_host: Optional[str]
+
+
+def get_db_connection_data_from_args(
+    db_name_index=1, db_user_index=2, db_password_index=3, db_host_index=4
+):
+    if len(sys.argv) > max(
+        db_name_index, db_user_index, db_password_index, db_host_index
+    ):
+        return DbConnectionData(
+            sys.argv[db_name_index],
+            sys.argv[db_user_index],
+            sys.argv[db_password_index],
+            sys.argv[db_host_index],
+        )
+    return DbConnectionData(None, None, None, None)
+
+
 class DbConnection:
-    def __init__(self):
-        pass
+    def __init__(self, data: DbConnectionData):
+        self.db_name = data.db_name or get_env_variable("DB_NAME")
+        self.db_user = data.db_user or get_env_variable("DB_USER")
+        self.db_password = data.db_password or get_secret("DB_PASSWORD")
+        self.db_host = data.db_host or get_env_variable("DB_HOST")
 
     def __enter__(self):
         self.conn = Connection.connect(
-            dbname=get_env_variable("DB_NAME"),
-            user=get_env_variable("DB_USER"),
-            password=get_secret("DB_PASSWORD"),
-            host=get_env_variable("DB_HOST"),
+            dbname=self.db_name,
+            user=self.db_user,
+            password=self.db_password,
+            host=self.db_host,
         )
-        self.cur = self.conn.cursor()
-        return (self.conn, self.cur)
+        return self.conn
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
-        self.cur.close()
         self.conn.close()
 
 
-def connect():
-    return DbConnection()
+def connect(data: DbConnectionData) -> DbConnection:
+    return DbConnection(data)
+
+
+def connect_with_env() -> DbConnection:
+    return DbConnection(DbConnectionData(None, None, None, None))
 
 
 @dataclass
@@ -106,7 +134,7 @@ def list_of_str_and_none_to_postgres_str(
 
 
 def insert(
-    cur: Cursor,
+    conn: Connection,
     table: str,
     fields: list[str],
     values: list[list[str | None | NoEscape]],
@@ -130,7 +158,7 @@ def insert(
             VALUES {",".join(value_strings)}
             {additional_query}
         """
-        cur.execute(statement.encode())
+        conn.execute(statement.encode())
 
 
 def register_type(conn: Connection, name: str, factory=None):
