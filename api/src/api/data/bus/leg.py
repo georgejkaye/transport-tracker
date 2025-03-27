@@ -90,7 +90,7 @@ def register_leg_types(conn: Connection):
 
 def select_bus_legs(conn: Connection, user_id: int) -> list[BusLeg]:
     register_leg_types(conn)
-    rows = conn.execute("SELECT GetBusLegs(%s)").fetchall()
+    rows = conn.execute("SELECT GetBusLegs(%s)", [user_id]).fetchall()
     return [row[0] for row in rows]
 
 
