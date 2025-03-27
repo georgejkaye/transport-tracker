@@ -455,7 +455,7 @@ const TrainLegStockSegments = (props: {
 const Page = ({ params }: { params: { userId: string; legId: string } }) => {
   let { userId, legId } = params
   let userIdNumber = parseInt(userId)
-  let legIdNumber = parseInt(userId)
+  let legIdNumber = parseInt(legId)
   let router = useRouter()
   let [leg, setLeg] = useState<TrainLeg | undefined>(undefined)
   useEffect(() => {
