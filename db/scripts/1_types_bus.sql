@@ -146,6 +146,14 @@ CREATE TYPE BusLegInData AS (
     alight_index INT
 );
 
+CREATE TYPE BusLegOutData AS (
+    leg_id INT,
+    user_id UserOutPublicData,
+    leg_journey BusJourneyOutData,
+    leg_calls BusCallOutData[]
+);
+
+
 CREATE TYPE BusOperatorOverviewOutData AS (
     operator_id INT,
     name TEXT,
@@ -155,13 +163,6 @@ CREATE TYPE BusOperatorOverviewOutData AS (
 CREATE TYPE BusServiceOverviewOutData AS (
     service_id INT,
     service_line TEXT
-);
-
-CREATE TYPE BusLegOutData AS (
-    leg_id INT,
-    user_id UserOutPublicData,
-    leg_journey BusJourneyOutData,
-    leg_calls BusCallOutData[]
 );
 
 CREATE TYPE BusStopOverviewOutData AS (

@@ -5,7 +5,7 @@ AS
 $$
 BEGIN
     DROP TABLE BusLeg;
-    DROP FUNCTION CallsAreSameJourney;
+    DROP FUNCTION CallIndexIsWithinJourney;
     DROP TABLE BusVehicle;
     DROP TABLE BusModel;
     DROP TABLE BusCall;
@@ -25,7 +25,10 @@ $$
 BEGIN
     DROP TYPE BusVehicleOverviewOutData;
     DROP TYPE BusLegOverviewOutData;
+    DROP TYPE BusCallOverviewOutData;
     DROP TYPE BusStopOverviewOutData;
+    DROP TYPE BusServiceOverviewOutData;
+    DROP TYPE BusOperatorOverviewOutData;
     DROP TYPE BusLegOutData;
     DROP TYPE BusLegInData;
     DROP TYPE BusJourneyOutData;
@@ -84,7 +87,9 @@ AS
 $$
 BEGIN
     DROP FUNCTION GetBusStops;
-    DROP FUNCTION GetBusStopsFromAtcos;
+    DROP FUNCTION GetBusStopsByName;
+    DROP FUNCTION GetBusStopsByAtco;
+    DROP FUNCTION GetBusStopsByJourney;
     DROP FUNCTION GetBusOperators;
     DROP FUNCTION GetBusOperatorsByName;
     DROP FUNCTION GetBusOperatorsByNationalOperatorCode;
