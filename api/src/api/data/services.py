@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 from typing import Optional
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from psycopg import Connection
 
 from api.utils.request import get_soup, make_get_request
@@ -551,16 +551,16 @@ def get_service_page_from_service(
 
 def get_location_div_from_service_page(
     service_soup: BeautifulSoup, crs: str
-) -> Optional[BeautifulSoup]:
+) -> Optional[Tag]:
     calls = service_soup.find_all(class_="call")
     for call in calls:
-        if crs.upper() in call.get_text():
+        if isinstance(call, Tag) and crs.upper() in call.get_text():
             return call
     return None
 
 
 def get_miles_and_chains_from_call_div(
-    call_div_soup: BeautifulSoup,
+    call_div_soup: Tag,
 ) -> Optional[Decimal]:
     miles = call_div_soup.find(class_="miles")
     chains = call_div_soup.find(class_="chains")

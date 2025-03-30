@@ -1,14 +1,14 @@
 import sys
+from api.data.points import get_station_points, get_station_points_from_names
 import osmnx as ox
 
-from api.utils.database import connect
+from api.utils.database import connect_with_env
 from api.network.network import (
     get_railway_network,
     insert_node_dict_to_network,
     osgb36,
     wgs84,
 )
-from api.data.stations import get_station_points
 from api.utils.interactive import input_confirm
 
 input = input_confirm("Download network?", default=False)
@@ -20,7 +20,7 @@ else:
 
 projected_network = ox.project_graph(network, to_crs=osgb36)
 
-with connect() as conn:
+with connect_with_env() as conn:
     station_points = get_station_points(conn)
 
 projected_network = insert_node_dict_to_network(
