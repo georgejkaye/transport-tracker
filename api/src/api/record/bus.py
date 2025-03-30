@@ -128,22 +128,32 @@ def get_bus_leg_input(
         day_of_week_diff = board_day_of_week - today_day_of_week
         if day_of_week_diff < 0:
             day_of_week_diff = day_of_week_diff + 7
-        board_date = today.date() + timedelta(days=day_of_week_diff)
+        new_board_date = today.date() + timedelta(days=day_of_week_diff)
 
-        new_board_datetime = datetime.combine(board_date, board_datetime.time())
+        new_board_datetime = datetime.combine(
+            new_board_date, board_datetime.time()
+        )
         information(
             f"{board_datetime.strftime("%d/%m/%Y %H:%M:%S")} is before today, "
             + f"using {new_board_datetime.strftime("%d/%m/%Y %H:%M:%S")} instead"
         )
+        datetime_offset = new_board_datetime - board_datetime
         board_datetime = new_board_datetime
+    else:
+        datetime_offset = timedelta(0)
 
-    departures = get_departures_from_bus_stop(board_stop, board_datetime)
+    departures = get_departures_from_bus_stop(
+        board_stop, board_datetime, datetime_offset
+    )
     departure = get_bus_stop_departure_input(departures)
     if departure is None:
         return None
 
     journey_and_board_call_index = get_bus_journey(
-        conn, departure.bustimes_journey_id, board_stop, departure
+        conn,
+        departure.bustimes_journey_id,
+        board_stop,
+        departure,
     )
     if journey_and_board_call_index is None:
         print("Could not get journey")

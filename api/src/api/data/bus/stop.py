@@ -167,13 +167,14 @@ def short_string_of_bus_stop_departure(departure: BusStopDeparture) -> str:
 
 
 def get_departures_from_bus_stop_soup(
-    soup: BeautifulSoup,
+    soup: BeautifulSoup, datetime_offset: timedelta
 ) -> list[BusStopDeparture]:
     departure_input_boxes = soup.select("#departures input")
     if len(departure_input_boxes) == 0:
         return []
-    search_date_value = datetime.strptime(
-        str(departure_input_boxes[0]["value"]), "%Y-%m-%d"
+    search_date_value = (
+        datetime.strptime(str(departure_input_boxes[0]["value"]), "%Y-%m-%d")
+        - datetime_offset
     )
     search_time_value = datetime.strptime(
         str(departure_input_boxes[1]["value"]), "%H:%M"
@@ -213,9 +214,9 @@ def get_departures_from_bus_stop_soup(
 
 
 def get_departures_from_bus_stop(
-    bus_stop: BusStop, search_datetime: datetime
+    bus_stop: BusStop, search_datetime: datetime, datetime_offset: timedelta
 ) -> list[BusStopDeparture]:
     soup = get_bus_stop_page(bus_stop, search_datetime)
     if soup is None:
         return []
-    return get_departures_from_bus_stop_soup(soup)
+    return get_departures_from_bus_stop_soup(soup, datetime_offset)
