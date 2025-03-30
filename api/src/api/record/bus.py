@@ -1,12 +1,5 @@
 from datetime import datetime, timedelta
 from typing import Optional
-from api.data.bus.journey import (
-    BusCallIn,
-    BusJourney,
-    BusJourneyIn,
-    get_bus_journey,
-    string_of_bus_call_in,
-)
 from psycopg import Connection
 
 from api.utils.database import connect, get_db_connection_data_from_args
@@ -21,6 +14,13 @@ from api.utils.interactive import (
     input_year,
 )
 from api.user import User, input_user
+from api.data.bus.journey import (
+    BusCallIn,
+    BusJourney,
+    BusJourneyIn,
+    get_bus_journey,
+    string_of_bus_call_in,
+)
 from api.data.bus.leg import BusLegIn, insert_leg
 from api.data.bus.operators import BusOperator
 from api.data.bus.stop import (
@@ -108,7 +108,7 @@ def get_bus_leg_input(
     if board_month is None:
         return None
 
-    board_day = input_day(board_year, board_month)
+    board_day = input_day(board_month, board_year)
     if board_day is None:
         return None
 

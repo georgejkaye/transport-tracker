@@ -473,7 +473,8 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT vehicle_id,
+    SELECT
+        vehicle_id,
         vehicle_number,
         vehicle_name,
         vehicle_numberplate,
@@ -481,7 +482,8 @@ BEGIN
         vehicle_legs,
         vehicle_duration
     FROM BusVehicleData
-    WHERE user_id = p_user_id;
+    WHERE user_id = p_user_id
+    ORDER BY CARDINALITY(vehicle_legs) DESC;
 END;
 $$;
 
