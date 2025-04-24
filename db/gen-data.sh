@@ -3,6 +3,7 @@
 PASSWORD=$(cat /run/secrets/db_secret)
 
 PGPASSWORD=$PASSWORD pg_dump --column-inserts --data-only \
+    --table=traveller \
     --table=operatorcode \
     --table=operator \
     --table=brand \
@@ -26,6 +27,7 @@ PGPASSWORD=$PASSWORD pg_dump --column-inserts --data-only \
     --table=busoperator \
     --table=busservice \
     --table=busservicevia \
+    --table=busjourney \
     --table=buscall \
     --table=busmodel \
     --table=busvehicle \
