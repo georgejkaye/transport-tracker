@@ -3,6 +3,7 @@ from api.utils.database import register_type
 
 from dataclasses import dataclass
 from typing import Optional
+from api.utils.interactive import PickSingle, input_select
 from bs4 import BeautifulSoup
 from psycopg import Connection
 
@@ -67,6 +68,10 @@ class BusVehicle:
     model: Optional[str]
     livery_style: Optional[str]
     name: Optional[str]
+
+
+def string_of_bus_vehicle_out(vehicle: BusVehicle) -> str:
+    return f"{vehicle.numberplate} ({vehicle.operator.name})"
 
 
 def get_bus_operator_url(operator: BusOperator) -> str:
@@ -193,3 +198,25 @@ def get_bus_vehicle_by_operator_and_id(
         print("No vehicles found")
         return None
     return rows[0][0]
+
+
+def get_bus_vehicle_by_id(
+    conn: Connection, vehicle_number: str
+) -> Optional[BusVehicle]:
+    register_type(conn, "BusVehicleOutData", register_bus_vehicle)
+    register_type(conn, "BusOperatorOutData", register_bus_operator)
+    rows = conn.execute(
+        "SELECT GetBusVehicles(NULL, %s)", [vehicle_number]
+    ).fetchall()
+    if len(rows) == 0:
+        print("No vehicles found")
+        return None
+    vehicles: list[BusVehicle] = [row[0] for row in rows]
+    vehicle = input_select(
+        "Select vehicle", vehicles, string_of_bus_vehicle_out
+    )
+    match vehicle:
+        case PickSingle(v):
+            return v
+        case _:
+            return None
