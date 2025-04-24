@@ -8,6 +8,7 @@ from api.utils.interactive import (
     information,
     input_day,
     input_month,
+    input_select,
     input_select_paginate,
     input_text,
     input_time,
@@ -33,8 +34,9 @@ from api.data.bus.stop import (
 )
 from api.data.bus.vehicle import (
     BusVehicle,
-    get_bus_vehicle_by_id,
-    get_bus_vehicle_by_operator_and_id,
+    get_bus_vehicles_by_id,
+    get_bus_vehicles_by_operator_and_id,
+    string_of_bus_vehicle_out,
 )
 
 
@@ -86,16 +88,35 @@ def get_alight_stop_input(
             return None
 
 
+def input_vehicle(vehicles: list[BusVehicle]) -> Optional[BusVehicle]:
+    result = input_select("Select vehicle", vehicles, string_of_bus_vehicle_out)
+    match result:
+        case PickSingle(vehicle):
+            return vehicle
+        case _:
+            return None
+
+
 def get_bus_vehicle(
     conn: Connection, bus_operator: BusOperator
 ) -> Optional[BusVehicle]:
     vehicle_id = input_text("Vehicle id")
     if vehicle_id is None:
         return None
-    vehicle = get_bus_vehicle_by_operator_and_id(conn, bus_operator, vehicle_id)
-    if vehicle is None:
-        vehicle = get_bus_vehicle_by_id(conn, vehicle_id)
-    return vehicle
+    vehicles = get_bus_vehicles_by_operator_and_id(
+        conn, bus_operator, vehicle_id
+    )
+    if len(vehicles) == 1:
+        return vehicles[0]
+    if len(vehicles) > 1:
+        vehicle = input_vehicle(vehicles)
+        if vehicle is not None:
+            return vehicle
+    information(
+        f"Vehicle {vehicle_id} not found for operator {bus_operator.name}, falling back to all operators"
+    )
+    vehicles = get_bus_vehicles_by_id(conn, vehicle_id)
+    return input_vehicle(vehicles)
 
 
 def get_bus_leg_input(
