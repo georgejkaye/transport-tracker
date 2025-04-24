@@ -31,7 +31,11 @@ from api.data.bus.stop import (
     short_string_of_bus_stop,
     short_string_of_bus_stop_departure,
 )
-from api.data.bus.vehicle import BusVehicle, get_bus_vehicle_by_operator_and_id
+from api.data.bus.vehicle import (
+    BusVehicle,
+    get_bus_vehicle_by_id,
+    get_bus_vehicle_by_operator_and_id,
+)
 
 
 def get_bus_stop_input(
@@ -89,6 +93,8 @@ def get_bus_vehicle(
     if vehicle_id is None:
         return None
     vehicle = get_bus_vehicle_by_operator_and_id(conn, bus_operator, vehicle_id)
+    if vehicle is None:
+        vehicle = get_bus_vehicle_by_id(conn, vehicle_id)
     return vehicle
 
 
