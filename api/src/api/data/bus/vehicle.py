@@ -69,6 +69,10 @@ class BusVehicle:
     name: Optional[str]
 
 
+def string_of_bus_vehicle_out(vehicle: BusVehicle) -> str:
+    return f"{vehicle.numberplate} ({vehicle.operator.name})"
+
+
 def get_bus_operator_url(operator: BusOperator) -> str:
     return f"https://bustimes.org/operators/{operator.national_code}"
 
@@ -178,18 +182,23 @@ def register_bus_vehicle(
     )
 
 
-def get_bus_vehicle_by_operator_and_id(
+def get_bus_vehicles_by_operator_and_id(
     conn: Connection, bus_operator: BusOperator, vehicle_number: str
-) -> Optional[BusVehicle]:
+) -> list[BusVehicle]:
     register_type(conn, "BusVehicleOutData", register_bus_vehicle)
     register_type(conn, "BusOperatorOutData", register_bus_operator)
     rows = conn.execute(
         "SELECT GetBusVehicles(%s, %s)", [bus_operator.id, vehicle_number]
     ).fetchall()
-    if len(rows) > 1:
-        print("Multiple vehicles found")
-        return None
-    if len(rows) == 0:
-        print("No vehicles found")
-        return None
-    return rows[0][0]
+    return [row[0] for row in rows]
+
+
+def get_bus_vehicles_by_id(
+    conn: Connection, vehicle_number: str
+) -> list[BusVehicle]:
+    register_type(conn, "BusVehicleOutData", register_bus_vehicle)
+    register_type(conn, "BusOperatorOutData", register_bus_operator)
+    rows = conn.execute(
+        "SELECT GetBusVehicles(NULL, %s)", [vehicle_number]
+    ).fetchall()
+    return [row[0] for row in rows]

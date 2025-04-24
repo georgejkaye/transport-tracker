@@ -101,7 +101,7 @@ AS
 $$
 BEGIN
     RETURN (
-        SELECT COUNT(*) FROM BusCall WHERE bus_journey_id = p_journey_id
+        SELECT COUNT(*) FROM public.BusCall WHERE bus_journey_id = p_journey_id
     ) > p_call_index;
 END;
 $$;
