@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { linkStyle } from "./styles"
+import { linkStyle } from "../../styles"
 
 const YearLink = (props: { year: number }) => (
   <Link className="cursor-pointer" href={`/train/years/${props.year}`}>
