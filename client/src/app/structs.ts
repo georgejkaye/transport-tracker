@@ -1,4 +1,4 @@
-import { parse as parseDuration, Duration } from "tinyduration"
+import { Duration } from "js-joda"
 
 export const getSorter = <T>(
   sortFn: (t1: T, t2: T) => number,
@@ -30,16 +30,15 @@ export const durationToHoursAndMinutes = (duration: number) => ({
   minutes: duration % 60,
 })
 
-const durationToSeconds = (duration: Duration) =>
-  (duration.days ?? 0) * 86400 +
-  (duration.hours ?? 0) * 3600 +
-  (duration.minutes ?? 0) * 60 +
-  (duration.seconds ?? 0)
+const durationToSeconds = (duration: Duration) => duration.seconds()
 
 export const getDurationString = (duration: Duration) => {
-  let { days, hours, minutes } = duration
+  console.log(duration)
+  let days = Math.floor(duration.toDays())
+  let hours = Math.floor(duration.toHours()) % 24
+  let minutes = Math.round(duration.toMinutes()) % 60
   let dayString = days ? `${days}d ` : ""
-  return `${dayString}${hours ?? 0}h ${minutes ?? 0}m`
+  return `${dayString}${hours}h ${minutes}m`
 }
 
 export const getMaybeDurationString = (duration: Duration | undefined) =>
@@ -372,12 +371,7 @@ export const responseToLeg = (data: any): TrainLeg => {
     let service = data.services[id]
     services.push(responseToTrainService(service))
   }
-  var duration
-  try {
-    duration = parseDuration(data.duration)
-  } catch {
-    duration = undefined
-  }
+  let duration = Duration.parse(data.duration)
   const geometry = !data.geometry
     ? undefined
     : responseToGeometry(data.geometry)
@@ -429,7 +423,7 @@ const responseToLegStat = (data: any) => ({
   alightCrs: data.alight_crs,
   alightName: data.alight_name,
   distance: parseFloat(data.distance),
-  duration: parseDuration(data.duration),
+  duration: Duration.parse(data.duration),
   delay: data.delay == null ? undefined : data.delay,
   operatorId: data.operator_id,
   operatorCode: data.operator_code,
@@ -511,7 +505,7 @@ const responseToOperatorStat = (data: any) => ({
   isBrand: data.is_brand,
   count: data.count,
   distance: parseFloat(data.distance),
-  duration: parseDuration(data.duration),
+  duration: Duration.parse(data.duration),
   delay: data.delay == null ? undefined : data.delay,
 })
 
@@ -539,7 +533,7 @@ const responseToClassStat = (data: any) => ({
   stockClass: data.stock_class,
   count: data.count,
   distance: parseFloat(data.distance),
-  duration: parseDuration(data.duration),
+  duration: Duration.parse(data.duration),
 })
 
 export namespace ClassStatSorter {
@@ -564,7 +558,7 @@ const responseToUnitStat = (data: any) => ({
   stockNumber: data.stock_number,
   count: data.count,
   distance: parseFloat(data.distance),
-  duration: parseDuration(data.duration),
+  duration: Duration.parse(data.duration),
 })
 
 export namespace UnitStatSorter {
@@ -593,7 +587,7 @@ export interface Stats {
 export const responseToStats = (data: any) => ({
   journeys: data.journeys,
   distance: data.distance,
-  duration: parseDuration(data.duration),
+  duration: Duration.parse(data.duration),
   delay: data.delay,
   legStats: data.leg_stats.map(responseToLegStat),
   stationStats: data.station_stats.map(responseToStationStat),

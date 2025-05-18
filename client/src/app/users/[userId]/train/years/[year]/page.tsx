@@ -5,32 +5,34 @@ import { Loader } from "@/app/loader"
 import { Stats, TrainLeg } from "@/app/structs"
 import { useState, useEffect } from "react"
 import {
-  LegList,
-  GeneralStats,
-  StationStats,
-  OperatorStats,
   ClassStats,
-  UnitStats,
+  GeneralStats,
   LegStats,
-} from "@/app/train/years/core"
+  OperatorStats,
+  StationStats,
+  UnitStats,
+} from "../core"
+import { LegMap } from "../map"
 import { useRouter } from "next/navigation"
-import { LegMap } from "@/app/train/years/map"
 
-const Page = ({ params }: { params: { year: string } }) => {
-  let { year } = params
+const Page = ({ params }: { params: { userId: string; year: string } }) => {
+  let { userId, year } = params
   let router = useRouter()
   const [validYear, setValidYear] = useState(false)
   const [stats, setStats] = useState<Stats | undefined>(undefined)
   const [legs, setLegs] = useState<TrainLeg[] | undefined>(undefined)
   useEffect(() => {
     let yearNumber = parseInt(year)
-    if (isNaN(yearNumber)) {
+    let userIdNumber = parseInt(userId)
+    if (isNaN(yearNumber) || isNaN(userIdNumber)) {
       router.push("/")
     } else {
       setValidYear(true)
       const getLegData = async () => {
-        getStatsForYear(yearNumber, setStats)
-        getLegsForYear(yearNumber, setLegs)
+        let stats = await getStatsForYear(userIdNumber, yearNumber)
+        let legs = await getLegsForYear(userIdNumber, yearNumber)
+        setStats(stats)
+        setLegs(legs)
       }
       getLegData()
     }

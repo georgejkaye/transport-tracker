@@ -29,7 +29,7 @@ export const getLegsForYear = async (
   year: number
 ): Promise<TrainLeg[]> => {
   let yearString = year.toString().padStart(4, "0")
-  let endpoint = `/api/users/${userId}/train/legs/year/${yearString}?fetch_geometries=true`
+  let endpoint = `/api/users/${userId}/train/legs/years/${yearString}?fetch_geometries=true`
   try {
     let response = await axios.get(endpoint)
     let data = response.data
@@ -42,18 +42,19 @@ export const getLegsForYear = async (
 }
 
 export const getStatsForYear = async (
-  year: number,
-  setStats: Dispatch<SetStateAction<Stats | undefined>>
-): Promise<void> => {
+  userId: number,
+  year: number
+): Promise<Stats | undefined> => {
   let yearString = getYearString(year)
-  let endpoint = `/api/train/stats/years/${yearString}?fetch_geometries=false`
+  let endpoint = `/api/users/${userId}/train/stats/years/${yearString}?fetch_geometries=false`
   try {
     let response = await axios.get(endpoint)
     let data = response.data
     let stats = responseToStats(data)
-    setStats(stats)
+    return stats
   } catch (e) {
-    console.log(e)
+    console.error(e)
+    return undefined
   }
 }
 
