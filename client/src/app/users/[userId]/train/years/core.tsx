@@ -745,7 +745,7 @@ export const LegStats = (props: { stats: LegStat[] }) => {
     style: "flex-1",
     title: "Leg",
     getValue: (leg) => (
-      <Link href={`/train/legs/${leg.id}`}>
+      <Link href={`/users/${leg.user}/train/legs/${leg.id}`}>
         <div>
           <b>{leg.boardName}</b> to <b>{leg.alightName}</b>
         </div>

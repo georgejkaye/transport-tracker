@@ -349,6 +349,7 @@ export const responseToTrainLegSegment = (data: any) => {
 
 export interface TrainLeg {
   id: number
+  userId: number
   start: Date
   services: TrainService[]
   calls: TrainLegCall[]
@@ -377,6 +378,7 @@ export const responseToLeg = (data: any): TrainLeg => {
     : responseToGeometry(data.geometry)
   return {
     id: data.id,
+    userId: data.user_id,
     start: new Date(data.leg_start),
     services,
     calls: data.calls.map(responseToTrainLegCall),
