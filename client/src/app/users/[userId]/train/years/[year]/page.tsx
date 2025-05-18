@@ -17,13 +17,13 @@ import { useRouter } from "next/navigation"
 
 const Page = ({ params }: { params: { userId: string; year: string } }) => {
   let { userId, year } = params
+  let yearNumber = parseInt(year)
+  let userIdNumber = parseInt(userId)
   let router = useRouter()
   const [validYear, setValidYear] = useState(false)
   const [stats, setStats] = useState<Stats | undefined>(undefined)
   const [legs, setLegs] = useState<TrainLeg[] | undefined>(undefined)
   useEffect(() => {
-    let yearNumber = parseInt(year)
-    let userIdNumber = parseInt(userId)
     if (isNaN(yearNumber) || isNaN(userIdNumber)) {
       router.push("/")
     } else {
@@ -52,7 +52,7 @@ const Page = ({ params }: { params: { userId: string; year: string } }) => {
             ) : (
               <div className="flex flex-col gap-4">
                 <GeneralStats stats={stats} />
-                <LegStats stats={stats.legStats} />
+                <LegStats userId={userIdNumber} stats={stats.legStats} />
                 <StationStats stats={stats.stationStats} />
                 <OperatorStats stats={stats.operatorStats} />
                 {stats.classStats.length > 0 && (

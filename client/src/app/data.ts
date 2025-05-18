@@ -50,6 +50,7 @@ export const getStatsForYear = async (
   try {
     let response = await axios.get(endpoint)
     let data = response.data
+    console.log(data)
     let stats = responseToStats(data)
     return stats
   } catch (e) {

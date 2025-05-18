@@ -17,7 +17,7 @@ async def get_train_stats_in_range(
 ) -> Stats:
     with connect_with_env() as conn:
         try:
-            return get_train_stats(conn, start_date, end_date)
+            return get_train_stats(conn, user_id, start_date, end_date)
         except RuntimeError:
             raise HTTPException(500, "Could not get stats")
 
@@ -30,7 +30,7 @@ async def get_train_stats_from_year(
     with connect_with_env() as conn:
         try:
             return get_train_stats(
-                conn, datetime(year, 1, 1), datetime(year, 12, 31)
+                conn, user_id, datetime(year, 1, 1), datetime(year, 12, 31)
             )
         except RuntimeError:
             raise HTTPException(500, "Could not get stats")

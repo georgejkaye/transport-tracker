@@ -730,8 +730,8 @@ export const UnitStats = (props: { stats: UnitStat[] }) => {
   )
 }
 
-export const LegStats = (props: { stats: LegStat[] }) => {
-  let { stats } = props
+export const LegStats = (props: { userId: number; stats: LegStat[] }) => {
+  let { stats, userId } = props
   let dateColumn: TableColumn<LegStat> = {
     style: "w-28",
     title: "Date",
@@ -745,7 +745,7 @@ export const LegStats = (props: { stats: LegStat[] }) => {
     style: "flex-1",
     title: "Leg",
     getValue: (leg) => (
-      <Link href={`/users/${leg.user}/train/legs/${leg.id}`}>
+      <Link href={`/users/${userId}/train/legs/${leg.id}`}>
         <div>
           <b>{leg.boardName}</b> to <b>{leg.alightName}</b>
         </div>

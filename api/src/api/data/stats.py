@@ -188,6 +188,7 @@ def register_stats(
 
 def get_train_stats(
     conn: Connection,
+    user_id: int,
     search_start: Optional[datetime] = None,
     search_end: Optional[datetime] = None,
 ) -> Stats:
@@ -199,7 +200,7 @@ def get_train_stats(
     register_type(conn, "OutStats", register_stats)
 
     row = conn.execute(
-        "SELECT GetStats(%s, %s)", [search_start, search_end]
+        "SELECT GetStats(%s, %s, %s)", [user_id, search_start, search_end]
     ).fetchone()
     if row is None:
         raise RuntimeError("Could not get stats")
