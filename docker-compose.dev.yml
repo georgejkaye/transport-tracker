@@ -32,14 +32,26 @@ services:
       - ./db/scripts/:/docker-entrypoint-initdb.d/
     networks:
       - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 1s
+      retries: 500
+      start_period: 0s
   adminer:
     image: adminer
+    depends_on:
+      db:
+        condition: service_healthy
     restart: always
     ports:
       - 8085:8080
     networks:
       - internal
   api:
+    depends_on:
+      db:
+        condition: service_healthy
     build:
       context: api
       dockerfile: Dockerfile.dev
@@ -69,7 +81,19 @@ services:
       - natrail_secret
     networks:
       - internal
+    healthcheck:
+      test: [
+        "CMD-SHELL",
+        "curl --fail http://localhost:$$API_PORT/hc || exit 1"
+      ]
+      interval: 10s
+      timeout: 1s
+      retries: 100
+      start_period: 0s
   client:
+    depends_on:
+      api:
+        condition: service_healthy
     build:
       context: client
       dockerfile: Dockerfile.dev
@@ -83,8 +107,6 @@ services:
       API_URL: "http://api:${API_PORT}"
       CLIENT_PORT: ${CLIENT_PORT}
       NEXT_PUBLIC_MAPTILER_KEY: ${MAPTILER_KEY}
-    depends_on:
-      - api
     volumes:
       - ./client/src:/app/src
     networks:
