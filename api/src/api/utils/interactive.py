@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from math import ceil
 from typing import Callable, Optional
 from questionary import Choice, checkbox, confirm, select, text
 from termcolor import colored
@@ -50,7 +51,10 @@ def input_text(message: str, default: str = "") -> Optional[str]:
 
 
 def number_in_range(
-    input: str, lower: Optional[int], upper: Optional[int], unknown: bool = False
+    input: str,
+    lower: Optional[int],
+    upper: Optional[int],
+    unknown: bool = False,
 ) -> bool | str:
     if unknown and input == "":
         return True
@@ -87,10 +91,11 @@ def input_number(
         default=default_string,
         validate=lambda x: number_in_range(x, lower, upper, unknown),
     ).ask()
+    if result is None:
+        return None
     if result == "":
         return None
-    else:
-        return int(result)
+    return int(result)
 
 
 def input_year(
@@ -224,7 +229,9 @@ class PickCancel:
 type PickChoice[T] = PickSingle[T] | PickMultiple[T] | PickUnknown | PickCancel
 
 
-def choice_from_object[T](object: T, display: Optional[Callable[[T], str]]) -> Choice:
+def choice_from_object[T](
+    object: T, display: Optional[Callable[[T], str]]
+) -> Choice:
     if display is None:
         title = str(object)
     else:
@@ -232,9 +239,7 @@ def choice_from_object[T](object: T, display: Optional[Callable[[T], str]]) -> C
     return Choice(title=title, value=PickSingle(object))
 
 
-def input_select[
-    T
-](
+def input_select[T](
     message: str,
     choices: list[T],
     display: Optional[Callable[[T], str]] = None,
@@ -246,19 +251,56 @@ def input_select[
         choice_objects.append(Choice(title="Cancel", value=PickCancel()))
     if unknown:
         choice_objects.append(Choice(title="Unknown", value=PickUnknown()))
-    return select(message, choice_objects, use_shortcuts=True, instruction="").ask()
+    return select(
+        message, choice_objects, use_shortcuts=True, instruction=""
+    ).ask()
 
 
-def input_checkbox[
-    T
-](
+def input_select_paginate[T](
     message: str, choices: list[T], display: Optional[Callable[[T], str]] = None
+) -> Optional[PickChoice[T]]:
+    partitions = []
+    size_of_partition = 34
+    number_of_partitions = ceil(len(choices) / size_of_partition)
+    for i in range(0, number_of_partitions):
+        current_partition = []
+        for j in range(0, size_of_partition):
+            choice_index = i * size_of_partition + j
+            if choice_index >= len(choices):
+                break
+            current_partition.append(choices[i * size_of_partition + j])
+        partitions.append(current_partition)
+    for i, partition in enumerate(partitions):
+        choice_objects = [
+            choice_from_object(choice, display) for choice in partition
+        ]
+        if i != len(partitions) - 1:
+            choice_objects.append(Choice(title="Next", value=PickUnknown()))
+        choice_objects.append(Choice(title="Cancel", value=PickCancel()))
+        page_choice = select(
+            message, choice_objects, use_shortcuts=True, instruction=""
+        ).ask()
+        match (page_choice):
+            case PickUnknown():
+                continue
+            case _:
+                return page_choice
+    return None
+
+
+def input_checkbox[T](
+    message: str,
+    choices: list[T],
+    display: Optional[Callable[[T], str]] = None,
+    allow_none=False,
 ) -> Optional[PickMultiple[T]]:
     choice_objects = [choice_from_object(choice, display) for choice in choices]
     result = checkbox(message, choice_objects).ask()
     if result is None:
         return None
     answers = []
+    if not allow_none and len(result) == 0:
+        return None
     for res in result:
         match res:
             case PickSingle(choice):

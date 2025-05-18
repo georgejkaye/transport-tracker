@@ -5,7 +5,7 @@ from decimal import Decimal
 from enum import Enum
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
-from psycopg import Cursor, Connection
+from psycopg import Connection
 
 from api.data.leg import (
     Leg,
@@ -50,6 +50,7 @@ from api.data.stock import (
     string_of_class_and_subclass,
     string_of_formation,
 )
+from api.utils.database import connect, get_db_connection_data_from_args
 from api.utils.interactive import (
     PickMultiple,
     PickSingle,
@@ -61,11 +62,13 @@ from api.utils.interactive import (
     input_month,
     input_number,
     input_select,
+    input_select_paginate,
     input_text,
     input_time,
     input_year,
 )
 from api.utils.times import (
+    make_timezone_aware,
     pad_front,
     add,
 )
@@ -144,7 +147,7 @@ def get_input_price(prompt):
 
 
 def get_station_from_input(
-    cur: Cursor, prompt: str, stn: TrainStation | None = None
+    conn: Connection, prompt: str, stn: TrainStation | None = None
 ) -> Optional[TrainStation]:
     """
     Get a string specifying a station from a user.
@@ -166,13 +169,13 @@ def get_station_from_input(
         if len(input_string) == 0 and stn is not None:
             return stn
         if len(input_string) == 3:
-            crs_station = select_station_from_crs(cur, input_string)
+            crs_station = select_station_from_crs(conn, input_string)
             if crs_station is not None:
                 resp = input_confirm(f"Did you mean {crs_station.name}")
                 if resp:
                     return crs_station
         # Otherwise search for substrings in the full names of stations
-        matches = get_stations_from_substring(cur, input_string)
+        matches = get_stations_from_substring(conn, input_string)
         if len(matches) == 0:
             print("No matches found, try again")
         elif len(matches) == 1:
@@ -182,11 +185,10 @@ def get_station_from_input(
                 return match
         else:
             print("Multiple matches found: ")
-            choice = input_select(
+            choice = input_select_paginate(
                 "Select a station",
                 matches,
                 display=lambda x: x.name,
-                cancel=True,
             )
             match choice:
                 case PickSingle(stn):
@@ -196,7 +198,7 @@ def get_station_from_input(
 
 
 def get_service_at_station(
-    cur: Cursor,
+    conn: Connection,
     origin: TrainStation,
     search_datetime: datetime,
     destination: TrainStation,
@@ -204,7 +206,7 @@ def get_service_at_station(
     """
     Record a new journey in the logfile
     """
-    origin_services = get_services_at_station(cur, origin, search_datetime)
+    origin_services = get_services_at_station(conn, origin, search_datetime)
     # We want to search within a smaller timeframe
     timeframe = 15
     earliest_time = add(search_datetime, -timeframe)
@@ -214,14 +216,13 @@ def get_service_at_station(
     # We only want to check our given timeframe
     # We also only want services that stop at our destination
     filtered_services = filter_services_by_time_and_stop(
-        cur, earliest_time, latest_time, origin, destination, origin_services
+        conn, earliest_time, latest_time, origin, destination, origin_services
     )
     if len(filtered_services) == 0:
         return None
-    choice = input_select(
+    choice = input_select_paginate(
         "Pick a service",
         filtered_services,
-        cancel=True,
         display=lambda x: string_of_service_at_station(x),
     )
     match choice:
@@ -296,7 +297,7 @@ def get_unit_no(stock_subclass: ClassAndSubclass) -> Optional[int]:
 
 
 def get_unit_cars(
-    cur: Cursor,
+    conn: Connection,
     run_date: datetime,
     stock_subclass: ClassAndSubclass,
     operator: str,
@@ -310,7 +311,7 @@ def get_unit_cars(
         operator,
         brand,
     )
-    car_options = select_stock_cars(cur, stock, run_date)
+    car_options = select_stock_cars(conn, stock, run_date)
     # If there is no choice we know the answer already
     if len(car_options) == 1:
         information(
@@ -335,11 +336,10 @@ def get_station_from_calls(
     current: LegCall,
     calls: list[LegCall],
 ) -> Optional[Tuple[LegCall, int, list[LegCall]]]:
-    end_call = input_select(
+    end_call = input_select_paginate(
         f"Stock formation from {current.station.name} until",
         [(i, call) for (i, call) in enumerate(calls)],
         display=lambda x: string_of_short_train_station(x[1].station),
-        unknown=True,
     )
     match end_call:
         case PickSingle((i, call)):
@@ -362,7 +362,7 @@ def string_of_stock_change(change: StockChange) -> str:
 
 
 def get_unit_report(
-    cur: Cursor,
+    conn: Connection,
     run_date: datetime,
     stock_list: list[Stock],
     operator: str,
@@ -393,7 +393,7 @@ def get_unit_report(
         stock_subclass_no = None
         stock_unit_no = None
         stock_cars_res = get_unit_cars(
-            cur,
+            conn,
             run_date,
             ClassAndSubclass(
                 stock_class.class_no, stock_class.class_name, None, None
@@ -412,7 +412,7 @@ def get_unit_report(
         stock_subclass_no = stock_subclass.subclass_no
         stock_unit_no = get_unit_no(stock_subclass)
         stock_cars_res = get_unit_cars(
-            cur, run_date, stock_subclass, operator, brand
+            conn, run_date, stock_subclass, operator, brand
         )
         match stock_cars_res:
             case None:
@@ -442,7 +442,7 @@ def get_stock_change_reason() -> StockChange:
 
 
 def get_stock(
-    cur: Cursor,
+    conn: Connection,
     calls: list[LegCall],
     service: TrainServiceRaw,
     previous: Optional[LegSegmentStock] = None,
@@ -454,7 +454,7 @@ def get_stock(
     # Currently getting this automatically isn't implemented
     # First get all stock this operator has
     stock_list = get_operator_stock(
-        cur, service.operator_code, service.run_date
+        conn, service.operator_code, service.run_date
     )
     first_call = calls[0]
     current_call = first_call
@@ -501,7 +501,7 @@ def get_stock(
                 for i in range(0, number_of_units):
                     information(f"Selecting unit {i+1}")
                     stock_report = get_unit_report(
-                        cur,
+                        conn,
                         service.run_date,
                         stock_list,
                         service.operator_code,
@@ -575,23 +575,24 @@ def get_datetime(start: Optional[datetime] = None) -> datetime:
     time = input_time(default=default_time)
     if time is None:
         raise RuntimeError()
-    return datetime(year, month, date, time.hour, time.minute)
+    input_datetime = datetime(year, month, date, time.hour, time.minute)
+    return make_timezone_aware(input_datetime)
 
 
 def record_new_leg(
-    cur: Cursor,
+    conn: Connection,
     start: datetime | None = None,
     default_station: TrainStation | None = None,
 ) -> Leg | None:
-    origin_station = get_station_from_input(cur, "Origin", default_station)
+    origin_station = get_station_from_input(conn, "Origin", default_station)
     if origin_station is None:
         return None
-    destination_station = get_station_from_input(cur, "Destination")
+    destination_station = get_station_from_input(conn, "Destination")
     if destination_station is None:
         return None
     search_datetime = get_datetime(start)
     service_at_station = get_service_at_station(
-        cur, origin_station, search_datetime, destination_station
+        conn, origin_station, search_datetime, destination_station
     )
     service = None
     run_date = datetime(
@@ -604,7 +605,7 @@ def record_new_leg(
             if service_id is None:
                 return None
             service_candidate = get_service_from_id(
-                cur, service_id, run_date, soup=True
+                conn, service_id, run_date, soup=True
             )
             if service_candidate is None:
                 print("Invalid service id, try again")
@@ -612,7 +613,7 @@ def record_new_leg(
                 service = service_candidate
     else:
         service = get_service_from_id(
-            cur, service_at_station.id, run_date, soup=True
+            conn, service_at_station.id, run_date, soup=True
         )
     if service is None:
         return None
@@ -629,7 +630,7 @@ def record_new_leg(
         else:
             previous = None
         chain_stock = get_stock(
-            cur, chain, service, previous, len(stock_segments)
+            conn, chain, service, previous, len(stock_segments)
         )
         if chain_stock is None:
             return None
@@ -640,12 +641,12 @@ def record_new_leg(
     return leg
 
 
-def add_to_logfile(conn: Connection, cur: Cursor):
-    leg = record_new_leg(cur)
+def add_to_logfile(conn: Connection):
+    leg = record_new_leg(conn)
     if leg is None:
         print("Could not get leg")
         exit(1)
-    insert_leg(conn, cur, leg)
+    insert_leg(conn, leg)
 
 
 def read_logfile(log_file: str):
@@ -663,3 +664,9 @@ def read_logfile(log_file: str):
 def write_logfile(log, log_file: str):
     with open(log_file, "w+") as output:
         json.dump(log, output)
+
+
+if __name__ == "__main__":
+    connection_data = get_db_connection_data_from_args()
+    with connect(connection_data) as conn:
+        add_to_logfile(conn)

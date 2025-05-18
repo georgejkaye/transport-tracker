@@ -429,7 +429,7 @@ def get_leg_map_page_from_leg_data(
         if leg.via is not None:
             for via_station in leg.via:
                 stations.add((via_station, None))
-    with connect() as (conn, _):
+    with connect() as conn:
         (name_to_station_dict, station_points) = get_station_points_from_names(
             conn, list(stations)
         )

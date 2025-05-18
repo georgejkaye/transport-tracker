@@ -1,21 +1,10 @@
+from api.api.routers.utils import utils
 import uvicorn
 
-from datetime import datetime
-from typing import Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 
-from api.data.stats import Stats, get_train_stats
-from api.utils.database import connect
+from api.api.routers.users import user
 from api.utils.environment import get_env_variable
-from api.data.leg import ShortLeg, select_legs
-from api.data.stations import (
-    StationData,
-    select_station,
-    select_stations,
-)
-
-from api.api.routers.train import train
-
 
 app = FastAPI(
     title="Train tracker API",
@@ -32,7 +21,8 @@ app = FastAPI(
     },
 )
 
-app.include_router(train.router)
+app.include_router(user.router)
+app.include_router(utils.router)
 
 
 def start():
