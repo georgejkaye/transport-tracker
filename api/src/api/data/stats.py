@@ -10,6 +10,7 @@ from psycopg import Connection
 @dataclass
 class LegStat:
     leg_id: int
+    user_id: int
     board_time: datetime
     board_crs: str
     board_name: str
@@ -79,6 +80,7 @@ class Stats:
 
 def register_leg_stat(
     leg_id: int,
+    user_id: int,
     board_time: datetime,
     board_crs: str,
     board_name: str,
@@ -95,6 +97,7 @@ def register_leg_stat(
 ):
     return LegStat(
         leg_id,
+        user_id,
         board_time,
         board_crs,
         board_name,

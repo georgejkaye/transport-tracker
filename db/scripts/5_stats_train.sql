@@ -151,6 +151,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetLegCallOverview (
+    p_user_id INTEGER,
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
@@ -181,7 +182,9 @@ BEGIN
                 Call.call_id,
                 Call.station_crs,
                 COALESCE(plan_arr, plan_dep, act_arr, act_dep) AS stop_time
-            FROM (SELECT * FROM GetLegIdsInRange(p_start_date, p_end_date)) LegRange
+            FROM (
+                SELECT * FROM GetLegIdsInRange(p_start_date, p_end_date)
+            ) LegRange
             INNER JOIN LegCall
             ON LegRange.leg_id = LegCall.leg_id
             INNER JOIN Call
@@ -221,11 +224,15 @@ BEGIN
             GROUP BY LegStop.leg_id
         ) LegStopIntermediate
         ON LegStopIntermediate.leg_id = LegStopBoard.leg_id
+        INNER JOIN Leg
+        ON LegStopBoard.leg_id = Leg.leg_id
+        WHERE Leg.user_id = p_user_id
     ) LegStopOverview;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetLegStats (
+    p_user_id INTEGER,
     p_start_time TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_time TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
@@ -237,6 +244,7 @@ BEGIN
     RETURN QUERY
     SELECT
         LegStat.leg_id,
+        LegStat.user_id,
         LegStat.leg_start,
         LegStat.board_station_crs::CHARACTER(3),
         LegStat.board_station_name,
@@ -253,6 +261,7 @@ BEGIN
     FROM (
         SELECT
             LegCallOverview.leg_id,
+            LegCallOverview.user_id,
             COALESCE(
                 BoardCall.act_dep,
                 BoardCall.act_arr,
@@ -293,7 +302,8 @@ BEGIN
                 END
             ) AS is_brand
         FROM (
-            SELECT * FROM GetLegCallOverview(p_start_time, p_end_time)
+            SELECT *
+            FROM GetLegCallOverview(p_user_id, p_start_time, p_end_time)
         ) LegCallOverview
         INNER JOIN Station BoardStation
         ON LegCallOverview.board_station_crs = BoardStation.station_crs
@@ -312,6 +322,7 @@ BEGIN
         ON Service.operator_id = Operator.operator_id
         LEFT JOIN Brand
         ON Service.brand_id = Brand.brand_id
+        WHERE Leg.user_id = p_user_id
     ) LegStat
     ORDER BY LegStat.leg_start;
 END;

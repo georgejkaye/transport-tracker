@@ -187,6 +187,7 @@ CREATE TYPE OutLegStock AS (
 
 CREATE TYPE OutLegData AS (
     leg_id INTEGER,
+    user_id INTEGER,
     leg_start TIMESTAMP WITH TIME ZONE,
     leg_services OutServiceData[],
     leg_calls OutLegCallData[],
@@ -199,6 +200,7 @@ CREATE TYPE OutLegData AS (
 
 CREATE TYPE OutLegStat AS (
     leg_id INTEGER,
+    user_id INTEGER,
     board_time TIMESTAMP WITH TIME ZONE,
     board_crs CHARACTER(3),
     board_name TEXT,

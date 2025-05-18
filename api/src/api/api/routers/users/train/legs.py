@@ -23,7 +23,9 @@ async def get_legs(
     fetch_geometries: bool = False,
 ) -> list[ShortLegWithGeometry]:
     with connect_with_env() as conn:
-        legs = select_legs(conn, search_start=start_date, search_end=end_date)
+        legs = select_legs(
+            conn, user_id, search_start=start_date, search_end=end_date
+        )
         if fetch_geometries:
             legs = get_short_legs_with_geometries(conn, network, legs)
         else:
@@ -38,6 +40,7 @@ async def get_legs_from_year(
     with connect_with_env() as conn:
         legs = select_legs(
             conn,
+            user_id,
             search_start=datetime(year, 1, 1),
             search_end=datetime(year, 12, 31),
         )
@@ -53,7 +56,7 @@ async def get_leg(
     user_id: int, leg_id: int, fetch_geometries: bool = False
 ) -> ShortLegWithGeometry:
     with connect_with_env() as conn:
-        legs = select_legs(conn, search_leg_id=leg_id)
+        legs = select_legs(conn, user_id, search_leg_id=leg_id)
         if fetch_geometries:
             legs = get_short_legs_with_geometries(conn, network, legs)
         else:
