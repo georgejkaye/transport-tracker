@@ -543,9 +543,9 @@ BEGIN
     RETURN (
     SELECT (
         COUNT(LegStat.*),
-        SUM(LegStat.distance),
-        SUM(LegStat.duration),
-        SUM(LegStat.delay),
+        COALESCE(SUM(LegStat.distance), 0),
+        COALESCE(SUM(LegStat.duration), INTERVAL '0 days'),
+        COALESCE(SUM(LegStat.delay), 0),
         (
             SELECT ARRAY_AGG(leg_stats)
             FROM (
