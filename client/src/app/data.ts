@@ -19,7 +19,7 @@ export const getLegs = async (userId: number): Promise<TrainLeg[]> => {
     let legs = data.map(responseToLeg)
     return legs
   } catch (e) {
-    console.log(e)
+    console.error(e)
     return []
   }
 }
@@ -36,7 +36,7 @@ export const getLegsForYear = async (
     let legs = data.map(responseToLeg)
     return legs
   } catch (e) {
-    console.log(e)
+    console.error(e)
     return []
   }
 }
@@ -50,7 +50,6 @@ export const getStatsForYear = async (
   try {
     let response = await axios.get(endpoint)
     let data = response.data
-    console.log(data)
     let stats = responseToStats(data)
     return stats
   } catch (e) {
