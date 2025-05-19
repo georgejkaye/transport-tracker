@@ -33,7 +33,6 @@ export const durationToHoursAndMinutes = (duration: number) => ({
 const durationToSeconds = (duration: Duration) => duration.seconds()
 
 export const getDurationString = (duration: Duration) => {
-  console.log(duration)
   let days = Math.floor(duration.toDays())
   let hours = Math.floor(duration.toHours()) % 24
   let minutes = Math.round(duration.toMinutes()) % 60
@@ -591,8 +590,10 @@ export const responseToStats = (data: any) => ({
   distance: data.distance,
   duration: Duration.parse(data.duration),
   delay: data.delay,
-  legStats: data.leg_stats.map(responseToLegStat),
-  stationStats: data.station_stats.map(responseToStationStat),
+  legStats: !data.leg_stats ? [] : data.leg_stats.map(responseToLegStat),
+  stationStats: !data.station_stats
+    ? []
+    : data.station_stats.map(responseToStationStat),
   operatorStats: !data.operator_stats
     ? []
     : data.operator_stats.map(responseToOperatorStat),

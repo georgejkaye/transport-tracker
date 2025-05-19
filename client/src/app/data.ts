@@ -70,7 +70,7 @@ export const getTrainLeg = async (
     let leg = responseToLeg(data)
     return leg
   } catch (e) {
-    console.log(e)
+    console.error(e)
     return undefined
   }
 }
@@ -86,7 +86,7 @@ export const getTrainStationData = async (
     let station = responseToTrainStationData(data)
     return station
   } catch (e) {
-    console.log(e)
+    console.error(e)
     return undefined
   }
 }
@@ -101,7 +101,7 @@ export const getTrainStations = async (
     let stations = data.map(responseToTrainStationData)
     return stations
   } catch (e) {
-    console.log(e)
+    console.error(e)
     return undefined
   }
 }

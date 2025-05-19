@@ -52,8 +52,12 @@ const Page = ({ params }: { params: { userId: string; year: string } }) => {
             ) : (
               <div className="flex flex-col gap-4">
                 <GeneralStats stats={stats} />
-                <LegStats userId={userIdNumber} stats={stats.legStats} />
-                <StationStats stats={stats.stationStats} />
+                {stats.legStats.length > 0 && (
+                  <LegStats userId={userIdNumber} stats={stats.legStats} />
+                )}
+                {stats.stationStats.length > 0 && (
+                  <StationStats stats={stats.stationStats} />
+                )}
                 <OperatorStats stats={stats.operatorStats} />
                 {stats.classStats.length > 0 && (
                   <div className="flex flex-row gap-4">
@@ -65,6 +69,8 @@ const Page = ({ params }: { params: { userId: string; year: string } }) => {
                 )}
                 {legs === undefined ? (
                   <Loader />
+                ) : legs.length === 0 ? (
+                  ""
                 ) : (
                   <div>
                     <LegMap legs={legs} />
