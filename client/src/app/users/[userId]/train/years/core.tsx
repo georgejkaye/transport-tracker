@@ -291,8 +291,11 @@ export const SortableList = <T,>(props: {
   )
 }
 
-export const StationStats = (props: { stats: StationStat[] }) => {
-  let { stats } = props
+export const StationStats = (props: {
+  userId: number
+  stats: StationStat[]
+}) => {
+  let { userId, stats } = props
   let stationColumn: TableColumn<StationStat> = {
     style: "flex-1",
     title: "Station",
@@ -417,21 +420,32 @@ export const StationStats = (props: { stats: StationStat[] }) => {
     totalColumn,
   ]
   const getStationItem = (station: StationStat, i: number) => (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-row gap-2 flex-wrap">
-        <div className="w-10">{i}</div>
-        <div className="w-12">
-          <b>{station.crs}</b>
+    <div className="flex flex-row">
+      <div className="w-10">{i + 1}</div>
+
+      <div className="flex flex-col gap-2">
+        <Link href={`/users/${userId}/train/stations/${station.crs}`}>
+          <div className="flex flex-row gap-2 flex-wrap">
+            <div className="w-12">
+              <b>{station.crs}</b>
+            </div>
+            <div className="flex-1">{station.name}</div>
+          </div>
+        </Link>
+        <div className="flex flex-row gap-4">
+          <div>
+            {station.boards} board{station.boards !== 1 && "s"}
+          </div>
+          <div>
+            {station.alights} alight{station.alights !== 1 && "s"}
+          </div>
+          <div>
+            {station.intermediates} call{station.intermediates !== 1 && "s"}
+          </div>
+          <div>
+            {station.boards + station.alights + station.intermediates} total
+          </div>
         </div>
-        <div className="flex-1">{station.name}</div>
-        <div className="w-72">{station.operatorName}</div>
-      </div>
-      <div className="flex flex-row gap-4">
-        <div>{station.boards} B</div>
-        <div>{station.alights} A</div>
-        <div>{station.boards + station.alights} B+A</div>
-        <div>{station.intermediates} C</div>
-        <div>{station.boards + station.alights + station.intermediates} T</div>
       </div>
     </div>
   )

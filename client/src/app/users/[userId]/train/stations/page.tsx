@@ -25,7 +25,7 @@ const StationRow = (props: { userId: number; station: TrainStationData }) => {
     <div className="flex flex-col lg:flex-row gap-2 lg:items-center">
       <div className="flex flex-row gap-2">
         <div className="">{station.crs}</div>
-        <Link href={`/users/${userId}/train/station/${station.crs}`}>
+        <Link href={`/users/${userId}/train/stations/${station.crs}`}>
           <div className={`${linkStyle}`}>{station.name}</div>
         </Link>
       </div>

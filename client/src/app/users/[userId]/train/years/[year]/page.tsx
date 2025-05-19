@@ -56,7 +56,10 @@ const Page = ({ params }: { params: { userId: string; year: string } }) => {
                   <LegStats userId={userIdNumber} stats={stats.legStats} />
                 )}
                 {stats.stationStats.length > 0 && (
-                  <StationStats stats={stats.stationStats} />
+                  <StationStats
+                    userId={userIdNumber}
+                    stats={stats.stationStats}
+                  />
                 )}
                 <OperatorStats stats={stats.operatorStats} />
                 {stats.classStats.length > 0 && (
