@@ -32,42 +32,6 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { FaAngleUp, FaAngleDown } from "react-icons/fa6"
 
-const LegRow = (props: { userId: number; leg: TrainLeg }) => {
-  let { leg, userId } = props
-  let mileString = !leg.distance ? "" : getMilesAndChainsString(leg.distance)
-  let origin = getLegOrigin(leg)
-  let destination = getLegDestination(leg)
-  return (
-    <div className="flex flex-row gap-4 justify-center">
-      <div className="flex flex-col lg:flex-row gap-4">
-        <div className="flex flex-row gap-2 lg:w-80 items-center">
-          <LegIconLink userId={userId} legId={leg.id} />
-          <div className="text-xs lg:hidden">•</div>
-          <div className="lg:px-2">{dateToShortString(leg.start)}</div>
-          <div className="text-xs lg:hidden">•</div>
-          <div className="lg:w-28">{getMaybeDurationString(leg.duration)}</div>
-          <div className="text-xs lg:hidden">•</div>
-          <div className="lg:w-32">{mileString}</div>
-        </div>
-        <div className="flex flex-col md:flex-row gap-2">
-          <div className="flex flex-row gap-2 items-center">
-            <div className="text-right w-10 text-xs lg:hidden">from</div>
-            <EndpointSection userId={userId} call={origin} origin={true} />
-          </div>
-          <div className="flex flex-row gap-2 items-center">
-            <div className="text-right w-10 text-xs lg:hidden">to</div>
-            <EndpointSection
-              userId={userId}
-              call={destination}
-              origin={false}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export const GeneralStats = (props: { stats: Stats }) => {
   let { stats } = props
   return (
@@ -423,7 +387,7 @@ export const StationStats = (props: {
     <div className="flex flex-row">
       <div className="w-10">{i + 1}</div>
 
-      <div className="flex flex-col md:flex-row gap-2">
+      <div className="flex flex-col md:flex-row flex-1 gap-2">
         <Link
           className="md:w-80"
           href={`/users/${userId}/train/stations/${station.crs}`}
@@ -574,24 +538,63 @@ export const OperatorStats = (props: { stats: OperatorStat[] }) => {
     durationColumn,
     delayColumn,
   ]
+  const getOperatorItem = (op: OperatorStat, i: number) => (
+    <div className="flex flex-row">
+      <div className="w-10">{i + 1}</div>
+      <div className="flex flex-col gap-2">
+        <div>
+          <b>{op.name}</b>
+        </div>
+        <div className="flex flex-row">
+          <div className="w-20">{op.count} legs</div>
+          <div className="w-20">{getDurationString(op.duration)}</div>
+          <div className="w-32">{getMilesAndChainsString(op.distance)}</div>
+          <div style={{ color: getDelayStyle(op.delay) }}>
+            {getDelayString(op.delay)}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+  const operatorRankSort = (
+    op1: OperatorStat,
+    op2: OperatorStat,
+    natural: boolean
+  ) =>
+    sortBy(
+      op1,
+      op2,
+      getSorter(OperatorStatSorter.byCount, !natural),
+      getSorter(OperatorStatSorter.byDuration, !natural),
+      getSorter(OperatorStatSorter.byDistance, !natural)
+    )
+  const getOperatorKey = (op: OperatorStat) =>
+    `${op.id}-${op.isBrand ? "B" : "O"}`
   return (
-    <SortableTable
-      title="Operators"
-      colour="#0623af"
-      columns={columns}
-      values={stats}
-      numberToShow={10}
-      getKey={(op) => `${op.id}-${op.isBrand ? "B" : "O"}`}
-      rankSort={(op1, op2, natural) =>
-        sortBy(
-          op1,
-          op2,
-          getSorter(OperatorStatSorter.byCount, !natural),
-          getSorter(OperatorStatSorter.byDuration, !natural),
-          getSorter(OperatorStatSorter.byDistance, !natural)
-        )
-      }
-    />
+    <div>
+      <div className="lg:hidden">
+        <SortableList
+          title="Stations"
+          colour="#db2700"
+          values={stats}
+          getItem={getOperatorItem}
+          sortProperties={[]}
+          getKey={(op) => op.id.toString()}
+          rankSort={operatorRankSort}
+        />
+      </div>
+      <div className="hidden lg:flex">
+        <SortableTable
+          title="Operators"
+          colour="#0623af"
+          columns={columns}
+          values={stats}
+          numberToShow={10}
+          getKey={getOperatorKey}
+          rankSort={operatorRankSort}
+        />
+      </div>
+    </div>
   )
 }
 
@@ -649,24 +652,59 @@ export const ClassStats = (props: { stats: ClassStat[] }) => {
     allowSortingBy: true,
   }
   let columns = [classColumn, countColumn, distanceColumn, durationColumn]
+  const getClassItem = (cls: ClassStat, i: number) => (
+    <div className="flex flex-row">
+      <div className="w-10">{i + 1}</div>
+      <div className="flex-1 flex flex-col gap-2">
+        <div>
+          <b>Class {cls.stockClass}</b>
+        </div>
+        <div className="flex flex-row">
+          <div className="w-20">
+            {cls.count} leg{cls.count !== 1 && "s"}
+          </div>
+          <div className="w-28">{getMilesAndChainsString(cls.distance)}</div>
+          <div className="w-28">{getDurationString(cls.duration)}</div>
+        </div>
+      </div>
+    </div>
+  )
+  const getClassKey = (cls: ClassStat) => cls.stockClass.toString()
+  const classRankSort = (cls1: ClassStat, cls2: ClassStat, natural: boolean) =>
+    sortBy(
+      cls1,
+      cls2,
+      getSorter(ClassStatSorter.byCount, !natural),
+      getSorter(ClassStatSorter.byDuration, !natural),
+      getSorter(ClassStatSorter.byDistance, !natural)
+    )
   return (
-    <SortableTable
-      title="Classes"
-      colour="#008f3e"
-      columns={columns}
-      values={stats}
-      numberToShow={10}
-      getKey={(cls) => cls.stockClass.toString()}
-      rankSort={(cls1, cls2, natural) =>
-        sortBy(
-          cls1,
-          cls2,
-          getSorter(ClassStatSorter.byCount, !natural),
-          getSorter(ClassStatSorter.byDuration, !natural),
-          getSorter(ClassStatSorter.byDistance, !natural)
-        )
-      }
-    />
+    <div>
+      <div>
+        <div className="lg:hidden">
+          <SortableList
+            title="Classes"
+            colour="#008f3e"
+            values={stats}
+            getItem={getClassItem}
+            getKey={getClassKey}
+            rankSort={classRankSort}
+            sortProperties={[]}
+          />
+        </div>
+        <div className="hidden lg:flex">
+          <SortableTable
+            title="Classes"
+            colour="#008f3e"
+            columns={columns}
+            values={stats}
+            numberToShow={10}
+            getKey={getClassKey}
+            rankSort={classRankSort}
+          />
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -726,24 +764,57 @@ export const UnitStats = (props: { stats: UnitStat[] }) => {
     allowSortingBy: true,
   }
   let columns = [classColumn, countColumn, distanceColumn, durationColumn]
+  const getUnitItem = (unit: UnitStat, i: number) => (
+    <div className="flex flex-row">
+      <div className="w-10">{i + 1}</div>
+      <div className="flex-1 flex flex-col gap-2">
+        <div>
+          <b>{unit.stockNumber}</b>
+        </div>
+        <div className="flex flex-row">
+          <div className="w-20">
+            {unit.count} leg{unit.count !== 1 && "s"}
+          </div>
+          <div className="w-28">{getMilesAndChainsString(unit.distance)}</div>
+          <div className="w-28">{getDurationString(unit.duration)}</div>
+        </div>
+      </div>
+    </div>
+  )
+  const getUnitKey = (unit: UnitStat) => unit.stockNumber.toString()
+  const unitRankSort = (unit1: UnitStat, unit2: UnitStat, natural: boolean) =>
+    sortBy(
+      unit1,
+      unit2,
+      getSorter(UnitStatSorter.byCount, !natural),
+      getSorter(UnitStatSorter.byDuration, !natural),
+      getSorter(UnitStatSorter.byDistance, !natural)
+    )
   return (
-    <SortableTable
-      title="Units"
-      colour="#6200a1"
-      columns={columns}
-      values={stats}
-      numberToShow={10}
-      getKey={(unit) => unit.stockNumber.toString()}
-      rankSort={(unit1, unit2, natural) =>
-        sortBy(
-          unit1,
-          unit2,
-          getSorter(UnitStatSorter.byCount, !natural),
-          getSorter(UnitStatSorter.byDuration, !natural),
-          getSorter(UnitStatSorter.byDistance, !natural)
-        )
-      }
-    />
+    <div>
+      <div className="lg:hidden">
+        <SortableList
+          title="Units"
+          colour="#6200a1"
+          values={stats}
+          getItem={getUnitItem}
+          getKey={getUnitKey}
+          rankSort={unitRankSort}
+          sortProperties={[]}
+        />
+      </div>
+      <div className="hidden lg:flex">
+        <SortableTable
+          title="Units"
+          colour="#6200a1"
+          columns={columns}
+          values={stats}
+          numberToShow={10}
+          getKey={getUnitKey}
+          rankSort={unitRankSort}
+        />
+      </div>
+    </div>
   )
 }
 
@@ -836,18 +907,87 @@ export const LegStats = (props: { userId: number; stats: LegStat[] }) => {
     durationColumn,
     delayColumn,
   ]
+  let getLegItem = (leg: LegStat, i: number) => (
+    <div className="flex flex-row">
+      <div className="w-10">{i + 1}</div>
+      <div className="flex flex-1 flex-col gap-2">
+        <div>{dateToShortString(leg.boardTime)}</div>
+        <div>
+          <b>{leg.boardName}</b> to <b>{leg.alightName}</b>
+        </div>
+        <div>{leg.operatorName}</div>
+        <div className="flex flex-row">
+          <div className="w-32">{getMilesAndChainsString(leg.distance)}</div>
+          <div className="w-32">{getDurationString(leg.duration)}</div>
+        </div>
+      </div>
+    </div>
+  )
   return (
-    <SortableTable
-      title="Legs"
-      colour="#008eb5"
-      columns={columns}
-      values={stats}
-      numberToShow={10}
-      getKey={(leg) => leg.id.toString()}
-      rankSort={(leg1, leg2, natural) =>
-        sortBy(leg1, leg2, getSorter(LegStatSorter.byDate, natural))
-      }
-    />
+    <div>
+      <div className="lg:hidden">
+        <SortableList
+          title="Legs"
+          colour="#008eb5"
+          values={stats}
+          getItem={getLegItem}
+          getKey={(leg) => leg.id.toString()}
+          rankSort={(leg1, leg2, natural) =>
+            sortBy(leg1, leg2, getSorter(LegStatSorter.byDate, natural))
+          }
+          sortProperties={[]}
+        />
+      </div>
+      <div className="hidden lg:flex">
+        <SortableTable
+          title="Legs"
+          colour="#008eb5"
+          columns={columns}
+          values={stats}
+          numberToShow={10}
+          getKey={(leg) => leg.id.toString()}
+          rankSort={(leg1, leg2, natural) =>
+            sortBy(leg1, leg2, getSorter(LegStatSorter.byDate, natural))
+          }
+        />
+      </div>
+    </div>
+  )
+}
+
+const LegRow = (props: { userId: number; leg: TrainLeg }) => {
+  let { leg, userId } = props
+  let mileString = !leg.distance ? "" : getMilesAndChainsString(leg.distance)
+  let origin = getLegOrigin(leg)
+  let destination = getLegDestination(leg)
+  return (
+    <div className="flex flex-row gap-4 justify-center">
+      <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex flex-row gap-2 lg:w-80 items-center">
+          <LegIconLink userId={userId} legId={leg.id} />
+          <div className="text-xs lg:hidden">•</div>
+          <div className="lg:px-2">{dateToShortString(leg.start)}</div>
+          <div className="text-xs lg:hidden">•</div>
+          <div className="lg:w-28">{getMaybeDurationString(leg.duration)}</div>
+          <div className="text-xs lg:hidden">•</div>
+          <div className="lg:w-32">{mileString}</div>
+        </div>
+        <div className="flex flex-col md:flex-row gap-2">
+          <div className="flex flex-row gap-2 items-center">
+            <div className="text-right w-10 text-xs lg:hidden">from</div>
+            <EndpointSection userId={userId} call={origin} origin={true} />
+          </div>
+          <div className="flex flex-row gap-2 items-center">
+            <div className="text-right w-10 text-xs lg:hidden">to</div>
+            <EndpointSection
+              userId={userId}
+              call={destination}
+              origin={false}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

@@ -63,7 +63,7 @@ const Page = ({ params }: { params: { userId: string; year: string } }) => {
                 )}
                 <OperatorStats stats={stats.operatorStats} />
                 {stats.classStats.length > 0 && (
-                  <div className="flex flex-row gap-4">
+                  <div className="flex flex-col lg:flex-row gap-4">
                     <ClassStats stats={stats.classStats} />
                     {stats.unitStats.length > 0 && (
                       <UnitStats stats={stats.unitStats} />
