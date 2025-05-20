@@ -24,6 +24,7 @@ import {
 } from "react-map-gl/maplibre"
 import { Feature, FeatureCollection } from "geojson"
 import bbox from "@turf/bbox"
+import { Duration } from "js-joda"
 
 const LegRow = (props: { userId: number; leg: TrainLeg }) => {
   let { userId, leg } = props
@@ -130,13 +131,13 @@ export const TotalLegStats = (props: { legs: TrainLeg[] }) => {
   let { distance, duration } = legs.reduce(
     ({ distance, duration }, cur) => {
       let newDistance = !cur.distance ? 0 : cur.distance
-      let newDuration = !cur.duration ? 0 : cur.duration
+      let newDuration = !cur.duration ? Duration.ZERO : cur.duration
       return {
         distance: distance + newDistance,
-        duration: duration + newDuration,
+        duration: duration.plusDuration(newDuration),
       }
     },
-    { distance: 0, duration: 0 }
+    { distance: 0, duration: Duration.ZERO }
   )
   return (
     <div className="flex flex-row flex-wrap gap-4 justify-center">

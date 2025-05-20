@@ -409,6 +409,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION SelectLegs(
+    p_user_id INTEGER,
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_leg_id INTEGER DEFAULT NULL
@@ -420,6 +421,7 @@ $$
 BEGIN
     RETURN QUERY SELECT
         LegDetails.leg_id,
+        LegDetails.user_id,
         LegDetails.leg_start,
         LegDetails.leg_services,
         LegDetails.leg_calls,
@@ -429,6 +431,7 @@ BEGIN
     FROM (
         SELECT
             Leg.leg_id AS leg_id,
+            Leg.user_id AS user_id,
             COALESCE(
                 LegCallLink.leg_calls[1].plan_dep,
                 LegCallLink.leg_calls[1].act_dep,
@@ -455,7 +458,8 @@ BEGIN
     ) LegDetails
     WHERE (p_start_date IS NULL OR LegDetails.leg_start >= p_start_date)
     AND (p_end_date IS NULL OR LegDetails.leg_start <= p_end_date)
-    AND p_leg_id IS NULL OR LegDetails.leg_id = p_leg_id
+    AND (p_leg_id IS NULL OR LegDetails.leg_id = p_leg_id)
+    AND p_user_id = LegDetails.user_id
     ORDER BY LegDetails.leg_start DESC;
 END;
 $$;

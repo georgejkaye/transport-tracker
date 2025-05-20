@@ -40,10 +40,12 @@ export const EndpointSection = (props: {
   )
 }
 
+export const getDelayString = (delay: number) =>
+  delay < 0 ? delay.toString() : delay > 0 ? `+${delay.toString()}` : "•"
+
 export const getDelay = (plan: Date, act: Date) => {
   let delay = (act.getTime() - plan.getTime()) / 1000 / 60
-  let delayString =
-    delay < 0 ? delay.toString() : delay > 0 ? `+${delay.toString()}` : "•"
+  let delayString = getDelayString(delay)
   return {
     delay,
     text: delayString,
@@ -160,9 +162,9 @@ export const StationLink = (props: {
 export const TotalStat = (props: { title: string; value: string }) => {
   let { title, value } = props
   return (
-    <div className="flex flex-row">
-      <div className="border-r border-gray-600 pr-2">{title}</div>
-      <div className="pl-2">{value}</div>
+    <div className="flex flex-row text-lg bg-blue-200 p-4 align-baseline rounded">
+      <div className="">{title}</div>
+      <div className="pl-2 font-bold text-xl">{value}</div>
     </div>
   )
 }

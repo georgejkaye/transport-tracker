@@ -156,6 +156,6 @@ dmypy.json
 
 # Data
 
-db/scripts/99_populate.sql
+db/scripts/dump.pgdata
 cache
 *.gml

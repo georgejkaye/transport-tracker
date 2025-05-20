@@ -616,7 +616,12 @@ $$
 BEGIN
     RETURN QUERY
     SELECT * FROM BusLegData
-    WHERE (BusLegData.leg_user).user_id = p_user_id;
+    WHERE (BusLegData.leg_user).user_id = p_user_id
+    ORDER BY COALESCE(
+        (BusLegData.leg_calls)[1].act_dep,
+        (BusLegData.leg_calls)[1].plan_dep,
+        (BusLegData.leg_calls)[1].act_arr,
+        (BusLegData.leg_calls)[1].plan_arr);
 END;
 $$;
 

@@ -13,7 +13,7 @@ from typing import Optional
 from pydantic import Field
 from shapely import LineString, Point
 
-from api.utils.database import connect
+from api.utils.database import connect_with_env
 from api.data.leg import (
     ShortLeg,
     ShortLegCall,
@@ -396,12 +396,13 @@ def get_leg_lines_for_legs(
 def get_leg_map_page(
     network: MultiDiGraph,
     conn: Connection,
+    user_id: int,
     text_type: MarkerTextType,
     search_start: Optional[datetime] = None,
     search_end: Optional[datetime] = None,
     search_leg_id: Optional[int] = None,
 ) -> str:
-    legs = select_legs(conn, search_start, search_end, search_leg_id)
+    legs = select_legs(conn, user_id, search_start, search_end, search_leg_id)
     stations = []
     for leg in legs:
         for call in leg.calls:
@@ -429,7 +430,7 @@ def get_leg_map_page_from_leg_data(
         if leg.via is not None:
             for via_station in leg.via:
                 stations.add((via_station, None))
-    with connect() as conn:
+    with connect_with_env() as conn:
         (name_to_station_dict, station_points) = get_station_points_from_names(
             conn, list(stations)
         )
@@ -506,6 +507,7 @@ def short_leg_call_to_short_leg_call_with_geometry(
 @dataclass
 class ShortLegWithGeometry:
     id: int
+    user_id: int
     leg_start: datetime
     services: dict[str, ShortTrainService]
     calls: list[ShortLegCallWithGeometry]
@@ -518,6 +520,7 @@ class ShortLegWithGeometry:
 def short_leg_to_short_leg_with_geometry(leg: ShortLeg) -> ShortLegWithGeometry:
     return ShortLegWithGeometry(
         leg.id,
+        leg.user_id,
         leg.leg_start,
         leg.services,
         [
@@ -579,6 +582,7 @@ def get_short_leg_with_geometry(
             )
     return ShortLegWithGeometry(
         leg.id,
+        leg.user_id,
         leg.leg_start,
         leg.services,
         calls_with_geometry,

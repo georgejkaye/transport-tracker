@@ -1,4 +1,5 @@
 CREATE OR REPLACE FUNCTION GetLegIdsInRange(
+    p_user_id INTEGER,
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
@@ -26,11 +27,13 @@ BEGIN
     ON Leg.leg_id = LegEnds.leg_id
     WHERE (p_start_date IS NULL OR LegEnds.start_time >= p_start_date)
     AND (p_end_date IS NULL OR LegEnds.start_time <= p_end_date)
+    AND Leg.user_id = p_user_id
     ORDER BY LegEnds.start_time;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetStationCalls(
+    p_user_id INTEGER,
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
@@ -45,7 +48,7 @@ BEGIN
     RETURN QUERY
     SELECT StationCall.station_crs, StationCall.count FROM (
         SELECT Call.station_crs, COUNT(*) AS count
-        FROM (SELECT * FROM GetLegIdsInRange(p_start_date, p_end_date)) LegId
+        FROM (SELECT * FROM GetLegIdsInRange(p_user_id, p_start_date, p_end_date)) LegId
         INNER JOIN LegCall
         ON LegId.leg_id = LegCall.leg_id
         INNER JOIN Call
@@ -57,6 +60,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetStationStats (
+    p_user_id INTEGER,
     p_start_time TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_time TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
@@ -69,6 +73,18 @@ BEGIN
     SELECT
         StationCount.station_crs::CHARACTER(3),
         StationCount.station_name,
+        COALESCE(
+            StationCount.brand_name,
+            StationCount.operator_name
+        ) AS operator_name,
+        COALESCE(
+            StationCount.brand_id,
+            StationCount.operator_id
+        ) AS operator_id,
+        (CASE
+            WHEN StationCount.brand_id IS NOT NULL THEN true
+            ELSE false
+        END) AS is_brand,
         StationCount.boards,
         StationCount.alights,
         StationCount.intermediates
@@ -76,6 +92,10 @@ BEGIN
         SELECT
             StationCount.station_crs,
             Station.station_name,
+            Station.operator_id,
+            Station.brand_id,
+            Operator.operator_name,
+            Brand.brand_name,
             StationCount.boards,
             StationCount.alights,
             (
@@ -85,7 +105,7 @@ BEGIN
             ) AS intermediates
         FROM (
             WITH LegEndpoint AS (
-                SELECT * FROM GetLegCallOverview(p_start_time, p_end_time)
+                SELECT * FROM GetLegCallOverview(p_user_id, p_start_time, p_end_time)
             )
             SELECT
                 LegCallCount.station_crs AS station_crs,
@@ -115,12 +135,16 @@ BEGIN
                     LegAlightCount.alight_station_crs
             ) StationBoardAlight
             FULL OUTER JOIN (
-                SELECT * FROM GetStationCalls(p_start_time, p_end_time)
+                SELECT * FROM GetStationCalls(p_user_id, p_start_time, p_end_time)
             ) LegCallCount
             ON LegCallCount.station_crs = StationBoardAlight.station_crs
         ) StationCount
         INNER JOIN Station
         ON StationCount.station_crs = Station.station_crs
+        INNER JOIN Operator
+        ON Station.operator_id = Operator.operator_id
+        LEFT JOIN Brand
+        ON Station.brand_id = Brand.brand_id
     ) StationCount
     ORDER BY
         (StationCount.boards + StationCount.alights) DESC,
@@ -131,11 +155,13 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetLegCallOverview (
+    p_user_id INTEGER,
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
 RETURNS TABLE (
     leg_id INTEGER,
+    user_id INTEGER,
     board_call_id INTEGER,
     board_station_crs CHARACTER(3),
     alight_call_id INTEGER,
@@ -149,6 +175,7 @@ BEGIN
     RETURN QUERY
     SELECT
         LegStopOverview.leg_id,
+        LegStopOverview.user_id,
         LegStopOverview.board_call_id,
         LegStopOverview.board_station_crs,
         LegStopOverview.alight_call_id,
@@ -161,7 +188,9 @@ BEGIN
                 Call.call_id,
                 Call.station_crs,
                 COALESCE(plan_arr, plan_dep, act_arr, act_dep) AS stop_time
-            FROM (SELECT * FROM GetLegIdsInRange(p_start_date, p_end_date)) LegRange
+            FROM (
+                SELECT * FROM GetLegIdsInRange(p_user_id, p_start_date, p_end_date)
+            ) LegRange
             INNER JOIN LegCall
             ON LegRange.leg_id = LegCall.leg_id
             INNER JOIN Call
@@ -169,6 +198,7 @@ BEGIN
         )
         SELECT
             LegStopBoard.leg_id,
+            Leg.user_id,
             LegStopBoardStation.call_id AS board_call_id,
             LegStopBoardStation.station_crs AS board_station_crs,
             LegStopAlightStation.call_id AS alight_call_id,
@@ -201,11 +231,15 @@ BEGIN
             GROUP BY LegStop.leg_id
         ) LegStopIntermediate
         ON LegStopIntermediate.leg_id = LegStopBoard.leg_id
+        INNER JOIN Leg
+        ON LegStopBoard.leg_id = Leg.leg_id
+        WHERE Leg.user_id = p_user_id
     ) LegStopOverview;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetLegStats (
+    p_user_id INTEGER,
     p_start_time TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_time TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
@@ -217,6 +251,7 @@ BEGIN
     RETURN QUERY
     SELECT
         LegStat.leg_id,
+        LegStat.user_id,
         LegStat.leg_start,
         LegStat.board_station_crs::CHARACTER(3),
         LegStat.board_station_name,
@@ -227,11 +262,13 @@ BEGIN
         LegStat.duration,
         LegStat.delay,
         LegStat.operator_id,
+        LegStat.operator_code,
         LegStat.operator_name,
         LegStat.is_brand
     FROM (
         SELECT
             LegCallOverview.leg_id,
+            LegCallOverview.user_id,
             COALESCE(
                 BoardCall.act_dep,
                 BoardCall.act_arr,
@@ -263,6 +300,7 @@ BEGIN
                 )
             ) / 60)::INTEGER AS delay,
             COALESCE(Brand.brand_id, Operator.operator_id) AS operator_id,
+            COALESCE(Brand.brand_code, Operator.operator_code) AS operator_code,
             COALESCE(Brand.brand_name, Operator.operator_name) AS operator_name,
             (
                 CASE
@@ -271,7 +309,8 @@ BEGIN
                 END
             ) AS is_brand
         FROM (
-            SELECT * FROM GetLegCallOverview(p_start_time, p_end_time)
+            SELECT *
+            FROM GetLegCallOverview(p_user_id, p_start_time, p_end_time)
         ) LegCallOverview
         INNER JOIN Station BoardStation
         ON LegCallOverview.board_station_crs = BoardStation.station_crs
@@ -290,12 +329,14 @@ BEGIN
         ON Service.operator_id = Operator.operator_id
         LEFT JOIN Brand
         ON Service.brand_id = Brand.brand_id
+        WHERE Leg.user_id = p_user_id
     ) LegStat
     ORDER BY LegStat.leg_start;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetStockUsed(
+    p_user_id INTEGER,
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
@@ -327,12 +368,13 @@ BEGIN
     ON StockSegment.stock_segment_id = StockSegmentReport.stock_segment_id
     INNER JOIN StockReport
     ON StockSegmentReport.stock_report_id = StockReport.stock_report_id
-    INNER JOIN GetLegIdsInRange(p_start_date, p_end_date) LegId
+    INNER JOIN GetLegIdsInRange(p_user_id, p_start_date, p_end_date) LegId
     ON Leg.leg_id = LegId.leg_id;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetClassStats(
+    p_user_id INTEGER,
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
@@ -349,9 +391,9 @@ BEGIN
         SUM(LegStat.duration)
     FROM (
         SELECT DISTINCT LegStock.leg_id, LegStock.stock_class
-        FROM GetStockUsed(p_start_date, p_end_date) LegStock
+        FROM GetStockUsed(p_user_id, p_start_date, p_end_date) LegStock
     ) LegClass
-    INNER JOIN GetLegStats(p_start_date, p_end_date) LegStat
+    INNER JOIN GetLegStats(p_user_id, p_start_date, p_end_date) LegStat
     ON LegClass.leg_id = LegStat.leg_id
     GROUP BY LegClass.stock_class
     ORDER BY count DESC;
@@ -359,6 +401,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetUnitStats (
+    p_user_id INTEGER,
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
@@ -373,8 +416,8 @@ BEGIN
         COUNT(*),
         SUM(LegStat.distance),
         SUM(LegStat.duration)
-    FROM GetStockUsed(p_start_date, p_end_date) LegStock
-    INNER JOIN GetLegStats(p_start_date, p_end_date) LegStat
+    FROM GetStockUsed(p_user_id, p_start_date, p_end_date) LegStock
+    INNER JOIN GetLegStats(p_user_id, p_start_date, p_end_date) LegStat
     ON LegStock.leg_id = LegStat.leg_id
     WHERE LegStock.stock_number IS NOT NULL
     GROUP BY LegStock.stock_number
@@ -383,6 +426,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetOperatorStats (
+    p_user_id INTEGER,
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
@@ -400,13 +444,14 @@ BEGIN
         SUM(LegStat.distance),
         SUM(LegStat.duration),
         SUM(LegStat.delay)
-    FROM (SELECT * FROM GetLegStats(p_start_date, p_end_date)) LegStat
+    FROM (SELECT * FROM GetLegStats(p_user_id, p_start_date, p_end_date)) LegStat
     GROUP BY (LegStat.operator_id, LegStat.operator_name, LegStat.is_brand)
     ORDER BY count DESC;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetLegDelayRanking (
+    p_user_id INTEGER,
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
@@ -421,14 +466,19 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT LegStat.run_date, LegStat.board_name, LegStat.alight_name, LegStat.delay
-    FROM (SELECT * FROM GetLegStats(p_start_date, p_end_date)) LegStat
+    SELECT
+        LegStat.run_date,
+        LegStat.board_name,
+        LegStat.alight_name,
+        LegStat.delay
+    FROM (SELECT * FROM GetLegStats(p_user_id, p_start_date, p_end_date)) LegStat
     WHERE LegStat.delay IS NOT NULL
     ORDER BY LegStat.delay DESC;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetLegDistanceRanking (
+    p_user_id INTEGER,
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
@@ -443,14 +493,19 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT LegStat.run_date, LegStat.board_name, LegStat.alight_name, LegStat.distance
-    FROM (SELECT * FROM GetLegStats(p_start_date, p_end_date)) LegStat
+    SELECT
+        LegStat.run_date,
+        LegStat.board_name,
+        LegStat.alight_name,
+        LegStat.distance
+    FROM (SELECT * FROM GetLegStats(p_user_id, p_start_date, p_end_date)) LegStat
     WHERE LegStat.distance IS NOT NULL
     ORDER BY LegStat.distance DESC;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetLegDurationRanking (
+    p_user_id INTEGER,
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
@@ -465,14 +520,19 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT LegStat.run_date, LegStat.board_name, LegStat.alight_name, LegStat.duration
-    FROM (SELECT * FROM GetLegStats(p_start_date, p_end_date)) LegStat
+    SELECT
+        LegStat.run_date,
+        LegStat.board_name,
+        LegStat.alight_name,
+        LegStat.duration
+    FROM (SELECT * FROM GetLegStats(p_user_id, p_start_date, p_end_date)) LegStat
     WHERE LegStat.duration IS NOT NULL
     ORDER BY LegStat.duration DESC;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetStats (
+    p_user_id INTEGER,
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 ) RETURNS OutStats
@@ -483,50 +543,60 @@ BEGIN
     RETURN (
     SELECT (
         COUNT(LegStat.*),
-        SUM(LegStat.distance),
-        SUM(LegStat.duration),
-        SUM(LegStat.delay),
+        COALESCE(SUM(LegStat.distance), 0),
+        COALESCE(SUM(LegStat.duration), INTERVAL '0 days'),
+        COALESCE(SUM(LegStat.delay), 0),
         (
             SELECT ARRAY_AGG(leg_stats)
             FROM (
-                SELECT GetLegStats(p_start_date, p_end_date)
+                SELECT GetLegStats(p_user_id, p_start_date, p_end_date)
                 AS leg_stats
             )
         ),
         (
             SELECT ARRAY_AGG(station_stats)
             FROM (
-                SELECT GetStationStats(p_start_date, p_end_date)
+                SELECT GetStationStats(p_user_id, p_start_date, p_end_date)
                 AS station_stats
             )
         ),
         (
             SELECT ARRAY_AGG(operator_stats)
             FROM (
-                SELECT GetOperatorStats(p_start_date, p_end_date)
+                SELECT GetOperatorStats(p_user_id, p_start_date, p_end_date)
                 AS operator_stats
             )
         ),
         (
             SELECT ARRAY_AGG(class_stats)
             FROM (
-                SELECT GetClassStats(p_start_date, p_end_date)
+                SELECT GetClassStats(p_user_id, p_start_date, p_end_date)
                 AS class_stats
             )
         ),
         (
             SELECT ARRAY_AGG(unit_stats)
             FROM (
-                SELECT GetUnitStats(p_start_date, p_end_date)
+                SELECT GetUnitStats(p_user_id, p_start_date, p_end_date)
                 AS unit_stats
             )
         ))::OutStats
     )
-    FROM (SELECT * FROM GetLegStats(p_start_date, p_end_date) AS stats) LegStat;
+    FROM (
+        SELECT *
+        FROM GetLegStats(p_user_id, p_start_date, p_end_date) AS stats
+    ) LegStat;
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION GetLegLines( p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL, p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL) RETURNS TABLE ( board_crs CHARACTER(3), board_name TEXT, board_latitude DECIMAL,
+CREATE OR REPLACE FUNCTION GetLegLines(
+    p_user_id INTEGER,
+    p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+) RETURNS TABLE (
+    board_crs CHARACTER(3),
+    board_name TEXT,
+    board_latitude DECIMAL,
     board_longitude DECIMAL,
     alight_crs CHARACTER(3),
     alight_name TEXT,
@@ -554,7 +624,7 @@ BEGIN
                 ELSE Operator.bg_colour
             END
         ) AS colour
-    FROM GetLegStats(p_start_date, p_end_date) LegStat
+    FROM GetLegStats(p_user_id, p_start_date, p_end_date) LegStat
     INNER JOIN Station BoardStation
     ON BoardStation.station_crs = LegStat.board_crs
     INNER JOIN Station AlightStation

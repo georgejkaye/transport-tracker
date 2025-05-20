@@ -1,16 +1,46 @@
-import { parse } from "tinyduration"
+import { Duration } from "js-joda"
+
+export const getSorter = <T>(
+  sortFn: (t1: T, t2: T) => number,
+  asc: boolean
+) => ({
+  sortFn,
+  asc,
+})
+
+export const sortBy = <T>(
+  t1: T,
+  t2: T,
+  ...params: {
+    sortFn: (t1: T, t2: T) => number
+    asc: boolean
+  }[]
+) => {
+  for (const { sortFn, asc } of params) {
+    let result = sortFn(t1, t2) * (asc ? 1 : -1)
+    if (result != 0) {
+      return result
+    }
+  }
+  return 0
+}
 
 export const durationToHoursAndMinutes = (duration: number) => ({
   hours: Math.floor(duration / 60),
   minutes: duration % 60,
 })
 
-export const getDurationString = (duration: number) => {
-  let { hours, minutes } = durationToHoursAndMinutes(duration)
-  return `${hours}h ${minutes}m`
+const durationToSeconds = (duration: Duration) => duration.seconds()
+
+export const getDurationString = (duration: Duration) => {
+  let days = Math.floor(duration.toDays())
+  let hours = Math.floor(duration.toHours()) % 24
+  let minutes = Math.round(duration.toMinutes()) % 60
+  let dayString = days ? `${days}d ` : ""
+  return `${dayString}${hours}h ${minutes}m`
 }
 
-export const getMaybeDurationString = (duration: number | undefined) =>
+export const getMaybeDurationString = (duration: Duration | undefined) =>
   !duration ? "" : getDurationString(duration)
 
 export const mileageToMilesAndChains = (miles: number) => ({
@@ -318,13 +348,13 @@ export const responseToTrainLegSegment = (data: any) => {
 
 export interface TrainLeg {
   id: number
+  userId: number
   start: Date
   services: TrainService[]
   calls: TrainLegCall[]
   stock: TrainLegSegment[]
   distance?: number
-  // duration in minutes
-  duration?: number
+  duration?: Duration
   geometry?: [number, number][]
 }
 
@@ -341,18 +371,13 @@ export const responseToLeg = (data: any): TrainLeg => {
     let service = data.services[id]
     services.push(responseToTrainService(service))
   }
-  var duration
-  try {
-    let { hours, minutes } = parse(data.duration)
-    duration = (hours ? hours * 60 : 0) + (minutes ? minutes : 0)
-  } catch {
-    duration = undefined
-  }
+  let duration = Duration.parse(data.duration)
   const geometry = !data.geometry
     ? undefined
     : responseToGeometry(data.geometry)
   return {
     id: data.id,
+    userId: data.user_id,
     start: new Date(data.leg_start),
     services,
     calls: data.calls.map(responseToTrainLegCall),
@@ -372,3 +397,208 @@ export const getLegOperator = (leg: TrainLeg) => {
   const service = leg.services[0]
   return service.brand ? service.brand.name : service.operator.name
 }
+
+export interface LegStat {
+  id: number
+  boardTime: Date
+  boardCrs: string
+  boardName: string
+  alightTime: Date
+  alightCrs: string
+  alightName: string
+  distance: number
+  duration: Duration
+  delay: number
+  operatorId: number
+  operatorCode: string
+  operatorName: string
+  isBrand: boolean
+}
+
+const responseToLegStat = (data: any) => ({
+  id: data.leg_id,
+  boardTime: new Date(Date.parse(data.board_time)),
+  boardCrs: data.board_crs,
+  boardName: data.board_name,
+  alightTime: new Date(Date.parse(data.alight_time)),
+  alightCrs: data.alight_crs,
+  alightName: data.alight_name,
+  distance: parseFloat(data.distance),
+  duration: Duration.parse(data.duration),
+  delay: data.delay == null ? undefined : data.delay,
+  operatorId: data.operator_id,
+  operatorCode: data.operator_code,
+  operatorName: data.operator_name,
+  isBrand: data.is_brand,
+})
+
+export namespace LegStatSorter {
+  export const byDate = (leg1: LegStat, leg2: LegStat) =>
+    leg1.boardTime.getTime() - leg2.boardTime.getTime()
+  export const byDistance = (leg1: LegStat, leg2: LegStat) =>
+    leg1.distance - leg2.distance
+  export const byDuration = (leg1: LegStat, leg2: LegStat) =>
+    durationToSeconds(leg1.duration) - durationToSeconds(leg2.duration)
+  export const byDelay = (leg1: LegStat, leg2: LegStat) =>
+    leg1.delay - leg2.delay
+}
+
+export interface StationStat {
+  crs: string
+  name: string
+  operatorName: string
+  operatorId: number
+  boards: number
+  alights: number
+  intermediates: number
+}
+
+const responseToStationStat = (data: any) => ({
+  crs: data.station_crs,
+  name: data.station_name,
+  operatorName: data.operator_name,
+  operatorId: data.operator_id,
+  isBrand: data.is_brand,
+  boards: data.boards,
+  alights: data.alights,
+  intermediates: data.intermediates,
+})
+
+export const getBoardsPlusAlights = (stn: StationStat) =>
+  stn.boards + stn.alights
+
+export namespace StationStatSorter {
+  export const byName = (stn1: StationStat, stn2: StationStat) =>
+    stn1.name.localeCompare(stn2.name)
+
+  export const byOperator = (stn1: StationStat, stn2: StationStat) =>
+    stn1.operatorName.localeCompare(stn2.operatorName)
+
+  export const byBoards = (stn1: StationStat, stn2: StationStat) =>
+    stn1.boards - stn2.boards
+
+  export const byAlights = (stn1: StationStat, stn2: StationStat) =>
+    stn1.alights - stn2.alights
+
+  export const byBoardsPlusAlights = (stn1: StationStat, stn2: StationStat) =>
+    stn1.boards + stn1.alights - (stn2.boards + stn2.alights)
+
+  export const byCalls = (stn1: StationStat, stn2: StationStat) =>
+    stn1.intermediates - stn2.intermediates
+
+  export const byTotal = (stn1: StationStat, stn2: StationStat) =>
+    stn1.boards + stn1.alights - (stn2.boards + stn2.alights)
+}
+
+export interface OperatorStat {
+  id: number
+  name: string
+  isBrand: boolean
+  count: number
+  distance: number
+  duration: Duration
+  delay: number
+}
+
+const responseToOperatorStat = (data: any) => ({
+  id: data.operator_id,
+  name: data.operator_name,
+  isBrand: data.is_brand,
+  count: data.count,
+  distance: parseFloat(data.distance),
+  duration: Duration.parse(data.duration),
+  delay: data.delay == null ? undefined : data.delay,
+})
+
+export namespace OperatorStatSorter {
+  export const byName = (op1: OperatorStat, op2: OperatorStat) =>
+    op1.name.localeCompare(op2.name)
+  export const byCount = (op1: OperatorStat, op2: OperatorStat) =>
+    op1.count - op2.count
+  export const byDuration = (op1: OperatorStat, op2: OperatorStat) =>
+    durationToSeconds(op1.duration) - durationToSeconds(op2.duration)
+  export const byDistance = (op1: OperatorStat, op2: OperatorStat) =>
+    op1.distance - op2.distance
+  export const byDelay = (op1: OperatorStat, op2: OperatorStat) =>
+    op1.delay - op2.delay
+}
+
+export interface ClassStat {
+  stockClass: number
+  count: number
+  distance: number
+  duration: Duration
+}
+
+const responseToClassStat = (data: any) => ({
+  stockClass: data.stock_class,
+  count: data.count,
+  distance: parseFloat(data.distance),
+  duration: Duration.parse(data.duration),
+})
+
+export namespace ClassStatSorter {
+  export const byClassNumber = (cls1: ClassStat, cls2: ClassStat) =>
+    cls1.stockClass - cls2.stockClass
+  export const byCount = (cls1: ClassStat, cls2: ClassStat) =>
+    cls1.count - cls2.count
+  export const byDistance = (cls1: ClassStat, cls2: ClassStat) =>
+    cls1.distance - cls2.distance
+  export const byDuration = (cls1: ClassStat, cls2: ClassStat) =>
+    durationToSeconds(cls1.duration) - durationToSeconds(cls2.duration)
+}
+
+export interface UnitStat {
+  stockNumber: number
+  count: number
+  distance: number
+  duration: Duration
+}
+
+const responseToUnitStat = (data: any) => ({
+  stockNumber: data.stock_number,
+  count: data.count,
+  distance: parseFloat(data.distance),
+  duration: Duration.parse(data.duration),
+})
+
+export namespace UnitStatSorter {
+  export const byUnitNumber = (cls1: UnitStat, cls2: UnitStat) =>
+    cls1.stockNumber - cls2.stockNumber
+  export const byCount = (cls1: UnitStat, cls2: UnitStat) =>
+    cls1.count - cls2.count
+  export const byDistance = (cls1: UnitStat, cls2: UnitStat) =>
+    cls1.distance - cls2.distance
+  export const byDuration = (cls1: UnitStat, cls2: UnitStat) =>
+    durationToSeconds(cls1.duration) - durationToSeconds(cls2.duration)
+}
+
+export interface Stats {
+  journeys: number
+  distance: number
+  duration: Duration
+  delay: number
+  legStats: LegStat[]
+  stationStats: StationStat[]
+  operatorStats: OperatorStat[]
+  classStats: ClassStat[]
+  unitStats: UnitStat[]
+}
+
+export const responseToStats = (data: any) => ({
+  journeys: data.journeys,
+  distance: data.distance,
+  duration: Duration.parse(data.duration),
+  delay: data.delay,
+  legStats: !data.leg_stats ? [] : data.leg_stats.map(responseToLegStat),
+  stationStats: !data.station_stats
+    ? []
+    : data.station_stats.map(responseToStationStat),
+  operatorStats: !data.operator_stats
+    ? []
+    : data.operator_stats.map(responseToOperatorStat),
+  classStats: !data.class_stats
+    ? []
+    : data.class_stats.map(responseToClassStat),
+  unitStats: !data.unit_stats ? [] : data.unit_stats.map(responseToUnitStat),
+})

@@ -21,6 +21,12 @@ app = FastAPI(
     },
 )
 
+
+@app.get("/hc", summary="Healthcheck", tags=["debug"])
+async def get_healthcheck():
+    return "Hello!"
+
+
 app.include_router(user.router)
 app.include_router(utils.router)
 

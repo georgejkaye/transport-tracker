@@ -185,6 +185,7 @@ def short_leg_call_to_point_times(leg_call: ShortLegCall) -> PointTimes:
 @dataclass
 class ShortLeg:
     id: int
+    user_id: int
     leg_start: datetime
     services: dict[str, ShortTrainService]
     calls: list[ShortLegCall]
@@ -344,6 +345,7 @@ def register_leg_stock(
 
 def register_leg_data(
     leg_id: int,
+    user_id: int,
     leg_start: datetime,
     leg_services: list[ShortTrainService],
     leg_calls: list[ShortLegCall],
@@ -356,6 +358,7 @@ def register_leg_data(
         leg_services_dict[service.service_id] = service
     return ShortLeg(
         leg_id,
+        user_id,
         leg_start,
         leg_services_dict,
         leg_calls,
@@ -367,6 +370,7 @@ def register_leg_data(
 
 def select_legs(
     conn: Connection,
+    user_id: int,
     search_start: Optional[datetime] = None,
     search_end: Optional[datetime] = None,
     search_leg_id: Optional[int] = None,
@@ -384,8 +388,8 @@ def select_legs(
     register_type(conn, "OutLegData", register_leg_data)
 
     rows = conn.execute(
-        "SELECT SelectLegs(%s, %s, %s)",
-        [search_start, search_end, search_leg_id],
+        "SELECT SelectLegs(%s, %s, %s, %s)",
+        [user_id, search_start, search_end, search_leg_id],
     ).fetchall()
 
     return [row[0] for row in rows]

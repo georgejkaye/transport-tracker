@@ -10,6 +10,7 @@ from psycopg import Connection
 @dataclass
 class LegStat:
     leg_id: int
+    user_id: int
     board_time: datetime
     board_crs: str
     board_name: str
@@ -20,6 +21,7 @@ class LegStat:
     duration: timedelta
     delay: int
     operator_id: int
+    operator_code: str
     operator_name: str
     is_brand: bool
 
@@ -28,6 +30,9 @@ class LegStat:
 class StationStat:
     station_crs: str
     station_name: str
+    operator_id: int
+    operator_name: str
+    is_brand: bool
     boards: int
     alights: int
     intermediates: int
@@ -75,6 +80,7 @@ class Stats:
 
 def register_leg_stat(
     leg_id: int,
+    user_id: int,
     board_time: datetime,
     board_crs: str,
     board_name: str,
@@ -85,11 +91,13 @@ def register_leg_stat(
     duration: timedelta,
     delay: int,
     operator_id: int,
+    operator_code: str,
     operator_name: str,
     is_brand: bool,
 ):
     return LegStat(
         leg_id,
+        user_id,
         board_time,
         board_crs,
         board_name,
@@ -100,6 +108,7 @@ def register_leg_stat(
         duration,
         delay,
         operator_id,
+        operator_code,
         operator_name,
         is_brand,
     )
@@ -108,12 +117,22 @@ def register_leg_stat(
 def register_station_stat(
     station_crs: str,
     station_name: str,
+    operator_name: str,
+    operator_id: int,
+    is_brand: bool,
     boards: int,
     alights: int,
     intermediates: int,
 ):
     return StationStat(
-        station_crs, station_name, boards, alights, intermediates
+        station_crs,
+        station_name,
+        operator_id,
+        operator_name,
+        is_brand,
+        boards,
+        alights,
+        intermediates,
     )
 
 
@@ -169,6 +188,7 @@ def register_stats(
 
 def get_train_stats(
     conn: Connection,
+    user_id: int,
     search_start: Optional[datetime] = None,
     search_end: Optional[datetime] = None,
 ) -> Stats:
@@ -180,7 +200,7 @@ def get_train_stats(
     register_type(conn, "OutStats", register_stats)
 
     row = conn.execute(
-        "SELECT GetStats(%s, %s)", [search_start, search_end]
+        "SELECT GetStats(%s, %s, %s)", [user_id, search_start, search_end]
     ).fetchone()
     if row is None:
         raise RuntimeError("Could not get stats")

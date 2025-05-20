@@ -43,7 +43,7 @@ CREATE TABLE StockSubclass (
 
 CREATE TABLE StockFormation (
     stock_class INT NOT NULL,
-    stock_subclass INT,
+    stock_subclass INTEGER,
     cars INT NOT NULL,
     FOREIGN KEY (stock_class) REFERENCES Stock(stock_class),
     FOREIGN KEY (stock_class, stock_subclass) REFERENCES StockSubclass(stock_class, stock_subclass),
@@ -51,7 +51,7 @@ CREATE TABLE StockFormation (
 );
 
 CREATE OR REPLACE FUNCTION IsValidBrand(
-    p_brand_id INT,
+    p_brand_id INTEGER,
     p_operator_id INT
 ) RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -68,7 +68,7 @@ CREATE TABLE OperatorStock (
     operator_id INTEGER NOT NULL,
     brand_id INTEGER,
     stock_class INT NOT NULL,
-    stock_subclass INT,
+    stock_subclass INTEGER,
     FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
     FOREIGN KEY (brand_id) REFERENCES Brand(brand_id),
     FOREIGN KEY (stock_class) REFERENCES Stock(stock_class),
@@ -166,15 +166,17 @@ CREATE TABLE AssociatedService (
 
 CREATE TABLE Leg (
     leg_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
     distance NUMERIC NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES Traveller(user_id),
     CONSTRAINT distance_positive CHECK (distance > 0)
 );
 
 CREATE TABLE LegCall (
     leg_call_id SERIAL PRIMARY KEY,
     leg_id INT NOT NULL,
-    arr_call_id INT,
-    dep_call_id INT,
+    arr_call_id INTEGER,
+    dep_call_id INTEGER,
     mileage NUMERIC,
     assoc_type TEXT,
     CONSTRAINT leg_call_unique UNIQUE (leg_id, arr_call_id, dep_call_id),
@@ -196,8 +198,8 @@ CREATE TABLE StockSegment (
 );
 
 CREATE OR REPLACE FUNCTION IsValidStockFormation (
-    stockclass INT,
-    stocksubclass INT,
+    stockclass INTEGER,
+    stocksubclass INTEGER,
     stockcars INT
 ) RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -232,10 +234,10 @@ $$;
 
 CREATE TABLE StockReport (
     stock_report_id SERIAL PRIMARY KEY,
-    stock_class INT,
-    stock_subclass INT,
-    stock_number INT,
-    stock_cars INT,
+    stock_class INTEGER,
+    stock_subclass INTEGER,
+    stock_number INTEGER,
+    stock_cars INTEGER,
     FOREIGN KEY (stock_class) REFERENCES Stock(stock_class),
     FOREIGN KEY (stock_class, stock_subclass) REFERENCES StockSubclass(stock_class, stock_subclass),
     CONSTRAINT valid_stock CHECK (IsValidStockFormation(stock_class, stock_subclass, stock_cars))

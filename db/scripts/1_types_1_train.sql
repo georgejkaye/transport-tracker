@@ -187,6 +187,7 @@ CREATE TYPE OutLegStock AS (
 
 CREATE TYPE OutLegData AS (
     leg_id INTEGER,
+    user_id INTEGER,
     leg_start TIMESTAMP WITH TIME ZONE,
     leg_services OutServiceData[],
     leg_calls OutLegCallData[],
@@ -199,6 +200,7 @@ CREATE TYPE OutLegData AS (
 
 CREATE TYPE OutLegStat AS (
     leg_id INTEGER,
+    user_id INTEGER,
     board_time TIMESTAMP WITH TIME ZONE,
     board_crs CHARACTER(3),
     board_name TEXT,
@@ -209,6 +211,7 @@ CREATE TYPE OutLegStat AS (
     duration INTERVAL,
     delay INTEGER,
     operator_id INTEGER,
+    operator_code CHARACTER(2),
     operator_name TEXT,
     is_brand BOOLEAN
 );
@@ -216,6 +219,9 @@ CREATE TYPE OutLegStat AS (
 CREATE TYPE OutStationStat AS (
     station_crs CHARACTER(3),
     station_name TEXT,
+    operator_name TEXT,
+    operator_id INTEGER,
+    is_brand BOOLEAN,
     boards BIGINT,
     alights BIGINT,
     intermediates BIGINT
