@@ -423,8 +423,11 @@ export const StationStats = (props: {
     <div className="flex flex-row">
       <div className="w-10">{i + 1}</div>
 
-      <div className="flex flex-col gap-2">
-        <Link href={`/users/${userId}/train/stations/${station.crs}`}>
+      <div className="flex flex-col md:flex-row gap-2">
+        <Link
+          className="md:w-80"
+          href={`/users/${userId}/train/stations/${station.crs}`}
+        >
           <div className="flex flex-row gap-2 flex-wrap">
             <div className="w-12">
               <b>{station.crs}</b>
@@ -433,16 +436,16 @@ export const StationStats = (props: {
           </div>
         </Link>
         <div className="flex flex-row gap-4">
-          <div>
+          <div className="w-20">
             {station.boards} board{station.boards !== 1 && "s"}
           </div>
-          <div>
+          <div className="w-20">
             {station.alights} alight{station.alights !== 1 && "s"}
           </div>
-          <div>
+          <div className="w-20">
             {station.intermediates} call{station.intermediates !== 1 && "s"}
           </div>
-          <div>
+          <div className="w-20">
             {station.boards + station.alights + station.intermediates} total
           </div>
         </div>
