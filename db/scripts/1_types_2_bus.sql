@@ -175,7 +175,6 @@ CREATE TYPE BusLegInData AS (
 
 CREATE TYPE BusLegOutData AS (
     leg_id INT,
-    leg_user UserOutPublicData,
     leg_journey BusJourneyOutData,
     leg_calls BusJourneyCallOutData[]
 );

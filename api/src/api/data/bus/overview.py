@@ -14,6 +14,7 @@ class BusStopOverview:
     name: str
     locality: str
     street: str
+    indicator: str
 
 
 def register_bus_stop_overview(
@@ -22,9 +23,15 @@ def register_bus_stop_overview(
     stop_name: str,
     stop_locality: str,
     stop_street: str,
+    stop_indicator: str,
 ) -> BusStopOverview:
     return BusStopOverview(
-        bus_stop_id, stop_atco, stop_name, stop_locality, stop_street
+        bus_stop_id,
+        stop_atco,
+        stop_name,
+        stop_locality,
+        stop_street,
+        stop_indicator,
     )
 
 

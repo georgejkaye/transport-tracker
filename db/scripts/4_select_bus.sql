@@ -596,11 +596,7 @@ $$;
 CREATE OR REPLACE VIEW BusLegData AS
 SELECT
     BusLeg.bus_leg_id AS leg_id,
-    (
-        Traveller.user_id,
-        Traveller.user_name,
-        Traveller.display_name
-    )::UserOutPublicData AS leg_user,
+    BusLeg.user_id AS user_id,
     (
         BusJourneyData.journey_id,
         BusJourneyData.journey_service,
@@ -627,11 +623,10 @@ BEGIN
     RETURN QUERY
     SELECT
         BusLegData.leg_id,
-        BusLegData.leg_user,
         BusLegData.leg_journey,
         BusLegData.leg_calls
     FROM BusLegData
-    WHERE (BusLegData.leg_user).user_id = p_user_id
+    WHERE BusLegData.user_id = p_user_id
     ORDER BY COALESCE(
         (BusLegData.leg_calls)[1].act_dep,
         (BusLegData.leg_calls)[1].plan_dep,
@@ -653,11 +648,10 @@ BEGIN
     RETURN QUERY
     SELECT
         BusLegData.leg_id,
-        BusLegData.leg_user,
         BusLegData.leg_journey,
         BusLegData.leg_calls
     FROM BusLegData
-    WHERE (BusLegData.leg_user).user_id = p_user_id
+    WHERE BusLegData.user_id = p_user_id
     AND COALESCE(
         (BusLegData.leg_calls)[1].plan_dep,
         (BusLegData.leg_calls)[1].act_dep,
@@ -683,11 +677,10 @@ BEGIN
     RETURN QUERY
     SELECT
         BusLegData.leg_id,
-        BusLegData.leg_user,
         BusLegData.leg_journey,
         BusLegData.leg_calls
     FROM BusLegData
-    WHERE (BusLegData.leg_user).user_id = p_user_id
+    WHERE BusLegData.user_id = p_user_id
     AND COALESCE(
         (BusLegData.leg_calls)[1].plan_dep,
         (BusLegData.leg_calls)[1].act_dep,
@@ -708,11 +701,10 @@ BEGIN
     RETURN QUERY
     SELECT
         BusLegData.leg_id,
-        BusLegData.leg_user,
         BusLegData.leg_journey,
         BusLegData.leg_calls
     FROM BusLegData
-    WHERE (BusLegData.leg_user).user_id = p_user_id
+    WHERE BusLegData.user_id = p_user_id
     AND COALESCE(
         (BusLegData.leg_calls)[1].plan_dep,
         (BusLegData.leg_calls)[1].act_dep,
@@ -733,11 +725,10 @@ BEGIN
     RETURN QUERY
     SELECT
         BusLegData.leg_id,
-        BusLegData.leg_user,
         BusLegData.leg_journey,
         BusLegData.leg_calls
     FROM BusLegData
-    WHERE (BusLegData.leg_user).user_id = p_user_id
+    WHERE BusLegData.user_id = p_user_id
     AND BusLegData.leg_id = ANY(p_leg_ids);
 END;
 $$;

@@ -5,12 +5,16 @@ from typing import Optional
 from api.data.bus.journey import (
     BusCall,
     BusJourney,
+    BusJourneyCall,
     BusJourneyIn,
     register_bus_call,
     register_bus_journey,
+    register_bus_journey_call,
 )
 from api.data.bus.operators import BusOperator, register_bus_operator
+from api.data.bus.overview import register_bus_stop_overview
 from api.data.bus.service import (
+    register_bus_journey_service,
     register_bus_service,
 )
 from api.data.bus.stop import (
@@ -63,29 +67,28 @@ def insert_leg(conn: Connection, users: list[User], leg: BusLegIn):
 @dataclass
 class BusLeg:
     id: int
-    user: UserPublic
     journey: BusJourney
-    calls: list[BusCall]
+    calls: list[BusJourneyCall]
 
 
 def register_bus_leg(
     leg_id: int,
-    user: UserPublic,
     leg_journey: BusJourney,
-    leg_calls: list[BusCall],
+    leg_calls: list[BusJourneyCall],
 ) -> BusLeg:
-    return BusLeg(leg_id, user, leg_journey, leg_calls)
+    return BusLeg(leg_id, leg_journey, leg_calls)
 
 
 def register_leg_types(conn: Connection):
-    register_type(conn, "UserOutPublicData", register_user_public)
     register_type(conn, "BusOperatorOutData", register_bus_operator)
-    register_type(conn, "BusStopOutData", register_bus_stop)
-    register_type(conn, "BusJourneyOutData", register_bus_journey)
     register_type(conn, "BusVehicleOutData", register_bus_vehicle)
+    register_type(
+        conn, "BusJourneyServiceOutData", register_bus_journey_service
+    )
+    register_type(conn, "BusJourneyOutData", register_bus_journey)
+    register_type(conn, "BusStopOverviewOutData", register_bus_stop_overview)
+    register_type(conn, "BusJourneyCallOutData", register_bus_journey_call)
     register_type(conn, "BusLegOutData", register_bus_leg)
-    register_type(conn, "BusCallOutData", register_bus_call)
-    register_type(conn, "BusServiceOutData", register_bus_service)
 
 
 def select_bus_legs(conn: Connection, user_id: int) -> list[BusLeg]:

@@ -38,7 +38,7 @@ async def get_legs(
         return legs
 
 
-@router.get("/{id}", summary="Get bus leg with id")
+@router.get("/{leg_id}", summary="Get bus leg with id")
 async def get_leg_by_id(user_id, leg_id: int) -> BusLeg:
     with connect_with_env() as conn:
         leg = select_bus_leg_by_id(conn, user_id, leg_id)

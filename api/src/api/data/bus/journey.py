@@ -7,7 +7,9 @@ from api.data.bus.operators import (
     BusOperator,
     get_bus_operator_from_national_operator_code,
 )
+from api.data.bus.overview import BusStopOverview
 from api.data.bus.service import (
+    BusJourneyService,
     BusService,
     get_service_from_line_and_operator,
 )
@@ -238,17 +240,42 @@ def register_bus_call(
 
 
 @dataclass
+class BusJourneyCall:
+    id: int
+    index: int
+    stop: BusStopOverview
+    plan_arr: Optional[datetime]
+    act_arr: Optional[datetime]
+    plan_dep: Optional[datetime]
+    act_dep: Optional[datetime]
+
+
+def register_bus_journey_call(
+    call_id: int,
+    call_index: int,
+    bus_stop: BusStopOverview,
+    plan_arr: Optional[datetime],
+    act_arr: Optional[datetime],
+    plan_dep: Optional[datetime],
+    act_dep: Optional[datetime],
+) -> BusJourneyCall:
+    return BusJourneyCall(
+        call_id, call_index, bus_stop, plan_arr, act_arr, plan_dep, act_dep
+    )
+
+
+@dataclass
 class BusJourney:
     id: int
-    service: BusService
-    calls: list[BusCall]
+    service: BusJourneyService
+    calls: list[BusJourneyCall]
     vehicle: Optional[BusVehicle]
 
 
 def register_bus_journey(
     journey_id: int,
-    journey_service: BusService,
-    journey_calls: list[BusCall],
+    journey_service: BusJourneyService,
+    journey_calls: list[BusJourneyCall],
     journey_vehicle: Optional[BusVehicle],
 ) -> BusJourney:
     return BusJourney(

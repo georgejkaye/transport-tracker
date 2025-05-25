@@ -58,6 +58,31 @@ def register_bus_service(
     )
 
 
+@dataclass
+class BusJourneyService:
+    id: int
+    operator: BusOperator
+    line: str
+    bg_colour: str
+    fg_colour: str
+
+
+def register_bus_journey_service(
+    bus_service_id: int,
+    bus_operator: BusOperator,
+    service_line: str,
+    bg_colour: Optional[str],
+    fg_colour: Optional[str],
+) -> BusJourneyService:
+    return BusJourneyService(
+        bus_service_id,
+        bus_operator,
+        service_line,
+        bg_colour or "#ffffff",
+        fg_colour or "#000000",
+    )
+
+
 def input_bus_service(services: list[BusService]) -> Optional[BusService]:
     selection = input_select_paginate(
         "Choose service", services, display=short_string_of_bus_service
