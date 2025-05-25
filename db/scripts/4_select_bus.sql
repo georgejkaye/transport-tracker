@@ -731,8 +731,212 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT * FROM BusLegData
+    SELECT
+        BusLegData.leg_id,
+        BusLegData.leg_user,
+        BusLegData.leg_journey,
+        BusLegData.leg_calls
+    FROM BusLegData
     WHERE (BusLegData.leg_user).user_id = p_user_id
     AND BusLegData.leg_id = ANY(p_leg_ids);
 END;
 $$;
+
+CREATE OR REPLACE VIEW BusStopUserLegData AS
+SELECT
+    BusStop.bus_stop_id,
+    BusLeg.user_id,
+    ARRAY_AGG(
+        (
+            BusLeg.bus_leg_id,
+            (
+                BusService.bus_service_id,
+                BusService.service_line,
+                BusService.bg_colour,
+                BusService.fg_colour
+            )::BusServiceOverviewOutData,
+            (
+                BusOperator.bus_operator_id,
+                BusOperator.operator_name,
+                BusOperator.national_operator_code,
+                BusOperator.bg_colour,
+                BusOperator.fg_colour
+            )::BusOperatorOutData,
+            (
+                BoardCall.bus_call_id,
+                BoardCall.call_index,
+                (
+                    BoardStop.bus_stop_id,
+                    BoardStop.atco_code,
+                    BoardStop.stop_name,
+                    BoardStop.locality_name,
+                    BoardStop.street_name,
+                    BoardStop.indicator
+                )::BusStopOverviewOutData,
+                BoardCall.plan_arr,
+                BoardCall.act_arr,
+                BoardCall.plan_dep,
+                BoardCall.act_dep
+            )::BusCallOverviewOutData,
+            (
+                AlightCall.bus_call_id,
+                AlightCall.call_index,
+                (
+                    AlightStop.bus_stop_id,
+                    AlightStop.atco_code,
+                    AlightStop.stop_name,
+                    AlightStop.locality_name,
+                    AlightStop.street_name,
+                    AlightStop.indicator
+                )::BusStopOverviewOutData,
+                AlightCall.plan_arr,
+                AlightCall.act_arr,
+                AlightCall.plan_dep,
+                AlightCall.act_dep
+            )::BusCallOverviewOutData,
+            (
+                BusCall.bus_call_id,
+                BusCall.call_index,
+                (
+                    BusStop.bus_stop_id,
+                    BusStop.atco_code,
+                    BusStop.stop_name,
+                    BusStop.locality_name,
+                    BusStop.street_name,
+                    BusStop.indicator
+                )::BusStopOverviewOutData,
+                BusCall.plan_arr,
+                BusCall.act_arr,
+                BusCall.plan_dep,
+                BusCall.act_dep
+            )::BusCallOverviewOutData,
+            (BusCall.call_index - BoardCall.call_index),
+            (Alightcall.call_index - BusCall.call_index)
+        )::BusStopLegOverviewData
+    ) AS stop_user_legs
+FROM BusStop
+INNER JOIN BusCall
+ON BusStop.bus_stop_id = BusCall.bus_call_id
+INNER JOIN BusJourney
+ON BusCall.bus_journey_id = BusJourney.bus_journey_id
+INNER JOIN BusLeg
+ON BusJourney.bus_journey_id = BusLeg.bus_leg_id
+INNER JOIN BusService
+ON BusJourney.bus_service_id = BusService.bus_service_id
+INNER JOIN BusOperator
+ON BusService.bus_operator_id = BusOperator.bus_operator_id
+INNER JOIN BusCall BoardCall
+ON BusLeg.board_call_index = BoardCall.call_index
+AND BusJourney.bus_journey_id = BoardCall.bus_journey_id
+INNER JOIN BusStop BoardStop
+ON BoardCall.bus_stop_id = BoardStop.bus_stop_id
+INNER JOIN BusCall AlightCall
+ON BusLeg.alight_call_index = AlightCall.call_index
+AND BusJourney.bus_journey_id = AlightCall.bus_journey_id
+INNER JOIN BusStop AlightStop
+ON AlightCall.bus_stop_id = AlightStop.bus_stop_id
+INNER JOIN Traveller
+ON BusLeg.user_id = Traveller.user_id
+GROUP BY BusStop.bus_stop_id, BusLeg.user_id;
+
+CREATE OR REPLACE VIEW BusStopData AS
+SELECT
+    BusStop.bus_stop_id,
+    BusStop.atco_code,
+    BusStop.naptan_code,
+    BusStop.stop_name,
+    BusStop.landmark_name,
+    BusStop.street_name,
+    BusStop.crossing_name,
+    BusStop.indicator,
+    BusStop.bearing,
+    BusStop.locality_name,
+    BusStop.parent_locality_name,
+    BusStop.grandparent_locality_name,
+    BusStop.town_name,
+    BusStop.suburb_name,
+    BusStop.latitude,
+    BusStop.longitude,
+    BusStopLegData.legs
+FROM BusStop
+INNER JOIN (
+    SELECT
+        bus_stop_id,
+        ARRAY_AGG((
+                bus_leg,
+                stops_before,
+                stops_after
+            )::BusLegOverviewAtStopOutData) AS legs
+    FROM (
+        SELECT
+            bus_stop_id,
+            (
+            leg_id,
+            (
+                BusService.service_id,
+                BusService.service_line,
+                BusService.bg_colour,
+                BusService.fg_colour
+            )::BusServiceOverviewOutData,
+            (
+                BusOperator.operator_id,
+                BusOperator.operator_name,
+                BusOperator.national_operator_code
+            )::BusOperatorOverviewOutData,
+            (
+                BoardCall.bus_call_id,
+                BoardCall.call_index,
+                (
+                    BoardCall.bus_stop_id,
+                    BoardCall.stop_atco,
+                    BoardCall.stop_name,
+                    BoardCall.locality_name,
+                    BoardCall.street_name,
+                    BoardCall.indicator
+                )::BusStopOverviewOutData,
+                BoardCall.plan_arr,
+                BoardCall.act_arr,
+                BoardCall.plan_dep,
+                BoardCall.act_dep
+            )::BusCallOverviewOutData AS board_call,
+            (
+                AlightCall.bus_call_id,
+                AlightCall.call_index,
+                (
+                    AlightCall.bus_stop_id,
+                    AlightCall.stop_atco,
+                    AlightCall.stop_name,
+                    AlightCall.locality_name,
+                    AlightCall.street_name,
+                    AlightCall.indicator
+                )::BusStopOverviewOutData,
+                AlightCall.plan_arr,
+                AlightCall.act_arr,
+                AlightCall.plan_dep,
+                AlightCall.act_dep
+            )::BusCallOverviewOutData AS alight_call,
+            (
+                ThisCall.bus_call_id,
+                ThisCall.call_index,
+                (
+                    ThisCall.bus_stop_id,
+                    ThisCall.stop_atco,
+                    ThisCall.stop_name,
+                    ThisCall.locality_name,
+                    ThisCall.street_name,
+                    ThisCall.indicator
+                )::BusStopOverviewOutData,
+                ThisCall.plan_arr,
+                ThisCall.act_arr,
+                ThisCall.plan_dep,
+                ThisCall.act_dep
+            )::BusCallOverviewOutData AS this_call
+        FROM BusLeg
+        INNER JOIN BusCall BoardCall
+        ON BusLeg.board_call_index = BusCall.call_index
+        INNER JOIN BusCall AlightCall
+        ON BusLeg.alight_call_index = BusCall.call_index
+    )
+    GROUP BY
+) BusStopLegData
+ON BusStop.bus_stop_id = BusStopLegData.bus_stop_id;
