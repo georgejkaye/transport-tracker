@@ -807,7 +807,7 @@ SELECT
     ) AS stop_user_legs
 FROM BusStop
 INNER JOIN BusCall
-ON BusStop.bus_stop_id = BusCall.bus_call_id
+ON BusStop.bus_stop_id = BusCall.bus_stop_id
 INNER JOIN BusJourney
 ON BusCall.bus_journey_id = BusJourney.bus_journey_id
 INNER JOIN BusLeg
