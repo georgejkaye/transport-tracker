@@ -141,6 +141,15 @@ CREATE TYPE BusJourneyServiceOutData AS (
     fg_colour TEXT
 );
 
+CREATE TYPE BusStopOverviewOutData AS (
+    bus_stop_id BIGINT,
+    stop_atco TEXT,
+    stop_name TEXT,
+    stop_locality TEXT,
+    stop_street TEXT,
+    stop_indicator TEXT
+);
+
 CREATE TYPE BusJourneyCallOutData AS (
     call_id INT,
     call_index INT,
@@ -182,15 +191,6 @@ CREATE TYPE BusServiceOverviewOutData AS (
     service_line TEXT,
     bg_colour TEXT,
     fg_colour TEXT
-);
-
-CREATE TYPE BusStopOverviewOutData AS (
-    bus_stop_id BIGINT,
-    stop_atco TEXT,
-    stop_name TEXT,
-    stop_locality TEXT,
-    stop_street TEXT,
-    stop_indicator TEXT
 );
 
 CREATE TYPE BusCallOverviewOutData AS (

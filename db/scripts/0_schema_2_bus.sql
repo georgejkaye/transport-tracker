@@ -67,7 +67,7 @@ CREATE TABLE BusVehicle (
     vehicle_name TEXT,
     FOREIGN KEY(operator_id) REFERENCES BusOperator(bus_operator_id),
     FOREIGN KEY(bus_model_id) REFERENCES BusModel(bus_model_id),
-    UNIQUE (operator_id, vehicle_number),
+    UNIQUE (operator_id, vehicle_identifier),
     UNIQUE (operator_id, numberplate)
 );
 
