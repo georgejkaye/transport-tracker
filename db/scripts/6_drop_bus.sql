@@ -23,15 +23,19 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
+    DROP TYPE BusStopFullOutData;
+    DROP TYPE BusStopLegOverviewData;
     DROP TYPE BusVehicleOverviewOutData;
     DROP TYPE BusLegOverviewOutData;
     DROP TYPE BusCallOverviewOutData;
-    DROP TYPE BusStopOverviewOutData;
     DROP TYPE BusServiceOverviewOutData;
     DROP TYPE BusOperatorOverviewOutData;
     DROP TYPE BusLegOutData;
     DROP TYPE BusLegInData;
     DROP TYPE BusJourneyOutData;
+    DROP TYPE BusJourneyCallOutData;
+    DROP TYPE BusStopOverviewOutData;
+    DROP TYPE BusJourneyServiceOutData;
     DROP TYPE BusJourneyInData;
     DROP TYPE BusCallOutData;
     DROP TYPE BusCallInData;
@@ -75,8 +79,15 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    DROP VIEW BusVehicleData;
+    DROP VIEW BusStopUserLegData;
     DROP VIEW BusLegData;
+    DROP VIEW BusJourneyData;
+    DROP VIEW BusJourneyCallData;
+    DROP VIEW BusCallData;
+    DROP VIEW BusVehicleUserData;
+    DROP VIEW BusVehicleData;
+    DROP VIEW BusServiceData;
+    DROP VIEW BusServiceViaData;
 END;
 $$;
 
@@ -93,16 +104,12 @@ BEGIN
     DROP FUNCTION GetBusOperators;
     DROP FUNCTION GetBusOperatorsByName;
     DROP FUNCTION GetBusOperatorsByNationalOperatorCode;
-    DROP FUNCTION GetBusServiceVias;
     DROP FUNCTION GetBusServices;
     DROP FUNCTION GetBusServicesByOperatorId;
     DROP FUNCTION GetBusServicesByNationalOperatorCode;
     DROP FUNCTION GetBusServicesByOperatorName;
     DROP FUNCTION GetBusVehicles;
     DROP FUNCTION GetBusVehicleOverviews;
-    DROP FUNCTION GetBusCallsByJourney;
-    DROP FUNCTION GetBusCalls;
-    DROP FUNCTION GetBusJourneys;
     DROP FUNCTION GetBusLegs;
     DROP FUNCTION GetBusLegsByDatetime;
     DROP FUNCTION GetBusLegsByStartDatetime;

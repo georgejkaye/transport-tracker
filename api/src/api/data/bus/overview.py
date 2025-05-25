@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from api.data.bus.stop import BusStopOverview, register_bus_stop_overview
 from psycopg import Connection
 from typing import Optional
 
@@ -8,53 +9,27 @@ from api.utils.database import register_type
 
 
 @dataclass
-class BusStopOverview:
-    id: int
-    atco: str
-    name: str
-    locality: str
-    street: str
-    indicator: str
-
-
-def register_bus_stop_overview(
-    bus_stop_id: int,
-    stop_atco: str,
-    stop_name: str,
-    stop_locality: str,
-    stop_street: str,
-    stop_indicator: str,
-) -> BusStopOverview:
-    return BusStopOverview(
-        bus_stop_id,
-        stop_atco,
-        stop_name,
-        stop_locality,
-        stop_street,
-        stop_indicator,
-    )
-
-
-@dataclass
 class BusCallOverview:
     id: int
+    call_index: int
     stop: BusStopOverview
-    plan_arr: datetime
-    act_arr: datetime
-    plan_dep: datetime
-    act_dep: datetime
+    plan_arr: Optional[datetime]
+    act_arr: Optional[datetime]
+    plan_dep: Optional[datetime]
+    act_dep: Optional[datetime]
 
 
 def register_bus_call_overview(
     bus_call_id: int,
+    call_index: int,
     bus_stop: BusStopOverview,
-    plan_arr: datetime,
-    act_arr: datetime,
-    plan_dep: datetime,
-    act_dep: datetime,
+    plan_arr: Optional[datetime],
+    act_arr: Optional[datetime],
+    plan_dep: Optional[datetime],
+    act_dep: Optional[datetime],
 ) -> BusCallOverview:
     return BusCallOverview(
-        bus_call_id, bus_stop, plan_arr, act_arr, plan_dep, act_dep
+        bus_call_id, call_index, bus_stop, plan_arr, act_arr, plan_dep, act_dep
     )
 
 
@@ -62,12 +37,19 @@ def register_bus_call_overview(
 class BusServiceOverview:
     id: int
     line: str
+    bg_colour: str
+    fg_colour: str
 
 
 def register_bus_service_overview(
-    service_id: int, service_line: str
+    service_id: int,
+    service_line: str,
+    bg_colour: Optional[str],
+    fg_colour: Optional[str],
 ) -> BusServiceOverview:
-    return BusServiceOverview(service_id, service_line)
+    return BusServiceOverview(
+        service_id, service_line, bg_colour or "#ffffff", fg_colour or "#000000"
+    )
 
 
 @dataclass

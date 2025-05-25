@@ -221,7 +221,7 @@ CREATE TYPE BusVehicleOverviewOutData AS (
     vehicle_duration INTERVAL
 );
 
-CREATE TYPE BusStopLegOverviewData AS (
+CREATE TYPE BusStopLegUserDetails AS (
     leg_id INT,
     bus_service BusServiceOverviewOutData,
     bus_operator BusOperatorOutData,
@@ -232,7 +232,7 @@ CREATE TYPE BusStopLegOverviewData AS (
     stops_after INT
 );
 
-CREATE TYPE BusStopFullOutData AS (
+CREATE TYPE BusStopUserDetails AS (
     bus_stop_id INT,
     atco_code TEXT,
     naptan_code TEXT,
@@ -249,5 +249,5 @@ CREATE TYPE BusStopFullOutData AS (
     suburb_name TEXT,
     latitude DECIMAL,
     longitude DECIMAL,
-    stop_legs BusStopLegOverviewData[]
+    stop_legs BusStopLegUserDetails[]
 );

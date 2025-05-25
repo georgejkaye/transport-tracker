@@ -220,3 +220,31 @@ def get_departures_from_bus_stop(
     if soup is None:
         return []
     return get_departures_from_bus_stop_soup(soup, datetime_offset)
+
+
+@dataclass
+class BusStopOverview:
+    id: int
+    atco: str
+    name: str
+    locality: str
+    street: Optional[str]
+    indicator: Optional[str]
+
+
+def register_bus_stop_overview(
+    bus_stop_id: int,
+    stop_atco: str,
+    stop_name: str,
+    stop_locality: str,
+    stop_street: Optional[str],
+    stop_indicator: Optional[str],
+) -> BusStopOverview:
+    return BusStopOverview(
+        bus_stop_id,
+        stop_atco,
+        stop_name,
+        stop_locality,
+        stop_street,
+        stop_indicator,
+    )

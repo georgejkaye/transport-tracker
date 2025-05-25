@@ -576,23 +576,6 @@ ON BusJourney.bus_journey_id = BusJourneyCallData.bus_journey_id
 INNER JOIN BusVehicleData
 ON BusJourney.bus_vehicle_id = BusVehicleData.bus_vehicle_id;
 
-CREATE OR REPLACE FUNCTION GetBusJourneys (
-    p_journey_id INT
-) RETURNS SETOF BusJourneyOutData
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    RETURN QUERY
-    SELECT
-        BusJourneyData.journey_service,
-        BusJourneyData.journey_calls,
-        BusJourneyData.journey_vehicle
-    FROM BusJourneyData
-    WHERE p_journey_id IS NULL OR p_journey_id = BusJourney.bus_journey_id;
-END;
-$$;
-
 CREATE OR REPLACE VIEW BusLegData AS
 SELECT
     BusLeg.bus_leg_id AS leg_id,
@@ -733,7 +716,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE VIEW BusStopUserLegData AS
+CREATE OR REPLACE VIEW BusStopLegUserDetails AS
 SELECT
     BusStop.bus_stop_id,
     BusLeg.user_id,
@@ -830,104 +813,42 @@ INNER JOIN Traveller
 ON BusLeg.user_id = Traveller.user_id
 GROUP BY BusStop.bus_stop_id, BusLeg.user_id;
 
--- CREATE OR REPLACE VIEW BusStopData AS
--- SELECT
---     BusStop.bus_stop_id,
---     BusStop.atco_code,
---     BusStop.naptan_code,
---     BusStop.stop_name,
---     BusStop.landmark_name,
---     BusStop.street_name,
---     BusStop.crossing_name,
---     BusStop.indicator,
---     BusStop.bearing,
---     BusStop.locality_name,
---     BusStop.parent_locality_name,
---     BusStop.grandparent_locality_name,
---     BusStop.town_name,
---     BusStop.suburb_name,
---     BusStop.latitude,
---     BusStop.longitude,
---     BusStopLegData.legs
--- FROM BusStop
--- INNER JOIN (
---     SELECT
---         bus_stop_id,
---         ARRAY_AGG((
---                 bus_leg,
---                 stops_before,
---                 stops_after
---             )::BusLegOverviewAtStopOutData) AS legs
---     FROM (
---         SELECT
---             bus_stop_id,
---             (
---             leg_id,
---             (
---                 BusService.service_id,
---                 BusService.service_line,
---                 BusService.bg_colour,
---                 BusService.fg_colour
---             )::BusServiceOverviewOutData,
---             (
---                 BusOperator.operator_id,
---                 BusOperator.operator_name,
---                 BusOperator.national_operator_code
---             )::BusOperatorOverviewOutData,
---             (
---                 BoardCall.bus_call_id,
---                 BoardCall.call_index,
---                 (
---                     BoardCall.bus_stop_id,
---                     BoardCall.stop_atco,
---                     BoardCall.stop_name,
---                     BoardCall.locality_name,
---                     BoardCall.street_name,
---                     BoardCall.indicator
---                 )::BusStopOverviewOutData,
---                 BoardCall.plan_arr,
---                 BoardCall.act_arr,
---                 BoardCall.plan_dep,
---                 BoardCall.act_dep
---             )::BusCallOverviewOutData AS board_call,
---             (
---                 AlightCall.bus_call_id,
---                 AlightCall.call_index,
---                 (
---                     AlightCall.bus_stop_id,
---                     AlightCall.stop_atco,
---                     AlightCall.stop_name,
---                     AlightCall.locality_name,
---                     AlightCall.street_name,
---                     AlightCall.indicator
---                 )::BusStopOverviewOutData,
---                 AlightCall.plan_arr,
---                 AlightCall.act_arr,
---                 AlightCall.plan_dep,
---                 AlightCall.act_dep
---             )::BusCallOverviewOutData AS alight_call,
---             (
---                 ThisCall.bus_call_id,
---                 ThisCall.call_index,
---                 (
---                     ThisCall.bus_stop_id,
---                     ThisCall.stop_atco,
---                     ThisCall.stop_name,
---                     ThisCall.locality_name,
---                     ThisCall.street_name,
---                     ThisCall.indicator
---                 )::BusStopOverviewOutData,
---                 ThisCall.plan_arr,
---                 ThisCall.act_arr,
---                 ThisCall.plan_dep,
---                 ThisCall.act_dep
---             )::BusCallOverviewOutData AS this_call
---         FROM BusLeg
---         INNER JOIN BusCall BoardCall
---         ON BusLeg.board_call_index = BusCall.call_index
---         INNER JOIN BusCall AlightCall
---         ON BusLeg.alight_call_index = BusCall.call_index
---     )
---     GROUP BY
--- ) BusStopLegData
--- ON BusStop.bus_stop_id = BusStopLegData.bus_stop_id;
+CREATE OR REPLACE FUNCTION GetBusStopUserDetails (
+    p_user_id INT,
+    p_stop_id INT
+)
+RETURNS BusStopUserDetails
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN
+        (
+            BusStop.bus_stop_id,
+            BusStop.atco_code,
+            BusStop.naptan_code,
+            BusStop.stop_name,
+            BusStop.landmark_name,
+            BusStop.street_name,
+            BusStop.crossing_name,
+            BusStop.indicator,
+            BusStop.bearing,
+            BusStop.locality_name,
+            BusStop.parent_locality_name,
+            BusStop.grandparent_locality_name,
+            BusStop.town_name,
+            BusStop.suburb_name,
+            BusStop.latitude,
+            BusStop.longitude,
+            COALESCE(
+                BusStopLegUserDetails.stop_user_legs,
+                ARRAY[]::BusStopLegOverviewData[]
+            )
+        )::BusStopUserDetails
+    FROM BusStop
+    LEFT JOIN BusStopLegUserDetails
+    ON BusStop.bus_stop_id = BusStopLegUserDetails.bus_stop_id
+    AND BusStopLegUserDetails.user_id = p_user_id
+    WHERE BusStop.bus_stop_id = p_stop_id;
+END;
+$$;
