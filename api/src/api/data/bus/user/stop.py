@@ -134,6 +134,18 @@ def get_user_details_for_bus_stop(
     return result[0]
 
 
+def get_user_details_for_bus_stop_by_atco(
+    conn: Connection, user_id: int, atco: str
+) -> Optional[BusStopUserDetails]:
+    register_bus_stop_user_details_types(conn)
+    result = conn.execute(
+        "SELECT GetUserDetailsForBusStopByAtco(%s, %s)", [user_id, atco]
+    ).fetchone()
+    if result is None:
+        return result
+    return result[0]
+
+
 def get_user_details_for_bus_stops(
     conn: Connection, user_id: int
 ) -> list[BusStopUserDetails]:

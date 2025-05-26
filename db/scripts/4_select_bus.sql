@@ -181,20 +181,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE VIEW BusServiceViaData AS
-SELECT
-    bus_service_id,
-    is_outbound,
-    ARRAY_AGG(
-        BusServiceVia.via_name
-        ORDER BY BusServiceVia.via_index
-    ) AS service_vias
-    FROM BusServiceVia
-    GROUP BY
-        BusServiceVia.bus_service_id,
-        BusServiceVia.is_outbound;
-
-CREATE OR REPLACE VIEW BusServiceData AS
+CREATE OR REPLACE VIEW BusServiceDetails AS
 SELECT
     BusService.bus_service_id,
     (
@@ -213,15 +200,31 @@ SELECT
     BusService.fg_colour
 FROM BusService
 LEFT JOIN (
-    SELECT bus_service_id, service_vias
-    FROM BusServiceViaData
+    SELECT
+        bus_service_id,
+        ARRAY_AGG(
+            BusServiceVia.via_name
+            ORDER BY BusServiceVia.via_index
+        ) AS service_vias
+    FROM BusServiceVia
     WHERE is_outbound = 'true'
+    GROUP BY
+        BusServiceVia.bus_service_id,
+        BusServiceVia.is_outbound
 ) OutboundVia
 ON BusService.bus_service_id = OutboundVia.bus_service_id
 LEFT JOIN (
-    SELECT bus_service_id, service_vias
-    FROM BusServiceViaData
+    SELECT
+        bus_service_id,
+        ARRAY_AGG(
+            BusServiceVia.via_name
+            ORDER BY BusServiceVia.via_index
+        ) AS service_vias
+    FROM BusServiceVia
     WHERE is_outbound = 'false'
+    GROUP BY
+        BusServiceVia.bus_service_id,
+        BusServiceVia.is_outbound
 ) InboundVia
 ON BusService.bus_service_id = InboundVia.bus_service_id
 INNER JOIN BusOperator
@@ -235,17 +238,17 @@ $$
 BEGIN
     RETURN QUERY
     SELECT (
-        BusServiceData.bus_service_id,
-        BusServiceData.bus_operator,
-        BusServiceData.service_line,
-        BusServiceData.description_outbound,
-        BusServiceData.service_outbound_vias,
-        BusServiceData.description_inbound,
-        BusServiceData.service_inbound_vias,
-        BusServiceData.bg_colour,
-        BusServiceData.fg_colour
+        BusServiceDetails.bus_service_id,
+        BusServiceDetails.bus_operator,
+        BusServiceDetails.service_line,
+        BusServiceDetails.description_outbound,
+        BusServiceDetails.service_outbound_vias,
+        BusServiceDetails.description_inbound,
+        BusServiceDetails.service_inbound_vias,
+        BusServiceDetails.bg_colour,
+        BusServiceDetails.fg_colour
     )::BusServiceOutData
-    FROM BusServiceData;
+    FROM BusServiceDetails;
 END;
 $$;
 
@@ -259,19 +262,19 @@ $$
 BEGIN
     RETURN QUERY
     SELECT (
-        BusServiceData.bus_service_id,
-        BusServiceData.bus_operator,
-        BusServiceData.service_line,
-        BusServiceData.description_outbound,
-        BusServiceData.service_outbound_vias,
-        BusServiceData.description_inbound,
-        BusServiceData.service_inbound_vias,
-        BusServiceData.bg_colour,
-        BusServiceData.fg_colour
+        BusServiceDetails.bus_service_id,
+        BusServiceDetails.bus_operator,
+        BusServiceDetails.service_line,
+        BusServiceDetails.description_outbound,
+        BusServiceDetails.service_outbound_vias,
+        BusServiceDetails.description_inbound,
+        BusServiceDetails.service_inbound_vias,
+        BusServiceDetails.bg_colour,
+        BusServiceDetails.fg_colour
     )::BusServiceOutData
-    FROM BusServiceData
+    FROM BusServiceDetails
     WHERE LOWER(service_line) = LOWER(p_line_name)
-    AND (BusServiceData.bus_operator).bus_operator_id = p_operator_id;
+    AND (BusServiceDetails.bus_operator).bus_operator_id = p_operator_id;
 END;
 $$;
 
@@ -285,20 +288,20 @@ $$
 BEGIN
     RETURN QUERY
     SELECT (
-        BusServiceData.bus_service_id,
-        BusServiceData.bus_operator,
-        BusServiceData.service_line,
-        BusServiceData.description_outbound,
-        BusServiceData.service_outbound_vias,
-        BusServiceData.description_inbound,
-        BusServiceData.service_inbound_vias,
-        BusServiceData.bg_colour,
-        BusServiceData.fg_colour
+        BusServiceDetails.bus_service_id,
+        BusServiceDetails.bus_operator,
+        BusServiceDetails.service_line,
+        BusServiceDetails.description_outbound,
+        BusServiceDetails.service_outbound_vias,
+        BusServiceDetails.description_inbound,
+        BusServiceDetails.service_inbound_vias,
+        BusServiceDetails.bg_colour,
+        BusServiceDetails.fg_colour
     )::BusServiceOutData
-    FROM BusServiceData
+    FROM BusServiceDetails
     WHERE LOWER(service_line) = LOWER(p_line_name)
     AND
-        (BusServiceData.bus_operator).national_operator_code =
+        (BusServiceDetails.bus_operator).national_operator_code =
             p_national_operator_code;
 END;
 $$;
@@ -313,20 +316,20 @@ $$
 BEGIN
     RETURN QUERY
     SELECT (
-        BusServiceData.bus_service_id,
-        BusServiceData.bus_operator,
-        BusServiceData.service_line,
-        BusServiceData.description_outbound,
-        BusServiceData.service_outbound_vias,
-        BusServiceData.description_inbound,
-        BusServiceData.service_inbound_vias,
-        BusServiceData.bg_colour,
-        BusServiceData.fg_colour
+        BusServiceDetails.bus_service_id,
+        BusServiceDetails.bus_operator,
+        BusServiceDetails.service_line,
+        BusServiceDetails.description_outbound,
+        BusServiceDetails.service_outbound_vias,
+        BusServiceDetails.description_inbound,
+        BusServiceDetails.service_inbound_vias,
+        BusServiceDetails.bg_colour,
+        BusServiceDetails.fg_colour
     )::BusServiceOutData
-    FROM BusServiceData
+    FROM BusServiceDetails
     WHERE LOWER(service_line) = LOWER(p_line_name)
     AND
-        LOWER((BusServiceData.bus_operator).operator_name)
+        LOWER((BusServiceDetails.bus_operator).operator_name)
         LIKE '%' || LOWER(p_name) || '%';
 END;
 $$;
@@ -381,16 +384,16 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE VIEW BusVehicleUserData AS
+CREATE OR REPLACE VIEW BusVehicleUserDetailsView AS
 SELECT
-    BusVehicleLegOut.user_id AS user_id,
+    BusVehicleLegUserDetails.user_id AS user_id,
     BusVehicle.bus_vehicle_id AS vehicle_id,
     BusVehicle.vehicle_identifier AS vehicle_number,
     BusVehicle.vehicle_name AS vehicle_name,
     BusVehicle.numberplate AS vehicle_numberplate,
     BusOperatorOut.operator_out AS vehicle_operator,
-    BusVehicleLegOut.vehicle_legs,
-    BusVehicleLegOut.vehicle_duration
+    BusVehicleLegUserDetails.vehicle_legs,
+    BusVehicleLegUserDetails.vehicle_duration
 FROM BusVehicle
 INNER JOIN (
     SELECT (
@@ -421,32 +424,32 @@ INNER JOIN (
                 BusOperator.bg_colour,
                 BusOperator.fg_colour
             )::BusOperatorOutData,
-            BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1],
-            BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1],
+            BusJourneyCallDetail.bus_journey_call[BusLeg.board_call_index + 1],
+            BusJourneyCallDetail.bus_journey_call[BusLeg.alight_call_index + 1],
             COALESCE(
-                (BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1]).act_arr,
-                (BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1]).act_dep,
-                (BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1]).plan_arr,
-                (BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1]).plan_dep
+                (BusJourneyCallDetail.bus_journey_call[BusLeg.alight_call_index + 1]).act_arr,
+                (BusJourneyCallDetail.bus_journey_call[BusLeg.alight_call_index + 1]).act_dep,
+                (BusJourneyCallDetail.bus_journey_call[BusLeg.alight_call_index + 1]).plan_arr,
+                (BusJourneyCallDetail.bus_journey_call[BusLeg.alight_call_index + 1]).plan_dep
             ) -
             COALESCE(
-                (BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1]).act_dep,
-                (BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1]).act_arr,
-                (BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1]).plan_dep,
-                (BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1]).plan_arr
+                (BusJourneyCallDetail.bus_journey_call[BusLeg.board_call_index + 1]).act_dep,
+                (BusJourneyCallDetail.bus_journey_call[BusLeg.board_call_index + 1]).act_arr,
+                (BusJourneyCallDetail.bus_journey_call[BusLeg.board_call_index + 1]).plan_dep,
+                (BusJourneyCallDetail.bus_journey_call[BusLeg.board_call_index + 1]).plan_arr
             ))::BusLegOverviewOutData) AS vehicle_legs,
             SUM(
                 COALESCE(
-                    (BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1]).act_arr,
-                    (BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1]).act_dep,
-                    (BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1]).plan_arr,
-                    (BusJourneyCall.bus_journey_call[BusLeg.alight_call_index + 1]).plan_dep
+                    (BusJourneyCallDetail.bus_journey_call[BusLeg.alight_call_index + 1]).act_arr,
+                    (BusJourneyCallDetail.bus_journey_call[BusLeg.alight_call_index + 1]).act_dep,
+                    (BusJourneyCallDetail.bus_journey_call[BusLeg.alight_call_index + 1]).plan_arr,
+                    (BusJourneyCallDetail.bus_journey_call[BusLeg.alight_call_index + 1]).plan_dep
                 ) -
                 COALESCE(
-                    (BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1]).act_dep,
-                    (BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1]).act_arr,
-                    (BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1]).plan_dep,
-                    (BusJourneyCall.bus_journey_call[BusLeg.board_call_index + 1]).plan_arr
+                    (BusJourneyCallDetail.bus_journey_call[BusLeg.board_call_index + 1]).act_dep,
+                    (BusJourneyCallDetail.bus_journey_call[BusLeg.board_call_index + 1]).act_arr,
+                    (BusJourneyCallDetail.bus_journey_call[BusLeg.board_call_index + 1]).plan_dep,
+                    (BusJourneyCallDetail.bus_journey_call[BusLeg.board_call_index + 1]).plan_arr
             )) AS vehicle_duration
     FROM BusLeg
     INNER JOIN BusJourney
@@ -480,13 +483,13 @@ INNER JOIN (
         INNER JOIN BusStop
         ON BusCall.bus_stop_id = BusStop.bus_stop_id
         GROUP BY BusJourney.bus_journey_id
-    ) BusJourneyCall
-    ON BusJourney.bus_journey_id = BusJourneyCall.bus_journey_id
+    ) BusJourneyCallDetail
+    ON BusJourney.bus_journey_id = BusJourneyCallDetail.bus_journey_id
     GROUP BY (bus_vehicle_id, user_id)
-) BusVehicleLegOut
-ON BusVehicleLegOut.bus_vehicle_id = BusVehicle.bus_vehicle_id;
+) BusVehicleLegUserDetails
+ON BusVehicleLegUserDetails.bus_vehicle_id = BusVehicle.bus_vehicle_id;
 
-CREATE OR REPLACE FUNCTION GetBusVehicleOverviews (
+CREATE OR REPLACE FUNCTION GetUserDetailsForBusVehicles (
     p_user_id INT
 ) RETURNS SETOF BusVehicleOverviewOutData
 LANGUAGE plpgsql
@@ -502,100 +505,100 @@ BEGIN
         vehicle_operator,
         vehicle_legs,
         vehicle_duration
-    FROM BusVehicleUserData
+    FROM BusVehicleUserDetailsView
     WHERE user_id = p_user_id
     ORDER BY CARDINALITY(vehicle_legs) DESC;
 END;
 $$;
 
-CREATE OR REPLACE VIEW BusCallData AS
-SELECT
-    BusCall.bus_call_id,
-    BusCall.bus_journey_id,
-    BusCall.call_index,
-    BusCall.bus_stop_id,
-    (
-        BusStop.bus_stop_id,
-        BusStop.atco_code,
-        BusStop.stop_name,
-        BusStop.locality_name,
-        BusStop.street_name,
-        BusStop.indicator
-    )::BusStopOverviewOutData AS call_stop,
-    BusCall.plan_arr,
-    BusCall.act_arr,
-    BusCall.plan_dep,
-    BusCall.act_dep
-FROM BusCall
-INNER JOIN BusStop
-ON BusCall.bus_stop_id = BusStop.bus_stop_id;
-
-CREATE OR REPLACE VIEW BusJourneyCallData AS
-SELECT
-    BusJourney.bus_journey_id,
-    ARRAY_AGG((
-        BusCallData.bus_call_id,
-        BusCallData.call_index,
-        BusCallData.call_stop,
-        BusCallData.plan_arr,
-        BusCallData.act_arr,
-        BusCallData.plan_dep,
-        BusCallData.act_dep
-    )::BusJourneyCallOutData ORDER BY BusCallData.call_index) AS journey_calls
-FROM BusJourney
-INNER JOIN BusCallData
-ON BusJourney.bus_journey_id = BusCallData.bus_journey_id
-GROUP BY BusJourney.bus_journey_id;
-
-CREATE OR REPLACE VIEW BusJourneyData AS
-SELECT
-    BusJourney.bus_journey_id AS journey_id,
-    (
-        BusServiceData.bus_service_id,
-        BusServiceData.service_operator,
-        BusServiceData.service_line,
-        BusServiceData.bg_colour,
-        BusServiceData.fg_colour
-    )::BusJourneyServiceOutData AS journey_service,
-    BusJourneyCallData.journey_calls,
-    (
-        BusVehicleData.bus_vehicle_id,
-        BusVehicleData.vehicle_operator,
-        BusVehicleData.vehicle_identifier,
-        BusVehicleData.bustimes_id,
-        BusVehicleData.numberplate,
-        BusVehicleData.bus_model_name,
-        BusVehicleData.livery_style,
-        BusVehicleData.vehicle_name
-    )::BusVehicleOutData AS journey_vehicle
-FROM BusJourney
-INNER JOIN BusServiceData
-ON BusJourney.bus_service_id = BusServiceData.bus_service_id
-INNER JOIN BusJourneyCallData
-ON BusJourney.bus_journey_id = BusJourneyCallData.bus_journey_id
-INNER JOIN BusVehicleData
-ON BusJourney.bus_vehicle_id = BusVehicleData.bus_vehicle_id;
-
-CREATE OR REPLACE VIEW BusLegData AS
+CREATE OR REPLACE VIEW BusLegUserDetailsView AS
 SELECT
     BusLeg.bus_leg_id AS leg_id,
     BusLeg.user_id AS user_id,
     (
-        BusJourneyData.journey_id,
-        BusJourneyData.journey_service,
-        BusJourneyData.journey_calls,
-        BusJourneyData.journey_vehicle
+        BusJourneyDetails.journey_id,
+        BusJourneyDetails.journey_service,
+        BusJourneyDetails.journey_calls,
+        BusJourneyDetails.journey_vehicle
     )::BusJourneyOutData AS leg_journey,
-    BusJourneyData.journey_calls[
+    BusJourneyDetails.journey_calls[
         BusLeg.board_call_index + 1:BusLeg.alight_call_index + 1
     ] AS leg_calls
 FROM BusLeg
-INNER JOIN BusJourneyData
-ON BusLeg.bus_journey_id = BusJourneyData.journey_id
+INNER JOIN (
+    SELECT
+        BusJourney.bus_journey_id AS journey_id,
+        (
+            BusServiceDetails.bus_service_id,
+            BusServiceDetails.service_operator,
+            BusServiceDetails.service_line,
+            BusServiceDetails.bg_colour,
+            BusServiceDetails.fg_colour
+        )::BusJourneyServiceOutData AS journey_service,
+        BusJourneyCallDetail.journey_calls,
+        (
+            BusVehicleData.bus_vehicle_id,
+            BusVehicleData.vehicle_operator,
+            BusVehicleData.vehicle_identifier,
+            BusVehicleData.bustimes_id,
+            BusVehicleData.numberplate,
+            BusVehicleData.bus_model_name,
+            BusVehicleData.livery_style,
+            BusVehicleData.vehicle_name
+        )::BusVehicleOutData AS journey_vehicle
+    FROM BusJourney
+    INNER JOIN BusServiceDetails
+    ON BusJourney.bus_service_id = BusServiceDetails.bus_service_id
+    INNER JOIN (
+            SELECT
+            BusJourney.bus_journey_id,
+            ARRAY_AGG(
+                (
+                    BusCallDetail.bus_call_id,
+                    BusCallDetail.call_index,
+                    BusCallDetail.call_stop,
+                    BusCallDetail.plan_arr,
+                    BusCallDetail.act_arr,
+                    BusCallDetail.plan_dep,
+                    BusCallDetail.act_dep
+                )::BusJourneyCallOutData
+                ORDER BY BusCallDetail.call_index
+            ) AS journey_calls
+        FROM BusJourney
+        INNER JOIN (
+            SELECT
+                BusCall.bus_call_id,
+                BusCall.bus_journey_id,
+                BusCall.call_index,
+                BusCall.bus_stop_id,
+                (
+                    BusStop.bus_stop_id,
+                    BusStop.atco_code,
+                    BusStop.stop_name,
+                    BusStop.locality_name,
+                    BusStop.street_name,
+                    BusStop.indicator
+                )::BusStopOverviewOutData AS call_stop,
+                BusCall.plan_arr,
+                BusCall.act_arr,
+                BusCall.plan_dep,
+                BusCall.act_dep
+            FROM BusCall
+            INNER JOIN BusStop
+            ON BusCall.bus_stop_id = BusStop.bus_stop_id
+        ) BusCallDetail
+        ON BusJourney.bus_journey_id = BusCallDetail.bus_journey_id
+        GROUP BY BusJourney.bus_journey_id
+    ) BusJourneyCallDetail
+    ON BusJourney.bus_journey_id = BusJourneyCallDetail.bus_journey_id
+    INNER JOIN BusVehicleData
+    ON BusJourney.bus_vehicle_id = BusVehicleData.bus_vehicle_id
+) BusJourneyDetails
+ON BusLeg.bus_journey_id = BusJourneyDetails.journey_id
 INNER JOIN Traveller
 ON BusLeg.user_id = Traveller.user_id;
 
-CREATE OR REPLACE FUNCTION GetBusLegs(
+CREATE OR REPLACE FUNCTION GetUserDetailsForBusLeg(
     p_user_id INT
 )
 RETURNS SETOF BusLegOutData
@@ -605,20 +608,20 @@ $$
 BEGIN
     RETURN QUERY
     SELECT
-        BusLegData.leg_id,
-        BusLegData.leg_journey,
-        BusLegData.leg_calls
-    FROM BusLegData
-    WHERE BusLegData.user_id = p_user_id
+        BusLegUserDetailsView.leg_id,
+        BusLegUserDetailsView.leg_journey,
+        BusLegUserDetailsView.leg_calls
+    FROM BusLegUserDetailsView
+    WHERE BusLegUserDetailsView.user_id = p_user_id
     ORDER BY COALESCE(
-        (BusLegData.leg_calls)[1].act_dep,
-        (BusLegData.leg_calls)[1].plan_dep,
-        (BusLegData.leg_calls)[1].act_arr,
-        (BusLegData.leg_calls)[1].plan_arr);
+        (BusLegUserDetailsView.leg_calls)[1].act_dep,
+        (BusLegUserDetailsView.leg_calls)[1].plan_dep,
+        (BusLegUserDetailsView.leg_calls)[1].act_arr,
+        (BusLegUserDetailsView.leg_calls)[1].plan_arr);
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION GetBusLegsByDatetime(
+CREATE OR REPLACE FUNCTION GetUserDetailsForBusLegsByDatetime(
     p_user_id INT,
     p_search_start TIMESTAMP WITH TIME ZONE,
     p_search_end TIMESTAMP WITH TIME ZONE
@@ -630,25 +633,25 @@ $$
 BEGIN
     RETURN QUERY
     SELECT
-        BusLegData.leg_id,
-        BusLegData.leg_journey,
-        BusLegData.leg_calls
-    FROM BusLegData
-    WHERE BusLegData.user_id = p_user_id
+        BusLegUserDetailsView.leg_id,
+        BusLegUserDetailsView.leg_journey,
+        BusLegUserDetailsView.leg_calls
+    FROM BusLegUserDetailsView
+    WHERE BusLegUserDetailsView.user_id = p_user_id
     AND COALESCE(
-        (BusLegData.leg_calls)[1].plan_dep,
-        (BusLegData.leg_calls)[1].act_dep,
-        (BusLegData.leg_calls)[1].plan_arr,
-        (BusLegData.leg_calls)[1].act_arr) >= p_search_start
+        (BusLegUserDetailsView.leg_calls)[1].plan_dep,
+        (BusLegUserDetailsView.leg_calls)[1].act_dep,
+        (BusLegUserDetailsView.leg_calls)[1].plan_arr,
+        (BusLegUserDetailsView.leg_calls)[1].act_arr) >= p_search_start
     AND COALESCE(
-        (BusLegData.leg_calls)[1].plan_dep,
-        (BusLegData.leg_calls)[1].act_dep,
-        (BusLegData.leg_calls)[1].plan_arr,
-        (BusLegData.leg_calls)[1].act_arr) <= p_search_end;
+        (BusLegUserDetailsView.leg_calls)[1].plan_dep,
+        (BusLegUserDetailsView.leg_calls)[1].act_dep,
+        (BusLegUserDetailsView.leg_calls)[1].plan_arr,
+        (BusLegUserDetailsView.leg_calls)[1].act_arr) <= p_search_end;
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION GetBusLegsByStartDatetime(
+CREATE OR REPLACE FUNCTION GetUserDetailsForBusLegsByStartDatetime(
     p_user_id INT,
     p_search_start TIMESTAMP WITH TIME ZONE
 )
@@ -659,20 +662,20 @@ $$
 BEGIN
     RETURN QUERY
     SELECT
-        BusLegData.leg_id,
-        BusLegData.leg_journey,
-        BusLegData.leg_calls
-    FROM BusLegData
-    WHERE BusLegData.user_id = p_user_id
+        BusLegUserDetailsView.leg_id,
+        BusLegUserDetailsView.leg_journey,
+        BusLegUserDetailsView.leg_calls
+    FROM BusLegUserDetailsView
+    WHERE BusLegUserDetailsView.user_id = p_user_id
     AND COALESCE(
-        (BusLegData.leg_calls)[1].plan_dep,
-        (BusLegData.leg_calls)[1].act_dep,
-        (BusLegData.leg_calls)[1].plan_arr,
-        (BusLegData.leg_calls)[1].act_arr) >= p_search_start;
+        (BusLegUserDetailsView.leg_calls)[1].plan_dep,
+        (BusLegUserDetailsView.leg_calls)[1].act_dep,
+        (BusLegUserDetailsView.leg_calls)[1].plan_arr,
+        (BusLegUserDetailsView.leg_calls)[1].act_arr) >= p_search_start;
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION GetBusLegsByEndDatetime(
+CREATE OR REPLACE FUNCTION GetUserDetailsForBusLegsByEndDatetime(
     p_user_id INT,
     p_search_end TIMESTAMP WITH TIME ZONE
 )
@@ -683,20 +686,20 @@ $$
 BEGIN
     RETURN QUERY
     SELECT
-        BusLegData.leg_id,
-        BusLegData.leg_journey,
-        BusLegData.leg_calls
-    FROM BusLegData
-    WHERE BusLegData.user_id = p_user_id
+        BusLegUserDetailsView.leg_id,
+        BusLegUserDetailsView.leg_journey,
+        BusLegUserDetailsView.leg_calls
+    FROM BusLegUserDetailsView
+    WHERE BusLegUserDetailsView.user_id = p_user_id
     AND COALESCE(
-        (BusLegData.leg_calls)[1].plan_dep,
-        (BusLegData.leg_calls)[1].act_dep,
-        (BusLegData.leg_calls)[1].plan_arr,
-        (BusLegData.leg_calls)[1].act_arr) <= p_search_end;
+        (BusLegUserDetailsView.leg_calls)[1].plan_dep,
+        (BusLegUserDetailsView.leg_calls)[1].act_dep,
+        (BusLegUserDetailsView.leg_calls)[1].plan_arr,
+        (BusLegUserDetailsView.leg_calls)[1].act_arr) <= p_search_end;
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION GetBusLegsByIds(
+CREATE OR REPLACE FUNCTION GetUserDetailsForBusLegsByIds(
     p_user_id INT,
     p_leg_ids INT[]
 )
@@ -707,12 +710,12 @@ $$
 BEGIN
     RETURN QUERY
     SELECT
-        BusLegData.leg_id,
-        BusLegData.leg_journey,
-        BusLegData.leg_calls
-    FROM BusLegData
-    WHERE BusLegData.user_id = p_user_id
-    AND BusLegData.leg_id = ANY(p_leg_ids);
+        BusLegUserDetailsView.leg_id,
+        BusLegUserDetailsView.leg_journey,
+        BusLegUserDetailsView.leg_calls
+    FROM BusLegUserDetailsView
+    WHERE BusLegUserDetailsView.user_id = p_user_id
+    AND BusLegUserDetailsView.leg_id = ANY(p_leg_ids);
 END;
 $$;
 
@@ -859,6 +862,46 @@ BEGIN
     ON BusStop.bus_stop_id = BusStopLegUserDetailsView.bus_stop_id
     AND BusStopLegUserDetailsView.user_id = p_user_id
     WHERE BusStop.bus_stop_id = p_stop_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetUserDetailsForBusStopByAtco (
+    p_user_id INT,
+    p_atco TEXT
+)
+RETURNS BusStopUserDetails
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN
+        (
+            BusStop.bus_stop_id,
+            BusStop.atco_code,
+            BusStop.naptan_code,
+            BusStop.stop_name,
+            BusStop.landmark_name,
+            BusStop.street_name,
+            BusStop.crossing_name,
+            BusStop.indicator,
+            BusStop.bearing,
+            BusStop.locality_name,
+            BusStop.parent_locality_name,
+            BusStop.grandparent_locality_name,
+            BusStop.town_name,
+            BusStop.suburb_name,
+            BusStop.latitude,
+            BusStop.longitude,
+            COALESCE(
+                BusStopLegUserDetailsView.stop_user_legs,
+                ARRAY[]::BusStopLegUserDetails[]
+            )
+        )::BusStopUserDetails
+    FROM BusStop
+    LEFT JOIN BusStopLegUserDetailsView
+    ON BusStop.bus_stop_id = BusStopLegUserDetailsView.bus_stop_id
+    AND BusStopLegUserDetailsView.user_id = p_user_id
+    WHERE BusStop.atco_code = p_atco;
 END;
 $$;
 

@@ -93,7 +93,9 @@ def register_leg_types(conn: Connection):
 
 def select_bus_legs(conn: Connection, user_id: int) -> list[BusLeg]:
     register_leg_types(conn)
-    rows = conn.execute("SELECT GetBusLegs(%s)", [user_id]).fetchall()
+    rows = conn.execute(
+        "SELECT GetUserDetailsForBusLeg(%s)", [user_id]
+    ).fetchall()
     return [row[0] for row in rows]
 
 
@@ -102,7 +104,7 @@ def select_bus_legs_by_datetime(
 ) -> list[BusLeg]:
     register_leg_types(conn)
     rows = conn.execute(
-        "SELECT GetBusLegsByDatetime(%s, %s, %s)",
+        "SELECT GetUserDetailsForBusLegsByDatetime(%s, %s, %s)",
         [user_id, search_start, search_end],
     ).fetchall()
     return [row[0] for row in rows]
@@ -113,7 +115,8 @@ def select_bus_legs_by_start_datetime(
 ) -> list[BusLeg]:
     register_leg_types(conn)
     rows = conn.execute(
-        "SELECT GetBusLegsByStartDatetime(%s, %s)", [user_id, search_start]
+        "SELECT GetUserDetailsForBusLegByStartDatetime(%s, %s)",
+        [user_id, search_start],
     ).fetchall()
     return [row[0] for row in rows]
 
@@ -123,7 +126,8 @@ def select_bus_legs_by_end_datetime(
 ) -> list[BusLeg]:
     register_leg_types(conn)
     rows = conn.execute(
-        "SELECT GetBusLegsByEngDatetime(%s, %s)", [user_id, search_end]
+        "SELECT GetUserDetailsForBusLegByEngDatetime(%s, %s)",
+        [user_id, search_end],
     ).fetchall()
     return [row[0] for row in rows]
 
@@ -131,7 +135,7 @@ def select_bus_legs_by_end_datetime(
 def select_bus_leg_by_id(conn: Connection, user_id: int, leg_id: int) -> BusLeg:
     register_leg_types(conn)
     rows = conn.execute(
-        "SELECT GetBusLegsByIds(%s, %s)", [user_id, [leg_id]]
+        "SELECT GetUserDetailsForBusLegsByIds(%s, %s)", [user_id, [leg_id]]
     ).fetchall()
     return [row[0] for row in rows][0]
 
@@ -141,6 +145,6 @@ def select_bus_legs_by_id(
 ) -> list[BusLeg]:
     register_leg_types(conn)
     rows = conn.execute(
-        "SELECT GetBusLegsByIds(%s, %s)", [user_id, leg_ids]
+        "SELECT GetUserDetailsForBusLegByIds(%s, %s)", [user_id, leg_ids]
     ).fetchall()
     return [row[0] for row in rows]

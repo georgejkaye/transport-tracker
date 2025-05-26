@@ -79,14 +79,12 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    DROP VIEW BusStopUserLegData;
-    DROP VIEW BusLegData;
-    DROP VIEW BusJourneyData;
-    DROP VIEW BusJourneyCallData;
-    DROP VIEW BusCallData;
-    DROP VIEW BusVehicleUserData;
-    DROP VIEW BusVehicleData;
-    DROP VIEW BusServiceData;
+    DROP VIEW BusStopLegUserDetailsView;
+    DROP VIEW BusVehicleUserDetailsView;
+    DROP VIEW BusLegUserDetailsView;
+    DROP VIEW BusJourneyDetailsView;
+    DROP VIEW BusVehicleDetailsView;
+    DROP VIEW BusServiceDetailsView;
     DROP VIEW BusServiceViaData;
 END;
 $$;
@@ -109,12 +107,15 @@ BEGIN
     DROP FUNCTION GetBusServicesByNationalOperatorCode;
     DROP FUNCTION GetBusServicesByOperatorName;
     DROP FUNCTION GetBusVehicles;
-    DROP FUNCTION GetBusVehicleOverviews;
-    DROP FUNCTION GetBusLegs;
-    DROP FUNCTION GetBusLegsByDatetime;
-    DROP FUNCTION GetBusLegsByStartDatetime;
-    DROP FUNCTION GetBusLegsByEndDatetime;
-    DROP FUNCTION GetBusLegsByIds;
+    DROP FUNCTION GetUserDetailsForBusStops;
+    DROP FUNCTION GetUserDetailsForBusStopByAtco;
+    DROP FUNCTION GetUserDetailsForBusStop;
+    DROP FUNCTION GetUserDetailsForBusVehicles;
+    DROP FUNCTION GetUserDetailsForBusLeg;
+    DROP FUNCTION GetUserDetailsForBusLegsByDatetime;
+    DROP FUNCTION GetUserDetailsForBusLegsByStartDatetime;
+    DROP FUNCTION GetUserDetailsForBusLegsByEndDatetime;
+    DROP FUNCTION GetUserDetailsForBusLegsByIds;
 END;
 $$;
 

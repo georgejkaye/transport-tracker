@@ -128,6 +128,6 @@ def get_bus_vehicle_overviews_for_user(
 ) -> list[BusVehicleOverview]:
     register_bus_vehicle_overview_types(conn)
     rows = conn.execute(
-        "SELECT GetBusVehicleOverviews(%s)", [user_id]
+        "SELECT GetUserDetailsForBusVehicles(%s)", [user_id]
     ).fetchall()
     return [row[0] for row in rows]
