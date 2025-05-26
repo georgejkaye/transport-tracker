@@ -716,7 +716,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE VIEW BusStopLegUserDetails AS
+CREATE OR REPLACE VIEW BusStopLegUserDetailsView AS
 SELECT
     BusStop.bus_stop_id,
     BusLeg.user_id,
@@ -786,7 +786,7 @@ SELECT
             )::BusCallOverviewOutData,
             (BusCall.call_index - BoardCall.call_index),
             (Alightcall.call_index - BusCall.call_index)
-        )::BusStopLegOverviewData
+        )::BusStopLegUserDetails
     ) AS stop_user_legs
 FROM BusStop
 INNER JOIN BusCall
@@ -841,14 +841,14 @@ BEGIN
             BusStop.latitude,
             BusStop.longitude,
             COALESCE(
-                BusStopLegUserDetails.stop_user_legs,
-                ARRAY[]::BusStopLegOverviewData[]
+                BusStopLegUserDetailsView.stop_user_legs,
+                ARRAY[]::BusStopLegUserDetails[]
             )
         )::BusStopUserDetails
     FROM BusStop
-    LEFT JOIN BusStopLegUserDetails
-    ON BusStop.bus_stop_id = BusStopLegUserDetails.bus_stop_id
-    AND BusStopLegUserDetails.user_id = p_user_id
+    LEFT JOIN BusStopLegUserDetailsView
+    ON BusStop.bus_stop_id = BusStopLegUserDetailsView.bus_stop_id
+    AND BusStopLegUserDetailsView.user_id = p_user_id
     WHERE BusStop.bus_stop_id = p_stop_id;
 END;
 $$;
