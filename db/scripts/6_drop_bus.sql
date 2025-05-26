@@ -23,28 +23,29 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    DROP TYPE BusVehicleOverviewOutData;
-    DROP TYPE BusLegOverviewOutData;
-    DROP TYPE BusCallOverviewOutData;
-    DROP TYPE BusStopOverviewOutData;
-    DROP TYPE BusServiceOverviewOutData;
-    DROP TYPE BusOperatorOverviewOutData;
-    DROP TYPE BusLegOutData;
-    DROP TYPE BusLegInData;
-    DROP TYPE BusJourneyOutData;
+    DROP TYPE BusStopUserDetails;
+    DROP TYPE BusStopLegUserDetails;
+    DROP TYPE BusVehicleUserDetails;
+    DROP TYPE BusLegUserDetails;
+    DROP TYPE BusCallDetails;
+    DROP TYPE BusServiceDetails;
+    DROP TYPE BusLegUserDetails;
+    DROP TYPE BusJourneyDetails;
+    DROP TYPE BusJourneyCallDetails;
+    DROP TYPE BusCallStopDetails;
+    DROP TYPE BusJourneyServiceDetails;
+    DROP TYPE BusVehicleDetails;
+    DROP TYPE BusOperatorDetails;
+    DROP TYPE BusOperatorDetails;
+    DROP TYPE BusStopDetails;
     DROP TYPE BusJourneyInData;
-    DROP TYPE BusCallOutData;
     DROP TYPE BusCallInData;
-    DROP TYPE BusVehicleOutData;
     DROP TYPE BusVehicleInData;
     DROP TYPE BusModelInData;
-    DROP TYPE BusServiceViaOutData;
-    DROP TYPE BusServiceOutData;
     DROP TYPE BusServiceViaInData;
+    DROP TYPE BusLegInData;
     DROP TYPE BusServiceInData;
-    DROP TYPE BusOperatorOutData;
     DROP TYPE BusOperatorInData;
-    DROP TYPE BusStopOutData;
     DROP TYPE BusStopInData;
 END;
 $$;
@@ -75,8 +76,13 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    DROP VIEW BusVehicleData;
-    DROP VIEW BusLegData;
+    DROP VIEW BusStopLegUserDetailsView;
+    DROP VIEW BusVehicleUserDetailsView;
+    DROP VIEW BusLegUserDetailsView;
+    DROP VIEW BusJourneyDetailsView;
+    DROP VIEW BusVehicleDetailsView;
+    DROP VIEW BusServiceDetailsView;
+    DROP VIEW BusServiceViaData;
 END;
 $$;
 
@@ -93,21 +99,20 @@ BEGIN
     DROP FUNCTION GetBusOperators;
     DROP FUNCTION GetBusOperatorsByName;
     DROP FUNCTION GetBusOperatorsByNationalOperatorCode;
-    DROP FUNCTION GetBusServiceVias;
     DROP FUNCTION GetBusServices;
     DROP FUNCTION GetBusServicesByOperatorId;
     DROP FUNCTION GetBusServicesByNationalOperatorCode;
     DROP FUNCTION GetBusServicesByOperatorName;
     DROP FUNCTION GetBusVehicles;
-    DROP FUNCTION GetBusVehicleOverviews;
-    DROP FUNCTION GetBusCallsByJourney;
-    DROP FUNCTION GetBusCalls;
-    DROP FUNCTION GetBusJourneys;
-    DROP FUNCTION GetBusLegs;
-    DROP FUNCTION GetBusLegsByDatetime;
-    DROP FUNCTION GetBusLegsByStartDatetime;
-    DROP FUNCTION GetBusLegsByEndDatetime;
-    DROP FUNCTION GetBusLegsByIds;
+    DROP FUNCTION GetUserDetailsForBusStops;
+    DROP FUNCTION GetUserDetailsForBusStopByAtco;
+    DROP FUNCTION GetUserDetailsForBusStop;
+    DROP FUNCTION GetUserDetailsForBusVehicles;
+    DROP FUNCTION GetUserDetailsForBusLeg;
+    DROP FUNCTION GetUserDetailsForBusLegsByDatetime;
+    DROP FUNCTION GetUserDetailsForBusLegsByStartDatetime;
+    DROP FUNCTION GetUserDetailsForBusLegsByEndDatetime;
+    DROP FUNCTION GetUserDetailsForBusLegsByIds;
 END;
 $$;
 

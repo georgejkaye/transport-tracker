@@ -1,122 +1,166 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from api.data.bus.stop import (
+    BusCallStopDetails,
+    register_bus_call_stop_details,
+    register_bus_call_stop_details_types,
+)
 from psycopg import Connection
 from typing import Optional
 
-from api.data.bus.operators import BusOperator, register_bus_operator
+from api.data.bus.operators import (
+    BusOperatorDetails,
+    register_bus_operator_details,
+    register_bus_operator_details_types,
+)
 from api.utils.database import register_type
 
 
 @dataclass
-class BusStopOverview:
+class BusCallDetails:
     id: int
-    atco: str
-    name: str
-    locality: str
-    street: str
+    call_index: int
+    stop: BusCallStopDetails
+    plan_arr: Optional[datetime]
+    act_arr: Optional[datetime]
+    plan_dep: Optional[datetime]
+    act_dep: Optional[datetime]
 
 
-def register_bus_stop_overview(
-    bus_stop_id: int,
-    stop_atco: str,
-    stop_name: str,
-    stop_locality: str,
-    stop_street: str,
-) -> BusStopOverview:
-    return BusStopOverview(
-        bus_stop_id, stop_atco, stop_name, stop_locality, stop_street
-    )
-
-
-@dataclass
-class BusCallOverview:
-    id: int
-    stop: BusStopOverview
-    plan_arr: datetime
-    act_arr: datetime
-    plan_dep: datetime
-    act_dep: datetime
-
-
-def register_bus_call_overview(
+def register_bus_call_details(
     bus_call_id: int,
-    bus_stop: BusStopOverview,
-    plan_arr: datetime,
-    act_arr: datetime,
-    plan_dep: datetime,
-    act_dep: datetime,
-) -> BusCallOverview:
-    return BusCallOverview(
-        bus_call_id, bus_stop, plan_arr, act_arr, plan_dep, act_dep
+    call_index: int,
+    bus_stop: BusCallStopDetails,
+    plan_arr: Optional[datetime],
+    act_arr: Optional[datetime],
+    plan_dep: Optional[datetime],
+    act_dep: Optional[datetime],
+) -> BusCallDetails:
+    return BusCallDetails(
+        bus_call_id, call_index, bus_stop, plan_arr, act_arr, plan_dep, act_dep
     )
 
 
+def register_bus_call_details_types(conn: Connection):
+    register_bus_call_stop_details_types(conn)
+    register_type(conn, "BusCallDetails", register_bus_call_details)
+
+
 @dataclass
-class BusServiceOverview:
+class BusLegServiceDetails:
     id: int
     line: str
+    operator: BusOperatorDetails
+    outbound_description: str
+    inbound_description: str
+    bg_colour: str
+    fg_colour: str
 
 
-def register_bus_service_overview(
-    service_id: int, service_line: str
-) -> BusServiceOverview:
-    return BusServiceOverview(service_id, service_line)
+def register_bus_leg_service_details(
+    service_id: int,
+    service_line: str,
+    bus_operator: BusOperatorDetails,
+    outbound_description: str,
+    inbound_description: str,
+    bg_colour: Optional[str],
+    fg_colour: Optional[str],
+) -> BusLegServiceDetails:
+    return BusLegServiceDetails(
+        service_id,
+        service_line,
+        bus_operator,
+        outbound_description,
+        inbound_description,
+        bg_colour or "#ffffff",
+        fg_colour or "#000000",
+    )
+
+
+def register_bus_leg_service_details_types(conn: Connection):
+    register_bus_operator_details_types(conn)
+    register_type(
+        conn, "BusLegServiceDetails", register_bus_leg_service_details
+    )
 
 
 @dataclass
-class BusLegOverview:
+class BusLegUserDetails:
     id: int
-    service: BusServiceOverview
-    operator: BusOperator
-    board: BusCallOverview
-    alight: BusCallOverview
+    service: BusLegServiceDetails
+    board: BusCallDetails
+    alight: BusCallDetails
     duration: timedelta
 
 
-def register_bus_leg_overview(
+def register_bus_leg_user_details(
     leg_id: int,
-    bus_service: BusServiceOverview,
-    bus_operator: BusOperator,
-    leg_start: BusCallOverview,
-    leg_end: BusCallOverview,
+    bus_service: BusLegServiceDetails,
+    leg_start: BusCallDetails,
+    leg_end: BusCallDetails,
     leg_duration: timedelta,
-) -> BusLegOverview:
-    return BusLegOverview(
-        leg_id, bus_service, bus_operator, leg_start, leg_end, leg_duration
+) -> BusLegUserDetails:
+    return BusLegUserDetails(
+        leg_id, bus_service, leg_start, leg_end, leg_duration
     )
 
 
-def register_bus_leg_overview_types(conn: Connection):
-    register_type(conn, "BusStopOverviewOutData", register_bus_stop_overview)
-    register_type(conn, "BusCallOverviewOutData", register_bus_call_overview)
-    register_type(
-        conn, "BusServiceOverviewOutData", register_bus_service_overview
-    )
-    register_type(conn, "BusOperatorOutData", register_bus_operator)
-    register_type(conn, "BusLegOverviewOutData", register_bus_leg_overview)
+def register_bus_leg_user_details_types(conn: Connection):
+    register_bus_leg_service_details_types(conn)
+    register_bus_call_details_types(conn)
+    register_type(conn, "BusLegUserDetails", register_bus_leg_user_details)
 
 
 @dataclass
-class BusVehicleOverview:
+class BusVehicleLegDetails:
+    id: int
+    service: BusLegServiceDetails
+    board: BusCallDetails
+    alight: BusCallDetails
+    duration: timedelta
+
+
+def register_bus_vehicle_leg_details(
+    leg_id: int,
+    bus_service: BusLegServiceDetails,
+    board_call: BusCallDetails,
+    alight_call: BusCallDetails,
+    leg_duration: timedelta,
+) -> BusVehicleLegDetails:
+    return BusVehicleLegDetails(
+        leg_id, bus_service, board_call, alight_call, leg_duration
+    )
+
+
+def register_bus_vehicle_leg_details_types(conn: Connection):
+    register_bus_leg_service_details_types(conn)
+    register_bus_call_details_types(conn)
+    register_type(
+        conn, "BusVehicleLegDetails", register_bus_vehicle_leg_details
+    )
+
+
+@dataclass
+class BusVehicleUserDetails:
     id: int
     number: str
     name: Optional[str]
     numberplate: str
-    operator: BusOperator
-    legs: list[BusLegOverview]
+    operator: BusOperatorDetails
+    legs: list[BusVehicleLegDetails]
     duration: timedelta
 
 
-def register_bus_vehicle_overview(
+def register_bus_vehicle_user_details(
     vehicle_id: int,
     vehicle_number: str,
     vehicle_name: Optional[str],
     vehicle_numberplate: str,
-    vehicle_operator: BusOperator,
-    vehicle_legs: list[BusLegOverview],
+    vehicle_operator: BusOperatorDetails,
+    vehicle_legs: list[BusVehicleLegDetails],
     vehicle_duration: timedelta,
-) -> BusVehicleOverview:
-    return BusVehicleOverview(
+) -> BusVehicleUserDetails:
+    return BusVehicleUserDetails(
         vehicle_id,
         vehicle_number,
         vehicle_name,
@@ -127,18 +171,31 @@ def register_bus_vehicle_overview(
     )
 
 
-def register_bus_vehicle_overview_types(conn: Connection):
-    register_bus_leg_overview_types(conn)
+def register_bus_vehicle_user_details_types(conn: Connection):
+    register_bus_operator_details_types(conn)
+    register_bus_vehicle_leg_details_types(conn)
     register_type(
-        conn, "BusVehicleOverviewOutData", register_bus_vehicle_overview
+        conn, "BusVehicleUserDetails", register_bus_vehicle_user_details
     )
 
 
 def get_bus_vehicle_overviews_for_user(
     conn: Connection, user_id: int
-) -> list[BusVehicleOverview]:
-    register_bus_vehicle_overview_types(conn)
+) -> list[BusVehicleUserDetails]:
+    register_bus_vehicle_user_details_types(conn)
     rows = conn.execute(
-        "SELECT GetBusVehicleOverviews(%s)", [user_id]
+        "SELECT GetUserDetailsForBusVehicles(%s)", [user_id]
     ).fetchall()
     return [row[0] for row in rows]
+
+
+def get_bus_vehicle_overview_for_user(
+    conn: Connection, user_id: int, vehicle_id: int
+) -> Optional[BusVehicleUserDetails]:
+    register_bus_vehicle_user_details_types(conn)
+    result = conn.execute(
+        "SELECT GetUserDetailsForBusVehicle(%s, %s)", [user_id, vehicle_id]
+    ).fetchone()
+    if result is None:
+        return None
+    return result[0]

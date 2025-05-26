@@ -16,7 +16,63 @@ CREATE TYPE BusStopInData AS (
     longitude DECIMAL
 );
 
-CREATE TYPE BusStopOutData AS (
+CREATE TYPE BusOperatorInData AS (
+    operator_name TEXT,
+    national_operator_code TEXT
+);
+
+CREATE TYPE BusServiceInData AS (
+    service_line TEXT,
+    bods_line_id TEXT,
+    service_operator_national_code TEXT,
+    service_outbound_description TEXT,
+    service_inbound_description TEXT
+);
+
+CREATE TYPE BusServiceViaInData AS (
+    bods_line_id TEXT,
+    is_outbound BOOLEAN,
+    via_name TEXT,
+    via_index INT
+);
+
+CREATE TYPE BusModelInData AS (
+    model_name TEXT
+);
+
+CREATE TYPE BusVehicleInData AS (
+    operator_id INT,
+    vehicle_identifier TEXT,
+    bustimes_id TEXT,
+    vehicle_numberplate TEXT,
+    vehicle_model TEXT,
+    vehicle_livery_style TEXT,
+    vehicle_name TEXT
+);
+
+CREATE TYPE BusCallInData AS (
+    call_index INT,
+    stop_atco TEXT,
+    plan_arr TIMESTAMP WITH TIME ZONE,
+    act_arr TIMESTAMP WITH TIME ZONE,
+    plan_dep TIMESTAMP WITH TIME ZONE,
+    act_dep TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TYPE BusJourneyInData AS (
+    bustimes_id TEXT,
+    service_id INT,
+    journey_calls BusCallInData[],
+    vehicle_id INT
+);
+
+CREATE TYPE BusLegInData AS (
+    journey BusJourneyInData,
+    board_index INT,
+    alight_index INT
+);
+
+CREATE TYPE BusStopDetails AS (
     bus_stop_id INT,
     atco_code TEXT,
     naptan_code TEXT,
@@ -35,12 +91,7 @@ CREATE TYPE BusStopOutData AS (
     longitude DECIMAL
 );
 
-CREATE TYPE BusOperatorInData AS (
-    operator_name TEXT,
-    national_operator_code TEXT
-);
-
-CREATE TYPE BusOperatorOutData AS (
+CREATE TYPE BusOperatorDetails AS (
     bus_operator_id INT,
     operator_name TEXT,
     national_operator_code TEXT,
@@ -48,24 +99,9 @@ CREATE TYPE BusOperatorOutData AS (
     fg_colour TEXT
 );
 
-CREATE TYPE BusServiceInData AS (
-    service_line TEXT,
-    bods_line_id TEXT,
-    service_operator_national_code TEXT,
-    service_outbound_description TEXT,
-    service_inbound_description TEXT
-);
-
-CREATE TYPE BusServiceViaInData AS (
-    bods_line_id TEXT,
-    is_outbound BOOLEAN,
-    via_name TEXT,
-    via_index INT
-);
-
-CREATE TYPE BusServiceOutData AS (
+CREATE TYPE BusServiceDetails AS (
     bus_service_id INT,
-    bus_operator BusOperatorOutData,
+    bus_operator BusOperatorDetails,
     service_line TEXT,
     description_outbound TEXT,
     service_outbound_vias TEXT[],
@@ -75,30 +111,10 @@ CREATE TYPE BusServiceOutData AS (
     fg_colour TEXT
 );
 
-CREATE TYPE BusServiceViaOutData AS (
-    bus_service_id INT,
-    is_outbound BOOLEAN,
-    bus_service_vias TEXT[]
-);
-
-CREATE TYPE BusModelInData AS (
-    model_name TEXT
-);
-
-CREATE TYPE BusVehicleInData AS (
-    operator_id INT,
-    vehicle_number TEXT,
-    bustimes_id TEXT,
-    vehicle_numberplate TEXT,
-    vehicle_model TEXT,
-    vehicle_livery_style TEXT,
-    vehicle_name TEXT
-);
-
-CREATE TYPE BusVehicleOutData AS (
+CREATE TYPE BusVehicleDetails AS (
     bus_vehicle_id INT,
-    bus_operator BusOperatorOutData,
-    vehicle_number TEXT,
+    bus_operator BusOperatorDetails,
+    vehicle_identifier TEXT,
     bustimes_id TEXT,
     vehicle_numberplate TEXT,
     vehicle_model TEXT,
@@ -106,97 +122,112 @@ CREATE TYPE BusVehicleOutData AS (
     vehicle_name TEXT
 );
 
-CREATE TYPE BusCallInData AS (
-    call_index INT,
-    stop_atco TEXT,
-    plan_arr TIMESTAMP WITH TIME ZONE,
-    act_arr TIMESTAMP WITH TIME ZONE,
-    plan_dep TIMESTAMP WITH TIME ZONE,
-    act_dep TIMESTAMP WITH TIME ZONE
-);
-
-CREATE TYPE BusCallOutData AS (
-    call_id INT,
-    journey_id INT,
-    call_index INT,
-    bus_stop BusStopOutData,
-    plan_arr TIMESTAMP WITH TIME ZONE,
-    act_arr TIMESTAMP WITH TIME ZONE,
-    plan_dep TIMESTAMP WITH TIME ZONE,
-    act_dep TIMESTAMP WITH TIME ZONE
-);
-
-CREATE TYPE BusJourneyInData AS (
-    bustimes_id TEXT,
+CREATE TYPE BusJourneyServiceDetails AS (
     service_id INT,
-    journey_calls BusCallInData[],
-    vehicle_id INT
+    service_operator BusOperatorDetails,
+    service_line TEXT,
+    bg_colour TEXT,
+    fg_colour TEXT
 );
 
-CREATE TYPE BusJourneyOutData AS (
-    journey_id INT,
-    journey_service BusServiceOutData,
-    journey_calls BusCallOutData[],
-    journey_vehicle BusVehicleOutData
-);
-
-CREATE TYPE BusLegInData AS (
-    journey BusJourneyInData,
-    board_index INT,
-    alight_index INT
-);
-
-CREATE TYPE BusLegOutData AS (
-    leg_id INT,
-    user_id UserOutPublicData,
-    leg_journey BusJourneyOutData,
-    leg_calls BusCallOutData[]
-);
-
-
-CREATE TYPE BusOperatorOverviewOutData AS (
-    operator_id INT,
-    name TEXT,
-    operator_national_code TEXT
-);
-
-CREATE TYPE BusServiceOverviewOutData AS (
-    service_id INT,
-    service_line TEXT
-);
-
-CREATE TYPE BusStopOverviewOutData AS (
+CREATE TYPE BusCallStopDetails AS (
     bus_stop_id BIGINT,
     stop_atco TEXT,
     stop_name TEXT,
     stop_locality TEXT,
-    stop_street TEXT
+    stop_street TEXT,
+    stop_indicator TEXT
 );
 
-CREATE TYPE BusCallOverviewOutData AS (
-    bus_call_id INT,
-    bus_stop BusStopOverviewOutData,
+CREATE TYPE BusJourneyCallDetails AS (
+    call_id INT,
+    call_index INT,
+    bus_stop BusCallStopDetails,
     plan_arr TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE
 );
 
-CREATE TYPE BusLegOverviewOutData AS (
+CREATE TYPE BusJourneyDetails AS (
+    journey_id INT,
+    journey_service BusJourneyServiceDetails,
+    journey_calls BusJourneyCallDetails[],
+    journey_vehicle BusVehicleDetails
+);
+
+CREATE TYPE BusLegServiceDetails AS (
+    service_id INT,
+    service_line TEXT,
+    bus_operator BusOperatorDetails,
+    outbound_description TEXT,
+    inbound_description TEXT,
+    bg_colour TEXT,
+    fg_colour TEXT
+);
+
+CREATE TYPE BusCallDetails AS (
+    bus_call_id INT,
+    call_index INT,
+    bus_stop BusCallStopDetails,
+    plan_arr TIMESTAMP WITH TIME ZONE,
+    act_arr TIMESTAMP WITH TIME ZONE,
+    plan_dep TIMESTAMP WITH TIME ZONE,
+    act_dep TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TYPE BusLegUserDetails AS (
     leg_id INT,
-    bus_service BusServiceOverviewOutData,
-    bus_operator BusOperatorOutData,
-    leg_start BusCallOverviewOutData,
-    leg_end BusCallOverviewOutData,
+    bus_service BusLegServiceDetails,
+    bus_vehicle BusVehicleDetails,
+    calls BusCallDetails[],
     leg_duration INTERVAL
 );
 
-CREATE TYPE BusVehicleOverviewOutData AS (
+CREATE TYPE BusVehicleLegDetails AS (
+    leg_id INT,
+    bus_service BusLegServiceDetails,
+    board_call BusCallDetails,
+    alight_call BusCallDetails,
+    leg_duration INTERVAL
+);
+
+CREATE TYPE BusVehicleUserDetails AS (
     vehicle_id INT,
     vehicle_operator_id TEXT,
     vehicle_name TEXT,
     vehicle_numberplate TEXT,
-    vehicle_operator BusOperatorOutData,
-    vehicle_legs BusLegOverviewOutData[],
+    vehicle_operator BusOperatorDetails,
+    vehicle_legs BusVehicleLegDetails[],
     vehicle_duration INTERVAL
+);
+
+CREATE TYPE BusStopLegDetails AS (
+    leg_id INT,
+    bus_service BusLegServiceDetails,
+    board_call BusCallDetails,
+    alight_call BusCallDetails,
+    this_call BusCallDetails,
+    stops_before INT,
+    stops_after INT
+);
+
+CREATE TYPE BusStopUserDetails AS (
+    bus_stop_id INT,
+    atco_code TEXT,
+    naptan_code TEXT,
+    stop_name TEXT,
+    landmark_name TEXT,
+    street_name TEXT,
+    crossing_name TEXT,
+    indicator TEXT,
+    bearing TEXT,
+    locality_name TEXT,
+    parent_locality_name TEXT,
+    grandparent_locality_name TEXT,
+    town_name TEXT,
+    suburb_name TEXT,
+    latitude DECIMAL,
+    longitude DECIMAL,
+    stop_legs BusStopLegDetails[]
 );

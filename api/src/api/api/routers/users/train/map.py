@@ -27,7 +27,7 @@ async def get_train_map_from_time_period(
     with connect_with_env() as conn:
         try:
             return get_leg_map_page(
-                network, conn, StationInfo(True), start_date, end_date
+                network, conn, user_id, StationInfo(True), start_date, end_date
             )
         except RuntimeError:
             raise HTTPException(500, "Could not get stats")
@@ -44,6 +44,7 @@ async def get_train_map_from_year(user_id: int, year: int) -> str:
             return get_leg_map_page(
                 network,
                 conn,
+                user_id,
                 StationInfo(True),
                 datetime(year, 1, 1),
                 datetime(year, 12, 31),
@@ -59,4 +60,6 @@ async def get_train_map_from_year(user_id: int, year: int) -> str:
 )
 async def get_leg_map_for_leg_id(user_id: int, leg_id: int) -> str:
     with connect_with_env() as conn:
-        return get_leg_map_page(network, conn, CallInfo(), search_leg_id=leg_id)
+        return get_leg_map_page(
+            network, conn, user_id, CallInfo(), search_leg_id=leg_id
+        )

@@ -58,17 +58,17 @@ CREATE TABLE BusModel (
 
 CREATE TABLE BusVehicle (
     bus_vehicle_id SERIAL PRIMARY KEY,
-    operator_id INT NOT NULL,
-    vehicle_number TEXT,
+    bus_operator_id INT NOT NULL,
+    vehicle_identifier TEXT,
     bustimes_id TEXT,
     numberplate TEXT NOT NULL,
     bus_model_id INT,
     livery_style TEXT,
-    operator_name TEXT,
-    FOREIGN KEY(operator_id) REFERENCES BusOperator(bus_operator_id),
+    vehicle_name TEXT,
+    FOREIGN KEY(bus_operator_id) REFERENCES BusOperator(bus_operator_id),
     FOREIGN KEY(bus_model_id) REFERENCES BusModel(bus_model_id),
-    UNIQUE (operator_id, vehicle_number),
-    UNIQUE (operator_id, numberplate)
+    UNIQUE (bus_operator_id, vehicle_identifier),
+    UNIQUE (bus_operator_id, numberplate)
 );
 
 CREATE TABLE BusJourney (

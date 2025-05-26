@@ -4,19 +4,27 @@ import json
 from typing import Optional
 
 from api.data.bus.operators import (
-    BusOperator,
+    BusOperatorDetails,
     get_bus_operator_from_national_operator_code,
 )
+from api.data.bus.overview import BusCallStopDetails
 from api.data.bus.service import (
-    BusService,
+    BusJourneyServiceDetails,
+    BusServiceDetails,
     get_service_from_line_and_operator,
+    register_bus_journey_service_details_types,
 )
 from api.data.bus.stop import (
-    BusStop,
+    BusStopDetails,
     BusStopDeparture,
     get_bus_stops_from_atcos,
+    register_bus_call_stop_details_types,
 )
-from api.data.bus.vehicle import BusVehicle
+from api.data.bus.vehicle import (
+    BusVehicleDetails,
+    register_bus_vehicle_details_types,
+)
+from api.utils.database import register_type
 from api.utils.request import get_soup
 from api.utils.times import make_timezone_aware
 from bs4 import BeautifulSoup
@@ -47,18 +55,18 @@ def string_of_bus_call_in(bus_call: BusCallIn) -> str:
 @dataclass
 class BusJourneyTimetable:
     id: int
-    operator: BusOperator
-    service: BusService
+    operator: BusOperatorDetails
+    service: BusServiceDetails
     calls: list[BusCallIn]
 
 
 @dataclass
 class BusJourneyIn:
     id: int
-    operator: BusOperator
-    service: BusService
+    operator: BusOperatorDetails
+    service: BusServiceDetails
     calls: list[BusCallIn]
-    vehicle: Optional[BusVehicle]
+    vehicle: Optional[BusVehicleDetails]
 
 
 def string_of_bus_journey_in(
@@ -109,7 +117,7 @@ def get_call_datetime(
 def get_bus_journey(
     conn: Connection,
     bustimes_journey_id: int,
-    ref_stop: BusStop,
+    ref_stop: BusStopDetails,
     ref_departure: BusStopDeparture,
 ) -> Optional[tuple[BusJourneyTimetable, int]]:
     soup = get_bus_journey_page(bustimes_journey_id)
@@ -217,7 +225,7 @@ def get_bus_journey(
 @dataclass
 class BusCall:
     id: int
-    stop: BusStop
+    stop: BusStopDetails
     plan_arr: Optional[datetime]
     act_arr: Optional[datetime]
     plan_dep: Optional[datetime]
@@ -228,7 +236,7 @@ def register_bus_call(
     call_id: int,
     journey_id: int,
     call_index: int,
-    call_stop: BusStop,
+    call_stop: BusStopDetails,
     plan_arr: Optional[datetime],
     act_arr: Optional[datetime],
     plan_dep: Optional[datetime],
@@ -238,19 +246,58 @@ def register_bus_call(
 
 
 @dataclass
-class BusJourney:
+class BusJourneyCallDetails:
     id: int
-    service: BusService
-    calls: list[BusCall]
-    vehicle: Optional[BusVehicle]
+    index: int
+    stop: BusCallStopDetails
+    plan_arr: Optional[datetime]
+    act_arr: Optional[datetime]
+    plan_dep: Optional[datetime]
+    act_dep: Optional[datetime]
 
 
-def register_bus_journey(
+def register_bus_journey_call_details(
+    call_id: int,
+    call_index: int,
+    bus_stop: BusCallStopDetails,
+    plan_arr: Optional[datetime],
+    act_arr: Optional[datetime],
+    plan_dep: Optional[datetime],
+    act_dep: Optional[datetime],
+) -> BusJourneyCallDetails:
+    return BusJourneyCallDetails(
+        call_id, call_index, bus_stop, plan_arr, act_arr, plan_dep, act_dep
+    )
+
+
+def register_bus_journey_call_details_types(conn: Connection):
+    register_bus_call_stop_details_types(conn)
+    register_type(
+        conn, "BusJourneyCallDetails", register_bus_journey_call_details
+    )
+
+
+@dataclass
+class BusJourneyDetails:
+    id: int
+    service: BusJourneyServiceDetails
+    calls: list[BusJourneyCallDetails]
+    vehicle: Optional[BusVehicleDetails]
+
+
+def register_bus_journey_details(
     journey_id: int,
-    journey_service: BusService,
-    journey_calls: list[BusCall],
-    journey_vehicle: Optional[BusVehicle],
-) -> BusJourney:
-    return BusJourney(
+    journey_service: BusJourneyServiceDetails,
+    journey_calls: list[BusJourneyCallDetails],
+    journey_vehicle: Optional[BusVehicleDetails],
+) -> BusJourneyDetails:
+    return BusJourneyDetails(
         journey_id, journey_service, journey_calls, journey_vehicle
     )
+
+
+def register_bus_journey_details_types(conn: Connection):
+    register_bus_journey_service_details_types(conn)
+    register_bus_journey_call_details_types(conn)
+    register_bus_vehicle_details_types(conn)
+    register_type(conn, "BusJourneyDetails", register_bus_journey_details)
