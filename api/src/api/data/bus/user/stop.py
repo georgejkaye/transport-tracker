@@ -122,20 +122,32 @@ def register_bus_stop_user_details_types(conn):
     register_type(conn, "BusStopUserDetails", register_bus_stop_user_details)
 
 
-def get_bus_stop_user_details(
-    conn: Connection, user_id: int, bus_stop_id: Optional[int]
+def get_user_details_for_bus_stop(
+    conn: Connection, user_id: int, bus_stop_id: int
 ) -> Optional[BusStopUserDetails]:
     register_bus_stop_user_details_types(conn)
     result = conn.execute(
-        "SELECT GetBusStopUserDetails(%s, %s)", [user_id, bus_stop_id]
+        "SELECT GetUserDetailsForBusStop(%s, %s)", [user_id, bus_stop_id]
     ).fetchone()
     if result is None:
         return result
     return result[0]
 
 
+def get_user_details_for_bus_stops(
+    conn: Connection, user_id: int
+) -> list[BusStopUserDetails]:
+    register_bus_stop_user_details_types(conn)
+    result = conn.execute(
+        "SELECT GetUserDetailsForBusStops(%s)", [user_id]
+    ).fetchall()
+    if result is None:
+        return []
+    return [row[0] for row in result]
+
+
 if __name__ == "__main__":
     with connect(
         DbConnectionData("transport", "transport", "transport", "localhost")
     ) as conn:
-        get_bus_stop_user_details(conn, 1, 283041)
+        get_user_details_for_bus_stop(conn, 1, 283041)
