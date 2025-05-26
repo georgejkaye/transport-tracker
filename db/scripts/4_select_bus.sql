@@ -826,38 +826,37 @@ CREATE OR REPLACE FUNCTION GetBusStopUserDetails (
     p_user_id INT,
     p_stop_id INT
 )
-RETURNS BusStopUserDetails
+RETURNS SETOF BusStopUserDetails
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    RETURN
-        (
-            BusStop.bus_stop_id,
-            BusStop.atco_code,
-            BusStop.naptan_code,
-            BusStop.stop_name,
-            BusStop.landmark_name,
-            BusStop.street_name,
-            BusStop.crossing_name,
-            BusStop.indicator,
-            BusStop.bearing,
-            BusStop.locality_name,
-            BusStop.parent_locality_name,
-            BusStop.grandparent_locality_name,
-            BusStop.town_name,
-            BusStop.suburb_name,
-            BusStop.latitude,
-            BusStop.longitude,
-            COALESCE(
-                BusStopLegUserDetailsView.stop_user_legs,
-                ARRAY[]::BusStopLegUserDetails[]
-            )
-        )::BusStopUserDetails
+    RETURN QUERY
+    SELECT
+        BusStop.bus_stop_id,
+        BusStop.atco_code,
+        BusStop.naptan_code,
+        BusStop.stop_name,
+        BusStop.landmark_name,
+        BusStop.street_name,
+        BusStop.crossing_name,
+        BusStop.indicator,
+        BusStop.bearing,
+        BusStop.locality_name,
+        BusStop.parent_locality_name,
+        BusStop.grandparent_locality_name,
+        BusStop.town_name,
+        BusStop.suburb_name,
+        BusStop.latitude,
+        BusStop.longitude,
+        COALESCE(
+            BusStopLegUserDetailsView.stop_user_legs,
+            ARRAY[]::BusStopLegUserDetails[]
+        )
     FROM BusStop
     LEFT JOIN BusStopLegUserDetailsView
     ON BusStop.bus_stop_id = BusStopLegUserDetailsView.bus_stop_id
     AND BusStopLegUserDetailsView.user_id = p_user_id
-    WHERE BusStop.bus_stop_id = p_stop_id;
+    WHERE (p_stop_id IS NULL OR BusStop.bus_stop_id = p_stop_id);
 END;
 $$;

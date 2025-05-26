@@ -123,7 +123,7 @@ def register_bus_stop_user_details_types(conn):
 
 
 def get_bus_stop_user_details(
-    conn: Connection, user_id: int, bus_stop_id: int
+    conn: Connection, user_id: int, bus_stop_id: Optional[int]
 ) -> Optional[BusStopUserDetails]:
     register_bus_stop_user_details_types(conn)
     result = conn.execute(
