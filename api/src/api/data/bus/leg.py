@@ -8,11 +8,22 @@ from api.data.bus.journey import (
     BusJourneyCallDetails,
     BusJourneyIn,
     register_bus_call,
+    register_bus_journey_call_details_types,
     register_bus_journey_details,
     register_bus_journey_call_details,
+    register_bus_journey_details_types,
 )
-from api.data.bus.operators import BusOperator, register_bus_operator_details
-from api.data.bus.overview import register_bus_call_stop_details
+from api.data.bus.operators import (
+    BusOperatorDetails,
+    register_bus_operator_details,
+)
+from api.data.bus.overview import (
+    BusCallDetails,
+    BusLegServiceDetails,
+    register_bus_call_details_types,
+    register_bus_call_stop_details,
+    register_bus_leg_service_details_types,
+)
 from api.data.bus.service import (
     register_bus_journey_service_details,
     register_bus_service_details,
@@ -20,7 +31,11 @@ from api.data.bus.service import (
 from api.data.bus.stop import (
     register_bus_stop_details,
 )
-from api.data.bus.vehicle import BusVehicleDetails, register_bus_vehicle_details
+from api.data.bus.vehicle import (
+    BusVehicleDetails,
+    register_bus_vehicle_details,
+    register_bus_vehicle_details_types,
+)
 from api.user import User, UserPublic, register_user, register_user_public
 from api.utils.database import register_type
 from psycopg import Connection
@@ -67,29 +82,26 @@ def insert_leg(conn: Connection, users: list[User], leg: BusLegIn):
 @dataclass
 class BusLegUserDetails:
     id: int
-    journey: BusJourneyDetails
-    calls: list[BusJourneyCallDetails]
+    service: BusLegServiceDetails
+    vehicle: BusVehicleDetails
+    calls: list[BusCallDetails]
+    duration: timedelta
 
 
 def register_bus_leg_user_details(
     leg_id: int,
-    leg_journey: BusJourneyDetails,
-    leg_calls: list[BusJourneyCallDetails],
+    bus_service: BusLegServiceDetails,
+    bus_vehicle: BusVehicleDetails,
+    calls: list[BusCallDetails],
+    duration: timedelta,
 ) -> BusLegUserDetails:
-    return BusLegUserDetails(leg_id, leg_journey, leg_calls)
+    return BusLegUserDetails(leg_id, bus_service, bus_vehicle, calls, duration)
 
 
 def register_leg_types(conn: Connection):
-    register_type(conn, "BusOperatorDetails", register_bus_operator_details)
-    register_type(conn, "BusVehicleDetails", register_bus_vehicle_details)
-    register_type(
-        conn, "BusJourneyServiceDetails", register_bus_journey_service_details
-    )
-    register_type(conn, "BusJourneyDetails", register_bus_journey_details)
-    register_type(conn, "BusCallStopDetails", register_bus_call_stop_details)
-    register_type(
-        conn, "BusJourneyCallDetails", register_bus_journey_call_details
-    )
+    register_bus_leg_service_details_types(conn)
+    register_bus_vehicle_details_types(conn)
+    register_bus_call_details_types(conn)
     register_type(conn, "BusLegUserDetails", register_bus_leg_user_details)
 
 

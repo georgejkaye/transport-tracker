@@ -156,10 +156,14 @@ CREATE TYPE BusJourneyDetails AS (
     journey_vehicle BusVehicleDetails
 );
 
-CREATE TYPE BusLegUserDetails AS (
-    leg_id INT,
-    leg_journey BusJourneyDetails,
-    leg_calls BusJourneyCallDetails[]
+CREATE TYPE BusLegServiceDetails AS (
+    service_id INT,
+    service_line TEXT,
+    bus_operator BusOperatorDetails,
+    outbound_description TEXT,
+    inbound_description TEXT,
+    bg_colour TEXT,
+    fg_colour TEXT
 );
 
 CREATE TYPE BusCallDetails AS (
@@ -172,21 +176,19 @@ CREATE TYPE BusCallDetails AS (
     act_dep TIMESTAMP WITH TIME ZONE
 );
 
-CREATE TYPE BusLegServiceDetails AS (
-    service_id INT,
-    service_line TEXT,
-    outbound_description TEXT,
-    inbound_description TEXT,
-    bg_colour TEXT,
-    fg_colour TEXT
-);
-
-CREATE TYPE BusVehicleLegUserDetails AS (
+CREATE TYPE BusLegUserDetails AS (
     leg_id INT,
     bus_service BusLegServiceDetails,
-    bus_operator BusOperatorDetails,
-    leg_start BusCallDetails,
-    leg_end BusCallDetails,
+    bus_vehicle BusVehicleDetails,
+    calls BusCallDetails[],
+    leg_duration INTERVAL
+);
+
+CREATE TYPE BusVehicleLegDetails AS (
+    leg_id INT,
+    bus_service BusLegServiceDetails,
+    board_call BusCallDetails,
+    alight_call BusCallDetails,
     leg_duration INTERVAL
 );
 
@@ -196,14 +198,13 @@ CREATE TYPE BusVehicleUserDetails AS (
     vehicle_name TEXT,
     vehicle_numberplate TEXT,
     vehicle_operator BusOperatorDetails,
-    vehicle_legs BusVehicleLegUserDetails[],
+    vehicle_legs BusVehicleLegDetails[],
     vehicle_duration INTERVAL
 );
 
-CREATE TYPE BusStopLegUserDetails AS (
+CREATE TYPE BusStopLegDetails AS (
     leg_id INT,
     bus_service BusLegServiceDetails,
-    bus_operator BusOperatorDetails,
     board_call BusCallDetails,
     alight_call BusCallDetails,
     this_call BusCallDetails,
@@ -228,5 +229,5 @@ CREATE TYPE BusStopUserDetails AS (
     suburb_name TEXT,
     latitude DECIMAL,
     longitude DECIMAL,
-    stop_legs BusStopLegUserDetails[]
+    stop_legs BusStopLegDetails[]
 );

@@ -4,21 +4,27 @@ import json
 from typing import Optional
 
 from api.data.bus.operators import (
-    BusOperator,
+    BusOperatorDetails,
     get_bus_operator_from_national_operator_code,
 )
 from api.data.bus.overview import BusCallStopDetails
 from api.data.bus.service import (
-    BusJourneyService,
+    BusJourneyServiceDetails,
     BusServiceDetails,
     get_service_from_line_and_operator,
+    register_bus_journey_service_details_types,
 )
 from api.data.bus.stop import (
     BusStopDetails,
     BusStopDeparture,
     get_bus_stops_from_atcos,
+    register_bus_call_stop_details_types,
 )
-from api.data.bus.vehicle import BusVehicleDetails
+from api.data.bus.vehicle import (
+    BusVehicleDetails,
+    register_bus_vehicle_details_types,
+)
+from api.utils.database import register_type
 from api.utils.request import get_soup
 from api.utils.times import make_timezone_aware
 from bs4 import BeautifulSoup
@@ -49,7 +55,7 @@ def string_of_bus_call_in(bus_call: BusCallIn) -> str:
 @dataclass
 class BusJourneyTimetable:
     id: int
-    operator: BusOperator
+    operator: BusOperatorDetails
     service: BusServiceDetails
     calls: list[BusCallIn]
 
@@ -57,7 +63,7 @@ class BusJourneyTimetable:
 @dataclass
 class BusJourneyIn:
     id: int
-    operator: BusOperator
+    operator: BusOperatorDetails
     service: BusServiceDetails
     calls: list[BusCallIn]
     vehicle: Optional[BusVehicleDetails]
@@ -264,20 +270,34 @@ def register_bus_journey_call_details(
     )
 
 
+def register_bus_journey_call_details_types(conn: Connection):
+    register_bus_call_stop_details_types(conn)
+    register_type(
+        conn, "BusJourneyCallDetails", register_bus_journey_call_details
+    )
+
+
 @dataclass
 class BusJourneyDetails:
     id: int
-    service: BusJourneyService
+    service: BusJourneyServiceDetails
     calls: list[BusJourneyCallDetails]
     vehicle: Optional[BusVehicleDetails]
 
 
 def register_bus_journey_details(
     journey_id: int,
-    journey_service: BusJourneyService,
+    journey_service: BusJourneyServiceDetails,
     journey_calls: list[BusJourneyCallDetails],
     journey_vehicle: Optional[BusVehicleDetails],
 ) -> BusJourneyDetails:
     return BusJourneyDetails(
         journey_id, journey_service, journey_calls, journey_vehicle
     )
+
+
+def register_bus_journey_details_types(conn: Connection):
+    register_bus_journey_service_details_types(conn)
+    register_bus_journey_call_details_types(conn)
+    register_bus_vehicle_details_types(conn)
+    register_type(conn, "BusJourneyDetails", register_bus_journey_details)

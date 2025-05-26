@@ -4,8 +4,9 @@ from typing import Optional
 from psycopg import Connection
 
 from api.data.bus.operators import (
-    BusOperator,
+    BusOperatorDetails,
     register_bus_operator_details,
+    register_bus_operator_details_types,
 )
 from api.data.bus.stop import BusStopDetails
 from api.utils.database import register_type
@@ -24,7 +25,7 @@ class BusServiceDescription:
 @dataclass
 class BusServiceDetails:
     id: int
-    operator: BusOperator
+    operator: BusOperatorDetails
     line: str
     outbound: BusServiceDescription
     inbound: BusServiceDescription
@@ -32,13 +33,9 @@ class BusServiceDetails:
     fg_colour: Optional[str]
 
 
-def short_string_of_bus_service(service: BusServiceDetails) -> str:
-    return f"{service.line} {service.outbound.description} ({service.operator.name})"
-
-
 def register_bus_service_details(
     bus_service_id: int,
-    bus_operator: BusOperator,
+    bus_operator: BusOperatorDetails,
     service_line: str,
     description_outbound: str,
     service_outbound_vias: list[str],
@@ -58,10 +55,19 @@ def register_bus_service_details(
     )
 
 
+def register_bus_service_details_types(conn: Connection):
+    register_bus_service_details_types(conn)
+    register_type(conn, "BusServiceDetails", register_bus_service_details)
+
+
+def short_string_of_bus_service(service: BusServiceDetails) -> str:
+    return f"{service.line} {service.outbound.description} ({service.operator.name})"
+
+
 @dataclass
-class BusJourneyService:
+class BusJourneyServiceDetails:
     id: int
-    operator: BusOperator
+    operator: BusOperatorDetails
     line: str
     bg_colour: str
     fg_colour: str
@@ -69,17 +75,24 @@ class BusJourneyService:
 
 def register_bus_journey_service_details(
     bus_service_id: int,
-    bus_operator: BusOperator,
+    bus_operator: BusOperatorDetails,
     service_line: str,
     bg_colour: Optional[str],
     fg_colour: Optional[str],
-) -> BusJourneyService:
-    return BusJourneyService(
+) -> BusJourneyServiceDetails:
+    return BusJourneyServiceDetails(
         bus_service_id,
         bus_operator,
         service_line,
         bg_colour or "#ffffff",
         fg_colour or "#000000",
+    )
+
+
+def register_bus_journey_service_details_types(conn: Connection):
+    register_bus_operator_details_types(conn)
+    register_type(
+        conn, "BusJourneyServiceDetails", register_bus_journey_service_details
     )
 
 
@@ -94,11 +107,6 @@ def input_bus_service(
             return service
         case _:
             return None
-
-
-def register_bus_service_details_types(conn: Connection):
-    register_type(conn, "BusOperatorDetails", register_bus_operator_details)
-    register_type(conn, "BusOperatorDetails", register_bus_service_details)
 
 
 def get_service_from_line_and_operator_national_code(
@@ -118,10 +126,9 @@ def get_service_from_line_and_operator_national_code(
 
 
 def get_service_from_line_and_operator(
-    conn: Connection, service_line: str, service_operator: BusOperator
+    conn: Connection, service_line: str, service_operator: BusOperatorDetails
 ) -> Optional[BusServiceDetails]:
-    register_type(conn, "BusOperatorDetails", register_bus_operator_details)
-    register_type(conn, "BusServiceDetails", register_bus_service_details)
+    register_bus_service_details_types(conn)
     rows = conn.execute(
         "SELECT GetBusServicesByOperatorId(%s, %s)",
         [service_operator.id, service_line],
@@ -138,8 +145,7 @@ def get_service_from_line_and_operator(
 def get_service_from_line_and_operator_name(
     conn: Connection, service_line: str, service_operator: str
 ) -> Optional[BusServiceDetails]:
-    register_type(conn, "BusOperatorDetails", register_bus_operator_details)
-    register_type(conn, "BusOperatorDetails", register_bus_service_details)
+    register_bus_service_details_types(conn)
     rows = conn.execute(
         "SELECT GetBusServicesByOperatorName(%s, %s)",
         [service_operator, service_line],

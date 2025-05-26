@@ -23,7 +23,7 @@ from api.data.bus.journey import (
     string_of_bus_call_in,
 )
 from api.data.bus.leg import BusLegIn, insert_leg
-from api.data.bus.operators import BusOperator
+from api.data.bus.operators import BusOperatorDetails
 from api.data.bus.stop import (
     BusStopDetails,
     BusStopDeparture,
@@ -100,7 +100,7 @@ def input_vehicle(
 
 
 def get_bus_vehicle(
-    conn: Connection, bus_operator: BusOperator
+    conn: Connection, bus_operator: BusOperatorDetails
 ) -> Optional[BusVehicleDetails]:
     vehicle_id = input_text("Vehicle id")
     if vehicle_id is None:

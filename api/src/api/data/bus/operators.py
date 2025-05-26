@@ -6,7 +6,7 @@ from psycopg import Connection
 
 
 @dataclass
-class BusOperator:
+class BusOperatorDetails:
     id: int
     name: str
     national_code: str
@@ -20,8 +20,8 @@ def register_bus_operator_details(
     national_code: str,
     bg_colour: Optional[str],
     fg_colour: Optional[str],
-) -> BusOperator:
-    return BusOperator(
+) -> BusOperatorDetails:
+    return BusOperatorDetails(
         id, name, national_code, bg_colour or "#ffffff", fg_colour or "#000000"
     )
 
@@ -30,14 +30,14 @@ def register_bus_operator_details_types(conn: Connection):
     register_type(conn, "BusOperatorDetails", register_bus_operator_details)
 
 
-def get_bus_operators(conn: Connection) -> list[BusOperator]:
+def get_bus_operators(conn: Connection) -> list[BusOperatorDetails]:
     rows = conn.execute("SELECT GetBusOperators()").fetchall()
     return [row[0] for row in rows]
 
 
 def get_bus_operators_from_name(
     conn: Connection, search_string: str
-) -> list[BusOperator]:
+) -> list[BusOperatorDetails]:
     register_bus_operator_details_types(conn)
     rows = conn.execute(
         "SELECT GetBusOperatorsByName(%s)", [search_string]
@@ -47,7 +47,7 @@ def get_bus_operators_from_name(
 
 def get_bus_operator_from_name(
     conn: Connection, search_string: str
-) -> Optional[BusOperator]:
+) -> Optional[BusOperatorDetails]:
     operators = get_bus_operators_from_name(conn, search_string)
     if len(operators) != 1:
         return None
@@ -56,7 +56,7 @@ def get_bus_operator_from_name(
 
 def get_bus_operator_from_national_operator_code(
     conn: Connection, search_string: str
-) -> Optional[BusOperator]:
+) -> Optional[BusOperatorDetails]:
     register_bus_operator_details_types(conn)
     rows = conn.execute(
         "SELECT GetBusOperatorsByNationalOperatorCode(%s)", [search_string]

@@ -74,10 +74,6 @@ class BusStopDetails:
     longitude: Decimal
 
 
-def short_string_of_bus_stop(bus_stop: BusStopDetails) -> str:
-    return f"{bus_stop.atco}: {bus_stop.common_name} ({bus_stop.indicator}), {bus_stop.locality}"
-
-
 def register_bus_stop_details(
     id: int,
     atco: str,
@@ -116,8 +112,16 @@ def register_bus_stop_details(
     )
 
 
-def get_bus_stops(conn: Connection, search_string: str) -> list[BusStopDetails]:
+def register_bus_stop_details_types(conn: Connection):
     register_type(conn, "BusStopDetails", register_bus_stop_details)
+
+
+def short_string_of_bus_stop(bus_stop: BusStopDetails) -> str:
+    return f"{bus_stop.atco}: {bus_stop.common_name} ({bus_stop.indicator}), {bus_stop.locality}"
+
+
+def get_bus_stops(conn: Connection, search_string: str) -> list[BusStopDetails]:
+    register_bus_stop_details_types(conn)
     rows = conn.execute(
         "SELECT GetBusStopsByName(%s)", [search_string]
     ).fetchall()
@@ -127,7 +131,7 @@ def get_bus_stops(conn: Connection, search_string: str) -> list[BusStopDetails]:
 def get_bus_stops_from_atcos(
     conn: Connection, atcos: list[str]
 ) -> dict[str, BusStopDetails]:
-    register_type(conn, "BusStopDetails", register_bus_stop_details)
+    register_bus_stop_details_types(conn)
     rows = conn.execute("SELECT GetBusStopsByAtco(%s)", [atcos])
     atco_bus_stop_dict = {}
     for row in rows:
@@ -250,3 +254,7 @@ def register_bus_call_stop_details(
         stop_street,
         stop_indicator,
     )
+
+
+def register_bus_call_stop_details_types(conn: Connection):
+    register_type(conn, "BusCallStopDetails", register_bus_call_stop_details)

@@ -6,7 +6,10 @@ from typing import Optional
 from bs4 import BeautifulSoup
 from psycopg import Connection
 
-from api.data.bus.operators import BusOperator
+from api.data.bus.operators import (
+    BusOperatorDetails,
+    register_bus_operator_details_types,
+)
 from api.utils.request import get_soup
 
 
@@ -60,7 +63,7 @@ def insert_bus_vehicles(conn: Connection, bus_vehicles: list[BusVehicleIn]):
 @dataclass
 class BusVehicleDetails:
     id: int
-    operator: BusOperator
+    operator: BusOperatorDetails
     vehicle_number: str
     bustimes_id: str
     numberplate: str
@@ -69,15 +72,44 @@ class BusVehicleDetails:
     name: Optional[str]
 
 
+def register_bus_vehicle_details(
+    bus_vehicle_id: int,
+    bus_operator: BusOperatorDetails,
+    vehicle_number: str,
+    bustimes_id: str,
+    vehicle_numberplate: str,
+    vehicle_model: str,
+    vehicle_livery_style: Optional[str],
+    vehicle_name: Optional[str],
+) -> BusVehicleDetails:
+    return BusVehicleDetails(
+        bus_vehicle_id,
+        bus_operator,
+        vehicle_number,
+        bustimes_id,
+        vehicle_numberplate,
+        vehicle_model,
+        vehicle_livery_style,
+        vehicle_name,
+    )
+
+
+def register_bus_vehicle_details_types(conn: Connection):
+    register_bus_operator_details_types(conn)
+    register_type(conn, "BusVehicleDetails", register_bus_vehicle_details)
+
+
 def string_of_bus_vehicle_out(vehicle: BusVehicleDetails) -> str:
     return f"{vehicle.numberplate} ({vehicle.operator.name})"
 
 
-def get_bus_operator_url(operator: BusOperator) -> str:
+def get_bus_operator_url(operator: BusOperatorDetails) -> str:
     return f"https://bustimes.org/operators/{operator.national_code}"
 
 
-def get_bus_operator_page(operator: BusOperator) -> Optional[BeautifulSoup]:
+def get_bus_operator_page(
+    operator: BusOperatorDetails,
+) -> Optional[BeautifulSoup]:
     url = get_bus_operator_url(operator)
     return get_soup(url)
 
@@ -89,7 +121,9 @@ model_column_title = "Type"
 name_column_title = "Name"
 
 
-def get_bus_operator_vehicles(operator: BusOperator) -> list[BusVehicleIn]:
+def get_bus_operator_vehicles(
+    operator: BusOperatorDetails,
+) -> list[BusVehicleIn]:
     operator_soup = get_bus_operator_page(operator)
     if operator_soup is None:
         return []
@@ -160,35 +194,8 @@ def get_bus_operator_vehicles(operator: BusOperator) -> list[BusVehicleIn]:
     return vehicles
 
 
-def register_bus_vehicle_details(
-    bus_vehicle_id: int,
-    bus_operator: BusOperator,
-    vehicle_number: str,
-    bustimes_id: str,
-    vehicle_numberplate: str,
-    vehicle_model: str,
-    vehicle_livery_style: Optional[str],
-    vehicle_name: Optional[str],
-) -> BusVehicleDetails:
-    return BusVehicleDetails(
-        bus_vehicle_id,
-        bus_operator,
-        vehicle_number,
-        bustimes_id,
-        vehicle_numberplate,
-        vehicle_model,
-        vehicle_livery_style,
-        vehicle_name,
-    )
-
-
-def register_bus_vehicle_details_types(conn: Connection):
-    register_type(conn, "BusVehicleDetails", register_bus_vehicle_details)
-    register_type(conn, "BusOperatorDetails", register_bus_operator_details)
-
-
 def get_bus_vehicles_by_operator_and_id(
-    conn: Connection, bus_operator: BusOperator, vehicle_number: str
+    conn: Connection, bus_operator: BusOperatorDetails, vehicle_number: str
 ) -> list[BusVehicleDetails]:
     register_bus_vehicle_details_types(conn)
     rows = conn.execute(

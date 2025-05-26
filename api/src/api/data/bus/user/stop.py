@@ -2,12 +2,18 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional
 
-from api.data.bus.operators import BusOperator, register_bus_operator_details
+from api.data.bus.operators import (
+    BusOperatorDetails,
+    register_bus_operator_details,
+    register_bus_operator_details_types,
+)
 from api.data.bus.overview import (
     BusCallDetails,
-    BusServiceOverview,
+    BusLegServiceDetails,
     register_bus_call_details,
+    register_bus_call_details_types,
     register_bus_leg_service_details,
+    register_bus_leg_service_details_types,
 )
 from api.data.bus.stop import (
     register_bus_stop_details,
@@ -18,10 +24,9 @@ from psycopg import Connection
 
 
 @dataclass
-class BusStopLegUserDetails:
+class BusStopLegDetails:
     id: int
-    service: BusServiceOverview
-    operator: BusOperator
+    service: BusLegServiceDetails
     board: BusCallDetails
     alight: BusCallDetails
     current: BusCallDetails
@@ -29,26 +34,31 @@ class BusStopLegUserDetails:
     after: int
 
 
-def register_bus_stop_leg_user_details(
+def register_bus_stop_leg_details(
     leg_id: int,
-    bus_service: BusServiceOverview,
-    bus_operator: BusOperator,
+    bus_service: BusLegServiceDetails,
     board_call: BusCallDetails,
     alight_call: BusCallDetails,
     this_call: BusCallDetails,
     stops_before: int,
     stops_after: int,
-) -> BusStopLegUserDetails:
-    return BusStopLegUserDetails(
+) -> BusStopLegDetails:
+    return BusStopLegDetails(
         leg_id,
         bus_service,
-        bus_operator,
         board_call,
         alight_call,
         this_call,
         stops_before,
         stops_after,
     )
+
+
+def register_bus_stop_leg_user_details_types(conn: Connection):
+    register_bus_leg_service_details_types(conn)
+    register_bus_operator_details_types(conn)
+    register_bus_call_details_types(conn)
+    register_type(conn, "BusStopLegDetails", register_bus_stop_leg_details)
 
 
 @dataclass
@@ -69,7 +79,7 @@ class BusStopUserDetails:
     suburb: Optional[str]
     latitude: Decimal
     longitude: Decimal
-    legs: list[BusStopLegUserDetails]
+    legs: list[BusStopLegDetails]
 
 
 def register_bus_stop_user_details(
@@ -89,7 +99,7 @@ def register_bus_stop_user_details(
     suburb_name: str,
     latitude: Decimal,
     longitude: Decimal,
-    stop_legs: list[BusStopLegUserDetails],
+    stop_legs: list[BusStopLegDetails],
 ) -> BusStopUserDetails:
     return BusStopUserDetails(
         bus_stop_id,
@@ -113,15 +123,7 @@ def register_bus_stop_user_details(
 
 
 def register_bus_stop_user_details_types(conn):
-    register_type(conn, "BusCallStopDetails", register_bus_call_stop_details)
-    register_type(
-        conn, "BusLegServiceDetails", register_bus_leg_service_details
-    )
-    register_type(conn, "BusOperatorDetails", register_bus_operator_details)
-    register_type(conn, "BusCallDetails", register_bus_call_details)
-    register_type(
-        conn, "BusStopLegUserDetails", register_bus_stop_leg_user_details
-    )
+    register_bus_stop_leg_user_details_types(conn)
     register_type(conn, "BusStopUserDetails", register_bus_stop_user_details)
 
 
