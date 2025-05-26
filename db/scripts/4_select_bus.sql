@@ -785,8 +785,15 @@ SELECT
                 BusCall.act_dep
             )::BusCallOverviewOutData,
             (BusCall.call_index - BoardCall.call_index),
-            (Alightcall.call_index - BusCall.call_index)
+            (AlightCall.call_index - BusCall.call_index)
         )::BusStopLegUserDetails
+        ORDER BY
+            COALESCE(
+                BusCall.act_dep,
+                BusCall.act_arr,
+                BusCall.plan_dep,
+                BusCall.plan_arr
+            )
     ) AS stop_user_legs
 FROM BusStop
 INNER JOIN BusCall
@@ -794,7 +801,7 @@ ON BusStop.bus_stop_id = BusCall.bus_stop_id
 INNER JOIN BusJourney
 ON BusCall.bus_journey_id = BusJourney.bus_journey_id
 INNER JOIN BusLeg
-ON BusJourney.bus_journey_id = BusLeg.bus_leg_id
+ON BusJourney.bus_journey_id = BusLeg.bus_journey_id
 INNER JOIN BusService
 ON BusJourney.bus_service_id = BusService.bus_service_id
 INNER JOIN BusOperator
@@ -811,6 +818,8 @@ INNER JOIN BusStop AlightStop
 ON AlightCall.bus_stop_id = AlightStop.bus_stop_id
 INNER JOIN Traveller
 ON BusLeg.user_id = Traveller.user_id
+WHERE BusCall.call_index >= BoardCall.call_index
+AND BusCall.call_index <= AlightCall.call_index
 GROUP BY BusStop.bus_stop_id, BusLeg.user_id;
 
 CREATE OR REPLACE FUNCTION GetBusStopUserDetails (
