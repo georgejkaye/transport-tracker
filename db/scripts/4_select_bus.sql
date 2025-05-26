@@ -513,6 +513,29 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION GetUserDetailsForBusVehicle (
+    p_user_id INT,
+    p_vehicle_id INT
+) RETURNS BusVehicleUserDetails
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN (
+        vehicle_id,
+        vehicle_number,
+        vehicle_name,
+        vehicle_numberplate,
+        vehicle_operator,
+        vehicle_legs,
+        vehicle_duration
+    )::BusVehicleUserDetails
+    FROM BusVehicleUserDetailsView
+    WHERE user_id = p_user_id
+    AND vehicle_id = p_vehicle_id;
+END;
+$$;
+
 CREATE OR REPLACE VIEW BusLegUserDetailsView AS
 SELECT
     BusLeg.bus_leg_id AS leg_id,

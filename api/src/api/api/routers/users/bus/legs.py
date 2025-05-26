@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from datetime import datetime
 from typing import Optional
 
@@ -42,6 +42,8 @@ async def get_legs(
 async def get_leg_by_id(user_id, leg_id: int) -> BusLegUserDetails:
     with connect_with_env() as conn:
         leg = select_bus_leg_by_id(conn, user_id, leg_id)
+        if leg is None:
+            raise HTTPException(404, "Could not find leg or user")
         return leg
 
 

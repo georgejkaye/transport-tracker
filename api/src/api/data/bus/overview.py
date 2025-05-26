@@ -187,3 +187,15 @@ def get_bus_vehicle_overviews_for_user(
         "SELECT GetUserDetailsForBusVehicles(%s)", [user_id]
     ).fetchall()
     return [row[0] for row in rows]
+
+
+def get_bus_vehicle_overview_for_user(
+    conn: Connection, user_id: int, vehicle_id: int
+) -> Optional[BusVehicleUserDetails]:
+    register_bus_vehicle_user_details_types(conn)
+    result = conn.execute(
+        "SELECT GetUserDetailsForBusVehicle(%s, %s)", [user_id, vehicle_id]
+    ).fetchone()
+    if result is None:
+        return None
+    return result[0]

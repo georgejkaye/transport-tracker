@@ -148,11 +148,13 @@ def select_bus_legs_by_end_datetime(
 
 def select_bus_leg_by_id(
     conn: Connection, user_id: int, leg_id: int
-) -> BusLegUserDetails:
+) -> Optional[BusLegUserDetails]:
     register_leg_types(conn)
     rows = conn.execute(
         "SELECT GetUserDetailsForBusLegsByIds(%s, %s)", [user_id, [leg_id]]
     ).fetchall()
+    if len(rows) == 0:
+        return None
     return [row[0] for row in rows][0]
 
 
