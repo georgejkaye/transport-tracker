@@ -56,7 +56,7 @@ def register_bus_service_details(
 
 
 def register_bus_service_details_types(conn: Connection):
-    register_bus_service_details_types(conn)
+    register_bus_operator_details_types(conn)
     register_type(conn, "BusServiceDetails", register_bus_service_details)
 
 
