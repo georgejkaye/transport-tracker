@@ -239,7 +239,7 @@ BEGIN
     RETURN QUERY
     SELECT
         BusServiceDetailsView.bus_service_id,
-        BusServiceDetailsView.bus_operator,
+        BusServiceDetailsView.service_operator,
         BusServiceDetailsView.service_line,
         BusServiceDetailsView.description_outbound,
         BusServiceDetailsView.service_outbound_vias,
@@ -262,7 +262,7 @@ BEGIN
     RETURN QUERY
     SELECT
         BusServiceDetailsView.bus_service_id,
-        BusServiceDetailsView.bus_operator,
+        BusServiceDetailsView.service_operator,
         BusServiceDetailsView.service_line,
         BusServiceDetailsView.description_outbound,
         BusServiceDetailsView.service_outbound_vias,
@@ -272,7 +272,7 @@ BEGIN
         BusServiceDetailsView.fg_colour
     FROM BusServiceDetailsView
     WHERE LOWER(service_line) = LOWER(p_line_name)
-    AND (BusServiceDetailsView.bus_operator).bus_operator_id = p_operator_id;
+    AND (BusServiceDetailsView.service_operator).bus_operator_id = p_operator_id;
 END;
 $$;
 
@@ -287,7 +287,7 @@ BEGIN
     RETURN QUERY
     SELECT
         BusServiceDetailsView.bus_service_id,
-        BusServiceDetailsView.bus_operator,
+        BusServiceDetailsView.service_operator,
         BusServiceDetailsView.service_line,
         BusServiceDetailsView.description_outbound,
         BusServiceDetailsView.service_outbound_vias,
@@ -298,7 +298,7 @@ BEGIN
     FROM BusServiceDetailsView
     WHERE LOWER(service_line) = LOWER(p_line_name)
     AND
-        (BusServiceDetailsView.bus_operator).national_operator_code =
+        (BusServiceDetailsView.service_operator).national_operator_code =
             p_national_operator_code;
 END;
 $$;
@@ -314,7 +314,7 @@ BEGIN
     RETURN QUERY
     SELECT
         BusServiceDetailsView.bus_service_id,
-        BusServiceDetailsView.bus_operator,
+        BusServiceDetailsView.service_operator,
         BusServiceDetailsView.service_line,
         BusServiceDetailsView.description_outbound,
         BusServiceDetailsView.service_outbound_vias,
@@ -325,7 +325,7 @@ BEGIN
     FROM BusServiceDetailsView
     WHERE LOWER(service_line) = LOWER(p_line_name)
     AND
-        LOWER((BusServiceDetailsView.bus_operator).operator_name)
+        LOWER((BusServiceDetailsView.service_operator).operator_name)
         LIKE '%' || LOWER(p_name) || '%';
 END;
 $$;
