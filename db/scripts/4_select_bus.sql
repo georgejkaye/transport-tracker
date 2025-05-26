@@ -238,15 +238,15 @@ $$
 BEGIN
     RETURN QUERY
     SELECT
-        BusServiceDetails.bus_service_id,
-        BusServiceDetails.bus_operator,
-        BusServiceDetails.service_line,
-        BusServiceDetails.description_outbound,
-        BusServiceDetails.service_outbound_vias,
-        BusServiceDetails.description_inbound,
-        BusServiceDetails.service_inbound_vias,
-        BusServiceDetails.bg_colour,
-        BusServiceDetails.fg_colour
+        BusServiceDetailsView.bus_service_id,
+        BusServiceDetailsView.bus_operator,
+        BusServiceDetailsView.service_line,
+        BusServiceDetailsView.description_outbound,
+        BusServiceDetailsView.service_outbound_vias,
+        BusServiceDetailsView.description_inbound,
+        BusServiceDetailsView.service_inbound_vias,
+        BusServiceDetailsView.bg_colour,
+        BusServiceDetailsView.fg_colour
     FROM BusServiceDetailsView;
 END;
 $$;
@@ -272,7 +272,7 @@ BEGIN
         BusServiceDetailsView.fg_colour
     FROM BusServiceDetailsView
     WHERE LOWER(service_line) = LOWER(p_line_name)
-    AND (BusServiceDetails.bus_operator).bus_operator_id = p_operator_id;
+    AND (BusServiceDetailsView.bus_operator).bus_operator_id = p_operator_id;
 END;
 $$;
 
@@ -298,7 +298,7 @@ BEGIN
     FROM BusServiceDetailsView
     WHERE LOWER(service_line) = LOWER(p_line_name)
     AND
-        (BusServiceDetails.bus_operator).national_operator_code =
+        (BusServiceDetailsView.bus_operator).national_operator_code =
             p_national_operator_code;
 END;
 $$;
@@ -325,7 +325,7 @@ BEGIN
     FROM BusServiceDetailsView
     WHERE LOWER(service_line) = LOWER(p_line_name)
     AND
-        LOWER((BusServiceDetails.bus_operator).operator_name)
+        LOWER((BusServiceDetailsView.bus_operator).operator_name)
         LIKE '%' || LOWER(p_name) || '%';
 END;
 $$;
@@ -410,9 +410,11 @@ INNER JOIN (
             (
                 BusService.bus_service_id,
                 BusService.service_line,
+                BusService.description_outbound,
+                BusService.description_inbound,
                 BusService.bg_colour,
                 BusService.fg_colour
-            )::BusServiceDetails,
+            )::BusLegServiceDetails,
             (
                 BusOperator.bus_operator_id,
                 BusOperator.operator_name,
@@ -433,7 +435,7 @@ INNER JOIN (
                 (BusJourneyCallDetail.bus_journey_call[BusLeg.board_call_index + 1]).act_arr,
                 (BusJourneyCallDetail.bus_journey_call[BusLeg.board_call_index + 1]).plan_dep,
                 (BusJourneyCallDetail.bus_journey_call[BusLeg.board_call_index + 1]).plan_arr
-            ))::BusLegUserDetails) AS vehicle_legs,
+            ))::BusVehicleLegUserDetails) AS vehicle_legs,
             SUM(
                 COALESCE(
                     (BusJourneyCallDetail.bus_journey_call[BusLeg.alight_call_index + 1]).act_arr,
@@ -525,11 +527,11 @@ INNER JOIN (
     SELECT
         BusJourney.bus_journey_id AS journey_id,
         (
-            BusServiceDetails.bus_service_id,
-            BusServiceDetails.service_operator,
-            BusServiceDetails.service_line,
-            BusServiceDetails.bg_colour,
-            BusServiceDetails.fg_colour
+            BusServiceDetailsView.bus_service_id,
+            BusServiceDetailsView.service_operator,
+            BusServiceDetailsView.service_line,
+            BusServiceDetailsView.bg_colour,
+            BusServiceDetailsView.fg_colour
         )::BusJourneyServiceDetails AS journey_service,
         BusJourneyCallDetail.journey_calls,
         (
@@ -543,8 +545,8 @@ INNER JOIN (
             BusVehicleData.vehicle_name
         )::BusVehicleDetails AS journey_vehicle
     FROM BusJourney
-    INNER JOIN BusServiceDetails
-    ON BusJourney.bus_service_id = BusServiceDetails.bus_service_id
+    INNER JOIN BusServiceDetailsView
+    ON BusJourney.bus_service_id = BusServiceDetailsView.bus_service_id
     INNER JOIN (
             SELECT
             BusJourney.bus_journey_id,
@@ -725,9 +727,11 @@ SELECT
             (
                 BusService.bus_service_id,
                 BusService.service_line,
+                BusService.description_outbound,
+                BusService.description_inbound,
                 BusService.bg_colour,
                 BusService.fg_colour
-            )::BusServiceDetails,
+            )::BusLegServiceDetails,
             (
                 BusOperator.bus_operator_id,
                 BusOperator.operator_name,

@@ -16,12 +16,6 @@ CREATE TYPE BusStopInData AS (
     longitude DECIMAL
 );
 
-CREATE TYPE BusLegInData AS (
-    journey BusJourneyInData,
-    board_index INT,
-    alight_index INT
-);
-
 CREATE TYPE BusOperatorInData AS (
     operator_name TEXT,
     national_operator_code TEXT
@@ -72,6 +66,12 @@ CREATE TYPE BusJourneyInData AS (
     vehicle_id INT
 );
 
+CREATE TYPE BusLegInData AS (
+    journey BusJourneyInData,
+    board_index INT,
+    alight_index INT
+);
+
 CREATE TYPE BusStopDetails AS (
     bus_stop_id INT,
     atco_code TEXT,
@@ -99,7 +99,7 @@ CREATE TYPE BusOperatorDetails AS (
     fg_colour TEXT
 );
 
-CREATE TYPE BusOperatorDetails AS (
+CREATE TYPE BusServiceDetails AS (
     bus_service_id INT,
     bus_operator BusOperatorDetails,
     service_line TEXT,
@@ -162,13 +162,6 @@ CREATE TYPE BusLegUserDetails AS (
     leg_calls BusJourneyCallDetails[]
 );
 
-CREATE TYPE BusServiceDetails AS (
-    service_id INT,
-    service_line TEXT,
-    bg_colour TEXT,
-    fg_colour TEXT
-);
-
 CREATE TYPE BusCallDetails AS (
     bus_call_id INT,
     call_index INT,
@@ -179,9 +172,18 @@ CREATE TYPE BusCallDetails AS (
     act_dep TIMESTAMP WITH TIME ZONE
 );
 
-CREATE TYPE BusLegUserDetails AS (
+CREATE TYPE BusLegServiceDetails AS (
+    service_id INT,
+    service_line TEXT,
+    outbound_description TEXT,
+    inbound_description TEXT,
+    bg_colour TEXT,
+    fg_colour TEXT
+);
+
+CREATE TYPE BusVehicleLegUserDetails AS (
     leg_id INT,
-    bus_service BusServiceDetails,
+    bus_service BusLegServiceDetails,
     bus_operator BusOperatorDetails,
     leg_start BusCallDetails,
     leg_end BusCallDetails,
@@ -194,13 +196,13 @@ CREATE TYPE BusVehicleUserDetails AS (
     vehicle_name TEXT,
     vehicle_numberplate TEXT,
     vehicle_operator BusOperatorDetails,
-    vehicle_legs BusLegUserDetails[],
+    vehicle_legs BusVehicleLegUserDetails[],
     vehicle_duration INTERVAL
 );
 
 CREATE TYPE BusStopLegUserDetails AS (
     leg_id INT,
-    bus_service BusServiceDetails,
+    bus_service BusLegServiceDetails,
     bus_operator BusOperatorDetails,
     board_call BusCallDetails,
     alight_call BusCallDetails,

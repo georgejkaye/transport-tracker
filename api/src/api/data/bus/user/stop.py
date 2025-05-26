@@ -7,7 +7,7 @@ from api.data.bus.overview import (
     BusCallDetails,
     BusServiceOverview,
     register_bus_call_details,
-    register_bus_service_details,
+    register_bus_leg_service_details,
 )
 from api.data.bus.stop import (
     register_bus_stop_details,
@@ -114,7 +114,9 @@ def register_bus_stop_user_details(
 
 def register_bus_stop_user_details_types(conn):
     register_type(conn, "BusCallStopDetails", register_bus_call_stop_details)
-    register_type(conn, "BusServiceDetails", register_bus_service_details)
+    register_type(
+        conn, "BusLegServiceDetails", register_bus_leg_service_details
+    )
     register_type(conn, "BusOperatorDetails", register_bus_operator_details)
     register_type(conn, "BusCallDetails", register_bus_call_details)
     register_type(
@@ -157,10 +159,3 @@ def get_user_details_for_bus_stops(
     if result is None:
         return []
     return [row[0] for row in result]
-
-
-if __name__ == "__main__":
-    with connect(
-        DbConnectionData("transport", "transport", "transport", "localhost")
-    ) as conn:
-        get_user_details_for_bus_stop(conn, 1, 283041)

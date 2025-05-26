@@ -37,18 +37,27 @@ def register_bus_call_details(
 class BusServiceOverview:
     id: int
     line: str
+    outbound_description: str
+    inbound_description: str
     bg_colour: str
     fg_colour: str
 
 
-def register_bus_service_details(
+def register_bus_leg_service_details(
     service_id: int,
     service_line: str,
+    outbound_description: str,
+    inbound_description: str,
     bg_colour: Optional[str],
     fg_colour: Optional[str],
 ) -> BusServiceOverview:
     return BusServiceOverview(
-        service_id, service_line, bg_colour or "#ffffff", fg_colour or "#000000"
+        service_id,
+        service_line,
+        outbound_description,
+        inbound_description,
+        bg_colour or "#ffffff",
+        fg_colour or "#000000",
     )
 
 
@@ -75,10 +84,12 @@ def register_bus_leg_user_details(
     )
 
 
-def register_bus_leg_overview_types(conn: Connection):
+def register_bus_leg_user_details_types(conn: Connection):
     register_type(conn, "BusCallStopDetails", register_bus_call_stop_details)
     register_type(conn, "BusCallDetails", register_bus_call_details)
-    register_type(conn, "BusServiceDetails", register_bus_service_details)
+    register_type(
+        conn, "BusLegServiceDetails", register_bus_leg_service_details
+    )
     register_type(conn, "BusOperatorDetails", register_bus_operator_details)
     register_type(conn, "BusLegUserDetails", register_bus_leg_user_details)
 
@@ -115,7 +126,7 @@ def register_bus_vehicle_user_details(
 
 
 def register_bus_vehicle_overview_types(conn: Connection):
-    register_bus_leg_overview_types(conn)
+    register_bus_leg_user_details_types(conn)
     register_type(
         conn, "BusVehicleUserDetails", register_bus_vehicle_user_details
     )
