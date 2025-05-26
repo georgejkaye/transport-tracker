@@ -373,7 +373,7 @@ BEGIN
     FROM BusVehicleData
     WHERE
         (p_operator_id IS NULL
-        OR (BusVehicleData.service_operator).bus_operator_id = p_operator_id)
+        OR (BusVehicleData.vehicle_operator).bus_operator_id = p_operator_id)
     AND
         (p_vehicle_id IS NULL
         OR BusVehicleData.vehicle_identifier= p_vehicle_id);
