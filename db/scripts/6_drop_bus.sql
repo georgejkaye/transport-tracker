@@ -23,32 +23,29 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    DROP TYPE BusStopFullOutData;
-    DROP TYPE BusStopLegOverviewData;
-    DROP TYPE BusVehicleOverviewOutData;
-    DROP TYPE BusLegOverviewOutData;
-    DROP TYPE BusCallOverviewOutData;
-    DROP TYPE BusServiceOverviewOutData;
-    DROP TYPE BusOperatorOverviewOutData;
-    DROP TYPE BusLegOutData;
-    DROP TYPE BusLegInData;
-    DROP TYPE BusJourneyOutData;
-    DROP TYPE BusJourneyCallOutData;
-    DROP TYPE BusStopOverviewOutData;
-    DROP TYPE BusJourneyServiceOutData;
+    DROP TYPE BusStopUserDetails;
+    DROP TYPE BusStopLegUserDetails;
+    DROP TYPE BusVehicleUserDetails;
+    DROP TYPE BusLegUserDetails;
+    DROP TYPE BusCallDetails;
+    DROP TYPE BusServiceDetails;
+    DROP TYPE BusLegUserDetails;
+    DROP TYPE BusJourneyDetails;
+    DROP TYPE BusJourneyCallDetails;
+    DROP TYPE BusCallStopDetails;
+    DROP TYPE BusJourneyServiceDetails;
+    DROP TYPE BusVehicleDetails;
+    DROP TYPE BusOperatorDetails;
+    DROP TYPE BusOperatorDetails;
+    DROP TYPE BusStopDetails;
     DROP TYPE BusJourneyInData;
-    DROP TYPE BusCallOutData;
     DROP TYPE BusCallInData;
-    DROP TYPE BusVehicleOutData;
     DROP TYPE BusVehicleInData;
     DROP TYPE BusModelInData;
-    DROP TYPE BusServiceViaOutData;
-    DROP TYPE BusServiceOutData;
     DROP TYPE BusServiceViaInData;
+    DROP TYPE BusLegInData;
     DROP TYPE BusServiceInData;
-    DROP TYPE BusOperatorOutData;
     DROP TYPE BusOperatorInData;
-    DROP TYPE BusStopOutData;
     DROP TYPE BusStopInData;
 END;
 $$;

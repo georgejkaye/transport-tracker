@@ -55,7 +55,7 @@ def insert_bus_stops(conn: Connection, bus_stops: list[BusStopData]):
 
 
 @dataclass
-class BusStop:
+class BusStopDetails:
     id: int
     atco: str
     naptan: str
@@ -74,11 +74,11 @@ class BusStop:
     longitude: Decimal
 
 
-def short_string_of_bus_stop(bus_stop: BusStop) -> str:
+def short_string_of_bus_stop(bus_stop: BusStopDetails) -> str:
     return f"{bus_stop.atco}: {bus_stop.common_name} ({bus_stop.indicator}), {bus_stop.locality}"
 
 
-def register_bus_stop(
+def register_bus_stop_details(
     id: int,
     atco: str,
     naptan: str,
@@ -95,8 +95,8 @@ def register_bus_stop(
     suburb: Optional[str],
     latitude: float,
     longitude: float,
-) -> BusStop:
-    return BusStop(
+) -> BusStopDetails:
+    return BusStopDetails(
         id,
         atco,
         naptan,
@@ -116,8 +116,8 @@ def register_bus_stop(
     )
 
 
-def get_bus_stops(conn: Connection, search_string: str) -> list[BusStop]:
-    register_type(conn, "BusStopOutData", register_bus_stop)
+def get_bus_stops(conn: Connection, search_string: str) -> list[BusStopDetails]:
+    register_type(conn, "BusStopDetails", register_bus_stop_details)
     rows = conn.execute(
         "SELECT GetBusStopsByName(%s)", [search_string]
     ).fetchall()
@@ -126,8 +126,8 @@ def get_bus_stops(conn: Connection, search_string: str) -> list[BusStop]:
 
 def get_bus_stops_from_atcos(
     conn: Connection, atcos: list[str]
-) -> dict[str, BusStop]:
-    register_type(conn, "BusStopOutData", register_bus_stop)
+) -> dict[str, BusStopDetails]:
+    register_type(conn, "BusStopDetails", register_bus_stop_details)
     rows = conn.execute("SELECT GetBusStopsByAtco(%s)", [atcos])
     atco_bus_stop_dict = {}
     for row in rows:
@@ -137,7 +137,7 @@ def get_bus_stops_from_atcos(
 
 
 def get_bus_stop_page_url(
-    bus_stop: BusStop, search_datetime: datetime = datetime.now()
+    bus_stop: BusStopDetails, search_datetime: datetime = datetime.now()
 ) -> str:
     return (
         f"https://bustimes.org/stops/{bus_stop.atco}"
@@ -147,7 +147,7 @@ def get_bus_stop_page_url(
 
 
 def get_bus_stop_page(
-    bus_stop: BusStop, search_datetime: datetime = datetime.now()
+    bus_stop: BusStopDetails, search_datetime: datetime = datetime.now()
 ) -> Optional[BeautifulSoup]:
     url = get_bus_stop_page_url(bus_stop, search_datetime)
     soup = get_soup(url)
@@ -214,7 +214,9 @@ def get_departures_from_bus_stop_soup(
 
 
 def get_departures_from_bus_stop(
-    bus_stop: BusStop, search_datetime: datetime, datetime_offset: timedelta
+    bus_stop: BusStopDetails,
+    search_datetime: datetime,
+    datetime_offset: timedelta,
 ) -> list[BusStopDeparture]:
     soup = get_bus_stop_page(bus_stop, search_datetime)
     if soup is None:
@@ -223,7 +225,7 @@ def get_departures_from_bus_stop(
 
 
 @dataclass
-class BusStopOverview:
+class BusCallStopDetails:
     id: int
     atco: str
     name: str
@@ -232,15 +234,15 @@ class BusStopOverview:
     indicator: Optional[str]
 
 
-def register_bus_stop_overview(
+def register_bus_call_stop_details(
     bus_stop_id: int,
     stop_atco: str,
     stop_name: str,
     stop_locality: str,
     stop_street: Optional[str],
     stop_indicator: Optional[str],
-) -> BusStopOverview:
-    return BusStopOverview(
+) -> BusCallStopDetails:
+    return BusCallStopDetails(
         bus_stop_id,
         stop_atco,
         stop_name,

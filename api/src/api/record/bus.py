@@ -17,7 +17,7 @@ from api.utils.interactive import (
 from api.user import User, input_user
 from api.data.bus.journey import (
     BusCallIn,
-    BusJourney,
+    BusJourneyDetails,
     BusJourneyIn,
     get_bus_journey,
     string_of_bus_call_in,
@@ -25,7 +25,7 @@ from api.data.bus.journey import (
 from api.data.bus.leg import BusLegIn, insert_leg
 from api.data.bus.operators import BusOperator
 from api.data.bus.stop import (
-    BusStop,
+    BusStopDetails,
     BusStopDeparture,
     get_bus_stops,
     get_departures_from_bus_stop,
@@ -33,7 +33,7 @@ from api.data.bus.stop import (
     short_string_of_bus_stop_departure,
 )
 from api.data.bus.vehicle import (
-    BusVehicle,
+    BusVehicleDetails,
     get_bus_vehicles_by_id,
     get_bus_vehicles_by_operator_and_id,
     string_of_bus_vehicle_out,
@@ -42,7 +42,7 @@ from api.data.bus.vehicle import (
 
 def get_bus_stop_input(
     conn: Connection, prompt: str = "Bus stop name"
-) -> Optional[BusStop]:
+) -> Optional[BusStopDetails]:
     search_string = input_text("Bus stop name")
     if search_string is None:
         return None
@@ -88,7 +88,9 @@ def get_alight_stop_input(
             return None
 
 
-def input_vehicle(vehicles: list[BusVehicle]) -> Optional[BusVehicle]:
+def input_vehicle(
+    vehicles: list[BusVehicleDetails],
+) -> Optional[BusVehicleDetails]:
     result = input_select("Select vehicle", vehicles, string_of_bus_vehicle_out)
     match result:
         case PickSingle(vehicle):
@@ -99,7 +101,7 @@ def input_vehicle(vehicles: list[BusVehicle]) -> Optional[BusVehicle]:
 
 def get_bus_vehicle(
     conn: Connection, bus_operator: BusOperator
-) -> Optional[BusVehicle]:
+) -> Optional[BusVehicleDetails]:
     vehicle_id = input_text("Vehicle id")
     if vehicle_id is None:
         return None
@@ -121,7 +123,7 @@ def get_bus_vehicle(
 
 def get_bus_leg_input(
     conn: Connection, users: list[User]
-) -> Optional[BusJourney]:
+) -> Optional[BusJourneyDetails]:
     board_stop = get_bus_stop_input(conn, prompt="Board stop")
     if board_stop is None:
         print("Could not get board stop")

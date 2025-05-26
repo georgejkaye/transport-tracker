@@ -1,4 +1,4 @@
-from api.data.bus.service import register_bus_operator
+from api.data.bus.service import register_bus_operator_details
 from api.utils.database import register_type
 
 from dataclasses import dataclass
@@ -58,7 +58,7 @@ def insert_bus_vehicles(conn: Connection, bus_vehicles: list[BusVehicleIn]):
 
 
 @dataclass
-class BusVehicle:
+class BusVehicleDetails:
     id: int
     operator: BusOperator
     vehicle_number: str
@@ -69,7 +69,7 @@ class BusVehicle:
     name: Optional[str]
 
 
-def string_of_bus_vehicle_out(vehicle: BusVehicle) -> str:
+def string_of_bus_vehicle_out(vehicle: BusVehicleDetails) -> str:
     return f"{vehicle.numberplate} ({vehicle.operator.name})"
 
 
@@ -160,7 +160,7 @@ def get_bus_operator_vehicles(operator: BusOperator) -> list[BusVehicleIn]:
     return vehicles
 
 
-def register_bus_vehicle(
+def register_bus_vehicle_details(
     bus_vehicle_id: int,
     bus_operator: BusOperator,
     vehicle_number: str,
@@ -169,8 +169,8 @@ def register_bus_vehicle(
     vehicle_model: str,
     vehicle_livery_style: Optional[str],
     vehicle_name: Optional[str],
-) -> BusVehicle:
-    return BusVehicle(
+) -> BusVehicleDetails:
+    return BusVehicleDetails(
         bus_vehicle_id,
         bus_operator,
         vehicle_number,
@@ -182,11 +182,15 @@ def register_bus_vehicle(
     )
 
 
+def register_bus_vehicle_details_types(conn: Connection):
+    register_type(conn, "BusVehicleDetails", register_bus_vehicle_details)
+    register_type(conn, "BusOperatorDetails", register_bus_operator_details)
+
+
 def get_bus_vehicles_by_operator_and_id(
     conn: Connection, bus_operator: BusOperator, vehicle_number: str
-) -> list[BusVehicle]:
-    register_type(conn, "BusVehicleOutData", register_bus_vehicle)
-    register_type(conn, "BusOperatorOutData", register_bus_operator)
+) -> list[BusVehicleDetails]:
+    register_bus_vehicle_details_types(conn)
     rows = conn.execute(
         "SELECT GetBusVehicles(%s, %s)", [bus_operator.id, vehicle_number]
     ).fetchall()
@@ -195,9 +199,8 @@ def get_bus_vehicles_by_operator_and_id(
 
 def get_bus_vehicles_by_id(
     conn: Connection, vehicle_number: str
-) -> list[BusVehicle]:
-    register_type(conn, "BusVehicleOutData", register_bus_vehicle)
-    register_type(conn, "BusOperatorOutData", register_bus_operator)
+) -> list[BusVehicleDetails]:
+    register_bus_vehicle_details_types(conn)
     rows = conn.execute(
         "SELECT GetBusVehicles(NULL, %s)", [vehicle_number]
     ).fetchall()

@@ -1,6 +1,7 @@
 from api.data.bus.user.stop import (
     BusStopUserDetails,
     get_user_details_for_bus_stop,
+    get_user_details_for_bus_stop_by_atco,
     get_user_details_for_bus_stops,
 )
 from api.utils.database import connect_with_env

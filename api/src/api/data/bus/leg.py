@@ -4,23 +4,23 @@ from typing import Optional
 
 from api.data.bus.journey import (
     BusCall,
-    BusJourney,
-    BusJourneyCall,
+    BusJourneyDetails,
+    BusJourneyCallDetails,
     BusJourneyIn,
     register_bus_call,
-    register_bus_journey,
-    register_bus_journey_call,
+    register_bus_journey_details,
+    register_bus_journey_call_details,
 )
-from api.data.bus.operators import BusOperator, register_bus_operator
-from api.data.bus.overview import register_bus_stop_overview
+from api.data.bus.operators import BusOperator, register_bus_operator_details
+from api.data.bus.overview import register_bus_call_stop_details
 from api.data.bus.service import (
-    register_bus_journey_service,
-    register_bus_service,
+    register_bus_journey_service_details,
+    register_bus_service_details,
 )
 from api.data.bus.stop import (
-    register_bus_stop,
+    register_bus_stop_details,
 )
-from api.data.bus.vehicle import BusVehicle, register_bus_vehicle
+from api.data.bus.vehicle import BusVehicleDetails, register_bus_vehicle_details
 from api.user import User, UserPublic, register_user, register_user_public
 from api.utils.database import register_type
 from psycopg import Connection
@@ -65,33 +65,35 @@ def insert_leg(conn: Connection, users: list[User], leg: BusLegIn):
 
 
 @dataclass
-class BusLeg:
+class BusLegUserDetails:
     id: int
-    journey: BusJourney
-    calls: list[BusJourneyCall]
+    journey: BusJourneyDetails
+    calls: list[BusJourneyCallDetails]
 
 
-def register_bus_leg(
+def register_bus_leg_user_details(
     leg_id: int,
-    leg_journey: BusJourney,
-    leg_calls: list[BusJourneyCall],
-) -> BusLeg:
-    return BusLeg(leg_id, leg_journey, leg_calls)
+    leg_journey: BusJourneyDetails,
+    leg_calls: list[BusJourneyCallDetails],
+) -> BusLegUserDetails:
+    return BusLegUserDetails(leg_id, leg_journey, leg_calls)
 
 
 def register_leg_types(conn: Connection):
-    register_type(conn, "BusOperatorOutData", register_bus_operator)
-    register_type(conn, "BusVehicleOutData", register_bus_vehicle)
+    register_type(conn, "BusOperatorDetails", register_bus_operator_details)
+    register_type(conn, "BusVehicleDetails", register_bus_vehicle_details)
     register_type(
-        conn, "BusJourneyServiceOutData", register_bus_journey_service
+        conn, "BusJourneyServiceDetails", register_bus_journey_service_details
     )
-    register_type(conn, "BusJourneyOutData", register_bus_journey)
-    register_type(conn, "BusStopOverviewOutData", register_bus_stop_overview)
-    register_type(conn, "BusJourneyCallOutData", register_bus_journey_call)
-    register_type(conn, "BusLegOutData", register_bus_leg)
+    register_type(conn, "BusJourneyDetails", register_bus_journey_details)
+    register_type(conn, "BusCallStopDetails", register_bus_call_stop_details)
+    register_type(
+        conn, "BusJourneyCallDetails", register_bus_journey_call_details
+    )
+    register_type(conn, "BusLegUserDetails", register_bus_leg_user_details)
 
 
-def select_bus_legs(conn: Connection, user_id: int) -> list[BusLeg]:
+def select_bus_legs(conn: Connection, user_id: int) -> list[BusLegUserDetails]:
     register_leg_types(conn)
     rows = conn.execute(
         "SELECT GetUserDetailsForBusLeg(%s)", [user_id]
@@ -101,7 +103,7 @@ def select_bus_legs(conn: Connection, user_id: int) -> list[BusLeg]:
 
 def select_bus_legs_by_datetime(
     conn: Connection, user_id: int, search_start: datetime, search_end: datetime
-) -> list[BusLeg]:
+) -> list[BusLegUserDetails]:
     register_leg_types(conn)
     rows = conn.execute(
         "SELECT GetUserDetailsForBusLegsByDatetime(%s, %s, %s)",
@@ -112,7 +114,7 @@ def select_bus_legs_by_datetime(
 
 def select_bus_legs_by_start_datetime(
     conn: Connection, user_id: int, search_start: datetime
-) -> list[BusLeg]:
+) -> list[BusLegUserDetails]:
     register_leg_types(conn)
     rows = conn.execute(
         "SELECT GetUserDetailsForBusLegByStartDatetime(%s, %s)",
@@ -123,7 +125,7 @@ def select_bus_legs_by_start_datetime(
 
 def select_bus_legs_by_end_datetime(
     conn: Connection, user_id: int, search_end: datetime
-) -> list[BusLeg]:
+) -> list[BusLegUserDetails]:
     register_leg_types(conn)
     rows = conn.execute(
         "SELECT GetUserDetailsForBusLegByEngDatetime(%s, %s)",
@@ -132,7 +134,9 @@ def select_bus_legs_by_end_datetime(
     return [row[0] for row in rows]
 
 
-def select_bus_leg_by_id(conn: Connection, user_id: int, leg_id: int) -> BusLeg:
+def select_bus_leg_by_id(
+    conn: Connection, user_id: int, leg_id: int
+) -> BusLegUserDetails:
     register_leg_types(conn)
     rows = conn.execute(
         "SELECT GetUserDetailsForBusLegsByIds(%s, %s)", [user_id, [leg_id]]
@@ -142,7 +146,7 @@ def select_bus_leg_by_id(conn: Connection, user_id: int, leg_id: int) -> BusLeg:
 
 def select_bus_legs_by_id(
     conn: Connection, user_id: int, leg_ids: list[int]
-) -> list[BusLeg]:
+) -> list[BusLegUserDetails]:
     register_leg_types(conn)
     rows = conn.execute(
         "SELECT GetUserDetailsForBusLegByIds(%s, %s)", [user_id, leg_ids]

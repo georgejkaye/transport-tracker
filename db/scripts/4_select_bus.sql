@@ -1,5 +1,5 @@
 CREATE OR REPLACE FUNCTION GetBusStops ()
-RETURNS SETOF BusStopOutData
+RETURNS SETOF BusStopDetails
 LANGUAGE plpgsql
 AS
 $$
@@ -29,7 +29,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION GetBusStopsByName (
     p_name TEXT
-) RETURNS SETOF BusStopOutData
+) RETURNS SETOF BusStopDetails
 LANGUAGE plpgsql
 AS
 $$
@@ -60,7 +60,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION GetBusStopsByAtco (
     p_atcos TEXT[]
-) RETURNS SETOF BusStopOutData
+) RETURNS SETOF BusStopDetails
 LANGUAGE plpgsql
 AS
 $$
@@ -92,7 +92,7 @@ $$;
 CREATE OR REPLACE FUNCTION GetBusStopsByJourney (
     p_journey_id INT
 )
-RETURNS SETOF BusStopOutData
+RETURNS SETOF BusStopDetails
 LANGUAGE plpgsql
 AS
 $$
@@ -124,7 +124,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetBusOperators ()
-RETURNS SETOF BusOperatorOutData
+RETURNS SETOF BusOperatorDetails
 LANGUAGE plpgsql
 AS
 $$
@@ -143,7 +143,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION GetBusOperatorsByName (
     p_name TEXT
-) RETURNS SETOF BusOperatorOutData
+) RETURNS SETOF BusOperatorDetails
 LANGUAGE plpgsql
 AS
 $$
@@ -163,7 +163,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION GetBusOperatorsByNationalOperatorCode (
     p_noc TEXT
-) RETURNS SETOF BusOperatorOutData
+) RETURNS SETOF BusOperatorDetails
 LANGUAGE plpgsql
 AS
 $$
@@ -181,7 +181,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE VIEW BusServiceDetails AS
+CREATE OR REPLACE VIEW BusServiceDetailsView AS
 SELECT
     BusService.bus_service_id,
     (
@@ -190,7 +190,7 @@ SELECT
         BusOperator.national_operator_code,
         BusOperator.bg_colour,
         BusOperator.fg_colour
-    )::BusOperatorOutData AS service_operator,
+    )::BusOperatorDetails AS service_operator,
     BusService.service_line,
     BusService.description_outbound,
     OutboundVia.service_vias AS service_outbound_vias,
@@ -231,13 +231,13 @@ INNER JOIN BusOperator
 ON BusOperator.bus_operator_id = BusService.bus_operator_id;
 
 CREATE OR REPLACE FUNCTION GetBusServices ()
-RETURNS SETOF BusServiceOutData
+RETURNS SETOF BusServiceDetails
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT (
+    SELECT
         BusServiceDetails.bus_service_id,
         BusServiceDetails.bus_operator,
         BusServiceDetails.service_line,
@@ -247,32 +247,30 @@ BEGIN
         BusServiceDetails.service_inbound_vias,
         BusServiceDetails.bg_colour,
         BusServiceDetails.fg_colour
-    )::BusServiceOutData
-    FROM BusServiceDetails;
+    FROM BusServiceDetailsView;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetBusServicesByOperatorId (
     p_operator_id INT,
     p_line_name TEXT
-) RETURNS SETOF BusServiceOutData
+) RETURNS SETOF BusServiceDetails
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT (
-        BusServiceDetails.bus_service_id,
-        BusServiceDetails.bus_operator,
-        BusServiceDetails.service_line,
-        BusServiceDetails.description_outbound,
-        BusServiceDetails.service_outbound_vias,
-        BusServiceDetails.description_inbound,
-        BusServiceDetails.service_inbound_vias,
-        BusServiceDetails.bg_colour,
-        BusServiceDetails.fg_colour
-    )::BusServiceOutData
-    FROM BusServiceDetails
+    SELECT
+        BusServiceDetailsView.bus_service_id,
+        BusServiceDetailsView.bus_operator,
+        BusServiceDetailsView.service_line,
+        BusServiceDetailsView.description_outbound,
+        BusServiceDetailsView.service_outbound_vias,
+        BusServiceDetailsView.description_inbound,
+        BusServiceDetailsView.service_inbound_vias,
+        BusServiceDetailsView.bg_colour,
+        BusServiceDetailsView.fg_colour
+    FROM BusServiceDetailsView
     WHERE LOWER(service_line) = LOWER(p_line_name)
     AND (BusServiceDetails.bus_operator).bus_operator_id = p_operator_id;
 END;
@@ -281,24 +279,23 @@ $$;
 CREATE OR REPLACE FUNCTION GetBusServicesByNationalOperatorCode (
     p_national_operator_code INT,
     p_line_name TEXT
-) RETURNS SETOF BusServiceOutData
+) RETURNS SETOF BusServiceDetails
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT (
-        BusServiceDetails.bus_service_id,
-        BusServiceDetails.bus_operator,
-        BusServiceDetails.service_line,
-        BusServiceDetails.description_outbound,
-        BusServiceDetails.service_outbound_vias,
-        BusServiceDetails.description_inbound,
-        BusServiceDetails.service_inbound_vias,
-        BusServiceDetails.bg_colour,
-        BusServiceDetails.fg_colour
-    )::BusServiceOutData
-    FROM BusServiceDetails
+    SELECT
+        BusServiceDetailsView.bus_service_id,
+        BusServiceDetailsView.bus_operator,
+        BusServiceDetailsView.service_line,
+        BusServiceDetailsView.description_outbound,
+        BusServiceDetailsView.service_outbound_vias,
+        BusServiceDetailsView.description_inbound,
+        BusServiceDetailsView.service_inbound_vias,
+        BusServiceDetailsView.bg_colour,
+        BusServiceDetailsView.fg_colour
+    FROM BusServiceDetailsView
     WHERE LOWER(service_line) = LOWER(p_line_name)
     AND
         (BusServiceDetails.bus_operator).national_operator_code =
@@ -309,24 +306,23 @@ $$;
 CREATE OR REPLACE FUNCTION GetBusServicesByOperatorName (
     p_name TEXT,
     p_line_name TEXT
-) RETURNS SETOF BusServiceOutData
+) RETURNS SETOF BusServiceDetails
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT (
-        BusServiceDetails.bus_service_id,
-        BusServiceDetails.bus_operator,
-        BusServiceDetails.service_line,
-        BusServiceDetails.description_outbound,
-        BusServiceDetails.service_outbound_vias,
-        BusServiceDetails.description_inbound,
-        BusServiceDetails.service_inbound_vias,
-        BusServiceDetails.bg_colour,
-        BusServiceDetails.fg_colour
-    )::BusServiceOutData
-    FROM BusServiceDetails
+    SELECT
+        BusServiceDetailsView.bus_service_id,
+        BusServiceDetailsView.bus_operator,
+        BusServiceDetailsView.service_line,
+        BusServiceDetailsView.description_outbound,
+        BusServiceDetailsView.service_outbound_vias,
+        BusServiceDetailsView.description_inbound,
+        BusServiceDetailsView.service_inbound_vias,
+        BusServiceDetailsView.bg_colour,
+        BusServiceDetailsView.fg_colour
+    FROM BusServiceDetailsView
     WHERE LOWER(service_line) = LOWER(p_line_name)
     AND
         LOWER((BusServiceDetails.bus_operator).operator_name)
@@ -343,7 +339,7 @@ SELECT
         BusOperator.national_operator_code,
         BusOperator.bg_colour,
         BusOperator.fg_colour
-    )::BusOperatorOutData AS vehicle_operator,
+    )::BusOperatorDetails AS vehicle_operator,
     BusVehicle.vehicle_identifier,
     BusVehicle.bustimes_id,
     BusVehicle.numberplate,
@@ -359,7 +355,7 @@ ON BusModel.bus_model_id = BusVehicle.bus_model_id;
 CREATE OR REPLACE FUNCTION GetBusVehicles (
     p_operator_id INT,
     p_vehicle_id TEXT
-) RETURNS SETOF BusVehicleOutData
+) RETURNS SETOF BusVehicleDetails
 LANGUAGE plpgsql
 AS
 $$
@@ -401,7 +397,7 @@ INNER JOIN (
         operator_name,
         national_operator_code,
         bg_colour,
-        fg_colour)::BusOperatorOutData AS operator_out
+        fg_colour)::BusOperatorDetails AS operator_out
     FROM BusOperator
 ) BusOperatorOut
 ON (BusOperatorOut.operator_out).bus_operator_id = BusVehicle.operator_id
@@ -416,14 +412,14 @@ INNER JOIN (
                 BusService.service_line,
                 BusService.bg_colour,
                 BusService.fg_colour
-            )::BusServiceOverviewOutData,
+            )::BusServiceDetails,
             (
                 BusOperator.bus_operator_id,
                 BusOperator.operator_name,
                 BusOperator.national_operator_code,
                 BusOperator.bg_colour,
                 BusOperator.fg_colour
-            )::BusOperatorOutData,
+            )::BusOperatorDetails,
             BusJourneyCallDetail.bus_journey_call[BusLeg.board_call_index + 1],
             BusJourneyCallDetail.bus_journey_call[BusLeg.alight_call_index + 1],
             COALESCE(
@@ -437,7 +433,7 @@ INNER JOIN (
                 (BusJourneyCallDetail.bus_journey_call[BusLeg.board_call_index + 1]).act_arr,
                 (BusJourneyCallDetail.bus_journey_call[BusLeg.board_call_index + 1]).plan_dep,
                 (BusJourneyCallDetail.bus_journey_call[BusLeg.board_call_index + 1]).plan_arr
-            ))::BusLegOverviewOutData) AS vehicle_legs,
+            ))::BusLegUserDetails) AS vehicle_legs,
             SUM(
                 COALESCE(
                     (BusJourneyCallDetail.bus_journey_call[BusLeg.alight_call_index + 1]).act_arr,
@@ -471,12 +467,12 @@ INNER JOIN (
                     BusStop.locality_name,
                     BusStop.street_name,
                     BusStop.indicator
-                )::BusStopOverviewOutData,
+                )::BusCallStopDetails,
                 BusCall.plan_arr,
                 BusCall.act_arr,
                 BusCall.plan_dep,
                 BusCall.act_dep
-            )::BusCallOverviewOutData ORDER BY call_index) AS bus_journey_call
+            )::BusCallDetails ORDER BY call_index) AS bus_journey_call
         FROM BusCall
         INNER JOIN BusJourney
         ON BusCall.bus_journey_id = BusJourney.bus_journey_id
@@ -491,7 +487,7 @@ ON BusVehicleLegUserDetails.bus_vehicle_id = BusVehicle.bus_vehicle_id;
 
 CREATE OR REPLACE FUNCTION GetUserDetailsForBusVehicles (
     p_user_id INT
-) RETURNS SETOF BusVehicleOverviewOutData
+) RETURNS SETOF BusVehicleUserDetails
 LANGUAGE plpgsql
 AS
 $$
@@ -520,7 +516,7 @@ SELECT
         BusJourneyDetails.journey_service,
         BusJourneyDetails.journey_calls,
         BusJourneyDetails.journey_vehicle
-    )::BusJourneyOutData AS leg_journey,
+    )::BusJourneyDetails AS leg_journey,
     BusJourneyDetails.journey_calls[
         BusLeg.board_call_index + 1:BusLeg.alight_call_index + 1
     ] AS leg_calls
@@ -534,7 +530,7 @@ INNER JOIN (
             BusServiceDetails.service_line,
             BusServiceDetails.bg_colour,
             BusServiceDetails.fg_colour
-        )::BusJourneyServiceOutData AS journey_service,
+        )::BusJourneyServiceDetails AS journey_service,
         BusJourneyCallDetail.journey_calls,
         (
             BusVehicleData.bus_vehicle_id,
@@ -545,7 +541,7 @@ INNER JOIN (
             BusVehicleData.bus_model_name,
             BusVehicleData.livery_style,
             BusVehicleData.vehicle_name
-        )::BusVehicleOutData AS journey_vehicle
+        )::BusVehicleDetails AS journey_vehicle
     FROM BusJourney
     INNER JOIN BusServiceDetails
     ON BusJourney.bus_service_id = BusServiceDetails.bus_service_id
@@ -561,7 +557,7 @@ INNER JOIN (
                     BusCallDetail.act_arr,
                     BusCallDetail.plan_dep,
                     BusCallDetail.act_dep
-                )::BusJourneyCallOutData
+                )::BusJourneyCallDetails
                 ORDER BY BusCallDetail.call_index
             ) AS journey_calls
         FROM BusJourney
@@ -578,7 +574,7 @@ INNER JOIN (
                     BusStop.locality_name,
                     BusStop.street_name,
                     BusStop.indicator
-                )::BusStopOverviewOutData AS call_stop,
+                )::BusCallStopDetails AS call_stop,
                 BusCall.plan_arr,
                 BusCall.act_arr,
                 BusCall.plan_dep,
@@ -601,7 +597,7 @@ ON BusLeg.user_id = Traveller.user_id;
 CREATE OR REPLACE FUNCTION GetUserDetailsForBusLeg(
     p_user_id INT
 )
-RETURNS SETOF BusLegOutData
+RETURNS SETOF BusLegUserDetails
 LANGUAGE plpgsql
 AS
 $$
@@ -626,7 +622,7 @@ CREATE OR REPLACE FUNCTION GetUserDetailsForBusLegsByDatetime(
     p_search_start TIMESTAMP WITH TIME ZONE,
     p_search_end TIMESTAMP WITH TIME ZONE
 )
-RETURNS SETOF BusLegOutData
+RETURNS SETOF BusLegUserDetails
 LANGUAGE plpgsql
 AS
 $$
@@ -655,7 +651,7 @@ CREATE OR REPLACE FUNCTION GetUserDetailsForBusLegsByStartDatetime(
     p_user_id INT,
     p_search_start TIMESTAMP WITH TIME ZONE
 )
-RETURNS SETOF BusLegOutData
+RETURNS SETOF BusLegUserDetails
 LANGUAGE plpgsql
 AS
 $$
@@ -679,7 +675,7 @@ CREATE OR REPLACE FUNCTION GetUserDetailsForBusLegsByEndDatetime(
     p_user_id INT,
     p_search_end TIMESTAMP WITH TIME ZONE
 )
-RETURNS SETOF BusLegOutData
+RETURNS SETOF BusLegUserDetails
 LANGUAGE plpgsql
 AS
 $$
@@ -703,7 +699,7 @@ CREATE OR REPLACE FUNCTION GetUserDetailsForBusLegsByIds(
     p_user_id INT,
     p_leg_ids INT[]
 )
-RETURNS SETOF BusLegOutData
+RETURNS SETOF BusLegUserDetails
 LANGUAGE plpgsql
 AS
 $$
@@ -731,14 +727,14 @@ SELECT
                 BusService.service_line,
                 BusService.bg_colour,
                 BusService.fg_colour
-            )::BusServiceOverviewOutData,
+            )::BusServiceDetails,
             (
                 BusOperator.bus_operator_id,
                 BusOperator.operator_name,
                 BusOperator.national_operator_code,
                 BusOperator.bg_colour,
                 BusOperator.fg_colour
-            )::BusOperatorOutData,
+            )::BusOperatorDetails,
             (
                 BoardCall.bus_call_id,
                 BoardCall.call_index,
@@ -749,12 +745,12 @@ SELECT
                     BoardStop.locality_name,
                     BoardStop.street_name,
                     BoardStop.indicator
-                )::BusStopOverviewOutData,
+                )::BusCallStopDetails,
                 BoardCall.plan_arr,
                 BoardCall.act_arr,
                 BoardCall.plan_dep,
                 BoardCall.act_dep
-            )::BusCallOverviewOutData,
+            )::BusCallDetails,
             (
                 AlightCall.bus_call_id,
                 AlightCall.call_index,
@@ -765,12 +761,12 @@ SELECT
                     AlightStop.locality_name,
                     AlightStop.street_name,
                     AlightStop.indicator
-                )::BusStopOverviewOutData,
+                )::BusCallStopDetails,
                 AlightCall.plan_arr,
                 AlightCall.act_arr,
                 AlightCall.plan_dep,
                 AlightCall.act_dep
-            )::BusCallOverviewOutData,
+            )::BusCallDetails,
             (
                 BusCall.bus_call_id,
                 BusCall.call_index,
@@ -781,12 +777,12 @@ SELECT
                     BusStop.locality_name,
                     BusStop.street_name,
                     BusStop.indicator
-                )::BusStopOverviewOutData,
+                )::BusCallStopDetails,
                 BusCall.plan_arr,
                 BusCall.act_arr,
                 BusCall.plan_dep,
                 BusCall.act_dep
-            )::BusCallOverviewOutData,
+            )::BusCallDetails,
             (BusCall.call_index - BoardCall.call_index),
             (AlightCall.call_index - BusCall.call_index)
         )::BusStopLegUserDetails

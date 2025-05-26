@@ -2,14 +2,17 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional
 
-from api.data.bus.operators import BusOperator, register_bus_operator
+from api.data.bus.operators import BusOperator, register_bus_operator_details
 from api.data.bus.overview import (
-    BusCallOverview,
+    BusCallDetails,
     BusServiceOverview,
-    register_bus_call_overview,
-    register_bus_service_overview,
+    register_bus_call_details,
+    register_bus_service_details,
 )
-from api.data.bus.stop import register_bus_stop, register_bus_stop_overview
+from api.data.bus.stop import (
+    register_bus_stop_details,
+    register_bus_call_stop_details,
+)
 from api.utils.database import DbConnectionData, connect, register_type
 from psycopg import Connection
 
@@ -19,9 +22,9 @@ class BusStopLegUserDetails:
     id: int
     service: BusServiceOverview
     operator: BusOperator
-    board: BusCallOverview
-    alight: BusCallOverview
-    current: BusCallOverview
+    board: BusCallDetails
+    alight: BusCallDetails
+    current: BusCallDetails
     before: int
     after: int
 
@@ -30,9 +33,9 @@ def register_bus_stop_leg_user_details(
     leg_id: int,
     bus_service: BusServiceOverview,
     bus_operator: BusOperator,
-    board_call: BusCallOverview,
-    alight_call: BusCallOverview,
-    this_call: BusCallOverview,
+    board_call: BusCallDetails,
+    alight_call: BusCallDetails,
+    this_call: BusCallDetails,
     stops_before: int,
     stops_after: int,
 ) -> BusStopLegUserDetails:
@@ -110,12 +113,10 @@ def register_bus_stop_user_details(
 
 
 def register_bus_stop_user_details_types(conn):
-    register_type(conn, "BusStopOverviewOutData", register_bus_stop_overview)
-    register_type(
-        conn, "BusServiceOverviewOutData", register_bus_service_overview
-    )
-    register_type(conn, "BusOperatorOutData", register_bus_operator)
-    register_type(conn, "BusCallOverviewOutData", register_bus_call_overview)
+    register_type(conn, "BusCallStopDetails", register_bus_call_stop_details)
+    register_type(conn, "BusServiceDetails", register_bus_service_details)
+    register_type(conn, "BusOperatorDetails", register_bus_operator_details)
+    register_type(conn, "BusCallDetails", register_bus_call_details)
     register_type(
         conn, "BusStopLegUserDetails", register_bus_stop_leg_user_details
     )

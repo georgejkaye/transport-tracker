@@ -7,18 +7,18 @@ from api.data.bus.operators import (
     BusOperator,
     get_bus_operator_from_national_operator_code,
 )
-from api.data.bus.overview import BusStopOverview
+from api.data.bus.overview import BusCallStopDetails
 from api.data.bus.service import (
     BusJourneyService,
-    BusService,
+    BusServiceDetails,
     get_service_from_line_and_operator,
 )
 from api.data.bus.stop import (
-    BusStop,
+    BusStopDetails,
     BusStopDeparture,
     get_bus_stops_from_atcos,
 )
-from api.data.bus.vehicle import BusVehicle
+from api.data.bus.vehicle import BusVehicleDetails
 from api.utils.request import get_soup
 from api.utils.times import make_timezone_aware
 from bs4 import BeautifulSoup
@@ -50,7 +50,7 @@ def string_of_bus_call_in(bus_call: BusCallIn) -> str:
 class BusJourneyTimetable:
     id: int
     operator: BusOperator
-    service: BusService
+    service: BusServiceDetails
     calls: list[BusCallIn]
 
 
@@ -58,9 +58,9 @@ class BusJourneyTimetable:
 class BusJourneyIn:
     id: int
     operator: BusOperator
-    service: BusService
+    service: BusServiceDetails
     calls: list[BusCallIn]
-    vehicle: Optional[BusVehicle]
+    vehicle: Optional[BusVehicleDetails]
 
 
 def string_of_bus_journey_in(
@@ -111,7 +111,7 @@ def get_call_datetime(
 def get_bus_journey(
     conn: Connection,
     bustimes_journey_id: int,
-    ref_stop: BusStop,
+    ref_stop: BusStopDetails,
     ref_departure: BusStopDeparture,
 ) -> Optional[tuple[BusJourneyTimetable, int]]:
     soup = get_bus_journey_page(bustimes_journey_id)
@@ -219,7 +219,7 @@ def get_bus_journey(
 @dataclass
 class BusCall:
     id: int
-    stop: BusStop
+    stop: BusStopDetails
     plan_arr: Optional[datetime]
     act_arr: Optional[datetime]
     plan_dep: Optional[datetime]
@@ -230,7 +230,7 @@ def register_bus_call(
     call_id: int,
     journey_id: int,
     call_index: int,
-    call_stop: BusStop,
+    call_stop: BusStopDetails,
     plan_arr: Optional[datetime],
     act_arr: Optional[datetime],
     plan_dep: Optional[datetime],
@@ -240,44 +240,44 @@ def register_bus_call(
 
 
 @dataclass
-class BusJourneyCall:
+class BusJourneyCallDetails:
     id: int
     index: int
-    stop: BusStopOverview
+    stop: BusCallStopDetails
     plan_arr: Optional[datetime]
     act_arr: Optional[datetime]
     plan_dep: Optional[datetime]
     act_dep: Optional[datetime]
 
 
-def register_bus_journey_call(
+def register_bus_journey_call_details(
     call_id: int,
     call_index: int,
-    bus_stop: BusStopOverview,
+    bus_stop: BusCallStopDetails,
     plan_arr: Optional[datetime],
     act_arr: Optional[datetime],
     plan_dep: Optional[datetime],
     act_dep: Optional[datetime],
-) -> BusJourneyCall:
-    return BusJourneyCall(
+) -> BusJourneyCallDetails:
+    return BusJourneyCallDetails(
         call_id, call_index, bus_stop, plan_arr, act_arr, plan_dep, act_dep
     )
 
 
 @dataclass
-class BusJourney:
+class BusJourneyDetails:
     id: int
     service: BusJourneyService
-    calls: list[BusJourneyCall]
-    vehicle: Optional[BusVehicle]
+    calls: list[BusJourneyCallDetails]
+    vehicle: Optional[BusVehicleDetails]
 
 
-def register_bus_journey(
+def register_bus_journey_details(
     journey_id: int,
     journey_service: BusJourneyService,
-    journey_calls: list[BusJourneyCall],
-    journey_vehicle: Optional[BusVehicle],
-) -> BusJourney:
-    return BusJourney(
+    journey_calls: list[BusJourneyCallDetails],
+    journey_vehicle: Optional[BusVehicleDetails],
+) -> BusJourneyDetails:
+    return BusJourneyDetails(
         journey_id, journey_service, journey_calls, journey_vehicle
     )
