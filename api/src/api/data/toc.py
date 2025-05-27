@@ -1,6 +1,8 @@
+from datetime import datetime
 from typing import Optional
 
 from dataclasses import dataclass
+from api.utils.database import register_type
 from psycopg import Connection
 
 
@@ -33,3 +35,27 @@ class BrandData:
     name: str
     bg: Optional[str]
     fg: Optional[str]
+
+
+def register_brand_data(
+    brand_id: int,
+    brand_code: str,
+    brand_name: str,
+    brand_bg: str,
+    brand_fg: str,
+):
+    return BrandData(brand_id, brand_code, brand_name, brand_bg, brand_fg)
+
+
+def register_brand_data_types(conn: Connection):
+    register_type(conn, "OutBrandData", register_brand_data)
+
+
+def get_operator_brands(
+    conn: Connection, operator_code: str, run_date: datetime
+) -> list[BrandData]:
+    register_brand_data_types(conn)
+    rows = conn.execute(
+        "SELECT GetOperatorBrands(%s, %s)", [operator_code, run_date]
+    ).fetchall()
+    return [row[0] for row in rows]

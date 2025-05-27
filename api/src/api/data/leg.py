@@ -206,16 +206,6 @@ def register_operator_data(
     )
 
 
-def register_brand_data(
-    brand_id: int,
-    brand_code: str,
-    brand_name: str,
-    brand_bg: str,
-    brand_fg: str,
-):
-    return BrandData(brand_id, brand_code, brand_name, brand_bg, brand_fg)
-
-
 def register_station_data(station_crs: str, station_name: str):
     return ShortTrainStation(station_name, station_crs)
 

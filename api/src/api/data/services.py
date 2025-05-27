@@ -20,8 +20,8 @@ from api.data.stations import (
     response_to_short_train_station,
     short_string_of_service_at_station,
 )
-from api.data.toc import BrandData, OperatorData
-from api.utils.interactive import information
+from api.data.toc import BrandData, OperatorData, get_operator_brands
+from api.utils.interactive import PickSingle, information, input_select
 from api.utils.times import get_datetime_route, make_timezone_aware
 
 
@@ -453,7 +453,6 @@ def get_service_from_id(
                 divides.extend(call.divide)
                 joins.extend(call.join)
                 calls.append(call)
-        brand_code = None
         return TrainServiceRaw(
             service_id,
             headcode,
@@ -462,7 +461,7 @@ def get_service_from_id(
             destinations,
             operator_name,
             operator_code,
-            brand_code,
+            None,
             power,
             calls,
             divides,

@@ -205,7 +205,7 @@ def select_stock_cars(
         """
     if stock.brand is not None:
         statement = f"""
-            {statement} AND brand_id = %(brand)s
+            {statement} AND brand_code = %(brand)s
         """
     statement = f"{statement} ORDER BY cars ASC"
     rows = conn.execute(
