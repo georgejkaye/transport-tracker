@@ -693,3 +693,28 @@ BEGIN
     GROUP BY (station_crs, station_name);
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION GetOperatorBrands(
+    p_operator_code TEXT,
+    p_run_date TIMESTAMP WITH TIME ZONE
+)
+RETURNS SETOF OutBrandData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        Brand.brand_id,
+        Brand.brand_code,
+        Brand.brand_name,
+        Brand.bg_colour,
+        Brand.fg_colour
+    FROM Brand
+    INNER JOIN Operator
+    ON Brand.parent_operator = Operator.operator_id
+    WHERE p_operator_code = Operator.operator_code
+    AND operation_range @> p_run_date::date
+    ORDER BY Brand.brand_name;
+END;
+$$;
