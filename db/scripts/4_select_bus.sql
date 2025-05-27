@@ -620,7 +620,7 @@ INNER JOIN (
         ) AS leg_calls
     FROM BusLeg
     INNER JOIN BusJourney
-    ON BusLeg.bus_leg_id = BusJourney.bus_journey_id
+    ON BusLeg.bus_journey_id = BusJourney.bus_journey_id
     INNER JOIN BusCall
     ON BusJourney.bus_journey_id = BusCall.bus_journey_id
     INNER JOIN BusStop
