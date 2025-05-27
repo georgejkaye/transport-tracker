@@ -23,7 +23,7 @@ BEGIN
         latitude,
         longitude
     FROM BusStop
-    ORDER BY stop_name ASC, locality_name ASC, atco_code ASC;
+    ORDER BY stop_name ASC, locality_name ASC, indicator ASC;
 END;
 $$;
 
@@ -54,7 +54,7 @@ BEGIN
         longitude
     FROM BusStop
     WHERE LOWER(stop_name) LIKE '%' || LOWER(p_name) || '%'
-    ORDER BY stop_name ASC, locality_name ASC, atco_code ASC;
+    ORDER BY stop_name ASC, locality_name ASC, indicator ASC;
 END;
 $$;
 
@@ -85,7 +85,7 @@ BEGIN
         longitude
     FROM BusStop
     WHERE atco_code = ANY(p_atcos)
-    ORDER BY stop_name ASC, locality_name ASC, atco_code ASC;
+    ORDER BY stop_name ASC, locality_name ASC, indicator ASC;
 END;
 $$;
 
@@ -119,7 +119,7 @@ BEGIN
     INNER JOIN BusCall
     ON BusStop.bus_stop_id = BusCall.bus_stop_id
     WHERE BusCall.bus_journey_id = p_journey_id
-    ORDER BY stop_name ASC, locality_name ASC, atco_code ASC;
+    ORDER BY stop_name ASC, locality_name ASC, indicator ASC;
 END;
 $$;
 
