@@ -718,3 +718,16 @@ BEGIN
     ORDER BY Brand.brand_name;
 END;
 $$;
+
+CREATE OR REPLACE GetStockCars(
+    p_stock_class INT,
+    p_operator_code CHARACTER(2),
+    p_brand_code CHARACTER(2)
+)
+RETURNS SETOF INT
+LANGUAGE plpgsql
+AS
+$$
+
+END;
+$$;
