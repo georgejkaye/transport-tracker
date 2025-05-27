@@ -118,6 +118,9 @@ def get_bus_vehicle(
         f"Vehicle {vehicle_id} not found for operator {bus_operator.name}, falling back to all operators"
     )
     vehicles = get_bus_vehicles_by_id(conn, vehicle_id)
+    if len(vehicles) == 0:
+        information(f"No vehicles found with id {vehicle_id}")
+        return None
     return input_vehicle(vehicles)
 
 
@@ -174,6 +177,10 @@ def get_bus_leg_input(
     departures = get_departures_from_bus_stop(
         board_stop, board_datetime, datetime_offset
     )
+    if len(departures) == 0:
+        information("No departures from bus stop")
+        return None
+
     departure = get_bus_stop_departure_input(departures)
     if departure is None:
         return None
