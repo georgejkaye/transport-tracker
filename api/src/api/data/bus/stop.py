@@ -117,7 +117,11 @@ def register_bus_stop_details_types(conn: Connection):
 
 
 def short_string_of_bus_stop(bus_stop: BusStopDetails) -> str:
-    return f"{bus_stop.atco}: {bus_stop.common_name} ({bus_stop.indicator}), {bus_stop.locality}"
+    if bus_stop.indicator is None:
+        indicator_text = ""
+    else:
+        indicator_text = f" ({bus_stop.indicator})"
+    return f"{bus_stop.common_name}{indicator_text}, {bus_stop.locality} ({bus_stop.atco})"
 
 
 def get_bus_stops(conn: Connection, search_string: str) -> list[BusStopDetails]:
