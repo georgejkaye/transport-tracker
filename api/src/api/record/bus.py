@@ -118,6 +118,9 @@ def get_bus_vehicle(
         f"Vehicle {vehicle_id} not found for operator {bus_operator.name}, falling back to all operators"
     )
     vehicles = get_bus_vehicles_by_id(conn, vehicle_id)
+    if len(vehicles) == 0:
+        information(f"No vehicles found with id {vehicle_id}")
+        return None
     return input_vehicle(vehicles)
 
 
