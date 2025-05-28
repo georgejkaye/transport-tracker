@@ -61,7 +61,10 @@ def register_bus_service_details_types(conn: Connection):
 
 
 def short_string_of_bus_service(service: BusServiceDetails) -> str:
-    return f"{service.line} {service.outbound.description} ({service.operator.name})"
+    description = service.outbound.description
+    if description is None:
+        description = service.inbound.description
+    return f"{service.line} {description} ({service.operator.name})"
 
 
 @dataclass
