@@ -85,6 +85,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION InsertLeg(
+    p_user_id INTEGER,
     p_leg_distance DECIMAL,
     p_legcalls legcall_data[],
     p_stockreports stockreport_data[]
@@ -96,9 +97,10 @@ $$
 DECLARE
     v_leg_id INT;
 BEGIN
-    INSERT INTO Leg(distance)
-        VALUES (p_leg_distance)
-        RETURNING leg_id INTO v_leg_id;
+    INSERT INTO Leg(user_id, distance)
+    VALUES (p_user_id, p_leg_distance)
+    RETURNING leg_id INTO v_leg_id;
+
     INSERT INTO LegCall(leg_id, arr_call_id, dep_call_id, mileage, assoc_type)
         SELECT
             v_leg_id,
