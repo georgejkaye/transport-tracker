@@ -2,11 +2,12 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Callable, Optional
+from api.user import User
 from psycopg import Connection
 
 from api.utils.database import register_type
 from api.utils.times import change_timezone
-from api.data.toc import BrandData, OperatorData
+from api.data.toc import BrandData, OperatorData, register_brand_data
 from api.data.points import PointTimes
 from api.data.services import (
     LegCall,

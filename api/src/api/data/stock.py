@@ -168,55 +168,15 @@ def string_of_formation(f: Formation) -> str:
 def select_stock_cars(
     conn: Connection, stock: Stock, run_date: datetime
 ) -> list[Formation]:
-    statement = """
-        SELECT DISTINCT cars FROM StockFormation
-        INNER JOIN (
-            SELECT Stock.stock_class, StockSubclass.stock_subclass
-            FROM stock
-            LEFT JOIN StockSubclass
-            ON Stock.stock_class = StockSubclass.stock_class
-        ) Stocks
-        ON StockFormation.stock_class = Stocks.stock_class
-        AND (
-            (Stocks.stock_subclass = StockFormation.stock_subclass)
-            OR (
-                Stocks.stock_subclass IS NULL
-                AND StockFormation.stock_subclass IS NULL
-            )
-        )
-        INNER JOIN OperatorStock
-        ON Stocks.stock_class = OperatorStock.stock_class
-        AND (
-            (Stocks.stock_subclass = OperatorStock.stock_subclass)
-            OR (
-                Stocks.stock_subclass IS NULL
-                AND OperatorStock.stock_subclass IS NULL
-            )
-        )
-        INNER JOIN Operator
-        ON OperatorStock.operator_id = Operator.operator_id
-        WHERE Stocks.stock_class = %(class_no)s
-        AND operator_code = %(operator)s
-        AND %(rundate)s <@ operation_range
-    """
-    if stock.subclass_no is not None:
-        statement = f"""
-            {statement} AND Stocks.stock_subclass = %(subclass_no)s
-        """
-    if stock.brand is not None:
-        statement = f"""
-            {statement} AND brand_code = %(brand)s
-        """
-    statement = f"{statement} ORDER BY cars ASC"
     rows = conn.execute(
-        statement,
-        {
-            "class_no": stock.class_no,
-            "operator": stock.operator,
-            "subclass_no": stock.subclass_no,
-            "brand": stock.brand,
-            "rundate": run_date.date(),
-        },
+        "SELECT GetStockCars(%s, %s, %s, %s, %s)",
+        [
+            stock.class_no,
+            stock.subclass_no,
+            stock.operator,
+            stock.brand,
+            run_date,
+        ],
     ).fetchall()
     car_list = [Formation(row[0]) for row in rows]
     return car_list
