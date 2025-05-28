@@ -67,7 +67,7 @@ $$;
 CREATE TABLE OperatorStock (
     operator_id INTEGER NOT NULL,
     brand_id INTEGER,
-    stock_class INT NOT NULL,
+    stock_class INTEGER NOT NULL,
     stock_subclass INTEGER,
     FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
     FOREIGN KEY (brand_id) REFERENCES Brand(brand_id),

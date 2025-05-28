@@ -95,7 +95,7 @@ CREATE TYPE stockreport_data AS (
 
 CREATE TYPE OutOperatorData AS (
     operator_id INTEGER,
-    operator_code TEXT,
+    operator_code CHARACTER(2),
     operator_name TEXT,
     operator_bg TEXT,
     operator_fg TEXT
@@ -103,7 +103,7 @@ CREATE TYPE OutOperatorData AS (
 
 CREATE TYPE OutBrandData AS (
     brand_id INTEGER,
-    brand_code TEXT,
+    brand_code CHARACTER(2),
     brand_name TEXT,
     brand_bg TEXT,
     brand_fg TEXT

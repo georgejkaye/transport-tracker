@@ -2,11 +2,12 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Callable, Optional
+from api.user import User
 from psycopg import Connection
 
 from api.utils.database import register_type
 from api.utils.times import change_timezone
-from api.data.toc import BrandData, OperatorData
+from api.data.toc import BrandData, OperatorData, register_brand_data
 from api.data.points import PointTimes
 from api.data.services import (
     LegCall,
@@ -84,7 +85,7 @@ def apply_to_optional[T, U](
     return fn(t)
 
 
-def insert_leg(conn: Connection, leg: Leg):
+def insert_leg(conn: Connection, user: User, leg: Leg):
     services = [leg.service]
     for assoc in leg.service.divides + leg.service.joins:
         services.append(assoc.service)
@@ -153,12 +154,13 @@ def insert_leg(conn: Connection, leg: Leg):
     conn.execute(
         """
         SELECT * FROM InsertLeg(
+            %s::integer,
             %s::decimal,
             %s::legcall_data[],
             %s::stockreport_data[]
         )
         """,
-        [leg_values, call_values, stockreport_values],
+        [user.user_id, leg_values, call_values, stockreport_values],
     )
     conn.commit()
 
@@ -204,16 +206,6 @@ def register_operator_data(
     return OperatorData(
         operator_id, operator_code, operator_name, operator_bg, operator_fg
     )
-
-
-def register_brand_data(
-    brand_id: int,
-    brand_code: str,
-    brand_name: str,
-    brand_bg: str,
-    brand_fg: str,
-):
-    return BrandData(brand_id, brand_code, brand_name, brand_bg, brand_fg)
 
 
 def register_station_data(station_crs: str, station_name: str):

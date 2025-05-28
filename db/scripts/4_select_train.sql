@@ -693,3 +693,79 @@ BEGIN
     GROUP BY (station_crs, station_name);
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION GetOperatorBrands(
+    p_operator_code TEXT,
+    p_run_date TIMESTAMP WITH TIME ZONE
+)
+RETURNS SETOF OutBrandData
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    SELECT
+        Brand.brand_id,
+        Brand.brand_code,
+        Brand.brand_name,
+        Brand.bg_colour,
+        Brand.fg_colour
+    FROM Brand
+    INNER JOIN Operator
+    ON Brand.parent_operator = Operator.operator_id
+    WHERE p_operator_code = Operator.operator_code
+    AND operation_range @> p_run_date::date
+    ORDER BY Brand.brand_name;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION GetStockCars(
+    p_stock_class INT,
+    p_stock_subclass INT,
+    p_operator_code CHARACTER(2),
+    p_brand_code CHARACTER(2),
+    p_run_date TIMESTAMP WITH TIME ZONE
+)
+RETURNS SETOF INT
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+        SELECT DISTINCT StockFormation.cars
+        FROM StockFormation
+        INNER JOIN (
+            SELECT Stock.stock_class, StockSubclass.stock_subclass
+            FROM stock
+            LEFT JOIN StockSubclass
+            ON Stock.stock_class = StockSubclass.stock_class
+        ) Stocks
+        ON StockFormation.stock_class = Stocks.stock_class
+        AND (
+            (Stocks.stock_subclass = StockFormation.stock_subclass)
+            OR (
+                Stocks.stock_subclass IS NULL
+                AND StockFormation.stock_subclass IS NULL
+            )
+        )
+        INNER JOIN OperatorStock
+        ON Stocks.stock_class = OperatorStock.stock_class
+        AND (
+            (Stocks.stock_subclass = OperatorStock.stock_subclass)
+            OR (
+                Stocks.stock_subclass IS NULL
+                AND OperatorStock.stock_subclass IS NULL
+            )
+        )
+        INNER JOIN Operator
+        ON OperatorStock.operator_id = Operator.operator_id
+        LEFT JOIN Brand
+        ON OperatorStock.brand_id = Brand.brand_id
+        WHERE Stocks.stock_class = p_stock_class
+        AND Operator.operator_code = p_operator_code
+        AND Operator.operation_range @> p_run_date::DATE
+        AND (p_brand_code IS NULL OR Brand.brand_code = p_brand_code)
+        AND (p_stock_subclass IS NULL OR Stocks.stock_subclass = p_stock_subclass)
+        ORDER BY StockFormation.cars ASC;
+END;
+$$;
