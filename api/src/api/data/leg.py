@@ -85,7 +85,7 @@ def apply_to_optional[T, U](
     return fn(t)
 
 
-def insert_leg(conn: Connection, leg: Leg):
+def insert_leg(conn: Connection, user: User, leg: Leg):
     services = [leg.service]
     for assoc in leg.service.divides + leg.service.joins:
         services.append(assoc.service)
@@ -154,12 +154,13 @@ def insert_leg(conn: Connection, leg: Leg):
     conn.execute(
         """
         SELECT * FROM InsertLeg(
+            %s::integer,
             %s::decimal,
             %s::legcall_data[],
             %s::stockreport_data[]
         )
         """,
-        [leg_values, call_values, stockreport_values],
+        [user.user_id, leg_values, call_values, stockreport_values],
     )
     conn.commit()
 

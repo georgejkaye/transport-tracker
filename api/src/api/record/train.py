@@ -6,6 +6,7 @@ from enum import Enum
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
 from api.data.toc import get_operator_brands
+from api.user import input_user
 from psycopg import Connection
 
 from api.data.leg import (
@@ -657,11 +658,15 @@ def record_new_leg(
 
 
 def add_to_logfile(conn: Connection):
+    users = input_user(conn)
+    if users is None:
+        return None
     leg = record_new_leg(conn)
     if leg is None:
         print("Could not get leg")
         exit(1)
-    insert_leg(conn, leg)
+    for user in users:
+        insert_leg(conn, user, leg)
 
 
 def read_logfile(log_file: str):
