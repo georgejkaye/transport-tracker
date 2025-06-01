@@ -1,12 +1,12 @@
 CREATE EXTENSION btree_gist;
 
 CREATE TABLE TrainOperatorCode (
-    operator_code CHARACTER(2) PRIMARY KEY
+    operator_code TEXT PRIMARY KEY
 );
 
 CREATE TABLE TrainOperator (
     operator_id SERIAL PRIMARY KEY,
-    operator_code CHARACTER(2),
+    operator_code TEXT,
     operator_name TEXT NOT NULL,
     bg_colour TEXT,
     fg_colour TEXT,
@@ -20,7 +20,7 @@ CREATE TABLE TrainOperator (
 
 CREATE TABLE TrainBrand (
     brand_id SERIAL PRIMARY KEY,
-    brand_code CHARACTER(2),
+    brand_code TEXT,
     brand_name TEXT NOT NULL,
     parent_operator INTEGER NOT NULL,
     bg_colour TEXT,
@@ -29,22 +29,22 @@ CREATE TABLE TrainBrand (
 );
 
 CREATE TABLE TrainStock (
-    stock_class INT PRIMARY KEY,
+    stock_class INTEGER PRIMARY KEY,
     name TEXT
 );
 
 CREATE TABLE TrainStockSubclass (
-    stock_class INT NOT NULL,
-    stock_subclass INT NOT NULL,
+    stock_class INTEGER NOT NULL,
+    stock_subclass INTEGER NOT NULL,
     name TEXT,
     PRIMARY KEY (stock_class, stock_subclass),
     FOREIGN KEY (stock_class) REFERENCES TrainStock(stock_class)
 );
 
 CREATE TABLE TrainStockFormation (
-    stock_class INT NOT NULL,
+    stock_class INTEGER NOT NULL,
     stock_subclass INTEGER,
-    cars INT NOT NULL,
+    cars INTEGER NOT NULL,
     FOREIGN KEY (stock_class) REFERENCES TrainStock(stock_class),
     FOREIGN KEY (stock_class, stock_subclass) REFERENCES TrainStockSubclass(stock_class, stock_subclass),
     CONSTRAINT stock_class_cars_unique UNIQUE (stock_class, stock_subclass, cars)
@@ -60,7 +60,7 @@ $$
 BEGIN
     RETURN p_brand_id IS NULL
         OR (p_brand_id IS NULL AND p_operator_id IS NULL)
-        OR (SELECT parent_operator FROM public.brand WHERE brand_id = p_brand_id) = p_operator_id;
+        OR (SELECT parent_operator FROM TrainBrand WHERE brand_id = p_brand_id) = p_operator_id;
 END;
 $$;
 
@@ -78,59 +78,62 @@ CREATE TABLE TrainOperatorStock (
 );
 
 CREATE TABLE TrainStation (
-    station_crs CHARACTER(3) PRIMARY KEY,
+    station_id SERIAL PRIMARY KEY,
+    station_crs TEXT NOT NULL,
     station_name TEXT NOT NULL,
     operator_id INTEGER NOT NULL,
     brand_id INTEGER,
     station_img TEXT,
     FOREIGN KEY (operator_id) REFERENCES TrainOperator(operator_id),
     FOREIGN KEY (brand_id) REFERENCES TrainBrand(brand_id),
-    CONSTRAINT valid_brand CHECK (IsValidBrand(brand_id, operator_id))
+    CONSTRAINT valid_brand CHECK (IsValidBrand(brand_id, operator_id)),
+    CONSTRAINT trainstation_check_station_crs_length CHECK (VALUE ~ '^[[:alpha:]]{3}$'),
+    CONSTRAINT trainstation_station_crs_unique UNIQUE station_crs
 );
 
 CREATE TABLE TrainStationName (
-    station_crs CHARACTER(3) NOT NULL,
+    station_id INT NOT NULL,
     alternate_station_name TEXT NOT NULL,
-    FOREIGN KEY (station_crs) REFERENCES TrainStation(station_crs)
+    FOREIGN KEY (station_id) REFERENCES TrainStation(station_id)
 );
 
 CREATE TABLE TrainStationPoint (
-    station_crs CHARACTER(3),
+    station_id INT NOT NULL,
     platform TEXT,
     latitude DECIMAL NOT NULL,
     longitude DECIMAL NOT NULL,
-    FOREIGN KEY (station_crs) REFERENCES TrainStation(station_crs),
-    CONSTRAINT point_unique UNIQUE NULLS NOT DISTINCT (station_crs, platform)
+    FOREIGN KEY (station_id) REFERENCES TrainStation(station_id),
+    CONSTRAINT point_unique UNIQUE NULLS NOT DISTINCT (station_id, platform)
 );
 
 CREATE TABLE TrainService (
-    service_id TEXT NOT NULL,
+    service_id SERIAL PRIMARY KEY,
+    unique_identifier TEXT NOT NULL,
     run_date TIMESTAMP WITH TIME ZONE NOT NULL,
-    headcode CHARACTER(4) NOT NULL,
+    headcode TEXT NOT NULL,
     operator_id INTEGER NOT NULL,
     brand_id INTEGER,
     power TEXT,
-    PRIMARY KEY (service_id, run_date),
     FOREIGN KEY (operator_id) REFERENCES TrainOperator(operator_id),
     FOREIGN KEY (brand_id) REFERENCES TrainBrand(brand_id),
-    CONSTRAINT valid_brand CHECK (IsValidBrand(brand_id, operator_id))
+    CONSTRAINT trainservice_service_id_run_date_unique UNIQUE (service_id, run_date),
+    CONSTRAINT trainservice_check_is_valid_brand CHECK (IsValidBrand(brand_id, operator_id))
+    CONSTRAINT trainservice_check_headcode_length CHECK (LENGTH(headcode) = 4)
 );
 
-CREATE TABLE ServiceEndpoint (
-    service_id TEXT NOT NULL,
-    run_date TIMESTAMP WITH TIME ZONE NOT NULL,
-    station_crs CHARACTER(3) NOT NULL,
+CREATE TABLE TrainServiceEndpoint (
+    service_id INT NOT NULL,
+    station_id INT NOT NULL,
     origin BOOLEAN NOT NULL,
-    CONSTRAINT endpoint_unique UNIQUE (service_id, run_date, station_crs, origin),
-    FOREIGN KEY (service_id, run_date) REFERENCES TrainService(service_id, run_date) ON DELETE CASCADE,
-    FOREIGN KEY (station_crs) REFERENCES TrainStation(station_crs)
+    CONSTRAINT trainserviceendpoint_service_id_station_crs_origin_unique UNIQUE (service_id, station_id, origin),
+    FOREIGN KEY (service_id) REFERENCES TrainService(service_id) ON DELETE CASCADE,
+    FOREIGN KEY (station_id) REFERENCES TrainStation(station_crs)
 );
 
 CREATE TABLE TrainCall (
     call_id SERIAL PRIMARY KEY,
-    service_id TEXT NOT NULL,
-    run_date TIMESTAMP WITH TIME ZONE NOT NULL,
-    station_crs CHARACTER(3) NOT NULL,
+    service_id INT NOT NULL,
+    station_id INT NOT NULL,
     platform TEXT,
     plan_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
@@ -139,8 +142,8 @@ CREATE TABLE TrainCall (
     mileage NUMERIC,
     CONSTRAINT call_arr_unique UNIQUE (service_id, run_date, station_crs, plan_arr),
     CONSTRAINT call_dep_unique UNIQUE (service_id, run_date, station_crs, plan_dep),
-    FOREIGN KEY (service_id, run_date) REFERENCES TrainService(service_id, run_date) ON DELETE CASCADE,
-    FOREIGN KEY (station_crs) REFERENCES TrainStation(station_crs),
+    FOREIGN KEY (service_id) REFERENCES TrainService(service_id) ON DELETE CASCADE,
+    FOREIGN KEY (station_id) REFERENCES TrainStation(station_id),
     CONSTRAINT mileage_positive CHECK (mileage >= 0)
 );
 
@@ -154,19 +157,18 @@ INSERT INTO TrainAssociatedServiceType(associated_type) VALUES ('JOINS_TO');
 INSERT INTO TrainAssociatedServiceType(associated_type) VALUES ('JOINS_WITH');
 
 CREATE TABLE TrainAssociatedService (
-    call_id INT NOT NULL,
-    associated_id TEXT NOT NULL,
-    associated_run_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    call_id INTEGER NOT NULL,
+    associated_service_id INT NOT NULL,
     associated_type TEXT NOT NULL,
     FOREIGN KEY (associated_type) REFERENCES TrainAssociatedServiceType(associated_type),
     FOREIGN KEY (call_id) REFERENCES TrainCall(call_id) ON DELETE CASCADE,
-    FOREIGN KEY (associated_id, associated_run_date) REFERENCES TrainService(service_id, run_date) ON DELETE CASCADE,
-    CONSTRAINT assoc_unique UNIQUE (call_id, associated_id, associated_run_date, associated_type)
+    FOREIGN KEY (associated_service_id) REFERENCES TrainService(service_id) ON DELETE CASCADE,
+    CONSTRAINT assoc_unique UNIQUE (call_id, associated_service_id, associated_type)
 );
 
 CREATE TABLE TrainLeg (
     leg_id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
+    user_id INTEGER NOT NULL,
     distance NUMERIC NOT NULL,
     FOREIGN KEY (user_id) REFERENCES Traveller(user_id),
     CONSTRAINT distance_positive CHECK (distance > 0)
@@ -174,7 +176,7 @@ CREATE TABLE TrainLeg (
 
 CREATE TABLE TrainLegCall (
     leg_call_id SERIAL PRIMARY KEY,
-    leg_id INT NOT NULL,
+    leg_id INTEGER NOT NULL,
     arr_call_id INTEGER,
     dep_call_id INTEGER,
     mileage NUMERIC,
@@ -190,8 +192,8 @@ CREATE TABLE TrainLegCall (
 
 CREATE TABLE TrainStockSegment (
     stock_segment_id SERIAL PRIMARY KEY,
-    start_call INT NOT NULL,
-    end_call INT NOT NULL,
+    start_call INTEGER NOT NULL,
+    end_call INTEGER NOT NULL,
     FOREIGN KEY (start_call) REFERENCES TrainCall(call_id) ON DELETE CASCADE,
     FOREIGN KEY (end_call) REFERENCES TrainCall(call_id) ON DELETE CASCADE,
     CONSTRAINT stock_segment_unique UNIQUE (start_call, end_call)
@@ -244,8 +246,8 @@ CREATE TABLE TrainStockReport (
 );
 
 CREATE TABLE TrainStockSegmentReport (
-    stock_segment_id INT NOT NULL,
-    stock_report_id INT NOT NULL,
+    stock_segment_id INTEGER NOT NULL,
+    stock_report_id INTEGER NOT NULL,
     FOREIGN KEY (stock_segment_id) REFERENCES TrainStockSegment(stock_segment_id),
     FOREIGN KEY (stock_report_id) REFERENCES TrainStockReport(stock_report_id)
 );
