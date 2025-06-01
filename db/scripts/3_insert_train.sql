@@ -11,7 +11,7 @@ DECLARE
     v_operator_id INT;
     v_brand_id INT;
 BEGIN
-    INSERT INTO Service(
+    INSERT INTO TrainService(
         service_id,
         run_date,
         headcode,
@@ -39,7 +39,7 @@ BEGIN
         v_endpoint.origin
     FROM UNNEST(p_endpoints) AS v_endpoint
     ON CONFLICT DO NOTHING;
-    INSERT INTO Call(
+    INSERT INTO TrainCall(
         service_id,
         run_date,
         station_crs,
@@ -61,7 +61,7 @@ BEGIN
         v_call.mileage
     FROM UNNEST(p_calls) AS v_call
     ON CONFLICT DO NOTHING;
-    INSERT INTO AssociatedService(
+    INSERT INTO TrainAssociatedService(
         call_id,
         associated_id,
         associated_run_date,
@@ -97,11 +97,11 @@ $$
 DECLARE
     v_leg_id INT;
 BEGIN
-    INSERT INTO Leg(user_id, distance)
+    INSERT INTO TrainLeg(user_id, distance)
     VALUES (p_user_id, p_leg_distance)
     RETURNING leg_id INTO v_leg_id;
 
-    INSERT INTO LegCall(leg_id, arr_call_id, dep_call_id, mileage, assoc_type)
+    INSERT INTO TrainLegCall(leg_id, arr_call_id, dep_call_id, mileage, assoc_type)
         SELECT
             v_leg_id,
             (SELECT GetCallFromLegCall(
@@ -125,7 +125,7 @@ BEGIN
             v_legcall.mileage,
             v_legcall.assoc_type
         FROM UNNEST(p_legcalls) AS v_legcall;
-    INSERT INTO StockSegment(start_call, end_call)
+    INSERT INTO TrainStockSegment(start_call, end_call)
         SELECT
             (SELECT GetCallFromLegCall(
                 v_stockreport.arr_call_service_id,
@@ -147,7 +147,7 @@ BEGIN
             ))
         FROM UNNEST(p_stockreports) AS v_stockreport
         ON CONFLICT DO NOTHING;
-    INSERT INTO StockReport(
+    INSERT INTO TrainStockReport(
         stock_class,
         stock_subclass,
         stock_number,
@@ -159,7 +159,7 @@ BEGIN
         v_stockreport.stock_cars
     FROM UNNEST(p_stockreports) AS v_stockreport
     ON CONFLICT DO NOTHING;
-    INSERT INTO StockSegmentReport(
+    INSERT INTO TrainStockSegmentReport(
         stock_segment_id,
         stock_report_id
     ) SELECT

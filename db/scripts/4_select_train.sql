@@ -11,11 +11,11 @@ BEGIN
             (associated_id, associated_run_date, associated_type)::OutAssocData AS call_assocs
         FROM (
             SELECT
-                AssociatedService.call_id,
-                AssociatedService.associated_id,
-                AssociatedService.associated_run_date,
-                AssociatedService.associated_type
-            FROM AssociatedService
+                TrainAssociatedService.call_id,
+                TrainAssociatedService.associated_id,
+                TrainAssociatedService.associated_run_date,
+                TrainAssociatedService.associated_type
+            FROM TrainAssociatedService
         ) AssocData
     )
     SELECT
@@ -38,15 +38,15 @@ BEGIN
             CallStock.start_call,
             (stock_class, stock_subclass, stock_number, stock_cars)::OutStockData AS stock_data
         FROM (
-            SELECT StockSegment.start_call, stock_class, stock_subclass,
+            SELECT TrainStockSegment.start_call, stock_class, stock_subclass,
                 stock_number, stock_cars
-            FROM StockSegment
-            INNER JOIN StockSegmentReport
-            ON StockSegment.stock_segment_id = StockSegmentReport.stock_segment_id
-            INNER JOIN StockReport
-            ON StockSegmentReport.stock_report_id = StockReport.stock_report_id
-            INNER JOIN Call
-            ON StockSegment.start_call = Call.call_id
+            FROM TrainStockSegment
+            INNER JOIN TrainStockSegmentReport
+            ON TrainStockSegment.stock_segment_id = TrainStockSegmentReport.stock_segment_id
+            INNER JOIN TrainStockReport
+            ON TrainStockSegmentReport.stock_report_id = TrainStockReport.stock_report_id
+            INNER JOIN TrainCall
+            ON TrainStockSegment.start_call = TrainCall.call_id
         ) CallStock
     )
     SELECT call_stock_data.start_call, ARRAY_AGG(call_stock_data.stock_data)
@@ -75,13 +75,13 @@ BEGIN
         ) AS leg_calls
     FROM (
         SELECT
-            LegCall.leg_id, (
-                LegCall.arr_call_id,
+            TrainLegCall.leg_id, (
+                TrainLegCall.arr_call_id,
                 ArrCall.service_id,
                 ArrCall.run_date,
                 ArrCall.plan_arr,
                 ArrCall.act_arr,
-                LegCall.dep_call_id,
+                TrainLegCall.dep_call_id,
                 DepCall.service_id,
                 DepCall.run_date,
                 DepCall.plan_dep,
@@ -91,21 +91,21 @@ BEGIN
                     COALESCE(ArrStation.station_name, DepStation.station_name)
                 )::OutStationData,
                 COALESCE(ArrCall.platform, DepCall.platform),
-                LegCall.mileage,
+                TrainLegCall.mileage,
                 StockDetails.stock_info,
                 CallAssocs.call_assocs
             )::OutLegCallData AS legcall_data
-        FROM LegCall
-        LEFT JOIN Call ArrCall
-        ON LegCall.arr_call_id = ArrCall.call_id
-        LEFT JOIN Station ArrStation
+        FROM TrainLegCall
+        LEFT JOIN TrainCall ArrCall
+        ON TrainLegCall.arr_call_id = ArrCall.call_id
+        LEFT JOIN TrainStation ArrStation
         ON ArrCall.station_crs = ArrStation.station_crs
-        LEFT JOIN Call DepCall
-        ON LegCall.dep_call_id = DepCall.call_id
-        LEFT JOIN Station DepStation
+        LEFT JOIN TrainCall DepCall
+        ON TrainLegCall.dep_call_id = DepCall.call_id
+        LEFT JOIN TrainStation DepStation
         ON DepCall.station_crs = DepStation.station_crs
         LEFT JOIN (SELECT * FROM SelectCallStockInfo()) StockDetails
-        ON LegCall.dep_call_id = StockDetails.start_call
+        ON TrainLegCall.dep_call_id = StockDetails.start_call
         LEFT JOIN (SELECT * FROM SelectCallAssocData()) CallAssocs
         ON ArrCall.call_id = CallAssocs.call_id
         ORDER BY COALESCE(ArrCall.plan_arr, ArrCall.act_arr, DepCall.plan_dep, DepCall.act_arr) ASC
@@ -130,10 +130,10 @@ BEGIN
         SELECT
             ServiceEndpoint.service_id,
             ServiceEndpoint.run_date,
-            (Station.station_crs, Station.station_name)::OutStationData AS endpoint_data
+            (TrainStation.station_crs, TrainStation.station_name)::OutStationData AS endpoint_data
         FROM ServiceEndpoint
-        INNER JOIN Station
-        ON ServiceEndpoint.station_crs = Station.station_crs
+        INNER JOIN TrainStation
+        ON ServiceEndpoint.station_crs = TrainStation.station_crs
         WHERE origin = p_origin
     )
     SELECT
@@ -158,26 +158,26 @@ BEGIN
     RETURN QUERY
     WITH CallInfo AS (
         SELECT
-            Call.service_id,
-            Call.run_date, (
+            TrainCall.service_id,
+            TrainCall.run_date, (
                 (
-                    Call.station_crs,
-                    Station.station_name
+                    TrainCall.station_crs,
+                    TrainStation.station_name
                 )::OutStationData,
-                Call.platform,
-                Call.plan_arr,
-                Call.plan_dep,
-                Call.act_arr,
-                Call.act_dep,
+                TrainCall.platform,
+                TrainCall.plan_arr,
+                TrainCall.plan_dep,
+                TrainCall.act_arr,
+                TrainCall.act_dep,
                 CallAssoc.call_assocs,
-                Call.mileage
+                TrainCall.mileage
             )::OutCallData AS call_data
-        FROM Call
-        INNER JOIN Station
-        ON Call.station_crs = Station.station_crs
+        FROM TrainCall
+        INNER JOIN TrainStation
+        ON TrainCall.station_crs = TrainStation.station_crs
         LEFT JOIN (SELECT * FROM SelectCallAssocData()) CallAssoc
-        ON CallAssoc.call_id = Call.call_id
-        ORDER BY COALESCE(Call.plan_arr, Call.plan_dep, Call.act_arr, Call.act_dep)
+        ON CallAssoc.call_id = TrainCall.call_id
+        ORDER BY COALESCE(TrainCall.plan_arr, TrainCall.plan_dep, TrainCall.act_arr, TrainCall.act_dep)
     )
     SELECT
         CallInfo.service_id,
@@ -201,17 +201,17 @@ BEGIN
     RETURN QUERY
     WITH ServiceAssoc AS (
         SELECT
-            Call.service_id,
-            Call.run_date,
+            TrainCall.service_id,
+            TrainCall.run_date,
             (
-                AssociatedService.call_id,
-                AssociatedService.associated_id,
-                AssociatedService.associated_run_date,
-                AssociatedService.associated_type
+                TrainAssociatedService.call_id,
+                TrainAssociatedService.associated_id,
+                TrainAssociatedService.associated_run_date,
+                TrainAssociatedService.associated_type
             )::OutServiceAssocData AS service_assoc
-        FROM AssociatedService
-        INNER JOIN Call
-        On AssociatedService.call_id = Call.call_id
+        FROM TrainAssociatedService
+        INNER JOIN TrainCall
+        On TrainAssociatedService.call_id = TrainCall.call_id
     )
     SELECT
         ServiceAssoc.service_id,
@@ -229,18 +229,18 @@ AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT DISTINCT Leg.leg_id, Service.service_id, Service.run_date
-    FROM Leg
+    SELECT DISTINCT TrainLeg.leg_id, TrainService.service_id, TrainService.run_date
+    FROM TrainLeg
     INNER JOIN Legcall
-    ON Leg.leg_id = LegCall.leg_id
+    ON TrainLeg.leg_id = TrainLegCall.leg_id
     INNER JOIN call
     ON (
-        Call.call_id = LegCall.arr_call_id
-        OR Call.call_id = LegCall.dep_call_id
+        TrainCall.call_id = TrainLegCall.arr_call_id
+        OR TrainCall.call_id = TrainLegCall.dep_call_id
     )
     INNER JOIN service
-    ON Call.service_id = Service.service_id
-    AND Call.run_date = Service.run_date;
+    ON TrainCall.service_id = TrainService.service_id
+    AND TrainCall.run_date = TrainService.run_date;
 END;
 $$;
 
@@ -256,12 +256,12 @@ $$
 BEGIN
     RETURN QUERY
     SELECT
-        Service.service_id,
-        Service.run_date,
+        TrainService.service_id,
+        TrainService.run_date,
         (
-            Service.service_id,
-            Service.run_date,
-            Service.headcode,
+            TrainService.service_id,
+            TrainService.run_date,
+            TrainService.headcode,
             COALESCE(
                 ServiceCall.call_data[1].plan_arr,
                 ServiceCall.call_data[1].act_arr,
@@ -271,39 +271,39 @@ BEGIN
             ServiceOrigin.endpoint_data,
             ServiceDestination.endpoint_data,
             (
-                Operator.operator_id,
-                Operator.operator_code,
-                Operator.operator_name,
-                Operator.bg_colour,
-                Operator.fg_colour
+                TrainOperator.operator_id,
+                TrainOperator.operator_code,
+                TrainOperator.operator_name,
+                TrainOperator.bg_colour,
+                TrainOperator.fg_colour
             )::OutOperatorData,
             (
-                Brand.brand_id,
-                Brand.brand_code,
-                Brand.brand_name,
-                Brand.bg_colour,
-                Brand.fg_colour
+                TrainBrand.brand_id,
+                TrainBrand.brand_code,
+                TrainBrand.brand_name,
+                TrainBrand.bg_colour,
+                TrainBrand.fg_colour
             )::OutBrandData,
             ServiceCall.call_data,
             ServiceAssoc.service_assocs
         )::OutServiceData AS service_data
-    FROM Service
+    FROM TrainService
     LEFT JOIN (SELECT * FROM SelectServiceEndpoints(true)) ServiceOrigin
-    On ServiceOrigin.service_id = Service.service_id
-    AND ServiceOrigin.run_date = Service.run_date
+    On ServiceOrigin.service_id = TrainService.service_id
+    AND ServiceOrigin.run_date = TrainService.run_date
     LEFT JOIN (SELECT * FROM SelectServiceEndpoints(false)) ServiceDestination
-    On ServiceDestination.service_id = Service.service_id
-    AND ServiceDestination.run_date = Service.run_date
+    On ServiceDestination.service_id = TrainService.service_id
+    AND ServiceDestination.run_date = TrainService.run_date
     LEFT JOIN (SELECT * FROM SelectServiceCalls()) ServiceCall
-    ON Service.service_id = ServiceCall.service_id
-    AND Service.run_date = ServiceCall.run_date
+    ON TrainService.service_id = ServiceCall.service_id
+    AND TrainService.run_date = ServiceCall.run_date
     LEFT JOIN (SELECT * FROM SelectServiceAssocs()) ServiceAssoc
-    ON Service.service_id = ServiceAssoc.service_id
-    AND Service.run_date = ServiceAssoc.service_run_date
-    INNER JOIN Operator
-    ON Service.operator_id = Operator.operator_id
-    LEFT JOIN Brand
-    ON Service.brand_id = Brand.brand_id
+    ON TrainService.service_id = ServiceAssoc.service_id
+    AND TrainService.run_date = ServiceAssoc.service_run_date
+    INNER JOIN TrainOperator
+    ON TrainService.operator_id = TrainOperator.operator_id
+    LEFT JOIN TrainBrand
+    ON TrainService.brand_id = TrainBrand.brand_id
     ORDER BY (service_data).service_start;
 END;
 $$;
@@ -334,11 +334,11 @@ $$
 BEGIN
     RETURN QUERY
     SELECT
-        StockSegment.stock_segment_id,
+        TrainStockSegment.stock_segment_id,
         ARRAY_AGG(StockReportData.stock_report)
-    FROM StockSegment
-    INNER JOIN StockSegmentReport
-    ON StockSegmentReport.stock_segment_id = StockSegment.stock_segment_id
+    FROM TrainStockSegment
+    INNER JOIN TrainStockSegmentReport
+    ON TrainStockSegmentReport.stock_segment_id = TrainStockSegment.stock_segment_id
     INNER JOIN (
         SELECT stock_report_id, (
             stock_class,
@@ -346,10 +346,10 @@ BEGIN
             stock_number,
             stock_cars
         )::OutStockData AS stock_report
-        FROM StockReport
+        FROM TrainStockReport
     ) StockReportData
-    ON StockReportData.stock_report_id = StockSegmentReport.stock_report_id
-    GROUP BY StockSegment.stock_segment_id;
+    ON StockReportData.stock_report_id = TrainStockSegmentReport.stock_report_id
+    GROUP BY TrainStockSegment.stock_segment_id;
 END;
 $$;
 
@@ -388,20 +388,20 @@ BEGIN
                 COALESCE(StartCall.act_dep, StartCall.plan_dep),
                 StockSegmentStockReport.stock_data
             )::OutLegStock AS stock_segment
-        FROM StockSegment
+        FROM TrainStockSegment
         INNER JOIN (SELECT * FROM SelectStockSegmentStockReports()) StockSegmentStockReport
-        ON StockSegment.stock_segment_id = StockSegmentStockReport.stock_segment_id
-        INNER JOIN Call StartCall
-        ON StockSegment.start_call = StartCall.call_id
-        INNER JOIN Station StartStation
+        ON TrainStockSegment.stock_segment_id = StockSegmentStockReport.stock_segment_id
+        INNER JOIN TrainCall StartCall
+        ON TrainStockSegment.start_call = StartCall.call_id
+        INNER JOIN TrainStation StartStation
         ON StartCall.station_crs = StartStation.station_crs
-        INNER JOIN Call EndCall
-        ON StockSegment.end_call = EndCall.call_id
-        INNER JOIN Station EndStation
+        INNER JOIN TrainCall EndCall
+        ON TrainStockSegment.end_call = EndCall.call_id
+        INNER JOIN TrainStation EndStation
         ON EndCall.station_crs = EndStation.station_crs
-        INNER JOIN LegCall StartLegCall
+        INNER JOIN TrainLegCall StartLegCall
         ON StartLegCall.dep_call_id = StartCall.call_id
-        INNER JOIN LegCall EndLegCall
+        INNER JOIN TrainLegCall EndLegCall
         ON EndLegCall.arr_call_id = EndCall.call_id
     ) LegStockSegment
     GROUP BY LegStockSegment.leg_id;
@@ -430,8 +430,8 @@ BEGIN
         LegDetails.leg_end - LegDetails.leg_start AS leg_duration
     FROM (
         SELECT
-            Leg.leg_id AS leg_id,
-            Leg.user_id AS user_id,
+            TrainLeg.leg_id AS leg_id,
+            TrainLeg.user_id AS user_id,
             COALESCE(
                 LegCallLink.leg_calls[1].plan_dep,
                 LegCallLink.leg_calls[1].act_dep,
@@ -447,14 +447,14 @@ BEGIN
             LegService.leg_services,
             LegCallLink.leg_calls,
             LegStock.leg_stock,
-            Leg.distance AS leg_distance
-        FROM Leg
+            TrainLeg.distance AS leg_distance
+        FROM TrainLeg
         INNER JOIN (SELECT * FROM SelectLegServices()) LegService
-        ON LegService.leg_id = Leg.leg_id
+        ON LegService.leg_id = TrainLeg.leg_id
         INNER JOIN (SELECT * FROM SelectLegCalls()) LegCallLink
-        ON LegCallLink.leg_id = Leg.leg_id
+        ON LegCallLink.leg_id = TrainLeg.leg_id
         INNER JOIN (SELECT * FROM SelectLegStock()) LegStock
-        ON LegStock.leg_id = Leg.leg_id
+        ON LegStock.leg_id = TrainLeg.leg_id
     ) LegDetails
     WHERE (p_start_date IS NULL OR LegDetails.leg_start >= p_start_date)
     AND (p_end_date IS NULL OR LegDetails.leg_start <= p_end_date)
@@ -474,7 +474,7 @@ $$
 BEGIN
     RETURN QUERY
     SELECT station_crs, station_name, longitude, latitude
-    FROM Station
+    FROM TrainStation
     WHERE station_name = ANY(p_station_names);
 END;
 $$;
@@ -489,7 +489,7 @@ $$
 BEGIN
     RETURN QUERY
     SELECT station_crs, station_name, longitude, latitude
-    FROM Station
+    FROM TrainStation
     WHERE station_crs = ANY(p_station_crses);
 END;
 $$;
@@ -505,7 +505,7 @@ $$
 BEGIN
     RETURN QUERY
     SELECT platform, latitude, longitude
-    FROM StationPoint
+    FROM TrainStationPoint
     WHERE station_crs = p_station_crs
     AND (p_platform IS NULL OR platform = p_platform);
 END;
@@ -522,9 +522,9 @@ $$
 BEGIN
     RETURN QUERY
     SELECT platform, latitude, longitude
-    FROM StationPoint
-    INNER JOIN Station
-    ON Station.station_crs = StationPoint.station_crs
+    FROM TrainStationPoint
+    INNER JOIN TrainStation
+    ON TrainStation.station_crs = TrainStationPoint.station_crs
     WHERE station_name = p_station_name
     AND (p_platform IS NULL OR platform = p_platform);
 END;
@@ -544,21 +544,21 @@ BEGIN
         WITH
             arr AS (SELECT * FROM unnest(p_stations)),
             platform_match AS (
-                SELECT StationPoint.*, station_name
-                FROM StationPoint
+                SELECT TrainStationPoint.*, station_name
+                FROM TrainStationPoint
                 INNER JOIN arr
-                ON arr.station_crs = StationPoint.station_crs
-                AND arr.station_platform = StationPoint.platform
-                INNER JOIN Station
-                ON Station.station_crs = StationPoint.station_crs
+                ON arr.station_crs = TrainStationPoint.station_crs
+                AND arr.station_platform = TrainStationPoint.platform
+                INNER JOIN TrainStation
+                ON TrainStation.station_crs = TrainStationPoint.station_crs
             ),
             station_match AS (
-                SELECT StationPoint.*, station_name
-                FROM StationPoint
+                SELECT TrainStationPoint.*, station_name
+                FROM TrainStationPoint
                 INNER JOIN arr
-                ON arr.station_crs = StationPoint.station_crs
-                INNER JOIN Station
-                ON Station.station_crs = StationPoint.station_crs
+                ON arr.station_crs = TrainStationPoint.station_crs
+                INNER JOIN TrainStation
+                ON TrainStation.station_crs = TrainStationPoint.station_crs
             )
         SELECT
             station_crs,
@@ -600,17 +600,17 @@ BEGIN
                     latitude,
                     longitude
                 FROM ((
-                    SELECT StationPoint.*, Station.station_name
-                    FROM StationPoint
-                    INNER JOIN Station
-                    ON StationPoint.station_crs = Station.station_crs
+                    SELECT TrainStationPoint.*, TrainStation.station_name
+                    FROM TrainStationPoint
+                    INNER JOIN TrainStation
+                    ON TrainStationPoint.station_crs = TrainStation.station_crs
                 ) UNION (
-                    SELECT StationPoint.*, StationName.alternate_station_name AS station_name
-                    FROM StationPoint
-                    INNER JOIN Station
-                    ON StationPoint.station_crs = Station.station_crs
-                    INNER JOIN StationName
-                    ON StationPoint.station_crs = StationName.station_crs
+                    SELECT TrainStationPoint.*, TrainStationName.alternate_station_name AS station_name
+                    FROM TrainStationPoint
+                    INNER JOIN TrainStation
+                    ON TrainStationPoint.station_crs = TrainStation.station_crs
+                    INNER JOIN TrainStationName
+                    ON TrainStationPoint.station_crs = TrainStationName.station_crs
                 )) names
                 INNER JOIN arr
                 ON arr.station_name = names.station_name
@@ -624,17 +624,17 @@ BEGIN
                     latitude,
                     longitude
                 FROM ((
-                    SELECT StationPoint.*, Station.station_name
-                    FROM StationPoint
-                    INNER JOIN Station
-                    ON StationPoint.station_crs = Station.station_crs
+                    SELECT TrainStationPoint.*, TrainStation.station_name
+                    FROM TrainStationPoint
+                    INNER JOIN TrainStation
+                    ON TrainStationPoint.station_crs = TrainStation.station_crs
                 ) UNION (
-                    SELECT StationPoint.*, StationName.alternate_station_name AS station_name
-                    FROM StationPoint
-                    INNER JOIN Station
-                    ON StationPoint.station_crs = Station.station_crs
-                    INNER JOIN StationName
-                    ON StationPoint.station_crs = StationName.station_crs
+                    SELECT TrainStationPoint.*, TrainStationName.alternate_station_name AS station_name
+                    FROM TrainStationPoint
+                    INNER JOIN TrainStation
+                    ON TrainStationPoint.station_crs = TrainStation.station_crs
+                    INNER JOIN TrainStationName
+                    ON TrainStationPoint.station_crs = TrainStationName.station_crs
                 )) names
                 INNER JOIN arr
                 ON arr.station_name = names.station_name
@@ -644,8 +644,8 @@ BEGIN
                 )
             )
         SELECT
-            Station.station_crs,
-            Station.station_name,
+            TrainStation.station_crs,
+            TrainStation.station_name,
             Match.station_name AS search_name,
             (platform, latitude, longitude)::StationLatLon
             AS station_point
@@ -666,8 +666,8 @@ BEGIN
                 station_match.longitude
             FROM station_match
         )) Match
-        INNER JOIN Station
-        ON Station.station_crs = Match.station_crs
+        INNER JOIN TrainStation
+        ON TrainStation.station_crs = Match.station_crs
     ) points
     GROUP BY (station_crs, station_name, search_name);
 END;
@@ -683,12 +683,12 @@ BEGIN
     SELECT station_crs, station_name, ARRAY_AGG(station_point)
     FROM (
         SELECT
-            StationPoint.station_crs,
+            TrainStationPoint.station_crs,
             station_name,
             (platform, latitude, longitude)::StationLatLon AS station_point
-        FROM StationPoint
-        INNER JOIN Station
-        ON StationPoint.station_crs = Station.station_crs
+        FROM TrainStationPoint
+        INNER JOIN TrainStation
+        ON TrainStationPoint.station_crs = TrainStation.station_crs
     )
     GROUP BY (station_crs, station_name);
 END;
@@ -705,17 +705,17 @@ $$
 BEGIN
     RETURN QUERY
     SELECT
-        Brand.brand_id,
-        Brand.brand_code,
-        Brand.brand_name,
-        Brand.bg_colour,
-        Brand.fg_colour
-    FROM Brand
-    INNER JOIN Operator
-    ON Brand.parent_operator = Operator.operator_id
-    WHERE p_operator_code = Operator.operator_code
+        TrainBrand.brand_id,
+        TrainBrand.brand_code,
+        TrainBrand.brand_name,
+        TrainBrand.bg_colour,
+        TrainBrand.fg_colour
+    FROM TrainBrand
+    INNER JOIN TrainOperator
+    ON TrainBrand.parent_operator = TrainOperator.operator_id
+    WHERE p_operator_code = TrainOperator.operator_code
     AND operation_range @> p_run_date::date
-    ORDER BY Brand.brand_name;
+    ORDER BY TrainBrand.brand_name;
 END;
 $$;
 
@@ -732,40 +732,40 @@ AS
 $$
 BEGIN
     RETURN QUERY
-        SELECT DISTINCT StockFormation.cars
-        FROM StockFormation
+        SELECT DISTINCT TrainStockFormation.cars
+        FROM TrainStockFormation
         INNER JOIN (
-            SELECT Stock.stock_class, StockSubclass.stock_subclass
+            SELECT TrainStock.stock_class, TrainStockSubclass.stock_subclass
             FROM stock
-            LEFT JOIN StockSubclass
-            ON Stock.stock_class = StockSubclass.stock_class
+            LEFT JOIN TrainStockSubclass
+            ON TrainStock.stock_class = TrainStockSubclass.stock_class
         ) Stocks
-        ON StockFormation.stock_class = Stocks.stock_class
+        ON TrainStockFormation.stock_class = Stocks.stock_class
         AND (
-            (Stocks.stock_subclass = StockFormation.stock_subclass)
+            (Stocks.stock_subclass = TrainStockFormation.stock_subclass)
             OR (
                 Stocks.stock_subclass IS NULL
-                AND StockFormation.stock_subclass IS NULL
+                AND TrainStockFormation.stock_subclass IS NULL
             )
         )
-        INNER JOIN OperatorStock
-        ON Stocks.stock_class = OperatorStock.stock_class
+        INNER JOIN TrainOperatorStock
+        ON Stocks.stock_class = TrainOperatorStock.stock_class
         AND (
-            (Stocks.stock_subclass = OperatorStock.stock_subclass)
+            (Stocks.stock_subclass = TrainOperatorStock.stock_subclass)
             OR (
                 Stocks.stock_subclass IS NULL
-                AND OperatorStock.stock_subclass IS NULL
+                AND TrainOperatorStock.stock_subclass IS NULL
             )
         )
-        INNER JOIN Operator
-        ON OperatorStock.operator_id = Operator.operator_id
-        LEFT JOIN Brand
-        ON OperatorStock.brand_id = Brand.brand_id
+        INNER JOIN TrainOperator
+        ON TrainOperatorStock.operator_id = TrainOperator.operator_id
+        LEFT JOIN TrainBrand
+        ON TrainOperatorStock.brand_id = TrainBrand.brand_id
         WHERE Stocks.stock_class = p_stock_class
-        AND Operator.operator_code = p_operator_code
-        AND Operator.operation_range @> p_run_date::DATE
-        AND (p_brand_code IS NULL OR Brand.brand_code = p_brand_code)
+        AND TrainOperator.operator_code = p_operator_code
+        AND TrainOperator.operation_range @> p_run_date::DATE
+        AND (p_brand_code IS NULL OR TrainBrand.brand_code = p_brand_code)
         AND (p_stock_subclass IS NULL OR Stocks.stock_subclass = p_stock_subclass)
-        ORDER BY StockFormation.cars ASC;
+        ORDER BY TrainStockFormation.cars ASC;
 END;
 $$;

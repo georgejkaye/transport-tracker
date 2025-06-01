@@ -10,24 +10,24 @@ $$
 BEGIN
     RETURN QUERY
     SELECT
-        Leg.leg_id,
+        TrainLeg.leg_id,
         LegEnds.start_time
-    FROM Leg
+    FROM TrainLeg
     INNER JOIN (
         SELECT
-            LegCall.leg_id,
+            TrainLegCall.leg_id,
             MIN(
-                COALESCE(Call.act_dep, Call.act_arr, Call.plan_dep, Call.plan_arr)
+                COALESCE(TrainCall.act_dep, TrainCall.act_arr, TrainCall.plan_dep, TrainCall.plan_arr)
             ) AS start_time
-        FROM LegCall
-        INNER JOIN Call
-        ON COALESCE(LegCall.dep_call_id, LegCall.arr_call_id) = Call.call_id
-        GROUP BY LegCall.leg_id
+        FROM TrainLegCall
+        INNER JOIN TrainCall
+        ON COALESCE(TrainLegCall.dep_call_id, TrainLegCall.arr_call_id) = TrainCall.call_id
+        GROUP BY TrainLegCall.leg_id
     ) LegEnds
-    ON Leg.leg_id = LegEnds.leg_id
+    ON TrainLeg.leg_id = LegEnds.leg_id
     WHERE (p_start_date IS NULL OR LegEnds.start_time >= p_start_date)
     AND (p_end_date IS NULL OR LegEnds.start_time <= p_end_date)
-    AND Leg.user_id = p_user_id
+    AND TrainLeg.user_id = p_user_id
     ORDER BY LegEnds.start_time;
 END;
 $$;
@@ -47,13 +47,13 @@ $$
 BEGIN
     RETURN QUERY
     SELECT StationCall.station_crs, StationCall.count FROM (
-        SELECT Call.station_crs, COUNT(*) AS count
+        SELECT TrainCall.station_crs, COUNT(*) AS count
         FROM (SELECT * FROM GetLegIdsInRange(p_user_id, p_start_date, p_end_date)) LegId
-        INNER JOIN LegCall
-        ON LegId.leg_id = LegCall.leg_id
-        INNER JOIN Call
-        ON Call.call_id = COALESCE(LegCall.arr_call_id, LegCall.dep_call_id)
-        GROUP BY Call.station_crs
+        INNER JOIN TrainLegCall
+        ON LegId.leg_id = TrainLegCall.leg_id
+        INNER JOIN TrainCall
+        ON TrainCall.call_id = COALESCE(TrainLegCall.arr_call_id, TrainLegCall.dep_call_id)
+        GROUP BY TrainCall.station_crs
     ) StationCall
     ORDER BY StationCall.count DESC;
 END;
@@ -91,11 +91,11 @@ BEGIN
     FROM (
         SELECT
             StationCount.station_crs,
-            Station.station_name,
-            Station.operator_id,
-            Station.brand_id,
-            Operator.operator_name,
-            Brand.brand_name,
+            TrainStation.station_name,
+            TrainStation.operator_id,
+            TrainStation.brand_id,
+            TrainOperator.operator_name,
+            TrainBrand.brand_name,
             StationCount.boards,
             StationCount.alights,
             (
@@ -139,12 +139,12 @@ BEGIN
             ) LegCallCount
             ON LegCallCount.station_crs = StationBoardAlight.station_crs
         ) StationCount
-        INNER JOIN Station
-        ON StationCount.station_crs = Station.station_crs
-        INNER JOIN Operator
-        ON Station.operator_id = Operator.operator_id
-        LEFT JOIN Brand
-        ON Station.brand_id = Brand.brand_id
+        INNER JOIN TrainStation
+        ON StationCount.station_crs = TrainStation.station_crs
+        INNER JOIN TrainOperator
+        ON TrainStation.operator_id = TrainOperator.operator_id
+        LEFT JOIN TrainBrand
+        ON TrainStation.brand_id = TrainBrand.brand_id
     ) StationCount
     ORDER BY
         (StationCount.boards + StationCount.alights) DESC,
@@ -185,20 +185,20 @@ BEGIN
         WITH LegStop AS (
             SELECT
                 LegRange.leg_id,
-                Call.call_id,
-                Call.station_crs,
+                TrainCall.call_id,
+                TrainCall.station_crs,
                 COALESCE(plan_arr, plan_dep, act_arr, act_dep) AS stop_time
             FROM (
                 SELECT * FROM GetLegIdsInRange(p_user_id, p_start_date, p_end_date)
             ) LegRange
-            INNER JOIN LegCall
-            ON LegRange.leg_id = LegCall.leg_id
-            INNER JOIN Call
-            ON COALESCE(LegCall.arr_call_id, LegCall.dep_call_id) = Call.call_id
+            INNER JOIN TrainLegCall
+            ON LegRange.leg_id = TrainLegCall.leg_id
+            INNER JOIN TrainCall
+            ON COALESCE(TrainLegCall.arr_call_id, TrainLegCall.dep_call_id) = TrainCall.call_id
         )
         SELECT
             LegStopBoard.leg_id,
-            Leg.user_id,
+            TrainLeg.user_id,
             LegStopBoardStation.call_id AS board_call_id,
             LegStopBoardStation.station_crs AS board_station_crs,
             LegStopAlightStation.call_id AS alight_call_id,
@@ -231,9 +231,9 @@ BEGIN
             GROUP BY LegStop.leg_id
         ) LegStopIntermediate
         ON LegStopIntermediate.leg_id = LegStopBoard.leg_id
-        INNER JOIN Leg
-        ON LegStopBoard.leg_id = Leg.leg_id
-        WHERE Leg.user_id = p_user_id
+        INNER JOIN TrainLeg
+        ON LegStopBoard.leg_id = TrainLeg.leg_id
+        WHERE TrainLeg.user_id = p_user_id
     ) LegStopOverview;
 END;
 $$;
@@ -287,7 +287,7 @@ BEGIN
             AlightStation.station_name AS alight_station_name,
             COALESCE(
                 AlightCall.mileage - BoardCall.mileage,
-                Leg.distance
+                TrainLeg.distance
             ) AS distance,
             COALESCE(AlightCall.act_arr, AlightCall.plan_arr)
             -
@@ -299,12 +299,12 @@ BEGIN
                     COALESCE(AlightCall.plan_arr, AlightCall.plan_dep)
                 )
             ) / 60)::INTEGER AS delay,
-            COALESCE(Brand.brand_id, Operator.operator_id) AS operator_id,
-            COALESCE(Brand.brand_code, Operator.operator_code) AS operator_code,
-            COALESCE(Brand.brand_name, Operator.operator_name) AS operator_name,
+            COALESCE(TrainBrand.brand_id, TrainOperator.operator_id) AS operator_id,
+            COALESCE(TrainBrand.brand_code, TrainOperator.operator_code) AS operator_code,
+            COALESCE(TrainBrand.brand_name, TrainOperator.operator_name) AS operator_name,
             (
                 CASE
-                    WHEN Brand.brand_id IS NOT NULL THEN true
+                    WHEN TrainBrand.brand_id IS NOT NULL THEN true
                     ELSE false
                 END
             ) AS is_brand
@@ -312,24 +312,24 @@ BEGIN
             SELECT *
             FROM GetLegCallOverview(p_user_id, p_start_time, p_end_time)
         ) LegCallOverview
-        INNER JOIN Station BoardStation
+        INNER JOIN TrainStation BoardStation
         ON LegCallOverview.board_station_crs = BoardStation.station_crs
-        INNER JOIN Station AlightStation
+        INNER JOIN TrainStation AlightStation
         ON LegCallOverview.alight_station_crs = AlightStation.station_crs
-        INNER JOIN Call BoardCall
+        INNER JOIN TrainCall BoardCall
         ON LegCallOverview.board_call_id = BoardCall.call_id
-        INNER JOIN Call AlightCall
+        INNER JOIN TrainCall AlightCall
         ON LegCallOverview.alight_call_id = AlightCall.call_id
-        INNER JOIN Leg
-        ON LegCallOverview.leg_id = Leg.leg_id
-        INNER JOIN Service
-        ON BoardCall.service_id = Service.service_id
-        AND BoardCall.run_date = Service.run_date
-        INNER JOIN Operator
-        ON Service.operator_id = Operator.operator_id
-        LEFT JOIN Brand
-        ON Service.brand_id = Brand.brand_id
-        WHERE Leg.user_id = p_user_id
+        INNER JOIN TrainLeg
+        ON LegCallOverview.leg_id = TrainLeg.leg_id
+        INNER JOIN TrainService
+        ON BoardCall.service_id = TrainService.service_id
+        AND BoardCall.run_date = TrainService.run_date
+        INNER JOIN TrainOperator
+        ON TrainService.operator_id = TrainOperator.operator_id
+        LEFT JOIN TrainBrand
+        ON TrainService.brand_id = TrainBrand.brand_id
+        WHERE TrainLeg.user_id = p_user_id
     ) LegStat
     ORDER BY LegStat.leg_start;
 END;
@@ -352,24 +352,24 @@ $$
 BEGIN
     RETURN QUERY
     SELECT DISTINCT
-        Leg.leg_id,
-        StockReport.stock_class,
-        StockReport.stock_subclass,
-        StockReport.stock_number
-    FROM Leg
-    INNER JOIN LegCall
-    ON Leg.leg_id = LegCall.leg_id
-    INNER JOIN Call
-    ON LegCall.arr_call_id = Call.call_id
-    OR LegCall.dep_call_id = Call.call_id
-    INNER JOIN StockSegment
-    ON Call.call_id = StockSegment.start_call
-    INNER JOIN StockSegmentReport
-    ON StockSegment.stock_segment_id = StockSegmentReport.stock_segment_id
-    INNER JOIN StockReport
-    ON StockSegmentReport.stock_report_id = StockReport.stock_report_id
+        TrainLeg.leg_id,
+        TrainStockReport.stock_class,
+        TrainStockReport.stock_subclass,
+        TrainStockReport.stock_number
+    FROM TrainLeg
+    INNER JOIN TrainLegCall
+    ON TrainLeg.leg_id = TrainLegCall.leg_id
+    INNER JOIN TrainCall
+    ON TrainLegCall.arr_call_id = TrainCall.call_id
+    OR TrainLegCall.dep_call_id = TrainCall.call_id
+    INNER JOIN TrainStockSegment
+    ON TrainCall.call_id = TrainStockSegment.start_call
+    INNER JOIN TrainStockSegmentReport
+    ON TrainStockSegment.stock_segment_id = TrainStockSegmentReport.stock_segment_id
+    INNER JOIN TrainStockReport
+    ON TrainStockSegmentReport.stock_report_id = TrainStockReport.stock_report_id
     INNER JOIN GetLegIdsInRange(p_user_id, p_start_date, p_end_date) LegId
-    ON Leg.leg_id = LegId.leg_id;
+    ON TrainLeg.leg_id = LegId.leg_id;
 END;
 $$;
 
@@ -620,18 +620,18 @@ BEGIN
         AlightStation.longitude AS alight_longitude,
         (
             CASE WHEN LegStat.is_brand
-                THEN Brand.bg_colour
-                ELSE Operator.bg_colour
+                THEN TrainBrand.bg_colour
+                ELSE TrainOperator.bg_colour
             END
         ) AS colour
     FROM GetLegStats(p_user_id, p_start_date, p_end_date) LegStat
-    INNER JOIN Station BoardStation
+    INNER JOIN TrainStation BoardStation
     ON BoardStation.station_crs = LegStat.board_crs
-    INNER JOIN Station AlightStation
+    INNER JOIN TrainStation AlightStation
     ON AlightStation.station_crs = LegStat.alight_crs
-    LEFT JOIN Operator
-    ON LegStat.operator_id = Operator.operator_id
-    LEFT JOIN Brand
-    ON LegStat.operator_id = Brand.brand_id;
+    LEFT JOIN TrainOperator
+    ON LegStat.operator_id = TrainOperator.operator_id
+    LEFT JOIN TrainBrand
+    ON LegStat.operator_id = TrainBrand.brand_id;
 END;
 $$;

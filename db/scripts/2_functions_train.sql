@@ -9,7 +9,7 @@ $$
 DECLARE
     v_operator_id INT;
 BEGIN
-    SELECT operator_id INTO v_operator_id FROM Operator
+    SELECT operator_id INTO v_operator_id FROM TrainOperator
     WHERE operator_code = p_operator_code
     AND operation_range @> p_run_date::date;
     RETURN v_operator_id;
@@ -28,9 +28,9 @@ DECLARE
     v_brand_id INT;
 BEGIN
     SELECT brand_id INTO v_brand_id
-    FROM Brand
-    INNER JOIN Operator
-    ON Operator.operator_id = Brand.parent_operator
+    FROM TrainBrand
+    INNER JOIN TrainOperator
+    ON TrainOperator.operator_id = TrainBrand.parent_operator
     WHERE brand_code = p_brand_code
     AND operation_range @> p_run_date::date;
     RETURN v_brand_id;
@@ -56,7 +56,7 @@ BEGIN
         RETURN NULL;
     ELSE
         SELECT call_id INTO v_call_id
-        FROM Call
+        FROM TrainCall
         WHERE service_id = p_service_id
         AND run_date = p_run_date
         AND station_crs = p_station_crs
@@ -84,7 +84,7 @@ DECLARE
     v_stock_segment_id INTEGER;
 BEGIN
     SELECT stock_segment_id INTO v_stock_segment_id
-    FROM StockSegment
+    FROM TrainStockSegment
     WHERE start_call = p_start_call
     AND end_call = p_end_call;
     IF v_stock_segment_id IS NULL THEN
@@ -107,7 +107,7 @@ DECLARE
     v_stock_report_id INTEGER;
 BEGIN
     SELECT stock_report_id INTO v_stock_report_id
-    FROM StockReport
+    FROM TrainStockReport
     WHERE ((p_stock_class IS NULL AND stock_class IS NULL) OR (stock_class = p_stock_class))
     AND ((p_stock_subclass IS NULL AND stock_subclass IS NULL) OR (stock_subclass = p_stock_subclass))
     AND ((p_stock_number IS NULL AND stock_number IS NULL) OR (stock_number = p_stock_number))
