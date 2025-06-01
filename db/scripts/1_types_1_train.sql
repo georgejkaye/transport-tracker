@@ -137,14 +137,14 @@ CREATE TYPE TrainServiceOutData AS (
     service_assocs TrainAssociatedServiceData[]
 );
 
-CREATE TYPE OutStockData AS (
+CREATE TYPE TrainStockOutData AS (
     stock_class INTEGER,
     stock_subclass INTEGER,
     stock_number INTEGER,
     stock_cars INTEGER
 );
 
-CREATE TYPE OutLegCallData AS (
+CREATE TYPE TrainLegCallOutData AS (
     arr_call_id INTEGER,
     arr_service_id TEXT,
     arr_service_run_date TIMESTAMP WITH TIME ZONE,
@@ -158,26 +158,26 @@ CREATE TYPE OutLegCallData AS (
     station TrainStationOutData,
     platform TEXT,
     mileage DECIMAL,
-    stocks OutStockData[],
+    stocks TrainStockOutData[],
     assocs TrainAssocData[]
 );
 
-CREATE TYPE OutLegStock AS (
+CREATE TYPE TrainLegStockOutData AS (
     segment_start TIMESTAMP WITH TIME ZONE,
     start_station TrainStationOutData,
     end_station TrainStationOutData,
     distance DECIMAL,
     duration INTERVAL,
-    stock_data OutStockData[]
+    stock_data TrainStockOutData[]
 );
 
-CREATE TYPE OutLegData AS (
+CREATE TYPE TrainLegOutData AS (
     leg_id INTEGER,
     user_id INTEGER,
     leg_start TIMESTAMP WITH TIME ZONE,
     leg_services TrainServiceOutData[],
-    leg_calls OutLegCallData[],
-    leg_stocks OutLegStock[],
+    leg_calls TrainLegCallOutData[],
+    leg_stocks TrainLegStockOutData[],
     leg_distance DECIMAL,
     leg_duration INTERVAL
 );
