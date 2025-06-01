@@ -26,58 +26,6 @@ class LegStat:
     is_brand: bool
 
 
-@dataclass
-class StationStat:
-    station_crs: str
-    station_name: str
-    operator_id: int
-    operator_name: str
-    is_brand: bool
-    boards: int
-    alights: int
-    intermediates: int
-
-
-@dataclass
-class OperatorStat:
-    operator_id: int
-    operator_name: str
-    is_brand: bool
-    count: int
-    distance: Decimal
-    duration: timedelta
-    delay: int
-
-
-@dataclass
-class UnitStat:
-    stock_number: int
-    count: int
-    distance: Decimal
-    duration: timedelta
-
-
-@dataclass
-class ClassStat:
-    stock_class: int
-    count: int
-    distance: Decimal
-    duration: timedelta
-
-
-@dataclass
-class Stats:
-    journeys: int
-    distance: Decimal
-    duration: timedelta
-    delay: int
-    leg_stats: list[LegStat]
-    station_stats: list[StationStat]
-    operator_stats: list[OperatorStat]
-    class_stats: list[ClassStat]
-    unit_stats: list[UnitStat]
-
-
 def register_leg_stat(
     leg_id: int,
     user_id: int,
@@ -114,6 +62,18 @@ def register_leg_stat(
     )
 
 
+@dataclass
+class StationStat:
+    station_crs: str
+    station_name: str
+    operator_id: int
+    operator_name: str
+    is_brand: bool
+    boards: int
+    alights: int
+    intermediates: int
+
+
 def register_station_stat(
     station_crs: str,
     station_name: str,
@@ -136,6 +96,17 @@ def register_station_stat(
     )
 
 
+@dataclass
+class OperatorStat:
+    operator_id: int
+    operator_name: str
+    is_brand: bool
+    count: int
+    distance: Decimal
+    duration: timedelta
+    delay: int
+
+
 def register_operator_stat(
     operator_id: int,
     operator_name: str,
@@ -150,16 +121,45 @@ def register_operator_stat(
     )
 
 
-def register_class_stat(
-    stock_class: int, count: int, distance: Decimal, duration: timedelta
-):
-    return ClassStat(stock_class, count, distance, duration)
+@dataclass
+class UnitStat:
+    stock_number: int
+    count: int
+    distance: Decimal
+    duration: timedelta
 
 
 def register_unit_stat(
     stock_unit: int, count: int, distance: Decimal, duration: timedelta
 ):
     return UnitStat(stock_unit, count, distance, duration)
+
+
+@dataclass
+class ClassStat:
+    stock_class: int
+    count: int
+    distance: Decimal
+    duration: timedelta
+
+
+def register_class_stat(
+    stock_class: int, count: int, distance: Decimal, duration: timedelta
+):
+    return ClassStat(stock_class, count, distance, duration)
+
+
+@dataclass
+class Stats:
+    journeys: int
+    distance: Decimal
+    duration: timedelta
+    delay: int
+    leg_stats: list[LegStat]
+    station_stats: list[StationStat]
+    operator_stats: list[OperatorStat]
+    class_stats: list[ClassStat]
+    unit_stats: list[UnitStat]
 
 
 def register_stats(
@@ -186,12 +186,7 @@ def register_stats(
     )
 
 
-def get_train_stats(
-    conn: Connection,
-    user_id: int,
-    search_start: Optional[datetime] = None,
-    search_end: Optional[datetime] = None,
-) -> Stats:
+def register_stats_types(conn: Connection):
     register_type(conn, "OutLegStat", register_leg_stat)
     register_type(conn, "OutStationStat", register_station_stat)
     register_type(conn, "OutOperatorStat", register_operator_stat)
@@ -199,6 +194,14 @@ def get_train_stats(
     register_type(conn, "OutUnitStat", register_unit_stat)
     register_type(conn, "OutStats", register_stats)
 
+
+def get_train_stats(
+    conn: Connection,
+    user_id: int,
+    search_start: Optional[datetime] = None,
+    search_end: Optional[datetime] = None,
+) -> Stats:
+    register_stats_types(conn)
     row = conn.execute(
         "SELECT GetStats(%s, %s, %s)", [user_id, search_start, search_end]
     ).fetchone()

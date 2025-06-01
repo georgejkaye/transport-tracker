@@ -6,6 +6,7 @@ from psycopg import Connection
 from api.utils.request import make_get_request
 from api.utils.credentials import get_api_credentials
 from api.utils.database import (
+    register_type,
     str_or_null_to_datetime,
 )
 from api.utils.times import (
@@ -20,6 +21,14 @@ from api.data.toc import BrandData, OperatorData
 class ShortTrainStation:
     name: str
     crs: str
+
+
+def register_station_data(station_crs: str, station_name: str):
+    return ShortTrainStation(station_name, station_crs)
+
+
+def register_short_train_station_types(conn: Connection):
+    register_type(conn, "TrainStationOutData", register_station_data)
 
 
 def string_of_short_train_station(station: ShortTrainStation) -> str:
