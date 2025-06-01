@@ -1,23 +1,23 @@
-CREATE TYPE service_data AS (
+CREATE TYPE TrainServiceInData AS (
     service_id TEXT,
     run_date TIMESTAMP WITH TIME ZONE,
-    headcode CHARACTER(4),
-    operator_code CHARACTER(2),
-    brand_code CHARACTER(2),
+    headcode TEXT,
+    operator_code TEXT,
+    brand_code TEXT,
     power TEXT
 );
 
-CREATE TYPE endpoint_data AS (
+CREATE TYPE TrainServiceEndpointInData AS (
     service_id TEXT,
     run_date TIMESTAMP WITH TIME ZONE,
-    station_crs CHARACTER(3),
+    station_crs TEXT,
     origin BOOLEAN
 );
 
-CREATE TYPE call_data AS (
+CREATE TYPE TrainCallInData AS (
     service_id TEXT,
     run_date TIMESTAMP WITH TIME ZONE,
-    station_crs CHARACTER(3),
+    station_crs TEXT,
     platform TEXT,
     plan_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
@@ -26,10 +26,10 @@ CREATE TYPE call_data AS (
     mileage DECIMAL
 );
 
-CREATE TYPE assoc_data AS (
+CREATE TYPE TrainAssociatedServiceInData AS (
     service_id TEXT,
     run_date TIMESTAMP WITH TIME ZONE,
-    station_crs CHARACTER(3),
+    station_crs TEXT,
     plan_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
@@ -39,31 +39,17 @@ CREATE TYPE assoc_data AS (
     assoc_type TEXT
 );
 
-CREATE TYPE leg_data AS (
-    distance DECIMAL
-);
-
-CREATE TYPE legcall_call_data AS (
-    service_id TEXT,
-    call_run_date TIMESTAMP WITH TIME ZONE,
-    call_station_crs CHARACTER(3),
-    call_plan_arr TIMESTAMP WITH TIME ZONE,
-    call_plan_dep TIMESTAMP WITH TIME ZONE,
-    call_act_arr TIMESTAMP WITH TIME ZONE,
-    call_act_dep TIMESTAMP WITH TIME ZONE
-);
-
-CREATE TYPE legcall_data AS (
+CREATE TYPE LegCallInData AS (
     arr_call_service_id TEXT,
     arr_call_run_date TIMESTAMP WITH TIME ZONE,
-    arr_call_station_crs CHARACTER(3),
+    arr_call_station_crs TEXT,
     arr_call_plan_arr TIMESTAMP WITH TIME ZONE,
     arr_call_plan_dep TIMESTAMP WITH TIME ZONE,
     arr_call_act_arr TIMESTAMP WITH TIME ZONE,
     arr_call_act_dep TIMESTAMP WITH TIME ZONE,
     dep_call_service_id TEXT,
     dep_call_run_date TIMESTAMP WITH TIME ZONE,
-    dep_call_station_crs CHARACTER(3),
+    dep_call_station_crs TEXT,
     dep_call_plan_arr TIMESTAMP WITH TIME ZONE,
     dep_call_plan_dep TIMESTAMP WITH TIME ZONE,
     dep_call_act_arr TIMESTAMP WITH TIME ZONE,
@@ -72,17 +58,17 @@ CREATE TYPE legcall_data AS (
     assoc_type TEXT
 );
 
-CREATE TYPE stockreport_data AS (
+CREATE TYPE StockReportInData AS (
     arr_call_service_id TEXT,
     arr_call_run_date TIMESTAMP WITH TIME ZONE,
-    arr_call_station_crs CHARACTER(3),
+    arr_call_station_crs TEXT,
     arr_call_plan_arr TIMESTAMP WITH TIME ZONE,
     arr_call_plan_dep TIMESTAMP WITH TIME ZONE,
     arr_call_act_arr TIMESTAMP WITH TIME ZONE,
     arr_call_act_dep TIMESTAMP WITH TIME ZONE,
     dep_call_service_id TEXT,
     dep_call_run_date TIMESTAMP WITH TIME ZONE,
-    dep_call_station_crs CHARACTER(3),
+    dep_call_station_crs TEXT,
     dep_call_plan_arr TIMESTAMP WITH TIME ZONE,
     dep_call_plan_dep TIMESTAMP WITH TIME ZONE,
     dep_call_act_arr TIMESTAMP WITH TIME ZONE,
@@ -95,7 +81,7 @@ CREATE TYPE stockreport_data AS (
 
 CREATE TYPE OutOperatorData AS (
     operator_id INTEGER,
-    operator_code CHARACTER(2),
+    operator_code TEXT,
     operator_name TEXT,
     operator_bg TEXT,
     operator_fg TEXT
@@ -103,52 +89,52 @@ CREATE TYPE OutOperatorData AS (
 
 CREATE TYPE OutBrandData AS (
     brand_id INTEGER,
-    brand_code CHARACTER(2),
+    brand_code TEXT,
     brand_name TEXT,
     brand_bg TEXT,
     brand_fg TEXT
 );
 
-CREATE TYPE OutStationData AS (
-    station_crs CHARACTER(3),
+CREATE TYPE TrainStationOutData AS (
+    station_crs TEXT,
     station_name TEXT
 );
 
-CREATE TYPE OutAssocData AS (
+CREATE TYPE TrainAssocData AS (
     assoc_service_id TEXT,
     assoc_service_run_date TIMESTAMP WITH TIME ZONE,
     assoc_type TEXT
 );
 
-CREATE TYPE OutServiceAssocData AS (
+CREATE TYPE TrainAssociatedServiceData AS (
     assoc_call_id INTEGER,
     assoc_service_id TEXT,
     assoc_service_run_date TIMESTAMP WITH TIME ZONE,
     assoc_type TEXT
 );
 
-CREATE TYPE OutCallData AS (
-    station OutStationData,
+CREATE TYPE TrainCallOutData AS (
+    station TrainStationOutData,
     platform TEXT,
     plan_arr TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE,
-    assocs OutAssocData[],
+    assocs TrainAssocData[],
     mileage DECIMAL
 );
 
-CREATE TYPE OutServiceData AS (
+CREATE TYPE TrainServiceOutData AS (
     service_id TEXT,
     service_run_date TIMESTAMP WITH TIME ZONE,
-    service_headcode CHARACTER(4),
+    service_headcode TEXT,
     service_start TIMESTAMP WITH TIME ZONE,
-    service_origins OutStationData[],
-    service_destinations OutStationData[],
+    service_origins TrainStationOutData[],
+    service_destinations TrainStationOutData[],
     service_operator OutOperatorData,
     service_brand OutBrandData,
-    service_calls OutCallData[],
-    service_assocs OutServiceAssocData[]
+    service_calls TrainCallOutData[],
+    service_assocs TrainAssociatedServiceData[]
 );
 
 CREATE TYPE OutStockData AS (
@@ -169,17 +155,17 @@ CREATE TYPE OutLegCallData AS (
     dep_service_run_date TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE,
-    station OutStationData,
+    station TrainStationOutData,
     platform TEXT,
     mileage DECIMAL,
     stocks OutStockData[],
-    assocs OutAssocData[]
+    assocs TrainAssocData[]
 );
 
 CREATE TYPE OutLegStock AS (
     segment_start TIMESTAMP WITH TIME ZONE,
-    start_station OutStationData,
-    end_station OutStationData,
+    start_station TrainStationOutData,
+    end_station TrainStationOutData,
     distance DECIMAL,
     duration INTERVAL,
     stock_data OutStockData[]
@@ -189,35 +175,33 @@ CREATE TYPE OutLegData AS (
     leg_id INTEGER,
     user_id INTEGER,
     leg_start TIMESTAMP WITH TIME ZONE,
-    leg_services OutServiceData[],
+    leg_services TrainServiceOutData[],
     leg_calls OutLegCallData[],
     leg_stocks OutLegStock[],
     leg_distance DECIMAL,
     leg_duration INTERVAL
 );
 
--- Stats Types
-
-CREATE TYPE OutLegStat AS (
+CREATE TYPE LegStats AS (
     leg_id INTEGER,
     user_id INTEGER,
     board_time TIMESTAMP WITH TIME ZONE,
-    board_crs CHARACTER(3),
+    board_crs TEXT,
     board_name TEXT,
     alight_time TIMESTAMP WITH TIME ZONE,
-    alight_crs CHARACTER(3),
+    alight_crs TEXT,
     alight_name TEXT,
     distance DECIMAL,
     duration INTERVAL,
     delay INTEGER,
     operator_id INTEGER,
-    operator_code CHARACTER(2),
+    operator_code TEXT,
     operator_name TEXT,
     is_brand BOOLEAN
 );
 
-CREATE TYPE OutStationStat AS (
-    station_crs CHARACTER(3),
+CREATE TYPE TrainStationStats AS (
+    station_crs TEXT,
     station_name TEXT,
     operator_name TEXT,
     operator_id INTEGER,
@@ -227,7 +211,7 @@ CREATE TYPE OutStationStat AS (
     intermediates BIGINT
 );
 
-CREATE TYPE OutOperatorStat AS (
+CREATE TYPE TrainOperatorStats AS (
     operator_id INTEGER,
     operator_name TEXT,
     is_brand BOOLEAN,
@@ -237,34 +221,34 @@ CREATE TYPE OutOperatorStat AS (
     delay BIGINT
 );
 
-CREATE TYPE OutUnitStat AS (
+CREATE TYPE TrainUnitStats AS (
     stock_number INTEGER,
     count BIGINT,
     distance DECIMAL,
     duration INTERVAL
 );
 
-CREATE TYPE OutClassStat AS (
+CREATE TYPE TrainClassStats AS (
     stock_class INTEGER,
     count BIGINT,
     distance DECIMAL,
     duration INTERVAL
 );
 
-CREATE TYPE OutStats AS (
+CREATE TYPE TrainStats AS (
     journeys BIGINT,
     distance DECIMAL,
     duration INTERVAL,
     delay BIGINT,
-    leg_stats OutLegStat[],
-    station_stats OutStationStat[],
-    operator_stats OutOperatorStat[],
-    class_stats OutClassStat[],
-    unit_stats OutUnitStat[]
+    leg_stats LegStats[],
+    station_stats StationStats[],
+    operator_stats TrainOperatorStats[],
+    class_stats TrainClassStats[],
+    unit_stats TrainUnitStats[]
 );
 
 CREATE TYPE StationDetails AS (
-    station_crs CHARACTER(3),
+    station_crs TEXT,
     station_name TEXT,
     latitude DECIMAL,
     longitude DECIMAL
@@ -277,7 +261,7 @@ CREATE TYPE StationLatLon AS (
 );
 
 CREATE TYPE StationCrsAndPlatform AS (
-    station_crs CHARACTER(3),
+    station_crs TEXT,
     station_platform TEXT
 );
 
@@ -287,13 +271,13 @@ CREATE TYPE StationNameAndPlatform AS (
 );
 
 CREATE TYPE StationAndPoints AS (
-    station_crs CHARACTER(3),
+    station_crs TEXT,
     station_name TEXT,
     station_points StationLatLon[]
 );
 
 CREATE TYPE StationNameAndPoints AS (
-    station_crs CHARACTER(3),
+    station_crs TEXT,
     station_name TEXT,
     search_name TEXT,
     station_points StationLatLon[]

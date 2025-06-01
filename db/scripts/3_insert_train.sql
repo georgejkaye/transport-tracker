@@ -1,8 +1,8 @@
 CREATE OR REPLACE FUNCTION InsertServices(
-    p_services service_data[],
-    p_endpoints endpoint_data[],
-    p_calls call_data[],
-    p_assocs assoc_data[]
+    p_services TrainServiceInData[],
+    p_endpoints TrainServiceEndpointInData[],
+    p_calls TrainCallInData[],
+    p_assocs TrainAssociatedServiceInData[]
 ) RETURNS VOID
 LANGUAGE plpgsql
 AS
@@ -27,7 +27,7 @@ BEGIN
         v_service.power
     FROM UNNEST(p_services) AS v_service
     ON CONFLICT DO NOTHING;
-    INSERT INTO ServiceEndpoint(
+    INSERT INTO TrainServiceEndpoint(
         service_id,
         run_date,
         station_crs,
@@ -87,8 +87,8 @@ $$;
 CREATE OR REPLACE FUNCTION InsertLeg(
     p_user_id INTEGER,
     p_leg_distance DECIMAL,
-    p_legcalls legcall_data[],
-    p_stockreports stockreport_data[]
+    p_legcalls TrainLegCallInData[],
+    p_stockreports TrainStockReportInData[]
 )
 RETURNS VOID
 LANGUAGE plpgsql

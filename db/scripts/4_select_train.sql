@@ -1,5 +1,5 @@
 CREATE OR REPLACE FUNCTION SelectCallAssocData()
-RETURNS TABLE (call_id INTEGER, call_assocs OutAssocData[])
+RETURNS TABLE (call_id INTEGER, call_assocs TrainAssociatedService[])
 LANGUAGE plpgsql
 AS
 $$
@@ -8,7 +8,7 @@ BEGIN
     WITH assocs AS (
         SELECT
             AssocData.call_id,
-            (associated_id, associated_run_date, associated_type)::OutAssocData AS call_assocs
+            (associated_id, associated_run_date, associated_type)::TrainAssociatedService AS call_assocs
         FROM (
             SELECT
                 TrainAssociatedService.call_id,
@@ -27,7 +27,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION SelectCallStockInfo()
-RETURNS TABLE (start_call INTEGER, stock_info OutStockData[])
+RETURNS TABLE (start_call INTEGER, stock_info TrainStockOutData[])
 LANGUAGE plpgsql
 AS
 $$
@@ -36,7 +36,7 @@ BEGIN
     WITH call_stock_data AS (
         SELECT
             CallStock.start_call,
-            (stock_class, stock_subclass, stock_number, stock_cars)::OutStockData AS stock_data
+            (stock_class, stock_subclass, stock_number, stock_cars)::TrainStockOutData AS stock_data
         FROM (
             SELECT TrainStockSegment.start_call, stock_class, stock_subclass,
                 stock_number, stock_cars
@@ -56,7 +56,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION SelectLegCalls()
-RETURNS TABLE (leg_id INTEGER, leg_calls OutLegCallData[])
+RETURNS TABLE (leg_id INTEGER, leg_calls TrainLegCallOutData[])
 LANGUAGE plpgsql
 AS
 $$
@@ -89,12 +89,12 @@ BEGIN
                 (
                     COALESCE(ArrCall.station_crs, DepCall.station_crs),
                     COALESCE(ArrStation.station_name, DepStation.station_name)
-                )::OutStationData,
+                )::TrainStationOutData,
                 COALESCE(ArrCall.platform, DepCall.platform),
                 TrainLegCall.mileage,
                 StockDetails.stock_info,
                 CallAssocs.call_assocs
-            )::OutLegCallData AS legcall_data
+            )::TrainLegCallOutData AS legcall_data
         FROM TrainLegCall
         LEFT JOIN TrainCall ArrCall
         ON TrainLegCall.arr_call_id = ArrCall.call_id
@@ -120,7 +120,7 @@ CREATE OR REPLACE FUNCTION SelectServiceEndpoints(
 RETURNS TABLE (
     service_id TEXT,
     run_date TIMESTAMP WITH TIME ZONE,
-    endpoint_data OutStationData[])
+    endpoint_data TrainStationOutData[])
 LANGUAGE plpgsql
 AS
 $$
@@ -128,12 +128,12 @@ BEGIN
     RETURN QUERY
     WITH EndpointData AS (
         SELECT
-            ServiceEndpoint.service_id,
-            ServiceEndpoint.run_date,
-            (TrainStation.station_crs, TrainStation.station_name)::OutStationData AS endpoint_data
-        FROM ServiceEndpoint
+            TrainServiceEndpoint.service_id,
+            TrainServiceEndpoint.run_date,
+            (TrainStation.station_crs, TrainStation.station_name)::TrainStationOutData AS endpoint_data
+        FROM TrainServiceEndpoint
         INNER JOIN TrainStation
-        ON ServiceEndpoint.station_crs = TrainStation.station_crs
+        ON TrainServiceEndpoint.station_crs = TrainStation.station_crs
         WHERE origin = p_origin
     )
     SELECT
@@ -149,7 +149,7 @@ CREATE OR REPLACE FUNCTION SelectServiceCalls()
 RETURNS TABLE (
     service_id TEXT,
     run_date TIMESTAMP WITH TIME ZONE,
-    call_data OutCallData[]
+    call_data TrainCallOutData[]
 )
 LANGUAGE plpgsql
 AS
@@ -163,7 +163,7 @@ BEGIN
                 (
                     TrainCall.station_crs,
                     TrainStation.station_name
-                )::OutStationData,
+                )::TrainStationOutData,
                 TrainCall.platform,
                 TrainCall.plan_arr,
                 TrainCall.plan_dep,
@@ -171,7 +171,7 @@ BEGIN
                 TrainCall.act_dep,
                 CallAssoc.call_assocs,
                 TrainCall.mileage
-            )::OutCallData AS call_data
+            )::TrainCallOutData AS call_data
         FROM TrainCall
         INNER JOIN TrainStation
         ON TrainCall.station_crs = TrainStation.station_crs
@@ -192,7 +192,7 @@ CREATE OR REPLACE FUNCTION SelectServiceAssocs()
 RETURNS TABLE (
     service_id TEXT,
     service_run_date TIMESTAMP WITH TIME ZONE,
-    service_assocs OutServiceAssocData[]
+    service_assocs TrainAssociatedServiceOutData[]
 )
 LANGUAGE plpgsql
 AS
@@ -208,7 +208,7 @@ BEGIN
                 TrainAssociatedService.associated_id,
                 TrainAssociatedService.associated_run_date,
                 TrainAssociatedService.associated_type
-            )::OutServiceAssocData AS service_assoc
+            )::TrainAssociatedServiceOutData AS service_assoc
         FROM TrainAssociatedService
         INNER JOIN TrainCall
         On TrainAssociatedService.call_id = TrainCall.call_id
@@ -248,7 +248,7 @@ CREATE OR REPLACE FUNCTION SelectServiceData()
 RETURNS TABLE (
     service_id TEXT,
     service_run_date TIMESTAMP WITH TIME ZONE,
-    service_data OutServiceData
+    service_data TrainServiceOutData
 )
 LANGUAGE plpgsql
 AS
@@ -276,17 +276,17 @@ BEGIN
                 TrainOperator.operator_name,
                 TrainOperator.bg_colour,
                 TrainOperator.fg_colour
-            )::OutOperatorData,
+            )::TrainOperatorOutData,
             (
                 TrainBrand.brand_id,
                 TrainBrand.brand_code,
                 TrainBrand.brand_name,
                 TrainBrand.bg_colour,
                 TrainBrand.fg_colour
-            )::OutBrandData,
+            )::TrainBrandOutData,
             ServiceCall.call_data,
             ServiceAssoc.service_assocs
-        )::OutServiceData AS service_data
+        )::TrainServiceOutData AS service_data
     FROM TrainService
     LEFT JOIN (SELECT * FROM SelectServiceEndpoints(true)) ServiceOrigin
     On ServiceOrigin.service_id = TrainService.service_id
@@ -309,7 +309,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION SelectLegServices()
-RETURNS TABLE (leg_id INTEGER, leg_services OutServiceData[])
+RETURNS TABLE (leg_id INTEGER, leg_services TrainServiceOutData[])
 LANGUAGE plpgsql
 AS
 $$
@@ -327,7 +327,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION SelectStockSegmentStockReports()
-RETURNS TABLE (stock_segment_id INTEGER, stock_data OutStockData[])
+RETURNS TABLE (stock_segment_id INTEGER, stock_data TrainStockOutData[])
 LANGUAGE plpgsql
 AS
 $$
@@ -345,7 +345,7 @@ BEGIN
             stock_subclass,
             stock_number,
             stock_cars
-        )::OutStockData AS stock_report
+        )::TrainStockOutData AS stock_report
         FROM TrainStockReport
     ) StockReportData
     ON StockReportData.stock_report_id = TrainStockSegmentReport.stock_report_id
@@ -354,7 +354,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION SelectLegStock()
-RETURNS TABLE (leg_id INTEGER, leg_stock OutLegStock[])
+RETURNS TABLE (leg_id INTEGER, leg_stock TrainLegStockOutData[])
 LANGUAGE plpgsql
 AS
 $$
@@ -378,16 +378,16 @@ BEGIN
                 ), (
                     StartStation.station_crs,
                     StartStation.station_name
-                )::OutStationData,
+                )::TrainStationOutData,
                 (
                     EndStation.station_crs,
                     EndStation.station_name
-                )::OutStationData,
+                )::TrainStationOutData,
                 EndLegCall.mileage - StartLegCall.mileage,
                 COALESCE(EndCall.act_arr, EndCall.plan_arr) -
                 COALESCE(StartCall.act_dep, StartCall.plan_dep),
                 StockSegmentStockReport.stock_data
-            )::OutLegStock AS stock_segment
+            )::TrainLegStockOutData AS stock_segment
         FROM TrainStockSegment
         INNER JOIN (SELECT * FROM SelectStockSegmentStockReports()) StockSegmentStockReport
         ON TrainStockSegment.stock_segment_id = StockSegmentStockReport.stock_segment_id
@@ -414,7 +414,7 @@ CREATE OR REPLACE FUNCTION SelectLegs(
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_leg_id INTEGER DEFAULT NULL
 )
-RETURNS SETOF OutLegData
+RETURNS SETOF TrainLegOutData
 LANGUAGE plpgsql
 AS
 $$
@@ -698,7 +698,7 @@ CREATE OR REPLACE FUNCTION GetOperatorBrands(
     p_operator_code TEXT,
     p_run_date TIMESTAMP WITH TIME ZONE
 )
-RETURNS SETOF OutBrandData
+RETURNS SETOF TrainBrandOutData
 LANGUAGE plpgsql
 AS
 $$

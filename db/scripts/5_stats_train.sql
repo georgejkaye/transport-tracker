@@ -64,7 +64,7 @@ CREATE OR REPLACE FUNCTION GetStationStats (
     p_start_time TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_time TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
-RETURNS SETOF OutStationStat
+RETURNS SETOF TrainStationTrainStats
 LANGUAGE plpgsql
 AS
 $$
@@ -243,7 +243,7 @@ CREATE OR REPLACE FUNCTION GetLegStats (
     p_start_time TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_time TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
-RETURNS SETOF OutLegStat
+RETURNS SETOF TrainLegStats
 LANGUAGE plpgsql
 AS
 $$
@@ -378,7 +378,7 @@ CREATE OR REPLACE FUNCTION GetClassStats(
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
-RETURNS SETOF OutClassStat
+RETURNS SETOF TrainClassOutStat
 LANGUAGE plpgsql
 AS
 $$
@@ -405,7 +405,7 @@ CREATE OR REPLACE FUNCTION GetUnitStats (
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
-RETURNS SETOF OutUnitStat
+RETURNS SETOF TrainUnitOutStat
 LANGUAGE plpgsql
 AS
 $$
@@ -430,7 +430,7 @@ CREATE OR REPLACE FUNCTION GetOperatorStats (
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
-RETURNS SETOF OutOperatorStat
+RETURNS SETOF TrainOperatorTrainStats
 LANGUAGE plpgsql
 AS
 $$
@@ -535,7 +535,7 @@ CREATE OR REPLACE FUNCTION GetStats (
     p_user_id INTEGER,
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
-) RETURNS OutStats
+) RETURNS TrainStats
 LANGUAGE plpgsql
 AS
 $$
@@ -580,7 +580,7 @@ BEGIN
                 SELECT GetUnitStats(p_user_id, p_start_date, p_end_date)
                 AS unit_stats
             )
-        ))::OutStats
+        ))::TrainStats
     )
     FROM (
         SELECT *
