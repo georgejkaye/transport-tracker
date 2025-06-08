@@ -1,4 +1,4 @@
-from api.data.services import Call
+from api.data.train.services import TrainServiceCallInData
 import networkx as nx
 import shapely
 
@@ -7,8 +7,12 @@ from typing import Optional
 from networkx import MultiDiGraph
 from shapely import LineString, Point
 
-from api.data.leg import ShortLeg, ShortLegCall, short_leg_call_to_point_times
-from api.data.points import StationPoint, get_relevant_station_points
+from api.data.train.leg import (
+    ShortLeg,
+    ShortLegCall,
+    short_leg_call_to_point_times,
+)
+from api.data.train.points import StationPoint, get_relevant_station_points
 from api.network.network import (
     get_edge_from_endpoints,
     get_node_id_from_station_point,
@@ -18,7 +22,7 @@ from api.network.network import (
 
 
 def get_shortest_linestring(
-    linestrings: list[tuple[StationPoint, StationPoint, LineString]]
+    linestrings: list[tuple[StationPoint, StationPoint, LineString]],
 ) -> Optional[tuple[StationPoint, StationPoint, LineString]]:
     return min(
         linestrings,

@@ -1,5 +1,5 @@
-from api.data.services import ShortAssociatedService, ShortTrainService
-from api.data.stations import ShortTrainStation
+from api.data.train.services import ShortAssociatedService, ShortTrainService
+from api.data.train.stations import TrainLegCallStationInData
 import folium
 
 from bs4 import BeautifulSoup
@@ -14,15 +14,15 @@ from pydantic import Field
 from shapely import LineString, Point
 
 from api.utils.database import connect_with_env
-from api.data.leg import (
+from api.data.train.leg import (
     ShortLeg,
     ShortLegCall,
     ShortLegSegment,
-    StockReport,
+    TrainLegCallStockreportInData,
     get_operator_colour_from_leg,
     select_legs,
 )
-from api.data.points import (
+from api.data.train.points import (
     StationPoint,
     get_station_points_from_crses,
     get_station_points_from_names,
@@ -475,14 +475,14 @@ def get_leg_map_page_from_leg_data(
 
 @dataclass
 class ShortLegCallWithGeometry:
-    station: ShortTrainStation
+    station: TrainLegCallStationInData
     platform: Optional[str]
     plan_arr: Optional[datetime]
     plan_dep: Optional[datetime]
     act_arr: Optional[datetime]
     act_dep: Optional[datetime]
     associated_service: Optional[list[ShortAssociatedService]]
-    leg_stock: Optional[list[StockReport]]
+    leg_stock: Optional[list[TrainLegCallStockreportInData]]
     mileage: Optional[Decimal]
     point: Optional[tuple[Decimal, Decimal]]
 

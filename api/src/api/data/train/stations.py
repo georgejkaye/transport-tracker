@@ -14,24 +14,24 @@ from api.utils.times import (
     get_hourmin_string,
     make_timezone_aware,
 )
-from api.data.toc import BrandData, OperatorData
+from api.data.train.toc import BrandData, OperatorData
 
 
 @dataclass
-class ShortTrainStation:
+class TrainLegCallStationInData:
     name: str
     crs: str
 
 
 def register_station_data(station_crs: str, station_name: str):
-    return ShortTrainStation(station_name, station_crs)
+    return TrainLegCallStationInData(station_name, station_crs)
 
 
 def register_short_train_station_types(conn: Connection):
     register_type(conn, "TrainStationOutData", register_station_data)
 
 
-def string_of_short_train_station(station: ShortTrainStation) -> str:
+def string_of_short_train_station(station: TrainLegCallStationInData) -> str:
     return f"{station.name} [{station.crs}]"
 
 
@@ -64,8 +64,8 @@ class TrainServiceAtStation:
     id: str
     headcode: str
     run_date: datetime
-    origins: list[ShortTrainStation]
-    destinations: list[ShortTrainStation]
+    origins: list[TrainLegCallStationInData]
+    destinations: list[TrainLegCallStationInData]
     plan_dep: Optional[datetime]
     act_dep: Optional[datetime]
     operator_code: str
@@ -127,16 +127,16 @@ station_endpoint = "https://api.rtt.io/api/v1/json/search"
 
 def response_to_short_train_station(
     conn: Connection, data
-) -> ShortTrainStation:
+) -> TrainLegCallStationInData:
     name = data["description"]
     station = select_station_from_name(conn, name)
     if station is None:
         print(f"No station with name {name} found. Please update the database.")
         exit(1)
-    return ShortTrainStation(name, station.crs.upper())
+    return TrainLegCallStationInData(name, station.crs.upper())
 
 
-def get_multiple_short_station_string(locs: list[ShortTrainStation]):
+def get_multiple_short_station_string(locs: list[TrainLegCallStationInData]):
     string = ""
     for i, loc in enumerate(locs):
         if i == 0:
@@ -230,8 +230,8 @@ def compare_crs(a: str, b: str) -> bool:
 class LegAtStation:
     id: int
     platform: Optional[str]
-    origin: ShortTrainStation
-    destination: ShortTrainStation
+    origin: TrainLegCallStationInData
+    destination: TrainLegCallStationInData
     stop_time: datetime
     plan_arr: Optional[datetime]
     act_arr: Optional[datetime]
@@ -508,10 +508,12 @@ def select_stations(
                 leg_data = LegAtStation(
                     leg_row["leg_id"],
                     leg_row["platform"],
-                    ShortTrainStation(
+                    TrainLegCallStationInData(
                         leg_row["start_name"], leg_row["start_crs"]
                     ),
-                    ShortTrainStation(leg_row["end_name"], leg_row["end_crs"]),
+                    TrainLegCallStationInData(
+                        leg_row["end_name"], leg_row["end_crs"]
+                    ),
                     datetime.fromisoformat(leg_row["stop_time"]),
                     str_or_null_to_datetime(leg_row["plan_arr"]),
                     str_or_null_to_datetime(leg_row["act_arr"]),

@@ -5,7 +5,7 @@ from api.utils.database import connect
 from api.network.network import (
     insert_node_dict_to_network,
 )
-from api.data.stations import get_station_points
+from api.data.train.stations import get_station_points
 
 with connect() as conn:
     station_points = get_station_points(conn)

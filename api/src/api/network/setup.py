@@ -1,5 +1,8 @@
 import sys
-from api.data.points import get_station_points, get_station_points_from_names
+from api.data.train.points import (
+    get_station_points,
+    get_station_points_from_names,
+)
 import osmnx as ox
 
 from api.utils.database import connect_with_env

@@ -1,0 +1,557 @@
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from decimal import Decimal
+from typing import Optional
+from api.user import User
+from psycopg import Connection
+
+from api.utils.database import register_type
+from api.utils.times import change_timezone
+from api.data.train.toc import OperatorData
+from api.data.train.points import PointTimes
+from api.data.train.services import (
+    AssociatedType,
+    CallGraph,
+    CallGraphNode,
+    ShortAssociatedService,
+    ShortTrainService,
+    TrainServiceInData,
+    get_call_graph_string,
+    get_service_from_id,
+    register_short_associated_service_types,
+    register_short_train_service_types,
+    string_of_associated_type,
+)
+from api.data.train.stations import (
+    TrainLegCallStationInData,
+    TrainServiceAtStation,
+    TrainStation,
+    compare_crs,
+    short_string_of_service_at_station,
+)
+from api.data.train.stock import Formation
+
+
+@dataclass
+class StockReport:
+    class_no: Optional[int]
+    subclass_no: Optional[int]
+    stock_no: Optional[int]
+    cars: Optional[Formation]
+
+
+def register_stock_report(
+    stock_class: int, stock_subclass: int, stock_number: int, stock_cars: int
+):
+    return StockReport(
+        stock_class, stock_subclass, stock_number, Formation(stock_cars)
+    )
+
+
+def register_stock_report_types(conn: Connection):
+    register_type(conn, "TrainLegStockOutData", register_stock_report)
+
+
+def string_of_enumerated_stock_report(report: tuple[int, StockReport]) -> str:
+    _, actual_report = report
+    return string_of_stock_report(actual_report)
+
+
+def string_of_stock_report(report: StockReport) -> str:
+    if report.class_no is None:
+        return "Unknown"
+    if report.stock_no is not None:
+        return str(report.stock_no)
+    if report.subclass_no is None:
+        return f"Class {report.class_no}"
+    return f"Class {report.class_no}/{report.subclass_no}"
+
+
+@dataclass
+class ShortLegSegment:
+    start: TrainLegCallStationInData
+    end: TrainLegCallStationInData
+    duration: timedelta
+    mileage: Optional[Decimal]
+    stocks: list[StockReport]
+
+
+def register_short_leg_segment(
+    segment_start: datetime,
+    start_station: TrainLegCallStationInData,
+    end_station: TrainLegCallStationInData,
+    distance: Decimal,
+    duration: timedelta,
+    stock_data: list[StockReport],
+):
+    return ShortLegSegment(
+        start_station,
+        end_station,
+        duration,
+        distance,
+        stock_data,
+    )
+
+
+def register_short_leg_segment_types(conn: Connection):
+    register_stock_report_types(conn)
+    register_type(conn, "TrainLegStockOutData", register_short_leg_segment)
+
+
+@dataclass
+class ShortLegCall:
+    station: TrainLegCallStationInData
+    platform: Optional[str]
+    plan_arr: Optional[datetime]
+    plan_dep: Optional[datetime]
+    act_arr: Optional[datetime]
+    act_dep: Optional[datetime]
+    associated_service: Optional[list[ShortAssociatedService]]
+    leg_stock: Optional[list[StockReport]]
+    mileage: Optional[Decimal]
+
+
+def register_leg_call_data(
+    arr_call_id: int,
+    arr_service_id: str,
+    arr_service_run_date: datetime,
+    plan_arr: datetime,
+    act_arr: datetime,
+    dep_call_id: int,
+    dep_service_id: str,
+    dep_service_run_date: datetime,
+    plan_dep: datetime,
+    act_dep: datetime,
+    station: TrainLegCallStationInData,
+    platform: str,
+    mileage: Decimal,
+    stocks: list[StockReport],
+    assocs: list[ShortAssociatedService],
+):
+    return ShortLegCall(
+        station,
+        platform,
+        change_timezone(plan_arr),
+        change_timezone(plan_dep),
+        change_timezone(act_arr),
+        change_timezone(act_dep),
+        assocs,
+        stocks,
+        mileage,
+    )
+
+
+def register_short_leg_call_types(conn: Connection):
+    register_stock_report_types(conn)
+    register_short_associated_service_types(conn)
+    register_type(conn, "TrainLegCallOutData", register_leg_call_data)
+
+
+def short_leg_call_to_point_times(leg_call: ShortLegCall) -> PointTimes:
+    return PointTimes(
+        leg_call.plan_arr, leg_call.plan_dep, leg_call.act_arr, leg_call.act_dep
+    )
+
+
+@dataclass
+class ShortLeg:
+    id: int
+    user_id: int
+    leg_start: datetime
+    services: dict[str, ShortTrainService]
+    calls: list[ShortLegCall]
+    stocks: list[ShortLegSegment]
+    distance: Optional[Decimal]
+    duration: Optional[timedelta]
+
+
+def register_operator_data(
+    operator_id: int,
+    operator_code: str,
+    operator_name: str,
+    operator_bg: str,
+    operator_fg: str,
+):
+    return OperatorData(
+        operator_id, operator_code, operator_name, operator_bg, operator_fg
+    )
+
+
+def register_leg_data(
+    leg_id: int,
+    user_id: int,
+    leg_start: datetime,
+    leg_services: list[ShortTrainService],
+    leg_calls: list[ShortLegCall],
+    leg_stocks: list[ShortLegSegment],
+    leg_distance: Decimal,
+    leg_duration: timedelta,
+):
+    leg_services_dict = {}
+    for service in leg_services:
+        leg_services_dict[service.service_id] = service
+    return ShortLeg(
+        leg_id,
+        user_id,
+        leg_start,
+        leg_services_dict,
+        leg_calls,
+        leg_stocks,
+        leg_distance,
+        leg_duration,
+    )
+
+
+def register_leg_data_types(conn: Connection):
+    register_short_train_service_types(conn)
+    register_short_leg_call_types(conn)
+    register_short_leg_segment_types(conn)
+    register_type(conn, "TrainLegOutData", register_leg_data)
+
+
+def select_legs(
+    conn: Connection,
+    user_id: int,
+    search_start: Optional[datetime] = None,
+    search_end: Optional[datetime] = None,
+    search_leg_id: Optional[int] = None,
+) -> list[ShortLeg]:
+    register_leg_data_types(conn)
+    rows = conn.execute(
+        "SELECT SelectLegs(%s, %s, %s, %s)",
+        [user_id, search_start, search_end, search_leg_id],
+    ).fetchall()
+
+    return [row[0] for row in rows]
+
+
+def get_operator_colour_from_leg(leg: ShortLeg) -> str:
+    service_key = list(leg.services.keys())[0]
+    service = leg.services[service_key]
+    if service.brand is not None and service.brand.bg is not None:
+        return service.brand.bg
+    if service.operator.bg is None:
+        return "#000000"
+    return service.operator.bg
+
+
+@dataclass
+class TrainLegCallCallInData:
+    service_run_id: str
+    service_run_date: datetime
+    plan_arr: Optional[datetime]
+    plan_dep: Optional[datetime]
+    act_arr: Optional[datetime]
+    act_dep: Optional[datetime]
+
+
+@dataclass
+class TrainLegCallStockReportInData:
+    class_no: Optional[int]
+    subclass_no: Optional[int]
+    stock_no: Optional[int]
+    cars: Optional[int]
+
+
+@dataclass
+class TrainLegCallInData:
+    station: TrainLegCallStationInData
+    arr_call: Optional[TrainLegCallCallInData]
+    dep_call: Optional[TrainLegCallCallInData]
+    mileage: Optional[Decimal]
+    assoc: Optional[AssociatedType]
+    stock: Optional[list[TrainLegCallStockReportInData]]
+
+
+@dataclass
+class TrainStockReportInData:
+    stock: list[StockReport]
+    calls: list[TrainLegCallInData]
+    mileage: Optional[Decimal]
+
+
+def stops_at_station(
+    service: TrainServiceInData,
+    origin_crs: str,
+    destination_crs: str,
+) -> bool:
+    return (
+        get_calls_between_stations(service, origin_crs, destination_crs)
+        is not None
+    )
+
+
+def get_calls_between_stations(
+    call_graph: CallGraph,
+    origin_crs: CallGraphNode,
+    destination_crs: str,
+    base_mileage: Decimal = Decimal(0),
+) -> Optional[list[TrainLegCallInData]]:
+    call_chain: list[TrainLegCallInData] = []
+    found_destination = False
+    next_nodes = [(origin_node, [])]
+    while len(next_nodes) > 0:
+        (current_node, current_chain) = next_nodes.pop(0)
+        if current_node.station_crs == destination_crs:
+            return curent_chain
+
+    boarded = False
+    dep_call = None
+    for i, call in enumerate(service.calls):
+        # Get the arrival call
+        # If this is the boarding point there is no arrival
+        if not boarded:
+            arr_call = None
+            if compare_crs(call.station_crs, origin):
+                boarded = True
+                if call.mileage is None:
+                    base_mileage = Decimal(0)
+                else:
+                    base_mileage = base_mileage - call.mileage
+                call_mileage = Decimal(0)
+            else:
+                call_mileage = None
+
+        else:
+            arr_call = TrainLegCallCallInData(
+                service.unique_identifier,
+                service.run_date,
+                call.plan_arr,
+                call.act_arr,
+                call.plan_dep,
+                call.act_dep,
+            )
+            if call.mileage is None:
+                call_mileage = None
+            else:
+                call_mileage = base_mileage + call.mileage
+        # Get the departure call
+        # This might belong to a different service if there is a join or divide
+        # To check this we recurse into any associations to see if the
+        # destination is there, searching for the entire leg if we haven't
+        # boarded or the rest of the leg if we have
+        if boarded:
+            subservice_origin = call.station_crs
+        else:
+            subservice_origin = origin
+        # If we branch off to a divided service, the mileage resets to 0, so we
+        # need to set the base mileage to the current call mileage
+        if call_mileage is None:
+            divide_base_mileage = Decimal(0)
+        else:
+            divide_base_mileage = call_mileage
+        # If we do change services, we keep track of the rest of the calls
+        remaining_calls = []
+        assoc_type = None
+        # If we have reached our destination then we don't care about departure
+        # calls
+        if compare_crs(call.station_crs, dest):
+            dep_call = None
+        else:
+            # First we check the divides
+            for divide in call.divides:
+                divide_service = get_service_from_id(
+                    divide.service_unique_identifier,
+                    divide.service_run_date,
+                    soup=True,
+                )
+                if divide_service is not None:
+                    subresult = get_calls_between_stations(
+                        divide_service,
+                        subservice_origin,
+                        dest,
+                        divide_base_mileage,
+                    )
+                    if subresult is not None:
+                        subservice_services, subservice_calls = subresult
+                        dep_call = subservice_calls[0].dep_call
+                        remaining_calls = subservice_calls[1:]
+                        assoc_type = AssociatedType.DIVIDES_FROM
+                        services = services + subservice_services
+                        # No need to check the rest of the divides
+                        break
+            # If we haven't divided, perhaps we're about to join
+            # We can only join if we're at the end of the service
+            if assoc_type is None and i == len(service.calls) - 1:
+                # This should always be the case
+                if len(call.joins) == 1:
+                    join = call.joins[0]
+                    # The mileage in the subservice will be relative to its own origin
+                    # We want the mileage to be relative to our
+                    # need to set the base mileage to the current call mileage
+                    if call_mileage is None:
+                        join_base_mileage = Decimal(0)
+                    else:
+                        join_base_mileage = call_mileage
+                    join_service = get_service_from_id(
+                        join.service_unique_identifier,
+                        join.service_run_date,
+                        soup=True,
+                    )
+                    if join_service is not None:
+                        subresult = get_calls_between_stations(
+                            join_service,
+                            subservice_origin,
+                            dest,
+                            join_base_mileage,
+                        )
+                        if subresult is not None:
+                            subservice_services, subservice_calls = subresult
+                            dep_call = subservice_calls[0].dep_call
+                            remaining_calls = subservice_calls[1:]
+                            assoc_type = AssociatedType.JOINS_TO
+                            services = services + subservice_services
+            if assoc_type is None and boarded:
+                dep_call = TrainLegCallCallInData(
+                    service.unique_identifier,
+                    service.run_date,
+                    call.plan_arr,
+                    call.act_arr,
+                    call.plan_dep,
+                    call.act_dep,
+                )
+        if boarded:
+            leg_call = TrainLegCallInData(
+                TrainLegCallStationInData(call.station_crs, call.station_name),
+                arr_call,
+                dep_call,
+                call_mileage,
+                assoc_type,
+                None,
+            )
+            call_chain.append(leg_call)
+            if len(remaining_calls) > 0:
+                call_chain.extend(remaining_calls)
+                return (services, call_chain)
+            if dep_call is None:
+                return (services, call_chain)
+    return None
+
+
+@dataclass
+class TrainLegInData:
+    services: list[TrainServiceInData]
+    calls: list[TrainLegCallInData]
+    distance: Decimal
+    stock: list[TrainStockReportInData]
+
+
+def insert_leg(conn: Connection, user: User, leg: TrainLegInData):
+    leg_tuple = (
+        user.user_id,
+        [
+            (
+                service.unique_identifier,
+                service.headcode,
+                service.run_date,
+                service.origin_names,
+                service.destination_names,
+                service.operator_code,
+                service.brand_code,
+                service.power,
+                [
+                    (
+                        call.station_crs,
+                        call.platform,
+                        call.plan_arr,
+                        call.act_arr,
+                        call.plan_dep,
+                        call.act_dep,
+                        [
+                            (
+                                divide.service_unique_identifier,
+                                divide.service_run_date,
+                                string_of_associated_type(divide.association),
+                            )
+                            for divide in call.divides
+                        ]
+                        + [
+                            (
+                                join.service_unique_identifier,
+                                join.service_run_date,
+                                string_of_associated_type(join.association),
+                            )
+                            for join in call.joins
+                        ],
+                        call.mileage,
+                    )
+                    for call in service.calls
+                ],
+            )
+            for service in leg.services
+        ],
+        [
+            (
+                call.station.crs,
+                (
+                    (
+                        call.arr_call.service_run_id,
+                        call.arr_call.service_run_date,
+                        call.arr_call.plan_arr,
+                        call.arr_call.act_arr,
+                        call.arr_call.plan_dep,
+                        call.arr_call.act_arr,
+                    )
+                    if call.arr_call is not None
+                    else None
+                ),
+                (
+                    (
+                        call.dep_call.service_run_id,
+                        call.dep_call.service_run_date,
+                        call.dep_call.plan_arr,
+                        call.dep_call.act_arr,
+                        call.dep_call.plan_dep,
+                        call.dep_call.act_arr,
+                    )
+                    if call.dep_call is not None
+                    else None
+                ),
+                call.mileage,
+                call.assoc,
+                (
+                    [
+                        (
+                            stock.class_no,
+                            stock.subclass_no,
+                            stock.stock_no,
+                            stock.cars,
+                        )
+                        for stock in call.stock
+                    ]
+                    if call.stock is not None
+                    else None
+                ),
+                call.stock,
+            )
+            for call in leg.calls
+        ],
+    )
+    conn.execute(
+        """
+        SELECT * FROM InsertLeg(
+            %s::TrainLegInData,
+        )
+        """,
+        [leg_tuple],
+    )
+    conn.commit()
+
+
+if __name__ == "__main__":
+    service = get_service_from_id(
+        "Y29022", datetime(2025, 6, 8), None, None, True
+    )
+    if service is not None:
+        services, call_graph = service
+        first_call = services[0].calls[0]
+        print(
+            get_call_graph_string(
+                call_graph,
+                CallGraphNode(
+                    first_call.station_crs,
+                    first_call.plan_arr,
+                    first_call.plan_dep,
+                ),
+            )
+        )

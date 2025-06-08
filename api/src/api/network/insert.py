@@ -4,7 +4,7 @@ import osmnx as ox
 
 from api.utils.database import connect
 from api.network.network import insert_station_node_to_network
-from api.data.points import get_station_points_from_crses
+from api.data.train.points import get_station_points_from_crses
 
 network = ox.load_graphml(sys.argv[1])
 

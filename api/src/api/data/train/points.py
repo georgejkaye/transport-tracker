@@ -5,7 +5,7 @@ from psycopg import Connection
 from shapely import Point
 
 from api.utils.database import register_type
-from api.data.stations import ShortTrainStation
+from api.data.train.stations import TrainLegCallStationInData
 
 
 @dataclass
@@ -134,7 +134,8 @@ def get_station_points_from_crses(
 def get_station_points_from_names(
     conn: Connection, stations: list[tuple[str, Optional[str]]]
 ) -> tuple[
-    dict[str, ShortTrainStation], dict[str, dict[Optional[str], StationPoint]]
+    dict[str, TrainLegCallStationInData],
+    dict[str, dict[Optional[str], StationPoint]],
 ]:
     register_type(conn, "StationLatLon", register_station_latlon)
     register_type(
@@ -147,7 +148,7 @@ def get_station_points_from_names(
     name_to_station_dict = {}
     for row in rows:
         row = row[0]
-        name_to_station_dict[row.search_name] = ShortTrainStation(
+        name_to_station_dict[row.search_name] = TrainLegCallStationInData(
             row.name, row.crs
         )
     return (
