@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Optional
+from api.data.train.retrieve.json import get_service_from_id
 from api.user import User
 from psycopg import Connection
 
@@ -11,16 +12,10 @@ from api.data.train.toc import OperatorData
 from api.data.train.points import PointTimes
 from api.data.train.services import (
     AssociatedType,
-    CallGraph,
-    CallGraphNode,
     ShortAssociatedService,
     ShortTrainService,
-    TrainServiceInData,
-    get_call_graph_string,
-    get_service_from_id,
     register_short_associated_service_types,
     register_short_train_service_types,
-    string_of_associated_type,
 )
 from api.data.train.stations import (
     TrainLegCallStationInData,
@@ -30,14 +25,6 @@ from api.data.train.stations import (
     short_string_of_service_at_station,
 )
 from api.data.train.stock import Formation
-
-
-@dataclass
-class StockReport:
-    class_no: Optional[int]
-    subclass_no: Optional[int]
-    stock_no: Optional[int]
-    cars: Optional[Formation]
 
 
 def register_stock_report(
@@ -235,41 +222,6 @@ def get_operator_colour_from_leg(leg: ShortLeg) -> str:
     return service.operator.bg
 
 
-@dataclass
-class TrainLegCallCallInData:
-    service_run_id: str
-    service_run_date: datetime
-    plan_arr: Optional[datetime]
-    plan_dep: Optional[datetime]
-    act_arr: Optional[datetime]
-    act_dep: Optional[datetime]
-
-
-@dataclass
-class TrainLegCallStockReportInData:
-    class_no: Optional[int]
-    subclass_no: Optional[int]
-    stock_no: Optional[int]
-    cars: Optional[int]
-
-
-@dataclass
-class TrainLegCallInData:
-    station: TrainLegCallStationInData
-    arr_call: Optional[TrainLegCallCallInData]
-    dep_call: Optional[TrainLegCallCallInData]
-    mileage: Optional[Decimal]
-    assoc: Optional[AssociatedType]
-    stock: Optional[list[TrainLegCallStockReportInData]]
-
-
-@dataclass
-class TrainStockReportInData:
-    stock: list[StockReport]
-    calls: list[TrainLegCallInData]
-    mileage: Optional[Decimal]
-
-
 def stops_at_station(
     service: TrainServiceInData,
     origin_crs: str,
@@ -428,130 +380,7 @@ def get_calls_between_stations(
     return None
 
 
-@dataclass
-class TrainLegInData:
-    services: list[TrainServiceInData]
-    calls: list[TrainLegCallInData]
-    distance: Decimal
-    stock: list[TrainStockReportInData]
-
-
-def insert_leg(conn: Connection, user: User, leg: TrainLegInData):
-    leg_tuple = (
-        user.user_id,
-        [
-            (
-                service.unique_identifier,
-                service.headcode,
-                service.run_date,
-                service.origin_names,
-                service.destination_names,
-                service.operator_code,
-                service.brand_code,
-                service.power,
-                [
-                    (
-                        call.station_crs,
-                        call.platform,
-                        call.plan_arr,
-                        call.act_arr,
-                        call.plan_dep,
-                        call.act_dep,
-                        [
-                            (
-                                divide.service_unique_identifier,
-                                divide.service_run_date,
-                                string_of_associated_type(divide.association),
-                            )
-                            for divide in call.divides
-                        ]
-                        + [
-                            (
-                                join.service_unique_identifier,
-                                join.service_run_date,
-                                string_of_associated_type(join.association),
-                            )
-                            for join in call.joins
-                        ],
-                        call.mileage,
-                    )
-                    for call in service.calls
-                ],
-            )
-            for service in leg.services
-        ],
-        [
-            (
-                call.station.crs,
-                (
-                    (
-                        call.arr_call.service_run_id,
-                        call.arr_call.service_run_date,
-                        call.arr_call.plan_arr,
-                        call.arr_call.act_arr,
-                        call.arr_call.plan_dep,
-                        call.arr_call.act_arr,
-                    )
-                    if call.arr_call is not None
-                    else None
-                ),
-                (
-                    (
-                        call.dep_call.service_run_id,
-                        call.dep_call.service_run_date,
-                        call.dep_call.plan_arr,
-                        call.dep_call.act_arr,
-                        call.dep_call.plan_dep,
-                        call.dep_call.act_arr,
-                    )
-                    if call.dep_call is not None
-                    else None
-                ),
-                call.mileage,
-                call.assoc,
-                (
-                    [
-                        (
-                            stock.class_no,
-                            stock.subclass_no,
-                            stock.stock_no,
-                            stock.cars,
-                        )
-                        for stock in call.stock
-                    ]
-                    if call.stock is not None
-                    else None
-                ),
-                call.stock,
-            )
-            for call in leg.calls
-        ],
-    )
-    conn.execute(
-        """
-        SELECT * FROM InsertLeg(
-            %s::TrainLegInData,
-        )
-        """,
-        [leg_tuple],
-    )
-    conn.commit()
-
-
 if __name__ == "__main__":
     service = get_service_from_id(
         "Y29022", datetime(2025, 6, 8), None, None, True
     )
-    if service is not None:
-        services, call_graph = service
-        first_call = services[0].calls[0]
-        print(
-            get_call_graph_string(
-                call_graph,
-                CallGraphNode(
-                    first_call.station_crs,
-                    first_call.plan_arr,
-                    first_call.plan_dep,
-                ),
-            )
-        )

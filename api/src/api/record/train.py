@@ -5,6 +5,7 @@ from decimal import Decimal
 from enum import Enum
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
+from api.data.train.retrieve.json import get_service_from_id
 from api.data.train.toc import get_operator_brands
 from api.data.train.leg import (
     TrainLegCallInData,
@@ -18,13 +19,9 @@ from api.data.train.leg import (
 from api.user import input_user
 from psycopg import Connection
 
-from api.data.train.mileage import (
+from api.utils.mileage import (
     miles_and_chains_to_miles,
     string_of_miles_and_chains,
-)
-from api.data.train.services import (
-    TrainServiceInData,
-    get_service_from_id,
 )
 from api.data.train.stations import (
     TrainServiceAtStation,
@@ -645,27 +642,25 @@ def record_new_leg(
         conn, origin_station, search_datetime, destination_station
     )
     service = None
+    service_id = None
     run_date = datetime(
         search_datetime.year, search_datetime.month, search_datetime.day
     )
     if service_at_station is None:
-        service_candidate = None
-        while service_candidate is None:
+        result = None
+        while result is None:
             service_id = input_text("Service id")
             if service_id is None:
                 return None
-            service_candidate = get_service_from_id(
-                service_id, run_date, soup=True
-            )
-            if service_candidate is None:
+            result = get_service_from_id(service_id, run_date, scrape_html=True)
+            if result is None:
                 print("Invalid service id, try again")
             else:
-                service = service_candidate
+                service = result
     else:
-        service = get_service_from_id(
-            service_at_station.id, run_date, soup=True
-        )
-    if service is None:
+        service_id = service_at_station.id
+        service = get_service_from_id(service_id, run_date, scrape_html=True)
+    if service is None or service_id is None:
         return None
     brands = get_operator_brands(conn, service.operator_code, run_date)
     if len(brands) == 0:
@@ -680,7 +675,8 @@ def record_new_leg(
                 brand_code = result.code
             case _:
                 return None
-    service.brand_code = brand_code
+    for (service_id, run_date), service in services.items():
+        service.brand_code = brand_code
     calls_result = get_calls_between_stations(
         service, origin_station.crs, destination_station.crs
     )
