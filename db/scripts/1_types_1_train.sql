@@ -10,7 +10,7 @@ CREATE TYPE TrainServiceInData AS (
 CREATE TYPE TrainServiceEndpointInData AS (
     unique_identifier TEXT,
     run_date TIMESTAMP WITH TIME ZONE,
-    station_crs TEXT,
+    station_name TEXT,
     origin BOOLEAN
 );
 
@@ -31,8 +31,8 @@ CREATE TYPE TrainAssociatedServiceInData AS (
     run_date TIMESTAMP WITH TIME ZONE,
     station_crs TEXT,
     plan_arr TIMESTAMP WITH TIME ZONE,
-    plan_dep TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
+    plan_dep TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE,
     assoc_unique_identifier TEXT,
     assoc_run_date TIMESTAMP WITH TIME ZONE,
@@ -257,66 +257,59 @@ CREATE TYPE TrainServiceCallInData AS (
     act_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE,
-    associated_services TrainServiceCallAssociatedServiceInData[],
     mileage DECIMAL
 );
 
 CREATE TYPE TrainServiceInData AS (
     unique_identifier TEXT,
-    headcode TEXT,
     run_date TIMESTAMP WITH TIME ZONE,
-    origin_names TEXT[],
-    destination_names TEXT[],
+    headcode TEXT,
     operator_code TEXT,
     brand_code TEXT,
-    power TEXT,
-    calls TrainServiceCallInData[]
-);
-
-CREATE TYPE TrainLegCallCallInData AS (
-    run_id TEXT,
-    run_date TIMESTAMP WITH TIME ZONE,
-    plan_arr TIMESTAMP WITH TIME ZONE,
-    act_arr TIMESTAMP WITH TIME ZONE,
-    plan_dep TIMESTAMP WITH TIME ZONE,
-    act_dep TIMESTAMP WITH TIME ZONE
-);
-
-CREATE TYPE TrainLegCallStockReportInData AS (
-    stock_class INT,
-    stock_subclass INT,
-    stock_number INT,
-    stock_cars INT
+    power TEXT
 );
 
 CREATE TYPE TrainLegCallInData AS (
     station_crs TEXT,
-    arr_call TrainLegCallCallInData,
-    dep_call TrainLegCallCallInData,
+    arr_call_service_uid TEXT,
+    arr_call_service_run_date TIMESTAMP WITH TIME ZONE,
+    arr_call_plan_arr TIMESTAMP WITH TIME ZONE,
+    arr_call_act_arr TIMESTAMP WITH TIME ZONE,
+    arr_call_plan_dep TIMESTAMP WITH TIME ZONE,
+    arr_call_act_dep TIMESTAMP WITH TIME ZONE
+    dep_call_service_uid TEXT,
+    dep_call_service_run_date TIMESTAMP WITH TIME ZONE,
+    dep_call_plan_arr TIMESTAMP WITH TIME ZONE,
+    dep_call_act_arr TIMESTAMP WITH TIME ZONE,
+    dep_call_plan_dep TIMESTAMP WITH TIME ZONE,
+    dep_call_act_dep TIMESTAMP WITH TIME ZONE
     mileage DECIMAL,
-    assoc_type TEXT,
 );
 
-CREATE TYPE TrainStockReportInData AS (
-    report_start_station_crs TEXT,
-    arr_call_service_id TEXT,
-    arr_call_run_date TIMESTAMP WITH TIME ZONE,
-    arr_call_plan_arr TIMESTAMP WITH TIME ZONE,
-    arr_call_plan_dep TIMESTAMP WITH TIME ZONE,
-    arr_call_act_arr TIMESTAMP WITH TIME ZONE,
-    arr_call_act_dep TIMESTAMP WITH TIME ZONE,
-    dep_call_service_id TEXT,
-    dep_call_run_date TIMESTAMP WITH TIME ZONE,
-    dep_call_plan_arr TIMESTAMP WITH TIME ZONE,
-    dep_call_plan_dep TIMESTAMP WITH TIME ZONE,
-    dep_call_act_arr TIMESTAMP WITH TIME ZONE,
-    dep_call_act_dep TIMESTAMP WITH TIME ZONE,
+CREATE TYPE TrainStockSegmentInData AS (
+    stock_class INT,
+    stock_subclass INT,
+    stock_number INT,
+    stock_cars INT
+    start_call_service_id TEXT,
+    start_call_run_date TIMESTAMP WITH TIME ZONE,
+    start_call_station_crs TEXT,
+    start_call_plan_dep TIMESTAMP WITH TIME ZONE,
+    start_call_act_dep TIMESTAMP WITH TIME ZONE,
+    end_call_service_id TEXT,
+    end_call_run_date TIMESTAMP WITH TIME ZONE,
+    end_call_station_crs TEXT,
+    end_call_plan_arr TIMESTAMP WITH TIME ZONE,
+    end_call_act_arr TIMESTAMP WITH TIME ZONE,
 );
 
 CREATE TYPE TrainLegInData AS (
     user_id INT,
-    train_service TrainServiceInData[],
+    leg_services TrainServiceInData[],
+    service_endpoints TrainServiceEndpointInData[],
+    service_calls TrainCallInData[],
+    service_associations TrainAssociatedServiceInData[]
     leg_calls TrainLegCallInData[],
-    distance DECIMAL,
-    stock TrainStockReportInData[]
+    leg_distance DECIMAL,
+    leg_stock TrainStockReportInData[]
 );
