@@ -38,9 +38,7 @@ from api.data.train.stock import Formation
 def register_stock_report(
     stock_class: int, stock_subclass: int, stock_number: int, stock_cars: int
 ):
-    return StockReport(
-        stock_class, stock_subclass, stock_number, Formation(stock_cars)
-    )
+    return StockReport(stock_class, stock_subclass, stock_number, stock_cars)
 
 
 def register_stock_report_types(conn: Connection):
