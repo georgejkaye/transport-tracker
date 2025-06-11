@@ -54,6 +54,8 @@ def get_associated_service_from_associated_service_json(
     associated_service_json: dict,
     first: bool,
     last: bool,
+    service_uid: str,
+    service_run_date: datetime,
     parent_uid: Optional[str],
     parent_run_date: Optional[datetime],
 ) -> Optional[TrainServiceCallAssociatedServiceInData]:
@@ -63,14 +65,14 @@ def get_associated_service_from_associated_service_json(
     )
 
     if (
-        parent_uid is None
-        or parent_run_date is None
-        or (assoc_uid == parent_uid and assoc_date == parent_run_date)
+        parent_uid is not None
+        and parent_run_date is not None
+        and (assoc_uid == parent_uid and assoc_date == parent_run_date)
     ):
         return None
 
     associated_service = get_service_from_id(
-        assoc_uid, assoc_date, parent_uid, parent_run_date
+        assoc_uid, assoc_date, service_uid, service_run_date
     )
     if associated_service is None:
         return None
@@ -97,6 +99,8 @@ def get_associated_services_from_call_json(
     call_json: dict,
     is_first_call: bool,
     is_last_call: bool,
+    service_uid: str,
+    service_run_date: datetime,
     parent_service_uid: Optional[str],
     parent_service_run_date: Optional[datetime],
 ) -> list[TrainServiceCallAssociatedServiceInData]:
@@ -111,6 +115,8 @@ def get_associated_services_from_call_json(
                 assoc_data,
                 is_first_call,
                 is_last_call,
+                service_uid,
+                service_run_date,
                 parent_service_uid,
                 parent_service_run_date,
             )
@@ -141,9 +147,10 @@ def get_datetime_from_json_field(
 def get_call_from_call_json(
     call_json: dict,
     service_soup: Optional[BeautifulSoup],
-    service_run_date: datetime,
     is_first_call: bool,
     is_last_call: bool,
+    service_uid: str,
+    service_run_date: datetime,
     parent_service_uid: Optional[str],
     parent_service_run_date: Optional[datetime],
 ) -> TrainServiceCallInData:
@@ -166,6 +173,8 @@ def get_call_from_call_json(
         call_json,
         is_first_call,
         is_last_call,
+        service_uid,
+        service_run_date,
         parent_service_uid,
         parent_service_run_date,
     )
@@ -190,12 +199,13 @@ def get_call_from_call_json(
 
 
 def get_service_calls_from_service_json(
+    service_uid: str,
     service_run_date: datetime,
     service_json: dict,
     service_soup: Optional[BeautifulSoup],
     parent_service_uid: Optional[str],
     parent_service_run_date: Optional[datetime],
-) -> tuple[list[TrainServiceCallInData], list[TrainAssociatedServiceInData]]:
+) -> list[TrainServiceCallInData]:
     calls: list[TrainServiceCallInData] = []
     associated_services: list[TrainAssociatedServiceInData] = []
     for i, call_json in enumerate(service_json["locations"]):
@@ -206,9 +216,10 @@ def get_service_calls_from_service_json(
         call = get_call_from_call_json(
             call_json,
             service_soup,
-            service_run_date,
             is_first_call,
             is_last_call,
+            service_uid,
+            service_run_date,
             parent_service_uid,
             parent_service_run_date,
         )
@@ -225,7 +236,7 @@ def get_service_calls_from_service_json(
             for associated_service in call.associated_services
         ]
         associated_services.extend(service_associated_services)
-    return calls, associated_services
+    return calls
 
 
 def get_service_from_service_json_and_html(
@@ -249,7 +260,8 @@ def get_service_from_service_json_and_html(
         for destination in service_json["destination"]
     ]
     operator_code = service_json["atocCode"]
-    calls, associated_services = get_service_calls_from_service_json(
+    calls = get_service_calls_from_service_json(
+        service_uid,
         service_run_date,
         service_json,
         service_soup,

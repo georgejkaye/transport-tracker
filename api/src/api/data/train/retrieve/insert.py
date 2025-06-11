@@ -57,8 +57,8 @@ class TrainLegCallCallInData:
     service_run_id: str
     service_run_date: datetime
     plan_arr: Optional[datetime]
-    plan_dep: Optional[datetime]
     act_arr: Optional[datetime]
+    plan_dep: Optional[datetime]
     act_dep: Optional[datetime]
 
 

@@ -228,165 +228,77 @@ def get_operator_colour_from_leg(leg: ShortLeg) -> str:
     return service.operator.bg
 
 
-def stops_at_station(
+def get_leg_calls_between_calls(
     service: TrainServiceInData,
-    origin_crs: str,
-    destination_crs: str,
-) -> bool:
-    return (
-        get_calls_between_stations(service, origin_crs, destination_crs)
-        is not None
-    )
-
-
-def get_calls_between_stations(
-    call_graph: CallGraph,
-    origin_crs: CallGraphNode,
-    destination_crs: str,
-    base_mileage: Decimal = Decimal(0),
+    start_station_crs: str,
+    start_dep_time: datetime,
+    end_station_crs: str,
+    mileage_offset: Optional[Decimal] = None,
 ) -> Optional[list[TrainLegCallInData]]:
-    call_chain: list[TrainLegCallInData] = []
-    found_destination = False
-    next_nodes = [(origin_node, [])]
-    while len(next_nodes) > 0:
-        (current_node, current_chain) = next_nodes.pop(0)
-        if current_node.station_crs == destination_crs:
-            return curent_chain
-
+    start_dep_time = make_timezone_aware(start_dep_time)
+    leg_calls = []
     boarded = False
-    dep_call = None
-    for i, call in enumerate(service.calls):
-        # Get the arrival call
-        # If this is the boarding point there is no arrival
+    mileage = Decimal(0)
+    mileage_offset = Decimal(0)
+    for call in service.calls:
+        mileage_offset = (
+            (mileage_offset + call.mileage)
+            if mileage_offset is not None and call.mileage is not None
+            else None
+        )
+        if (
+            not boarded
+            and call.station_crs == start_station_crs
+            and call.plan_dep == start_dep_time
+        ):
+            boarded = True
         if not boarded:
-            arr_call = None
-            if compare_crs(call.station_crs, origin):
-                boarded = True
-                if call.mileage is None:
-                    base_mileage = Decimal(0)
-                else:
-                    base_mileage = base_mileage - call.mileage
-                call_mileage = Decimal(0)
-            else:
-                call_mileage = None
-
-        else:
-            arr_call = TrainLegCallCallInData(
-                service.unique_identifier,
-                service.run_date,
-                call.plan_arr,
-                call.act_arr,
-                call.plan_dep,
-                call.act_dep,
+            continue
+        arr_call = TrainLegCallCallInData(
+            service.unique_identifier,
+            service.run_date,
+            call.plan_arr,
+            call.act_arr,
+            call.plan_dep,
+            call.act_dep,
+        )
+        for call_association in call.associated_services:
+            if call_association.association not in [
+                AssociationType.OTHER_DIVIDES,
+                AssociationType.THIS_JOINS,
+            ]:
+                continue
+            associated_service = call_association.associated_service
+            if associated_service.calls[0].plan_dep is None:
+                continue
+            associated_leg_calls = get_leg_calls_between_calls(
+                associated_service,
+                associated_service.calls[0].station_crs,
+                associated_service.calls[0].plan_dep,
+                end_station_crs,
+                mileage_offset,
             )
-            if call.mileage is None:
-                call_mileage = None
-            else:
-                call_mileage = base_mileage + call.mileage
-        # Get the departure call
-        # This might belong to a different service if there is a join or divide
-        # To check this we recurse into any associations to see if the
-        # destination is there, searching for the entire leg if we haven't
-        # boarded or the rest of the leg if we have
-        if boarded:
-            subservice_origin = call.station_crs
-        else:
-            subservice_origin = origin
-        # If we branch off to a divided service, the mileage resets to 0, so we
-        # need to set the base mileage to the current call mileage
-        if call_mileage is None:
-            divide_base_mileage = Decimal(0)
-        else:
-            divide_base_mileage = call_mileage
-        # If we do change services, we keep track of the rest of the calls
-        remaining_calls = []
-        assoc_type = None
-        # If we have reached our destination then we don't care about departure
-        # calls
-        if compare_crs(call.station_crs, dest):
-            dep_call = None
-        else:
-            # First we check the divides
-            for divide in call.divides:
-                divide_service = get_service_from_id(
-                    divide.service_unique_identifier,
-                    divide.service_run_date,
-                    soup=True,
-                )
-                if divide_service is not None:
-                    subresult = get_calls_between_stations(
-                        divide_service,
-                        subservice_origin,
-                        dest,
-                        divide_base_mileage,
-                    )
-                    if subresult is not None:
-                        subservice_services, subservice_calls = subresult
-                        dep_call = subservice_calls[0].dep_call
-                        remaining_calls = subservice_calls[1:]
-                        assoc_type = AssociatedType.DIVIDES_FROM
-                        services = services + subservice_services
-                        # No need to check the rest of the divides
-                        break
-            # If we haven't divided, perhaps we're about to join
-            # We can only join if we're at the end of the service
-            if assoc_type is None and i == len(service.calls) - 1:
-                # This should always be the case
-                if len(call.joins) == 1:
-                    join = call.joins[0]
-                    # The mileage in the subservice will be relative to its own origin
-                    # We want the mileage to be relative to our
-                    # need to set the base mileage to the current call mileage
-                    if call_mileage is None:
-                        join_base_mileage = Decimal(0)
-                    else:
-                        join_base_mileage = call_mileage
-                    join_service = get_service_from_id(
-                        join.service_unique_identifier,
-                        join.service_run_date,
-                        soup=True,
-                    )
-                    if join_service is not None:
-                        subresult = get_calls_between_stations(
-                            join_service,
-                            subservice_origin,
-                            dest,
-                            join_base_mileage,
-                        )
-                        if subresult is not None:
-                            subservice_services, subservice_calls = subresult
-                            dep_call = subservice_calls[0].dep_call
-                            remaining_calls = subservice_calls[1:]
-                            assoc_type = AssociatedType.JOINS_TO
-                            services = services + subservice_services
-            if assoc_type is None and boarded:
-                dep_call = TrainLegCallCallInData(
-                    service.unique_identifier,
-                    service.run_date,
-                    call.plan_arr,
-                    call.act_arr,
-                    call.plan_dep,
-                    call.act_dep,
-                )
-        if boarded:
-            leg_call = TrainLegCallInData(
-                TrainLegCallStationInData(call.station_crs, call.station_name),
-                arr_call,
-                dep_call,
-                call_mileage,
-                assoc_type,
-                None,
+            if associated_leg_calls is None:
+                continue
+            associated_leg_calls[0].arr_call = arr_call
+            associated_leg_calls[0].association_type = (
+                call_association.association
             )
-            call_chain.append(leg_call)
-            if len(remaining_calls) > 0:
-                call_chain.extend(remaining_calls)
-                return (services, call_chain)
-            if dep_call is None:
-                return (services, call_chain)
+            leg_calls.extend(associated_leg_calls)
+            return leg_calls
+        dep_call = arr_call
+        leg_call = TrainLegCallInData(
+            call.station_crs,
+            arr_call,
+            dep_call,
+            (
+                call.mileage - mileage_offset
+                if call.mileage is not None and mileage_offset is not None
+                else None
+            ),
+            None,
+        )
+        leg_calls.append(leg_call)
+        if call.station_crs == end_station_crs:
+            return leg_calls
     return None
-
-
-if __name__ == "__main__":
-    service = get_service_from_id(
-        "Y29022", datetime(2025, 6, 8), None, None, True
-    )
