@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Optional
-from api.data.train.association import AssociatedType
+from api.data.train.association import AssociationType
 from api.utils.database import register_type
 from bs4 import BeautifulSoup, Tag
 from psycopg import Connection

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
-from api.data.train.association import AssociatedType
+from api.data.train.association import AssociationType
 from api.data.train.retrieve.html import (
     get_call_mileage_from_service_soup,
     get_train_service_soup,
@@ -77,14 +77,14 @@ def get_associated_service_from_associated_service_json(
 
     if associated_service_json["type"] == "divide":
         if first:
-            assoc_type = AssociatedType.THIS_DIVIDES
+            assoc_type = AssociationType.THIS_DIVIDES
         else:
-            assoc_type = AssociatedType.OTHER_DIVIDES
+            assoc_type = AssociationType.OTHER_DIVIDES
     elif associated_service_json["type"] == "join":
         if last:
-            assoc_type = AssociatedType.THIS_JOINS
+            assoc_type = AssociationType.THIS_JOINS
         else:
-            assoc_type = AssociatedType.OTHER_DIVIDES
+            assoc_type = AssociationType.OTHER_DIVIDES
     else:
         return None
 

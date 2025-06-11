@@ -2,16 +2,24 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Optional
+from api.data.train.retrieve.insert import (
+    StockReport,
+    TrainLegCallCallInData,
+    TrainLegCallInData,
+    TrainServiceInData,
+    TrainStockReportCallInData,
+)
 from api.data.train.retrieve.json import get_service_from_id
 from api.user import User
+from api.utils import mileage
 from psycopg import Connection
 
 from api.utils.database import register_type
-from api.utils.times import change_timezone
+from api.utils.times import change_timezone, make_timezone_aware
 from api.data.train.toc import OperatorData
 from api.data.train.points import PointTimes
 from api.data.train.services import (
-    AssociatedType,
+    AssociationType,
     ShortAssociatedService,
     ShortTrainService,
     register_short_associated_service_types,

@@ -2,31 +2,31 @@ from enum import Enum
 from typing import Optional
 
 
-AssociatedType = Enum(
-    "AssociatedType",
+AssociationType = Enum(
+    "AssociationType",
     ["THIS_JOINS", "OTHER_JOINS", "THIS_DIVIDES", "OTHER_DIVIDES"],
 )
 
 
-def string_of_associated_type(at: AssociatedType) -> str:
+def string_of_association_type(at: AssociationType) -> str:
     match at:
-        case AssociatedType.THIS_JOINS:
+        case AssociationType.THIS_JOINS:
             return "THIS_JOINS"
-        case AssociatedType.OTHER_JOINS:
+        case AssociationType.OTHER_JOINS:
             return "OTHER_JOINS"
-        case AssociatedType.THIS_DIVIDES:
+        case AssociationType.THIS_DIVIDES:
             return "THIS_DIVIDES"
-        case AssociatedType.OTHER_DIVIDES:
+        case AssociationType.OTHER_DIVIDES:
             return "OTHER_DIVIDES"
 
 
-def string_to_associated_type(string: str) -> Optional[AssociatedType]:
+def string_to_association_type(string: str) -> Optional[AssociationType]:
     if string == "JOINS_TO":
-        return AssociatedType.THIS_JOINS
+        return AssociationType.THIS_JOINS
     if string == "JOINS_WITH":
-        return AssociatedType.OTHER_JOINS
+        return AssociationType.OTHER_JOINS
     if string == "DIVIDES_TO":
-        return AssociatedType.THIS_DIVIDES
+        return AssociationType.THIS_DIVIDES
     if string == "DIVIDES_FROM":
-        return AssociatedType.OTHER_DIVIDES
+        return AssociationType.OTHER_DIVIDES
     return None

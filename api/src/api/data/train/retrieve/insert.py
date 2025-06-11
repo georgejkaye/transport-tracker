@@ -3,7 +3,9 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from api.data.train.association import AssociatedType, string_of_associated_type
+from api.data.train.association import (
+    AssociationType,
+)
 from api.user import User
 from psycopg import Connection
 
@@ -11,7 +13,7 @@ from psycopg import Connection
 @dataclass
 class TrainServiceCallAssociatedServiceInData:
     associated_service: "TrainServiceInData"
-    association: AssociatedType
+    association: AssociationType
 
 
 @dataclass
@@ -34,7 +36,7 @@ class TrainAssociatedServiceInData:
     act_arr: Optional[datetime]
     plan_dep: Optional[datetime]
     act_dep: Optional[datetime]
-    assoc_type: AssociatedType
+    association_type: AssociationType
 
 
 @dataclass
@@ -66,7 +68,7 @@ class TrainLegCallInData:
     arr_call: Optional[TrainLegCallCallInData]
     dep_call: Optional[TrainLegCallCallInData]
     mileage: Optional[Decimal]
-    assoc: Optional[AssociatedType]
+    association_type: Optional[AssociationType]
 
 
 @dataclass
