@@ -2,20 +2,17 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Optional
+from psycopg import Connection
+
+from api.utils.database import register_type
+from api.utils.times import change_timezone, make_timezone_aware
 from api.data.train.retrieve.insert import (
     StockReport,
     TrainLegCallCallInData,
     TrainLegCallInData,
     TrainServiceInData,
-    TrainStockReportCallInData,
 )
 from api.data.train.retrieve.json import get_service_from_id
-from api.user import User
-from api.utils import mileage
-from psycopg import Connection
-
-from api.utils.database import register_type
-from api.utils.times import change_timezone, make_timezone_aware
 from api.data.train.toc import OperatorData
 from api.data.train.points import PointTimes
 from api.data.train.services import (
@@ -27,12 +24,7 @@ from api.data.train.services import (
 )
 from api.data.train.stations import (
     TrainLegCallStationInData,
-    TrainServiceAtStation,
-    TrainStation,
-    compare_crs,
-    short_string_of_service_at_station,
 )
-from api.data.train.stock import Formation
 
 
 def register_stock_report(
@@ -238,7 +230,6 @@ def get_leg_calls_between_calls(
     start_dep_time = make_timezone_aware(start_dep_time)
     leg_calls = []
     boarded = False
-    mileage = Decimal(0)
     mileage_offset = Decimal(0)
     for call in service.calls:
         mileage_offset = (
@@ -252,16 +243,17 @@ def get_leg_calls_between_calls(
             and call.plan_dep == start_dep_time
         ):
             boarded = True
-        if not boarded:
-            continue
-        arr_call = TrainLegCallCallInData(
-            service.unique_identifier,
-            service.run_date,
-            call.plan_arr,
-            call.act_arr,
-            call.plan_dep,
-            call.act_dep,
-        )
+        if boarded:
+            arr_call = TrainLegCallCallInData(
+                service.unique_identifier,
+                service.run_date,
+                call.plan_arr,
+                call.act_arr,
+                call.plan_dep,
+                call.act_dep,
+            )
+        else:
+            arr_call = None
         for call_association in call.associated_services:
             if call_association.association not in [
                 AssociationType.OTHER_DIVIDES,
@@ -280,25 +272,27 @@ def get_leg_calls_between_calls(
             )
             if associated_leg_calls is None:
                 continue
-            associated_leg_calls[0].arr_call = arr_call
-            associated_leg_calls[0].association_type = (
-                call_association.association
-            )
+            if boarded:
+                associated_leg_calls[0].arr_call = arr_call
+                associated_leg_calls[0].association_type = (
+                    call_association.association
+                )
             leg_calls.extend(associated_leg_calls)
             return leg_calls
-        dep_call = arr_call
-        leg_call = TrainLegCallInData(
-            call.station_crs,
-            arr_call,
-            dep_call,
-            (
-                call.mileage - mileage_offset
-                if call.mileage is not None and mileage_offset is not None
-                else None
-            ),
-            None,
-        )
-        leg_calls.append(leg_call)
-        if call.station_crs == end_station_crs:
-            return leg_calls
+        if boarded:
+            leg_call = TrainLegCallInData(
+                call.station_crs,
+                call.station_name,
+                arr_call,
+                arr_call,
+                (
+                    call.mileage - mileage_offset
+                    if call.mileage is not None and mileage_offset is not None
+                    else None
+                ),
+                None,
+            )
+            leg_calls.append(leg_call)
+            if call.station_crs == end_station_crs:
+                return leg_calls
     return None
