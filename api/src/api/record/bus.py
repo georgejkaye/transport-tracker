@@ -15,16 +15,16 @@ from api.utils.interactive import (
     input_year,
 )
 from api.user import User, input_user
-from api.data.bus.journey import (
+from api.db.bus.journey import (
     BusCallIn,
     BusJourneyDetails,
     BusJourneyIn,
     get_bus_journey,
     string_of_bus_call_in,
 )
-from api.data.bus.leg import BusLegIn, insert_leg
-from api.data.bus.operators import BusOperatorDetails
-from api.data.bus.stop import (
+from api.db.bus.leg import BusLegIn, insert_leg
+from api.db.bus.operators import BusOperatorDetails
+from api.db.bus.stop import (
     BusStopDetails,
     BusStopDeparture,
     get_bus_stops,
@@ -32,7 +32,7 @@ from api.data.bus.stop import (
     short_string_of_bus_stop,
     short_string_of_bus_stop_departure,
 )
-from api.data.bus.vehicle import (
+from api.db.bus.vehicle import (
     BusVehicleDetails,
     get_bus_vehicles_by_id,
     get_bus_vehicles_by_operator_and_id,

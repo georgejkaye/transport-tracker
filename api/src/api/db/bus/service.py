@@ -3,12 +3,12 @@ from datetime import datetime
 from typing import Optional
 from psycopg import Connection
 
-from api.data.bus.operators import (
+from api.db.bus.operators import (
     BusOperatorDetails,
     register_bus_operator_details,
     register_bus_operator_details_types,
 )
-from api.data.bus.stop import BusStopDetails
+from api.db.bus.stop import BusStopDetails
 from api.utils.database import register_type
 from api.utils.interactive import (
     PickSingle,

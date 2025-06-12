@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from api.data.bus.stop import (
+from api.db.bus.stop import (
     BusCallStopDetails,
     register_bus_call_stop_details,
     register_bus_call_stop_details_types,
@@ -8,7 +8,7 @@ from api.data.bus.stop import (
 from psycopg import Connection
 from typing import Optional
 
-from api.data.bus.operators import (
+from api.db.bus.operators import (
     BusOperatorDetails,
     register_bus_operator_details,
     register_bus_operator_details_types,

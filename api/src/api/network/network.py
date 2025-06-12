@@ -1,4 +1,4 @@
-from api.data.train.points import StationPoint, string_of_station_point
+from api.db.train.points import StationPoint, string_of_station_point
 import shapely
 import networkx as nx
 import osmnx as ox
@@ -12,7 +12,7 @@ from shapely import LineString, Point
 from shapely import geometry, ops
 from geopandas import GeoDataFrame
 
-from api.data.train.leg import ShortLeg
+from api.db.train.leg import ShortLeg
 
 coordinate_precision = 0.000001
 wgs84 = "EPSG:4326"

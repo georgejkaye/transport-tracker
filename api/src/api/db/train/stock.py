@@ -180,3 +180,11 @@ def select_stock_cars(
     ).fetchall()
     car_list = [Formation(row[0]) for row in rows]
     return car_list
+
+
+@dataclass
+class StockReport:
+    class_no: Optional[int]
+    subclass_no: Optional[int]
+    stock_no: Optional[int]
+    cars: Optional[int]

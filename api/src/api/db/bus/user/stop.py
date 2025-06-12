@@ -2,12 +2,12 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional
 
-from api.data.bus.operators import (
+from api.db.bus.operators import (
     BusOperatorDetails,
     register_bus_operator_details,
     register_bus_operator_details_types,
 )
-from api.data.bus.overview import (
+from api.db.bus.overview import (
     BusCallDetails,
     BusLegServiceDetails,
     register_bus_call_details,
@@ -15,7 +15,7 @@ from api.data.bus.overview import (
     register_bus_leg_service_details,
     register_bus_leg_service_details_types,
 )
-from api.data.bus.stop import (
+from api.db.bus.stop import (
     register_bus_stop_details,
     register_bus_call_stop_details,
 )

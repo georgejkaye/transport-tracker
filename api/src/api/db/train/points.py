@@ -5,7 +5,7 @@ from psycopg import Connection
 from shapely import Point
 
 from api.utils.database import register_type
-from api.data.train.stations import TrainLegCallStationInData
+from api.db.train.stations import TrainLegCallStationInData
 
 
 @dataclass

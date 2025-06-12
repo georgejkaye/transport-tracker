@@ -9,7 +9,7 @@ from shapely import Point
 
 from api.utils.interactive import information
 
-from api.data.bus.stop import BusStopData, insert_bus_stops
+from api.db.bus.stop import BusStopData, insert_bus_stops
 from api.network.network import osgb36_to_wgs84_point
 
 naptan_stops_csv_url = "https://beta-naptan.dft.gov.uk/Download/National/csv"

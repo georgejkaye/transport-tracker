@@ -1,4 +1,4 @@
-from api.data.bus.user.stop import (
+from api.db.bus.user.stop import (
     BusStopUserDetails,
     get_user_details_for_bus_stop,
     get_user_details_for_bus_stop_by_atco,

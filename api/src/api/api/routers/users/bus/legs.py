@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 from api.utils.database import connect_with_env
-from api.data.bus.leg import (
+from api.db.bus.leg import (
     BusLegUserDetails,
     select_bus_leg_by_id,
     select_bus_legs,

@@ -14,7 +14,7 @@ from api.utils.times import (
     get_hourmin_string,
     make_timezone_aware,
 )
-from api.data.train.toc import BrandData, OperatorData
+from api.db.train.toc import BrandData, OperatorData
 
 
 @dataclass

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, HTTPException
 
-from api.data.train.stats import Stats, get_train_stats
+from api.db.train.stats import Stats, get_train_stats
 from api.utils.database import connect_with_env
 
 

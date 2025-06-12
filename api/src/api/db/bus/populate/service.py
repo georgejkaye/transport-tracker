@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional
-from api.data.bus.populate.operators import TravelineOperator
+from api.db.bus.populate.operators import TravelineOperator
 from api.utils.interactive import information
 from psycopg import Connection
 

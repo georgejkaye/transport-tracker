@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
-from api.data.train.association import AssociationType
-from api.data.train.retrieve.html import (
+from api.classes.train.association import AssociationType
+from api.pull.train.html import (
     get_call_mileage_from_service_soup,
     get_train_service_soup,
 )
-from api.data.train.retrieve.insert import (
+
+from api.db.train.classes.input import (
     TrainAssociatedServiceInData,
     TrainServiceCallAssociatedServiceInData,
     TrainServiceCallInData,

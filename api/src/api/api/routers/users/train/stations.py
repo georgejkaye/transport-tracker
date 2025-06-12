@@ -1,4 +1,8 @@
-from api.data.train.stations import StationData, select_station, select_stations
+from api.db.train.stations import (
+    StationData,
+    select_station,
+    select_stations,
+)
 from api.utils.database import connect_with_env
 from fastapi import APIRouter, HTTPException
 

@@ -1,4 +1,4 @@
-from api.data.bus.overview import (
+from api.db.bus.overview import (
     BusVehicleUserDetails,
     get_bus_vehicle_overview_for_user,
     get_bus_vehicle_overviews_for_user,

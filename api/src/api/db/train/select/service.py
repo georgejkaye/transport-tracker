@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Optional
-from api.data.train.association import AssociationType
 from api.utils.database import register_type
 from bs4 import BeautifulSoup, Tag
 from psycopg import Connection
@@ -13,11 +12,11 @@ from psycopg import Connection
 from api.utils.request import get_soup, make_get_request
 from api.utils.credentials import get_api_credentials
 from api.utils.mileage import miles_and_chains_to_miles
-from api.data.train.stations import (
+from api.db.train.stations import (
     TrainLegCallStationInData,
     register_short_train_station_types,
 )
-from api.data.train.toc import (
+from api.db.train.toc import (
     BrandData,
     OperatorData,
     register_brand_data_types,
@@ -136,6 +135,3 @@ def register_short_train_service_types(conn: Connection):
     register_short_call_types(conn)
     register_short_associated_service_types(conn)
     register_type(conn, "TrainServiceOutData", register_service_data)
-
-
-ServiceIdentifier = tuple[str, datetime]

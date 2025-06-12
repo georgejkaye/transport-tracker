@@ -5,25 +5,28 @@ from decimal import Decimal
 from enum import Enum
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
-from api.data.train.retrieve.json import get_service_from_id
-from api.data.train.toc import get_operator_brands
-from api.data.train.leg import (
-    TrainLegCallInData,
-    TrainLegCallStockReportInData,
-    TrainLegInData,
-    TrainStockReportInData,
-    insert_leg,
-    stops_at_station,
+
+from api.db.train.classes.output import (
     string_of_enumerated_stock_report,
+    string_of_stock_report,
 )
-from api.user import input_user
+from api.db.train.classes.association import AssociationType
 from psycopg import Connection
 
+from api.user import input_user
 from api.utils.mileage import (
     miles_and_chains_to_miles,
     string_of_miles_and_chains,
 )
-from api.data.train.stations import (
+from api.db.train.classes.input import (
+    TrainLegCallCallInData,
+    TrainLegCallInData,
+    TrainStockReportInData,
+)
+from api.db.train.classes.input import TrainServiceInData
+from api.db.train.toc import get_operator_brands
+
+from api.db.train.stations import (
     TrainServiceAtStation,
     TrainStation,
     compare_crs,
@@ -34,11 +37,12 @@ from api.data.train.stations import (
     string_of_service_at_station,
     string_of_short_train_station,
 )
-from api.data.train.stock import (
+from api.db.train.stock import (
     Class,
     ClassAndSubclass,
     Formation,
     Stock,
+    StockReport,
     get_operator_stock,
     get_unique_classes,
     get_unique_subclasses,
@@ -336,9 +340,9 @@ def input_station_from_calls(
     calls: list[TrainLegCallInData],
 ) -> Optional[Tuple[TrainLegCallInData, int, list[TrainLegCallInData]]]:
     end_call = input_select_paginate(
-        f"Stock formation from {current.station.name} until",
+        f"Stock formation from {current.station_name} until",
         [(i, call) for (i, call) in enumerate(calls)],
-        display=lambda x: string_of_short_train_station(x[1].station),
+        display=lambda x: f"{x[1].station_name} ({x[1].station_crs})",
     )
     match end_call:
         case PickSingle((i, call)):
@@ -366,7 +370,7 @@ def get_unit_report(
     stock_list: list[Stock],
     operator: str,
     brand: Optional[str],
-) -> Optional[TrainLegCallStockReportInData]:
+) -> Optional[StockReport]:
     stock_class_res = get_unit_class(stock_list)
     match stock_class_res:
         case None:
@@ -422,7 +426,7 @@ def get_unit_report(
                 stock_cars = form
     else:
         return None
-    return TrainLegCallStockReportInData(
+    return StockReport(
         stock_class_no,
         stock_subclass_no,
         stock_unit_no,
@@ -453,24 +457,21 @@ def get_stock(
     information("Recording stock formations")
     used_stock: list[TrainStockReportInData] = []
     last_used_stock = previous
+
     # Currently getting this automatically isn't implemented
-    # First get all stock this operator has
     stock_list = get_operator_stock(
         conn, service.operator_code, service.run_date
     )
     current_call = calls[0]
-    # To determine when a particular stock formation lasts
-    # we prompt the user to pick where it ends from a list
-    # of stops excluding the start
     remaining_calls = calls[1:]
+
     while len(remaining_calls) > 0:
         information(
-            f"Recording stock formation after {current_call.station.name}"
+            f"Recording stock formation after {current_call.station_name}"
         )
-        segment_stock: list[TrainLegCallStockReportInData] = []
+        segment_stock: list[StockReport] = []
         segment_start = current_call
-        # Find out where this stock ends
-        # If we don't know, then this will be the last report
+
         stock_end_opt = input_station_from_calls(segment_start, remaining_calls)
         if stock_end_opt is None:
             segment_end = remaining_calls[-1]
@@ -483,18 +484,16 @@ def get_stock(
         ]
         remaining_calls = next_remaining_calls
         segment_end = stock_calls[-1]
-        # Now find out what reason for the change in stock is (or if we are just startin)
+
         if last_used_stock is None:
             stock_change = StockChange.GAIN
             previous_stock = []
         else:
             stock_change = get_stock_change_reason()
-            previous_stock = [
-                (i, stock) for (i, stock) in enumerate(last_used_stock.stock)
-            ]
+            previous_stock = last_used_stock.stock_report
         match stock_change:
             case StockChange.GAIN:
-                segment_stock = [s for (i, s) in previous_stock]
+                segment_stock = previous_stock
                 number_of_units = input_number("Number of new units")
                 if number_of_units is None:
                     return None
@@ -514,16 +513,16 @@ def get_stock(
                 result = input_checkbox(
                     "Which units remain",
                     previous_stock,
-                    string_of_enumerated_stock_report,
+                    string_of_stock_report,
                 )
                 match result:
                     case None:
                         return None
                     case PickMultiple(choices):
-                        segment_stock = [s for (i, s) in choices]
+                        segment_stock = choices
         stock_mileage = compute_mileage(stock_calls)
         segment = TrainStockReportInData(
-            segment_stock, stock_calls, stock_mileage
+            segment_stock, stock_calls[0], stock_calls[-1], stock_mileage
         )
         used_stock.append(segment)
         last_used_stock = segment
@@ -597,6 +596,84 @@ def filter_services_by_time(
         ):
             filtered_services.append(service)
     return filtered_services
+
+
+def get_leg_calls_between_calls(
+    service: TrainServiceInData,
+    start_station_crs: str,
+    start_dep_time: datetime,
+    end_station_crs: str,
+    mileage_offset: Optional[Decimal] = None,
+) -> Optional[list[TrainLegCallInData]]:
+    start_dep_time = make_timezone_aware(start_dep_time)
+    leg_calls = []
+    boarded = False
+    mileage_offset = Decimal(0)
+    for call in service.calls:
+        mileage_offset = (
+            (mileage_offset + call.mileage)
+            if mileage_offset is not None and call.mileage is not None
+            else None
+        )
+        if (
+            not boarded
+            and call.station_crs == start_station_crs
+            and call.plan_dep == start_dep_time
+        ):
+            boarded = True
+        if boarded:
+            arr_call = TrainLegCallCallInData(
+                service.unique_identifier,
+                service.run_date,
+                call.plan_arr,
+                call.act_arr,
+                call.plan_dep,
+                call.act_dep,
+            )
+        else:
+            arr_call = None
+        for call_association in call.associated_services:
+            if call_association.association not in [
+                AssociationType.OTHER_DIVIDES,
+                AssociationType.THIS_JOINS,
+            ]:
+                continue
+            associated_service = call_association.associated_service
+            if associated_service.calls[0].plan_dep is None:
+                continue
+            associated_leg_calls = get_leg_calls_between_calls(
+                associated_service,
+                associated_service.calls[0].station_crs,
+                associated_service.calls[0].plan_dep,
+                end_station_crs,
+                mileage_offset,
+            )
+            if associated_leg_calls is None:
+                continue
+            if boarded:
+                associated_leg_calls[0].arr_call = arr_call
+                associated_leg_calls[0].association_type = (
+                    call_association.association
+                )
+            leg_calls.extend(associated_leg_calls)
+            return leg_calls
+        if boarded:
+            leg_call = TrainLegCallInData(
+                call.station_crs,
+                call.station_name,
+                arr_call,
+                arr_call,
+                (
+                    call.mileage - mileage_offset
+                    if call.mileage is not None and mileage_offset is not None
+                    else None
+                ),
+                None,
+            )
+            leg_calls.append(leg_call)
+            if call.station_crs == end_station_crs:
+                return leg_calls
+    return None
 
 
 def filter_services_by_time_and_stop(

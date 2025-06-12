@@ -3,24 +3,24 @@ from datetime import datetime, timedelta
 import json
 from typing import Optional
 
-from api.data.bus.operators import (
+from api.db.bus.operators import (
     BusOperatorDetails,
     get_bus_operator_from_national_operator_code,
 )
-from api.data.bus.overview import BusCallStopDetails
-from api.data.bus.service import (
+from api.db.bus.overview import BusCallStopDetails
+from api.db.bus.service import (
     BusJourneyServiceDetails,
     BusServiceDetails,
     get_service_from_line_and_operator,
     register_bus_journey_service_details_types,
 )
-from api.data.bus.stop import (
+from api.db.bus.stop import (
     BusStopDetails,
     BusStopDeparture,
     get_bus_stops_from_atcos,
     register_bus_call_stop_details_types,
 )
-from api.data.bus.vehicle import (
+from api.db.bus.vehicle import (
     BusVehicleDetails,
     register_bus_vehicle_details_types,
 )

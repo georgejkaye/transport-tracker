@@ -1,5 +1,5 @@
 import sys
-from api.data.train.points import (
+from api.db.train.points import (
     get_station_points,
     get_station_points_from_names,
 )

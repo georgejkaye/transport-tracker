@@ -3,8 +3,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
 from api.utils.database import connect_with_env
-from api.data.train.points import get_station_points_from_crses
-from api.data.train.stations import select_station_from_crs
+from api.db.train.points import get_station_points_from_crses
+from api.db.train.stations import select_station_from_crs
 from api.network.map import (
     LegData,
     LegLine,

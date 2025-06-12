@@ -1,4 +1,4 @@
-from api.data.bus.service import register_bus_operator_details
+from api.db.bus.service import register_bus_operator_details
 from api.utils.database import register_type
 
 from dataclasses import dataclass
@@ -6,7 +6,7 @@ from typing import Optional
 from bs4 import BeautifulSoup
 from psycopg import Connection
 
-from api.data.bus.operators import (
+from api.db.bus.operators import (
     BusOperatorDetails,
     register_bus_operator_details_types,
 )

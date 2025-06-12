@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional
 
-from api.data.bus.journey import (
+from api.db.bus.journey import (
     BusCall,
     BusJourneyDetails,
     BusJourneyCallDetails,
@@ -13,25 +13,25 @@ from api.data.bus.journey import (
     register_bus_journey_call_details,
     register_bus_journey_details_types,
 )
-from api.data.bus.operators import (
+from api.db.bus.operators import (
     BusOperatorDetails,
     register_bus_operator_details,
 )
-from api.data.bus.overview import (
+from api.db.bus.overview import (
     BusCallDetails,
     BusLegServiceDetails,
     register_bus_call_details_types,
     register_bus_call_stop_details,
     register_bus_leg_service_details_types,
 )
-from api.data.bus.service import (
+from api.db.bus.service import (
     register_bus_journey_service_details,
     register_bus_service_details,
 )
-from api.data.bus.stop import (
+from api.db.bus.stop import (
     register_bus_stop_details,
 )
-from api.data.bus.vehicle import (
+from api.db.bus.vehicle import (
     BusVehicleDetails,
     register_bus_vehicle_details,
     register_bus_vehicle_details_types,

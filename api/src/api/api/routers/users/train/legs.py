@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from api.data.train.leg import select_legs
+from api.db.train.leg import select_legs
 from fastapi import APIRouter, HTTPException
 
 from api.utils.database import connect_with_env

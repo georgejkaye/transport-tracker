@@ -1,5 +1,8 @@
-from api.data.train.services import ShortAssociatedService, ShortTrainService
-from api.data.train.stations import TrainLegCallStationInData
+from api.db.train.select.service import (
+    ShortAssociatedService,
+    ShortTrainService,
+)
+from api.db.train.stations import TrainLegCallStationInData
 import folium
 
 from bs4 import BeautifulSoup
@@ -14,7 +17,7 @@ from pydantic import Field
 from shapely import LineString, Point
 
 from api.utils.database import connect_with_env
-from api.data.train.leg import (
+from api.db.train.leg import (
     ShortLeg,
     ShortLegCall,
     ShortLegSegment,
@@ -22,7 +25,7 @@ from api.data.train.leg import (
     get_operator_colour_from_leg,
     select_legs,
 )
-from api.data.train.points import (
+from api.db.train.points import (
     StationPoint,
     get_station_points_from_crses,
     get_station_points_from_names,
