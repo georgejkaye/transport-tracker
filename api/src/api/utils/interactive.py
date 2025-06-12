@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from math import ceil
 from typing import Callable, Optional
+from api.utils.times import make_timezone_aware
 from questionary import Choice, checkbox, confirm, select, text
 from termcolor import colored
 
@@ -306,3 +307,30 @@ def input_checkbox[T](
             case PickSingle(choice):
                 answers.append(choice)
     return PickMultiple(answers)
+
+
+def input_datetime(start: Optional[datetime] = None) -> datetime:
+    if start is not None:
+        default_year = start.year
+        default_month = start.month
+        default_day = start.day
+        default_time = start
+    else:
+        default_year = None
+        default_month = None
+        default_day = None
+        default_time = None
+    year = input_year(default=default_year)
+    if year is None:
+        raise RuntimeError()
+    month = input_month(default=default_month)
+    if month is None:
+        raise RuntimeError()
+    date = input_day(month, year, default=default_day)
+    if date is None:
+        raise RuntimeError()
+    time = input_time(default=default_time)
+    if time is None:
+        raise RuntimeError()
+    input_datetime = datetime(year, month, date, time.hour, time.minute)
+    return make_timezone_aware(input_datetime)

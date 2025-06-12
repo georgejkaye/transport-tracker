@@ -7,7 +7,7 @@ from api.user import User
 from api.db.train.classes.input import TrainLegInData
 
 
-def insert_leg(conn: Connection, user: User, leg: TrainLegInData):
+def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData):
     service_data = []
     service_endpoint_data = []
     service_call_data = []

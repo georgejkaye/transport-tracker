@@ -6,11 +6,13 @@ from enum import Enum
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
+from api.classes.train.association import AssociationType
+from api.db.train.classes.input import TrainLegInData, TrainServiceInData
 from api.db.train.classes.output import (
-    string_of_enumerated_stock_report,
     string_of_stock_report,
 )
-from api.db.train.classes.association import AssociationType
+from api.db.train.leg import insert_train_leg
+from api.pull.train.json import get_service_from_id
 from psycopg import Connection
 
 from api.user import input_user
@@ -23,11 +25,11 @@ from api.db.train.classes.input import (
     TrainLegCallInData,
     TrainStockReportInData,
 )
-from api.db.train.classes.input import TrainServiceInData
 from api.db.train.toc import get_operator_brands
 
 from api.db.train.stations import (
     TrainServiceAtStation,
+    TrainServiceAtStationToDestination,
     TrainStation,
     compare_crs,
     get_services_at_station,
@@ -35,6 +37,7 @@ from api.db.train.stations import (
     get_stations_from_substring,
     short_string_of_service_at_station,
     string_of_service_at_station,
+    string_of_service_at_station_to_destination,
     string_of_short_train_station,
 )
 from api.db.train.stock import (
@@ -205,7 +208,7 @@ def get_service_at_station(
     origin: TrainStation,
     search_datetime: datetime,
     destination: TrainStation,
-) -> Optional[TrainServiceAtStation]:
+) -> Optional[TrainServiceAtStationToDestination]:
     """
     Record a new journey in the logfile
     """
@@ -219,14 +222,14 @@ def get_service_at_station(
     # We only want to check our given timeframe
     # We also only want services that stop at our destination
     filtered_services = filter_services_by_time_and_stop(
-        conn, earliest_time, latest_time, origin, destination, origin_services
+        earliest_time, latest_time, origin, destination, origin_services
     )
     if len(filtered_services) == 0:
         return None
     choice = input_select_paginate(
         "Pick a service",
         filtered_services,
-        display=lambda x: string_of_service_at_station(x),
+        display=string_of_service_at_station_to_destination,
     )
     match choice:
         case PickSingle(service):
@@ -535,7 +538,7 @@ def get_stock(
 
 def input_mileage(calls: list[TrainLegCallInData]) -> Decimal:
     information(
-        f"Manual mileage input between {calls[0].station.name} and {calls[-1].station.name} required"
+        f"Manual mileage input between {calls[0].station_name} and {calls[-1].station_name} required"
     )
     # If we can get a good distance set this could be automated
     miles = input_number("Miles")
@@ -551,33 +554,6 @@ def compute_mileage(calls: list[TrainLegCallInData]) -> Decimal:
     if start_mileage is None or end_mileage is None:
         return input_mileage(calls)
     return end_mileage - start_mileage
-
-
-def get_datetime(start: Optional[datetime] = None) -> datetime:
-    if start is not None:
-        default_year = start.year
-        default_month = start.month
-        default_day = start.day
-        default_time = start
-    else:
-        default_year = None
-        default_month = None
-        default_day = None
-        default_time = None
-    year = input_year(default=default_year)
-    if year is None:
-        raise RuntimeError()
-    month = input_month(default=default_month)
-    if month is None:
-        raise RuntimeError()
-    date = input_day(month, year, default=default_day)
-    if date is None:
-        raise RuntimeError()
-    time = input_time(default=default_time)
-    if time is None:
-        raise RuntimeError()
-    input_datetime = datetime(year, month, date, time.hour, time.minute)
-    return make_timezone_aware(input_datetime)
 
 
 def filter_services_by_time(
@@ -677,30 +653,54 @@ def get_leg_calls_between_calls(
 
 
 def filter_services_by_time_and_stop(
-    conn: Connection,
     earliest: datetime,
     latest: datetime,
     origin: TrainStation,
     destination: TrainStation,
     services: list[TrainServiceAtStation],
-) -> list[TrainServiceAtStation]:
-    time_filtered = filter_services_by_time(earliest, latest, services)
-    stop_filtered: list[TrainServiceAtStation] = []
+) -> list[TrainServiceAtStationToDestination]:
+    services_filtered_by_time = filter_services_by_time(
+        earliest, latest, services
+    )
+    services_filtered_by_destination: list[
+        TrainServiceAtStationToDestination
+    ] = []
     max_string_length = 0
-    for i, service in enumerate(time_filtered):
-        string = f"Checking service {i}/{len(time_filtered)}: {short_string_of_service_at_station(service)}"
+    for i, service in enumerate(services_filtered_by_time):
+        string = f"Checking service {i}/{len(services_filtered_by_time)}: {short_string_of_service_at_station(service)}"
+        if service.plan_dep is None:
+            continue
         max_string_length = max(max_string_length, len(string))
+
         information(string.ljust(max_string_length), end="\r")
+
         full_service = get_service_from_id(
-            service.id, service.run_date, soup=False
+            service.id, service.run_date, scrape_html=False
         )
         if full_service is None:
             continue
-        _, call_graph = full_service
-        if stops_at_station(call_graph, origin.crs, destination.crs):
-            stop_filtered.append(service)
+        leg_calls_from_origin_to_destination = get_leg_calls_between_calls(
+            full_service, origin.crs, service.plan_dep, destination.crs
+        )
+        if leg_calls_from_origin_to_destination is not None:
+            services_filtered_by_destination.append(
+                TrainServiceAtStationToDestination(
+                    service.id,
+                    service.headcode,
+                    service.run_date,
+                    service.origins,
+                    service.destinations,
+                    service.plan_dep,
+                    service.act_dep,
+                    service.operator_code,
+                    service.brand_code,
+                    leg_calls_from_origin_to_destination,
+                )
+            )
+
     information(" " * max_string_length, end="\r")
-    return stop_filtered
+
+    return services_filtered_by_destination
 
 
 def record_new_leg(
@@ -754,12 +754,6 @@ def record_new_leg(
                 return None
     for (service_id, run_date), service in services.items():
         service.brand_code = brand_code
-    calls_result = get_calls_between_stations(
-        service, origin_station.crs, destination_station.crs
-    )
-    if calls_result is None:
-        return None
-    services, leg_calls = calls_result
     stock_segments = []
     mileage = compute_mileage(leg_calls)
     information(f"Computed mileage as {string_of_miles_and_chains(mileage)}")
@@ -776,7 +770,7 @@ def add_to_logfile(conn: Connection):
         print("Could not get leg")
         exit(1)
     for user in users:
-        insert_leg(conn, user, leg)
+        insert_train_leg(conn, user, leg)
 
 
 def read_logfile(log_file: str):
