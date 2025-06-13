@@ -2,7 +2,7 @@ import zoneinfo
 import pytz
 
 from datetime import date, datetime, time, timedelta
-from typing import Optional
+from typing import Any, Optional
 
 from api.utils.environment import get_env_variable
 
@@ -38,7 +38,7 @@ def add(dt: datetime, delta: int):
     return dt + timedelta(minutes=delta)
 
 
-def pad_front(string, length):
+def pad_front(string: Any, length: int) -> str:
     """
     Add zeroes to the front of a number string until it is the desired length
     """

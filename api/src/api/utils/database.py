@@ -1,10 +1,11 @@
+import sys
+
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, DecimalException
-import sys
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 from dotenv import load_dotenv
-from psycopg import Connection, Cursor
+from psycopg import Connection
 from psycopg.types.composite import CompositeInfo, register_composite
 
 from api.utils.environment import get_env_variable, get_secret
@@ -21,7 +22,10 @@ class DbConnectionData:
 
 
 def get_db_connection_data_from_args(
-    db_name_index=1, db_user_index=2, db_password_index=3, db_host_index=4
+    db_name_index: int = 1,
+    db_user_index: int = 2,
+    db_password_index: int = 3,
+    db_host_index: int = 4,
 ):
     if len(sys.argv) > max(
         db_name_index, db_user_index, db_password_index, db_host_index
@@ -51,7 +55,7 @@ class DbConnection:
         )
         return self.conn
 
-    def __exit__(self, exception_type, exception_value, exception_traceback):
+    def __exit__(self):
         self.conn.close()
 
 
@@ -90,6 +94,8 @@ def str_or_none_to_str(x: str | None | NoEscape) -> str:
     match x:
         case NoEscape(string):
             return string
+        case _:
+            pass
     replaced = x.replace("\u2019", "'")
     return f"$${replaced}$$"
 
@@ -115,7 +121,9 @@ def datetime_or_none_to_raw_str(x: datetime | None) -> str:
         return f"'{x.isoformat()}'"
 
 
-def str_or_null_to_datetime(x: str | None, tz=None) -> datetime | None:
+def str_or_null_to_datetime(
+    x: str | None, tz: Optional[Any] = None
+) -> datetime | None:
     if x is None:
         return None
     try:
@@ -161,7 +169,9 @@ def insert(
         conn.execute(statement.encode())
 
 
-def register_type(conn: Connection, name: str, factory=None):
+def register_type(
+    conn: Connection, name: str, factory: Optional[Callable[..., Any]] = None
+):
     info = CompositeInfo.fetch(conn, name)
     if info is not None:
         register_composite(info, conn, factory)

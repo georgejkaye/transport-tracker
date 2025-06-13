@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 from api.utils.environment import get_env_variable, get_secret
 
 

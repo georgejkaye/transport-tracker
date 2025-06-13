@@ -1,19 +1,97 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 from api.db.train.classes.output import ShortLeg, register_leg_data_types
 from psycopg import Connection
 
 from api.user import User
-from api.db.train.classes.input import TrainLegInData
+from api.classes.train.association import string_of_association_type
+from api.classes.train.leg import TrainLegInData
+
+DbTrainServiceInData = tuple[
+    str, datetime, str, str, Optional[str], Optional[str]
+]
+
+DbTrainServiceEndpointInData = tuple[str, datetime, str, bool]
+
+DbTrainCallInData = tuple[
+    str,
+    datetime,
+    str,
+    Optional[str],
+    Optional[datetime],
+    Optional[datetime],
+    Optional[datetime],
+    Optional[datetime],
+    Optional[Decimal],
+]
+
+DbTrainAssociatedServiceInData = tuple[
+    str,
+    datetime,
+    str,
+    Optional[datetime],
+    Optional[datetime],
+    Optional[datetime],
+    Optional[datetime],
+    str,
+    datetime,
+    str,
+]
+
+DbTrainLegCallInData = tuple[
+    str,
+    Optional[str],
+    Optional[datetime],
+    Optional[datetime],
+    Optional[datetime],
+    Optional[datetime],
+    Optional[datetime],
+    Optional[str],
+    Optional[datetime],
+    Optional[datetime],
+    Optional[datetime],
+    Optional[datetime],
+    Optional[datetime],
+    Optional[Decimal],
+]
+
+DbTrainStockSegmentInData = tuple[
+    Optional[int],
+    Optional[int],
+    Optional[int],
+    Optional[int],
+    str,
+    datetime,
+    str,
+    Optional[datetime],
+    Optional[datetime],
+    str,
+    datetime,
+    str,
+    Optional[datetime],
+    Optional[datetime],
+]
+
+DbTrainLegInData = tuple[
+    int,
+    list[DbTrainServiceInData],
+    list[DbTrainServiceEndpointInData],
+    list[DbTrainCallInData],
+    list[DbTrainAssociatedServiceInData],
+    list[DbTrainLegCallInData],
+    Decimal,
+    list[DbTrainStockSegmentInData],
+]
 
 
 def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData):
-    service_data = []
-    service_endpoint_data = []
-    service_call_data = []
-    service_association_data = []
-    leg_call_data = []
-    leg_stock_data = []
+    service_data: list[DbTrainServiceInData] = []
+    service_endpoint_data: list[DbTrainServiceEndpointInData] = []
+    service_call_data: list[DbTrainCallInData] = []
+    service_association_data: list[DbTrainAssociatedServiceInData] = []
+    leg_call_data: list[DbTrainLegCallInData] = []
+    leg_stock_data: list[DbTrainStockSegmentInData] = []
     for service in leg.services:
         service_data.append(
             (
@@ -41,6 +119,8 @@ def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData):
         for call in service.calls:
             service_call_data.append(
                 (
+                    service.unique_identifier,
+                    service.run_date,
                     call.station_crs,
                     call.platform,
                     call.plan_arr,
@@ -53,29 +133,83 @@ def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData):
             for association in call.associated_services:
                 service_association_data.append(
                     (
+                        service.unique_identifier,
+                        service.run_date,
+                        call.station_crs,
+                        call.plan_arr,
+                        call.act_arr,
+                        call.plan_dep,
+                        call.act_dep,
                         association.associated_service.unique_identifier,
                         association.associated_service.run_date,
-                        association.association,
+                        string_of_association_type(association.association),
                     )
                 )
-    for call in leg.calls:
+    for leg_call in leg.calls:
         leg_call_data.append(
             (
-                call.station_crs,
+                leg_call.station_crs,
                 (
-                    call.arr_call.service_run_id
-                    if call.arr_call is not None
+                    leg_call.arr_call.service_run_id
+                    if leg_call.arr_call is not None
                     else None
                 ),
-                call.arr_call.plan_arr if call.arr_call is not None else None,
-                call.arr_call.act_arr if call.arr_call is not None else None,
-                call.arr_call.plan_dep if call.arr_call is not None else None,
-                call.arr_call.act_arr if call.arr_call is not None else None,
-                call.dep_call.plan_arr if call.dep_call is not None else None,
-                call.dep_call.act_arr if call.dep_call is not None else None,
-                call.dep_call.plan_dep if call.dep_call is not None else None,
-                call.dep_call.act_arr if call.dep_call is not None else None,
-                call.mileage,
+                (
+                    leg_call.arr_call.service_run_date
+                    if leg_call.arr_call is not None
+                    else None
+                ),
+                (
+                    leg_call.arr_call.plan_arr
+                    if leg_call.arr_call is not None
+                    else None
+                ),
+                (
+                    leg_call.arr_call.act_arr
+                    if leg_call.arr_call is not None
+                    else None
+                ),
+                (
+                    leg_call.arr_call.plan_dep
+                    if leg_call.arr_call is not None
+                    else None
+                ),
+                (
+                    leg_call.arr_call.act_arr
+                    if leg_call.arr_call is not None
+                    else None
+                ),
+                (
+                    leg_call.dep_call.service_run_id
+                    if leg_call.dep_call is not None
+                    else None
+                ),
+                (
+                    leg_call.dep_call.service_run_date
+                    if leg_call.dep_call is not None
+                    else None
+                ),
+                (
+                    leg_call.dep_call.plan_arr
+                    if leg_call.dep_call is not None
+                    else None
+                ),
+                (
+                    leg_call.dep_call.act_arr
+                    if leg_call.dep_call is not None
+                    else None
+                ),
+                (
+                    leg_call.dep_call.plan_dep
+                    if leg_call.dep_call is not None
+                    else None
+                ),
+                (
+                    leg_call.dep_call.act_arr
+                    if leg_call.dep_call is not None
+                    else None
+                ),
+                leg_call.mileage,
             )
         )
     for stock_report in leg.stock_reports:
@@ -86,19 +220,35 @@ def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData):
                     stock.subclass_no,
                     stock.stock_no,
                     stock.cars,
-                    stock_report.start_call.service_uid,
-                    stock_report.start_call.service_run_date,
+                    stock_report.start_call.service.unique_identifier,
+                    stock_report.start_call.service.run_date,
                     stock_report.start_call.station_crs,
-                    stock_report.start_call.plan,
-                    stock_report.start_call.act,
-                    stock_report.end_call.service_uid,
-                    stock_report.end_call.service_run_date,
+                    (
+                        stock_report.start_call.dep_call.plan_dep
+                        if stock_report.start_call.dep_call is not None
+                        else None
+                    ),
+                    (
+                        stock_report.start_call.dep_call.act_dep
+                        if stock_report.start_call.dep_call is not None
+                        else None
+                    ),
+                    stock_report.end_call.service.unique_identifier,
+                    stock_report.end_call.service.run_date,
                     stock_report.end_call.station_crs,
-                    stock_report.end_call.plan,
-                    stock_report.end_call.act,
+                    (
+                        stock_report.end_call.arr_call.plan_arr
+                        if stock_report.end_call.arr_call is not None
+                        else None
+                    ),
+                    (
+                        stock_report.end_call.arr_call.act_arr
+                        if stock_report.end_call.arr_call is not None
+                        else None
+                    ),
                 )
             )
-    leg_tuple = (
+    leg_tuple: DbTrainLegInData = (
         user.user_id,
         service_data,
         service_endpoint_data,

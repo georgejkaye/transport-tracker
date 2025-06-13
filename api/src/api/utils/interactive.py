@@ -87,10 +87,11 @@ def input_number(
             default_string = str(default)
         if default_pad:
             default_string = str(default).rjust(default_pad, "0")
+    validation_fn: Callable[[str], bool | str] = lambda x: number_in_range(
+        x, lower, upper, unknown
+    )
     result = text(
-        f"{message}",
-        default=default_string,
-        validate=lambda x: number_in_range(x, lower, upper, unknown),
+        f"{message}", default=default_string, validate=validation_fn
     ).ask()
     if result is None:
         return None
@@ -135,7 +136,7 @@ def input_month(
     )
 
 
-def get_month_length(month, year):
+def get_month_length(month: int, year: int):
     """
     Get the length of a month in days, for a given year
     """
@@ -260,11 +261,11 @@ def input_select[T](
 def input_select_paginate[T](
     message: str, choices: list[T], display: Optional[Callable[[T], str]] = None
 ) -> Optional[PickChoice[T]]:
-    partitions = []
+    partitions: list[list[T]] = []
     size_of_partition = 34
     number_of_partitions = ceil(len(choices) / size_of_partition)
     for i in range(0, number_of_partitions):
-        current_partition = []
+        current_partition: list[T] = []
         for j in range(0, size_of_partition):
             choice_index = i * size_of_partition + j
             if choice_index >= len(choices):
@@ -293,19 +294,23 @@ def input_checkbox[T](
     message: str,
     choices: list[T],
     display: Optional[Callable[[T], str]] = None,
-    allow_none=False,
+    allow_none: bool = False,
 ) -> Optional[PickMultiple[T]]:
     choice_objects = [choice_from_object(choice, display) for choice in choices]
-    result = checkbox(message, choice_objects).ask()
+    result: Optional[list[PickChoice[T]]] = checkbox(
+        message, choice_objects
+    ).ask()
     if result is None:
         return None
-    answers = []
+    answers: list[T] = []
     if not allow_none and len(result) == 0:
         return None
     for res in result:
         match res:
             case PickSingle(choice):
                 answers.append(choice)
+            case _:
+                pass
     return PickMultiple(answers)
 
 

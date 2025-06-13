@@ -2,17 +2,7 @@ from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from api.classes.train.association import AssociationType
-from api.pull.train.html import (
-    get_call_mileage_from_service_soup,
-    get_train_service_soup,
-)
 
-from api.db.train.classes.input import (
-    TrainAssociatedServiceInData,
-    TrainServiceCallAssociatedServiceInData,
-    TrainServiceCallInData,
-    TrainServiceInData,
-)
 from api.utils.credentials import get_api_credentials
 from api.utils.request import make_get_request
 from api.utils.times import get_datetime_route, make_timezone_aware

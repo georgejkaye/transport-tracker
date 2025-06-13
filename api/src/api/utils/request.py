@@ -88,7 +88,7 @@ def make_get_request(
     url: str,
     credentials: Optional[Credentials] = None,
     stream: bool = False,
-    headers: Optional[dict] = None,
+    headers: Optional[dict[str, str]] = None,
 ) -> Response:
     if credentials is not None:
         auth = HTTPBasicAuth(credentials.user, credentials.password)
@@ -101,8 +101,8 @@ def make_get_request(
 def get_json(
     url: str,
     credentials: Optional[Credentials] = None,
-    headers: Optional[dict] = None,
-) -> Optional[dict]:
+    headers: Optional[dict[str, str]] = None,
+) -> Optional[Any]:
     response = make_get_request(url, credentials=credentials)
     try:
         json = response.json()
@@ -118,15 +118,19 @@ def get_soup(url: str) -> Optional[BeautifulSoup]:
 
 
 def make_post_request(
-    url: str, headers: Optional[dict] = None, data: Optional[dict] = None
+    url: str,
+    headers: Optional[dict[str, str]] = None,
+    data: Optional[dict[str, Any]] = None,
 ) -> Response:
     print(f"Making post request to {url}")
     return requests.post(url, headers=headers, data=data)
 
 
 def get_post_json(
-    url: str, headers: Optional[dict] = None, data: Optional[dict] = None
-) -> dict:
+    url: str,
+    headers: Optional[dict[str, str]] = None,
+    data: Optional[dict[str, Any]] = None,
+) -> Any:
     response = make_post_request(url, headers, data)
     if response.status_code != 200:
         print(f"Error {response.status_code} received")

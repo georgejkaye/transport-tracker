@@ -311,5 +311,5 @@ CREATE TYPE TrainLegInData AS (
     service_associations TrainAssociatedServiceInData[]
     leg_calls TrainLegCallInData[],
     leg_distance DECIMAL,
-    leg_stock TrainStockReportInData[]
+    leg_stock TrainStockSegmentInData[]
 );
