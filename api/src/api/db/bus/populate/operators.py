@@ -1,12 +1,9 @@
-from re import A
 import sys
 import xml.etree.ElementTree as ET
-
 from dataclasses import dataclass
 
 from api.utils.database import connect, get_db_connection_data_from_args
 from api.utils.interactive import information
-from numpy import insert
 from psycopg import Connection
 
 
@@ -27,7 +24,7 @@ def extract_operator_data_from_traveline_xml(
     if noclines_element is None:
         return []
 
-    traveline_operators = []
+    traveline_operators: list[TravelineOperator] = []
 
     nocline_elements = noclines_element.findall("NOCLinesRecord")
     for nocline_element in nocline_elements:

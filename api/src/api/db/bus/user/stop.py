@@ -3,23 +3,15 @@ from decimal import Decimal
 from typing import Optional
 
 from api.db.bus.operators import (
-    BusOperatorDetails,
-    register_bus_operator_details,
     register_bus_operator_details_types,
 )
 from api.db.bus.overview import (
     BusCallDetails,
     BusLegServiceDetails,
-    register_bus_call_details,
     register_bus_call_details_types,
-    register_bus_leg_service_details,
     register_bus_leg_service_details_types,
 )
-from api.db.bus.stop import (
-    register_bus_stop_details,
-    register_bus_call_stop_details,
-)
-from api.utils.database import DbConnectionData, connect, register_type
+from api.utils.database import register_type
 from psycopg import Connection
 
 
@@ -122,7 +114,7 @@ def register_bus_stop_user_details(
     )
 
 
-def register_bus_stop_user_details_types(conn):
+def register_bus_stop_user_details_types(conn: Connection):
     register_bus_stop_leg_user_details_types(conn)
     register_type(conn, "BusStopUserDetails", register_bus_stop_user_details)
 
@@ -158,6 +150,4 @@ def get_user_details_for_bus_stops(
     result = conn.execute(
         "SELECT GetUserDetailsForBusStops(%s)", [user_id]
     ).fetchall()
-    if result is None:
-        return []
     return [row[0] for row in result]

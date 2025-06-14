@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import Optional
-
 from dataclasses import dataclass
-from api.utils.database import register_type
 from psycopg import Connection
+
+from api.utils.database import register_type
 
 
 def select_operator_id(conn: Connection, operator_name: str) -> Optional[str]:

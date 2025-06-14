@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Optional
 from api.utils.database import register_type
 from api.utils.request import get_soup
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from psycopg import Connection
 
 
@@ -184,21 +184,32 @@ def get_departures_from_bus_stop_soup(
         datetime.strptime(str(departure_input_boxes[0]["value"]), "%Y-%m-%d")
         - datetime_offset
     )
-    search_time_value = datetime.strptime(
-        str(departure_input_boxes[1]["value"]), "%H:%M"
-    )
     departures_tables = soup.select("#departures > table")
-    departures = []
+    departures: list[BusStopDeparture] = []
     for i, departure_table in enumerate(departures_tables):
         current_date = search_date_value + timedelta(days=i)
         departure_rows = departure_table.find_all("tr")
         for departure_row in departure_rows[1:]:
+            if not isinstance(departure_row, Tag):
+                continue
             departure_data = departure_row.find_all("td")
-            departure_service = departure_data[0].find("a").text.strip()
-            departure_destination = departure_data[1].text.strip()
-            departure_time_data = departure_data[2]
+            departure_service_td = departure_data[0]
+            if not isinstance(departure_service_td, Tag):
+                continue
+            departure_service_a = departure_service_td.find("a")
+            if not isinstance(departure_service_a, Tag):
+                continue
+            departure_service = departure_service_a.text.strip()
+            departure_destination_td = departure_data[1]
+            departure_destination = departure_destination_td.text.strip()
+            departure_time_td = departure_data[2]
+            if not isinstance(departure_time_td, Tag):
+                continue
+            departure_time_a = departure_time_td.find("a")
+            if not isinstance(departure_time_a, Tag):
+                continue
             departure_time = datetime.strptime(
-                departure_time_data.find("a").text.strip(), "%H:%M"
+                departure_time_a.text.strip(), "%H:%M"
             )
             departure_datetime = datetime(
                 current_date.year,
@@ -208,8 +219,11 @@ def get_departures_from_bus_stop_soup(
                 departure_time.minute,
                 0,
             )
+            departure_time_a_href = departure_time_a["href"]
+            if not isinstance(departure_time_a_href, str):
+                continue
             departure_bustimes_journey_id = int(
-                departure_time_data.find("a")["href"].split("/")[2]
+                departure_time_a_href.split("/")[2]
             )
             departure = BusStopDeparture(
                 departure_service,

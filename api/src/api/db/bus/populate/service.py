@@ -42,9 +42,9 @@ def get_line_description_from_description_node(
     description_text = description_text_node.text or ""
     description_vias_node = description_node.find("Vias", namespaces)
     if description_vias_node is None:
-        description_vias = []
+        description_vias: list[str] = []
     else:
-        description_vias = []
+        description_vias: list[str] = []
         for description_via in description_vias_node.findall("Via", namespaces):
             if description_via.text is not None:
                 description_vias.append(
@@ -88,7 +88,7 @@ def get_lines_from_service_node(
     lines_node = service_node.find("Lines", namespaces)
     if lines_node is None:
         return []
-    lines = []
+    lines: list[TransXChangeLine] = []
     for line_node in lines_node.findall("Line", namespaces):
         line = get_line_from_line_node(noc, line_node, namespaces)
         if line is not None:
@@ -103,7 +103,7 @@ def get_services_from_transxchange_node(
     if services_node is None:
         return []
     service_nodes = services_node.findall("Service", namespaces)
-    services = []
+    services: list[TransXChangeLine] = []
     for service_node in service_nodes:
         lines = get_lines_from_service_node(noc, service_node, namespaces)
         services = services + lines
@@ -174,10 +174,7 @@ def insert_services(
                 ),
             )
         )
-        if (
-            service.outbound_desc is not None
-            and service.outbound_desc.vias is not None
-        ):
+        if service.outbound_desc is not None:
             for i, via in enumerate(service.outbound_desc.vias):
                 via_values.append(
                     (
@@ -187,10 +184,7 @@ def insert_services(
                         i,
                     )
                 )
-        if (
-            service.inbound_desc is not None
-            and service.inbound_desc.vias is not None
-        ):
+        if service.inbound_desc is not None:
             for i, via in enumerate(service.inbound_desc.vias):
                 via_values.append(
                     (
@@ -222,7 +216,7 @@ def extract_data_from_bods_xml(
 def extract_data_from_bods_zipfile(
     zip: zipfile.ZipFile, operator_nocs: set[str]
 ) -> list[TransXChangeLine]:
-    data = []
+    data: list[TransXChangeLine] = []
     for file_name in zip.namelist():
         file_path = zipfile.Path(zip, file_name)
         file_extension = file_path.suffix

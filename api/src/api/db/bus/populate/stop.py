@@ -35,7 +35,7 @@ eastings_column = 27
 northings_column = 28
 stop_type_column = 31
 
-stops = []
+stops: list[BusStopData] = []
 
 standard_bus_stop_type = "BCT"
 station_bus_stop_type = "BCS"

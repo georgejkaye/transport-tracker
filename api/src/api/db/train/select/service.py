@@ -1,17 +1,10 @@
-from ast import Call
-from collections import deque
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
-from enum import Enum
-from typing import Any, Optional
+from typing import Optional
 from api.utils.database import register_type
-from bs4 import BeautifulSoup, Tag
 from psycopg import Connection
 
-from api.utils.request import get_soup, make_get_request
-from api.utils.credentials import get_api_credentials
-from api.utils.mileage import miles_and_chains_to_miles
 from api.db.train.stations import (
     TrainLegCallStationInData,
     register_short_train_station_types,
@@ -23,8 +16,6 @@ from api.db.train.toc import (
 )
 from api.utils.times import (
     change_timezone,
-    get_datetime_route,
-    make_timezone_aware,
 )
 
 

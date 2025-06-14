@@ -11,7 +11,7 @@ connection_data = get_db_connection_data_from_args()
 with connect(connection_data) as conn:
     populate_bus_stops(conn, sys.argv[5])
     operators = populate_bus_operators(conn, sys.argv[6])
-    operator_nocs = set()
+    operator_nocs: set[str] = set()
     for operator in operators:
         operator_nocs.add(operator.national_code)
     populate_bus_services(conn, operator_nocs, sys.argv[7])

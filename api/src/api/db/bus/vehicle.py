@@ -1,16 +1,14 @@
-from api.db.bus.service import register_bus_operator_details
-from api.utils.database import register_type
-
 from dataclasses import dataclass
 from typing import Optional
 from bs4 import BeautifulSoup
 from psycopg import Connection
 
+from api.utils.database import register_type
+from api.utils.request import get_soup
 from api.db.bus.operators import (
     BusOperatorDetails,
     register_bus_operator_details_types,
 )
-from api.utils.request import get_soup
 
 
 @dataclass
@@ -161,7 +159,7 @@ def get_bus_operator_vehicles(
         else:
             current_col = current_col + 1
     vehicle_rows = vehicles_soup.select("table.fleet tbody tr")
-    vehicles = []
+    vehicles: list[BusVehicleIn] = []
     for vehicle_row in vehicle_rows:
         bustimes_id = str(vehicle_row["id"]).strip()
         vehicle_cols = vehicle_row.select("td")
@@ -181,13 +179,17 @@ def get_bus_operator_vehicles(
                     vehicle_name = None
             else:
                 vehicle_name = None
+            if livery_col is not None:
+                vehicle_livery = None
+            else:
+                vehicle_livery = None
             vehicle_object = BusVehicleIn(
                 operator.id,
                 vehicle_id,
                 bustimes_id,
                 vehicle_numberplate,
                 vehicle_model,
-                None,
+                vehicle_livery,
                 vehicle_name,
             )
             vehicles.append(vehicle_object)

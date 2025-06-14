@@ -1,10 +1,10 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
-from api.db.train.classes.output import ShortLeg, register_leg_data_types
 from psycopg import Connection
 
 from api.user import User
+from api.db.train.classes.output import ShortLeg, register_leg_data_types
 from api.classes.train.association import string_of_association_type
 from api.classes.train.leg import TrainLegInData
 

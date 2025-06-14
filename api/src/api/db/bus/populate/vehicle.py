@@ -2,7 +2,11 @@ from time import sleep
 from psycopg import Connection
 
 from api.db.bus.operators import get_bus_operators
-from api.db.bus.vehicle import get_bus_operator_vehicles, insert_bus_vehicles
+from api.db.bus.vehicle import (
+    BusVehicleIn,
+    get_bus_operator_vehicles,
+    insert_bus_vehicles,
+)
 from api.utils.database import connect, get_db_connection_data_from_args
 from api.utils.interactive import information
 
@@ -11,7 +15,7 @@ def populate_bus_vehicles(conn: Connection):
     information("Retrieving bus vehicles")
 
     operators = get_bus_operators(conn)
-    all_operator_vehicles = []
+    all_operator_vehicles: list[BusVehicleIn] = []
 
     for operator in operators:
         information(f"Populating bus vehicles for {operator.name}")

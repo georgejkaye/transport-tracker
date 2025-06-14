@@ -95,7 +95,7 @@ def get_station_point_dict(
         list[StationPointCrsSearchResult] | list[StationPointNameSearchResult]
     ),
 ) -> dict[str, dict[Optional[str], StationPoint]]:
-    station_point_dict = {}
+    station_point_dict: dict[str, dict[Optional[str], StationPoint]] = {}
     for row in rows:
         station_point_dict[row.crs] = {}
         for point in row.station_points:
@@ -145,11 +145,11 @@ def get_station_points_from_names(
         "SELECT GetStationPointsFromNames(%s::StationNameAndPlatform[])",
         [stations],
     ).fetchall()
-    name_to_station_dict = {}
+    name_to_station_dict: dict[str, TrainLegCallStationInData] = {}
     for row in rows:
-        row = row[0]
-        name_to_station_dict[row.search_name] = TrainLegCallStationInData(
-            row.name, row.crs
+        result: StationPointNameSearchResult = row[0]
+        name_to_station_dict[result.search_name] = TrainLegCallStationInData(
+            result.name, result.crs
         )
     return (
         name_to_station_dict,

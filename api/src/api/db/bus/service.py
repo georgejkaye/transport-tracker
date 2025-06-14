@@ -62,7 +62,7 @@ def register_bus_service_details_types(conn: Connection):
 
 def short_string_of_bus_service(service: BusServiceDetails) -> str:
     description = service.outbound.description
-    if description is None:
+    if description == "":
         description = service.inbound.description
     return f"{service.line} {description} ({service.operator.name})"
 

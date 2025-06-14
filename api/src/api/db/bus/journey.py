@@ -151,7 +151,6 @@ def get_bus_journey(
 
     service_calls = trip_script_dict["times"]
     is_after_ref = False
-    first_call_datetime = None
     service_call_objects: list[BusCallIn] = []
 
     ref_departure_time = ref_departure.dep_time

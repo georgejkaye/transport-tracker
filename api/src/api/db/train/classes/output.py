@@ -2,25 +2,25 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Optional
+from psycopg import Connection
+
+from api.utils.times import change_timezone
+from api.utils.database import register_type
+from api.db.train.stations import TrainLegCallStationInData
+from api.db.train.toc import OperatorData
 from api.db.train.points import PointTimes
+from api.classes.train.stock import StockReport
 from api.db.train.select.service import (
     ShortAssociatedService,
     ShortTrainService,
     register_short_associated_service_types,
     register_short_train_service_types,
 )
-from api.db.train.stock import StockReport
-from api.db.train.toc import OperatorData
-from api.utils.times import change_timezone
-from psycopg import Connection
-
-from api.utils.database import register_type
-from api.db.train.stations import TrainLegCallStationInData
 
 
 def register_stock_report(
     stock_class: int, stock_subclass: int, stock_number: int, stock_cars: int
-):
+) -> StockReport:
     return StockReport(stock_class, stock_subclass, stock_number, stock_cars)
 
 
@@ -163,7 +163,7 @@ def register_leg_data(
     leg_distance: Decimal,
     leg_duration: timedelta,
 ):
-    leg_services_dict = {}
+    leg_services_dict: dict[str, ShortTrainService] = {}
     for service in leg_services:
         leg_services_dict[service.service_id] = service
     return ShortLeg(

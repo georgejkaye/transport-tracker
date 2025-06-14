@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Optional
-from api.db.train.classes.input import TrainLegCallInData
+from typing import Any, Optional
+from api.classes.train.leg import TrainLegCallInData
 from psycopg import Connection
 
 from api.utils.request import make_get_request
@@ -147,7 +147,7 @@ station_endpoint = "https://api.rtt.io/api/v1/json/search"
 
 
 def response_to_short_train_station(
-    conn: Connection, data
+    conn: Connection, data: dict[str, Any]
 ) -> TrainLegCallStationInData:
     name = data["description"]
     station = select_station_from_name(conn, name)
@@ -168,7 +168,7 @@ def get_multiple_short_station_string(locs: list[TrainLegCallStationInData]):
 
 
 def response_to_datetime(
-    data: dict, time_field: str, run_date: datetime
+    data: dict[str, Any], time_field: str, run_date: datetime
 ) -> Optional[datetime]:
     datetime_string = data.get(time_field)
     if datetime_string is not None:
@@ -189,12 +189,12 @@ def response_to_datetime(
 
 
 def response_to_service_at_station(
-    conn: Connection, data: dict
+    conn: Connection, data: dict[str, Any]
 ) -> TrainServiceAtStation:
-    id = data["serviceUid"]
-    headcode = data["trainIdentity"]
-    operator_id = data["atocCode"]
-    operator_name = data["atocName"]
+    id: str = data["serviceUid"]
+    headcode: str = data["trainIdentity"]
+    operator_code: str = data["atocCode"]
+    operator_name: str = data["atocName"]
     run_date = datetime.strptime(data["runDate"], "%Y-%m-%d")
     origins = [
         response_to_short_train_station(conn, origin)
@@ -219,7 +219,7 @@ def response_to_service_at_station(
         plan_dep,
         act_dep,
         operator_name,
-        operator_id,
+        operator_code,
     )
 
 
@@ -236,7 +236,7 @@ def get_services_at_station(
     data = response.json()
     if data.get("services") is None:
         return []
-    services = []
+    services: list[TrainServiceAtStation] = []
     for service in data["services"]:
         if service["serviceType"] == "train":
             services.append(response_to_service_at_station(conn, service))
@@ -475,7 +475,7 @@ def select_stations(
     order_string = "ORDER BY Station.station_name ASC"
     full_statement = f"{statement}\n{where_string}\n{order_string}"
     rows = conn.execute(full_statement, {"crs": crs_string}).fetchall()
-    stations = []
+    stations: list[StationData] = []
     for row in rows:
         (
             station_name,
@@ -505,7 +505,7 @@ def select_stations(
             brand_data = BrandData(
                 brand_id, brand_code, brand_name, brand_bg, brand_fg
             )
-        leg_objects = []
+        leg_objects: list[LegAtStation] = []
         if legs is not None:
             for leg_row in legs:
                 leg_operator = OperatorData(
@@ -563,6 +563,6 @@ def select_stations(
 
 def select_station(conn: Connection, station_crs: str) -> Optional[StationData]:
     result = select_stations(conn, station_crs)
-    if result is None or len(result) != 1:
+    if len(result) != 1:
         return None
     return result[0]

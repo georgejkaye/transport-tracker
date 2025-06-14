@@ -3,40 +3,20 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from api.db.bus.journey import (
-    BusCall,
-    BusJourneyDetails,
-    BusJourneyCallDetails,
     BusJourneyIn,
     register_bus_call,
-    register_bus_journey_call_details_types,
-    register_bus_journey_details,
-    register_bus_journey_call_details,
-    register_bus_journey_details_types,
-)
-from api.db.bus.operators import (
-    BusOperatorDetails,
-    register_bus_operator_details,
 )
 from api.db.bus.overview import (
     BusCallDetails,
     BusLegServiceDetails,
     register_bus_call_details_types,
-    register_bus_call_stop_details,
     register_bus_leg_service_details_types,
-)
-from api.db.bus.service import (
-    register_bus_journey_service_details,
-    register_bus_service_details,
-)
-from api.db.bus.stop import (
-    register_bus_stop_details,
 )
 from api.db.bus.vehicle import (
     BusVehicleDetails,
-    register_bus_vehicle_details,
     register_bus_vehicle_details_types,
 )
-from api.user import User, UserPublic, register_user, register_user_public
+from api.user import User
 from api.utils.database import register_type
 from psycopg import Connection
 
