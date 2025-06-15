@@ -34,7 +34,7 @@ def generate_natrail_token(natrail_credentials: Credentials) -> str:
         "password": natrail_credentials.password,
     }
     json = get_post_json(token_url, headers=headers, data=data)
-    return json["token"]
+    return str(json["token"])
 
 
 kb_stations_namespace = "http://nationalrail.co.uk/xml/station"
@@ -62,7 +62,7 @@ def get_corpus_data_url() -> str:
     return "https://publicdatafeeds.networkrail.co.uk/ntrod/SupportingFileAuthenticate?type=CORPUS"
 
 
-def download_corpus(corpus_credentials: Credentials):
+def download_corpus(corpus_credentials: Credentials) -> None:
     corpus_url = get_corpus_data_url()
     corpus_download_path = "data/corpus.gz"
     download_binary(
@@ -87,7 +87,7 @@ def get_bplan_data_url() -> str:
     return "https://wiki.openraildata.com/images/0/0e/Geography_20221210_to_20230520_from_20221211.txt.gz"
 
 
-def download_bplan():
+def download_bplan() -> None:
     bplan_url = get_bplan_data_url()
     bplan_download_path = "data/bplan.gz"
     download_binary(bplan_url, bplan_download_path)

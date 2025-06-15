@@ -27,7 +27,7 @@ class BusStopData:
     longitude: Decimal
 
 
-def insert_bus_stops(conn: Connection, bus_stops: list[BusStopData]):
+def insert_bus_stops(conn: Connection, bus_stops: list[BusStopData]) -> None:
     bus_stop_tuples = [
         (
             bus_stop.atco,
@@ -112,7 +112,7 @@ def register_bus_stop_details(
     )
 
 
-def register_bus_stop_details_types(conn: Connection):
+def register_bus_stop_details_types(conn: Connection) -> None:
     register_type(conn, "BusStopDetails", register_bus_stop_details)
 
 
@@ -274,5 +274,5 @@ def register_bus_call_stop_details(
     )
 
 
-def register_bus_call_stop_details_types(conn: Connection):
+def register_bus_call_stop_details_types(conn: Connection) -> None:
     register_type(conn, "BusCallStopDetails", register_bus_call_stop_details)

@@ -2,53 +2,58 @@ from dataclasses import dataclass
 from datetime import datetime
 from math import ceil
 from typing import Callable, Optional
+from api.library.questionary import (
+    ask_bool_question,
+    ask_select_question,
+    ask_text_question,
+)
 from api.utils.times import make_timezone_aware
-from questionary import Choice, checkbox, confirm, select, text
+from questionary import Choice, checkbox, select, text
 from termcolor import colored
 
 
-def thick_line(length: int = 80):
+def thick_line(length: int = 80) -> None:
     print("=" * length)
 
 
-def thin_line(length: int = 80):
+def thin_line(length: int = 80) -> None:
     print("-" * length)
 
 
-def space():
+def space() -> None:
     print()
 
 
-def message(msg: str):
+def message(msg: str) -> None:
     print(msg)
 
 
-def option(number: int, choice: str):
+def option(number: int, choice: str) -> None:
     print(f"{number}: {choice}")
 
 
-def header(msg: str, length: int = 80):
+def header(msg: str, length: int = 80) -> None:
     thick_line(length)
     message(msg)
     thick_line(length)
     space()
 
 
-def subheader(msg: str, length: int = 80):
+def subheader(msg: str, length: int = 80) -> None:
     thin_line(length)
     message(msg)
     thin_line(length)
     space()
 
 
-def information(msg: str, end: str | None = None):
+def information(msg: str, end: str | None = None) -> None:
     exclamation = colored("!", "dark_grey")
     message = colored(msg, attrs=["bold"])
     print(f"{exclamation} {message}", end=end)
 
 
 def input_text(message: str, default: str = "") -> Optional[str]:
-    return text(message=message, default=default).ask()
+    return ask_text_question(message=message, default=default)
 
 
 def number_in_range(
@@ -136,7 +141,7 @@ def input_month(
     )
 
 
-def get_month_length(month: int, year: int):
+def get_month_length(month: int, year: int) -> int:
     """
     Get the length of a month in days, for a given year
     """
@@ -205,7 +210,7 @@ def input_time(
 
 
 def input_confirm(message: str, default: bool = True) -> bool:
-    return confirm(message, default=default).ask()
+    return ask_bool_question(message, default)
 
 
 @dataclass
@@ -253,9 +258,9 @@ def input_select[T](
         choice_objects.append(Choice(title="Cancel", value=PickCancel()))
     if unknown:
         choice_objects.append(Choice(title="Unknown", value=PickUnknown()))
-    return select(
+    return ask_select_question(
         message, choice_objects, use_shortcuts=True, instruction=""
-    ).ask()
+    )
 
 
 def input_select_paginate[T](
@@ -279,9 +284,9 @@ def input_select_paginate[T](
         if i != len(partitions) - 1:
             choice_objects.append(Choice(title="Next", value=PickUnknown()))
         choice_objects.append(Choice(title="Cancel", value=PickCancel()))
-        page_choice = select(
+        page_choice: PickChoice[T] = ask_select_question(
             message, choice_objects, use_shortcuts=True, instruction=""
-        ).ask()
+        )
         match (page_choice):
             case PickUnknown():
                 continue

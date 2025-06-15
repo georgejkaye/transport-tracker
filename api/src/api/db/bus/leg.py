@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional
+from psycopg import Connection
+from psycopg.rows import class_row
 
 from api.db.bus.journey import (
     BusJourneyIn,
-    register_bus_call,
 )
 from api.db.bus.overview import (
     BusCallDetails,
@@ -18,7 +19,6 @@ from api.db.bus.vehicle import (
 )
 from api.user import User
 from api.utils.database import register_type
-from psycopg import Connection
 
 
 @dataclass
@@ -28,8 +28,18 @@ class BusLegIn:
     alight_stop_index: int
 
 
-def insert_leg(conn: Connection, users: list[User], leg: BusLegIn):
-    call_tuples = []
+DbBusCallInData = tuple[
+    int,
+    str,
+    Optional[datetime],
+    Optional[datetime],
+    Optional[datetime],
+    Optional[datetime],
+]
+
+
+def insert_leg(conn: Connection, users: list[User], leg: BusLegIn) -> None:
+    call_tuples: list[DbBusCallInData] = []
     for call in leg.journey.calls:
         call_tuples.append(
             (
@@ -78,7 +88,7 @@ def register_bus_leg_user_details(
     return BusLegUserDetails(leg_id, bus_service, bus_vehicle, calls, duration)
 
 
-def register_leg_types(conn: Connection):
+def register_leg_types(conn: Connection) -> None:
     register_bus_leg_service_details_types(conn)
     register_bus_vehicle_details_types(conn)
     register_bus_call_details_types(conn)
@@ -130,19 +140,21 @@ def select_bus_leg_by_id(
     conn: Connection, user_id: int, leg_id: int
 ) -> Optional[BusLegUserDetails]:
     register_leg_types(conn)
-    rows = conn.execute(
-        "SELECT GetUserDetailsForBusLegsByIds(%s, %s)", [user_id, [leg_id]]
-    ).fetchall()
-    if len(rows) == 0:
-        return None
-    return [row[0] for row in rows][0]
+    with conn.cursor(row_factory=class_row(BusLegUserDetails)) as cur:
+        rows = cur.execute(
+            "SELECT GetUserDetailsForBusLegsByIds(%s, %s)", [user_id, [leg_id]]
+        ).fetchall()
+        if len(rows) == 0:
+            return None
+        return rows[0]
 
 
 def select_bus_legs_by_id(
     conn: Connection, user_id: int, leg_ids: list[int]
 ) -> list[BusLegUserDetails]:
     register_leg_types(conn)
-    rows = conn.execute(
-        "SELECT GetUserDetailsForBusLegByIds(%s, %s)", [user_id, leg_ids]
-    ).fetchall()
-    return [row[0] for row in rows]
+    with conn.cursor(row_factory=class_row(BusLegUserDetails)) as cur:
+        rows = cur.execute(
+            "SELECT GetUserDetailsForBusLegByIds(%s, %s)", [user_id, leg_ids]
+        ).fetchall()
+        return rows

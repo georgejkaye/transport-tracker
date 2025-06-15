@@ -1,9 +1,15 @@
 import sys
-from api.db.train.points import (
-    get_station_points,
-    get_station_points_from_names,
+from api.library.networkx import (
+    get_nodes,
+    load_osmnx_graphml,
+    project_graph,
+    save_osmnx_graphml,
 )
 import osmnx as ox
+
+from api.db.train.points import (
+    get_station_points,
+)
 
 from api.utils.database import connect_with_env
 from api.network.network import (
@@ -19,9 +25,9 @@ input = input_confirm("Download network?", default=False)
 if input:
     network = get_railway_network(["England", "Wales", "Scotland"])
 else:
-    network = ox.load_graphml(sys.argv[1])
+    network = load_osmnx_graphml(sys.argv[1])
 
-projected_network = ox.project_graph(network, to_crs=osgb36)
+projected_network = project_graph(network, to_crs=osgb36)
 
 with connect_with_env() as conn:
     station_points = get_station_points(conn)
@@ -30,10 +36,10 @@ projected_network = insert_node_dict_to_network(
     projected_network, station_points, False
 )
 
-new_network = ox.project_graph(projected_network, to_crs=wgs84)
+new_network = project_graph(projected_network, to_crs=wgs84)
 
-for node in network.nodes():
+for node in get_nodes(network):
     node["x"] = round(node["x"], 16)
     node["y"] = round(node["y"], 16)
 
-ox.save_graphml(new_network, sys.argv[2])
+save_osmnx_graphml(new_network, sys.argv[2])

@@ -9,7 +9,7 @@ class Class:
     class_no: int
     class_name: Optional[str]
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.class_no)
 
 
@@ -31,7 +31,7 @@ class ClassAndSubclass:
     subclass_no: Optional[int]
     subclass_name: Optional[str]
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         if self.subclass_no is None:
             subclass_hash = 0
         else:
@@ -69,8 +69,8 @@ def get_unique_classes_from_subclasses(
 ) -> list[Class]:
     uniques: set[Class] = set()
     for cas in stock:
-        if cas.class_no not in uniques:
-            current_class = Class(cas.class_no, cas.class_name)
+        current_class = Class(cas.class_no, cas.class_name)
+        if current_class not in uniques:
             uniques.add(current_class)
     return list(uniques)
 
@@ -132,7 +132,7 @@ def get_operator_stock(
 
 
 def get_unique_classes(stock: list[Stock]) -> list[Class]:
-    stock_classes = set()
+    stock_classes: set[Class] = set()
     for item in stock:
         stock_class = Class(item.class_no, item.class_name)
         stock_classes.add(stock_class)
@@ -142,7 +142,7 @@ def get_unique_classes(stock: list[Stock]) -> list[Class]:
 def get_unique_subclasses(
     stock: list[Stock], stock_class: Optional[Class] = None
 ) -> list[ClassAndSubclass]:
-    stock_subclasses = set()
+    stock_subclasses: set[ClassAndSubclass] = set()
     for item in stock:
         if stock_class and item.class_no == stock_class.class_no:
             if item.subclass_no is not None:

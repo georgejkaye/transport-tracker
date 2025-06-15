@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 from typing import Optional
+from psycopg import Connection
+from psycopg.rows import class_row
 
 from api.utils.database import register_type
 from api.utils.interactive import (
     PickMultiple,
     input_checkbox,
 )
-from psycopg import Connection
 
 
 @dataclass
@@ -19,7 +20,7 @@ class User:
 
 def insert_user(
     conn: Connection, user_name: str, display_name: str, hashed_password: str
-):
+) -> None:
     conn.execute(
         "SELECT InsertUser(%s, %s, %s)",
         [user_name, display_name, hashed_password],
@@ -35,12 +36,13 @@ def register_user(
 
 def get_user(conn: Connection, user_name: str) -> Optional[User]:
     register_type(conn, "UserOutData", register_user)
-    result = conn.execute(
-        "SELECT GetUserByUsername(%s)", [user_name]
-    ).fetchone()
-    if result is None:
-        return None
-    return result[0]
+    with conn.cursor(row_factory=class_row(User)) as cur:
+        result = cur.execute(
+            "SELECT GetUserByUsername(%s)", [user_name]
+        ).fetchone()
+        if result is None:
+            return None
+        return result
 
 
 def get_users(conn: Connection) -> list[User]:

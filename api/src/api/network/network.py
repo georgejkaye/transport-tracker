@@ -11,7 +11,7 @@ from shapely import LineString, Point
 from shapely import geometry, ops
 from geopandas import GeoDataFrame
 
-from api.library.network import (
+from api.library.networkx import (
     add_edge,
     add_node,
     graph_from_place,
@@ -105,32 +105,33 @@ def merge_linestrings(line_strings: list[LineString]) -> LineString:
 
 class EdgeTags(TypedDict):
     osmid: list[int]
-    maxspeed: list[str]
-    name: list[str]
-    ref: str
-    oneway: bool
-    reversed: bool
-    length: float
-    tunnel: str
-    bridge: list[str]
-    geometry: LineString
-    electrified: str
+    maxspeed: Optional[list[str]]
+    name: Optional[list[str]]
+    ref: Optional[str]
+    oneway: Optional[bool]
+    reversed: Optional[bool]
+    length: Optional[float]
+    tunnel: Optional[str]
+    bridge: Optional[list[str]]
+    geometry: Optional[LineString]
+    electrified: Optional[str]
 
 
-def instantiate_edge_tags(data: dict[str, Any]):
-    return EdgeTags(
+def instantiate_edge_tags(data: dict[str, Any]) -> EdgeTags:
+    edge_tags: EdgeTags = EdgeTags(
         data["osmid"],
-        data["maxspeed"] if data["maxspeed"] is not None else 100,
-        data["name"],
-        data["ref"],
-        data["oneway"],
-        data["reversed"],
-        data["length"],
-        data["tunnel"],
-        data["bridge"],
-        data["geometry"],
-        data["electrified"],
+        data.get("maxspeed"),
+        data.get("name"),
+        data.get("ref"),
+        data.get("oneway"),
+        data.get("reversed"),
+        data.get("length"),
+        data.get("tunnel"),
+        data.get("bridge"),
+        data.get("geometry"),
+        data.get("electrified"),
     )  # type:ignore
+    return edge_tags
 
 
 @dataclass
@@ -216,7 +217,7 @@ def split_linestring_at_point(
     raise RuntimeError("Could not split line string")
 
 
-def remove_edge[T](network: MultiDiGraph[T], source: T, target: T):
+def remove_edge[T](network: MultiDiGraph[T], source: T, target: T) -> None:
     if has_edge(network, source, target):
         remove_edge(network, source, target)
 
@@ -248,6 +249,9 @@ def insert_node_to_network(
     target_point = Point(target["x"], target["y"])
 
     edge_geometry = edge.tags["geometry"]
+
+    if edge_geometry is None:
+        raise RuntimeError("Could not get edge geometry")
 
     point_on_edge = get_nearest_point_on_linestring(
         projected_point, edge_geometry

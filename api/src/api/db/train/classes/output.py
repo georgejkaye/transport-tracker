@@ -24,7 +24,7 @@ def register_stock_report(
     return StockReport(stock_class, stock_subclass, stock_number, stock_cars)
 
 
-def register_stock_report_types(conn: Connection):
+def register_stock_report_types(conn: Connection) -> None:
     register_type(conn, "TrainLegStockOutData", register_stock_report)
 
 
@@ -59,7 +59,7 @@ def register_short_leg_segment(
     distance: Decimal,
     duration: timedelta,
     stock_data: list[StockReport],
-):
+) -> ShortLegSegment:
     return ShortLegSegment(
         start_station,
         end_station,
@@ -69,7 +69,7 @@ def register_short_leg_segment(
     )
 
 
-def register_short_leg_segment_types(conn: Connection):
+def register_short_leg_segment_types(conn: Connection) -> None:
     register_stock_report_types(conn)
     register_type(conn, "TrainLegStockOutData", register_short_leg_segment)
 
@@ -103,7 +103,7 @@ def register_leg_call_data(
     mileage: Decimal,
     stocks: list[StockReport],
     assocs: list[ShortAssociatedService],
-):
+) -> ShortLegCall:
     return ShortLegCall(
         station,
         platform,
@@ -117,7 +117,7 @@ def register_leg_call_data(
     )
 
 
-def register_short_leg_call_types(conn: Connection):
+def register_short_leg_call_types(conn: Connection) -> None:
     register_stock_report_types(conn)
     register_short_associated_service_types(conn)
     register_type(conn, "TrainLegCallOutData", register_leg_call_data)
@@ -147,7 +147,7 @@ def register_operator_data(
     operator_name: str,
     operator_bg: str,
     operator_fg: str,
-):
+) -> OperatorData:
     return OperatorData(
         operator_id, operator_code, operator_name, operator_bg, operator_fg
     )
@@ -162,7 +162,7 @@ def register_leg_data(
     leg_stocks: list[ShortLegSegment],
     leg_distance: Decimal,
     leg_duration: timedelta,
-):
+) -> ShortLeg:
     leg_services_dict: dict[str, ShortTrainService] = {}
     for service in leg_services:
         leg_services_dict[service.service_id] = service
@@ -178,7 +178,7 @@ def register_leg_data(
     )
 
 
-def register_leg_data_types(conn: Connection):
+def register_leg_data_types(conn: Connection) -> None:
     register_short_train_service_types(conn)
     register_short_leg_call_types(conn)
     register_short_leg_segment_types(conn)

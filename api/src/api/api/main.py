@@ -23,7 +23,7 @@ app = FastAPI(
 
 
 @app.get("/hc", summary="Healthcheck", tags=["debug"])
-async def get_healthcheck():
+async def get_healthcheck() -> str:
     return "Hello!"
 
 
@@ -31,7 +31,7 @@ app.include_router(user.router)
 app.include_router(utils.router)
 
 
-def start():
+def start() -> None:
     if get_env_variable("API_ENV") == "prod":
         reload = False
     elif get_env_variable("API_ENV") == "dev":

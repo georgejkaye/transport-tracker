@@ -3,7 +3,7 @@ import osmnx as ox
 
 from typing import Optional
 
-from api.library.network import load_osmnx_graphml, save_osmnx_graphml
+from api.library.networkx import load_osmnx_graphml, save_osmnx_graphml
 from api.utils.database import connect_with_env
 from api.network.network import insert_station_node_to_network
 from api.db.train.points import get_station_points_from_crses

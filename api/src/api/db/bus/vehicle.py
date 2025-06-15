@@ -32,13 +32,22 @@ def string_of_bus_vehicle_in(bus_vehicle: BusVehicleIn) -> str:
     )
 
 
-def insert_bus_vehicles(conn: Connection, bus_vehicles: list[BusVehicleIn]):
-    bus_model_tuples = []
-    bus_vehicle_tuples = []
+DbBusModelInData = tuple[Optional[str]]
+DbBusVehicleInData = tuple[
+    int, str, str, str, Optional[str], Optional[str], Optional[str]
+]
+
+
+def insert_bus_vehicles(
+    conn: Connection, bus_vehicles: list[BusVehicleIn]
+) -> None:
+    bus_model_tuples: list[DbBusModelInData] = []
+    bus_vehicle_tuples: list[DbBusVehicleInData] = []
     for bus_vehicle in bus_vehicles:
+        bus_vehicle_model: DbBusModelInData = (bus_vehicle.model,)
         if (
             bus_vehicle.model is not None
-            and bus_vehicle.model not in bus_model_tuples
+            and bus_vehicle_model not in bus_model_tuples
         ):
             bus_model_tuples.append((bus_vehicle.model,))
         bus_vehicle_tuples.append(
@@ -92,7 +101,7 @@ def register_bus_vehicle_details(
     )
 
 
-def register_bus_vehicle_details_types(conn: Connection):
+def register_bus_vehicle_details_types(conn: Connection) -> None:
     register_bus_operator_details_types(conn)
     register_type(conn, "BusVehicleDetails", register_bus_vehicle_details)
 

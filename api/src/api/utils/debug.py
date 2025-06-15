@@ -8,5 +8,5 @@ def debug_msg(string: str) -> None:
         cprint(string, "yellow")
 
 
-def error_msg(string: str):
+def error_msg(string: str) -> None:
     cprint(string, "red")

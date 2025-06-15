@@ -36,7 +36,7 @@ data_directory = Path(data_dir)
 
 def extract_zip(
     zip_path: str | Path, output_path: str | Path, delete: bool = False
-):
+) -> None:
     with zipfile.ZipFile(zip_path, "r") as f:
         f.extractall(output_path)
     if delete:
@@ -45,7 +45,7 @@ def extract_zip(
 
 def extract_gz(
     gz_path: str | Path, output_path: str | Path, delete: bool = False
-):
+) -> None:
     with gzip.open(gz_path, "rb") as f:
         with open(output_path, "wb") as out:
             shutil.copyfileobj(f, out)
@@ -55,7 +55,7 @@ def extract_gz(
 
 def download_binary(
     url: str, path: str, credentials: Optional[Credentials] = None
-):
+) -> None:
     response = make_get_request(url, credentials=credentials, stream=True)
     if response.status_code != 200:
         raise RuntimeError(f"Could not get {url}")

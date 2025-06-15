@@ -85,14 +85,18 @@ DbTrainLegInData = tuple[
 ]
 
 
-def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData):
+def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData) -> None:
     service_data: list[DbTrainServiceInData] = []
     service_endpoint_data: list[DbTrainServiceEndpointInData] = []
     service_call_data: list[DbTrainCallInData] = []
     service_association_data: list[DbTrainAssociatedServiceInData] = []
     leg_call_data: list[DbTrainLegCallInData] = []
     leg_stock_data: list[DbTrainStockSegmentInData] = []
-    for service in leg.services:
+    services_to_add = [leg.primary_service] + [
+        associated_service.associated_service
+        for associated_service in leg.primary_service.associated_services
+    ]
+    for service in services_to_add:
         service_data.append(
             (
                 service.unique_identifier,

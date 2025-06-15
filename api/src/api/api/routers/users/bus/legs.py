@@ -39,7 +39,7 @@ async def get_legs(
 
 
 @router.get("/{leg_id}", summary="Get details of a bus leg for a user")
-async def get_leg_by_id(user_id, leg_id: int) -> BusLegUserDetails:
+async def get_leg_by_id(user_id: int, leg_id: int) -> BusLegUserDetails:
     with connect_with_env() as conn:
         leg = select_bus_leg_by_id(conn, user_id, leg_id)
         if leg is None:
@@ -50,7 +50,7 @@ async def get_leg_by_id(user_id, leg_id: int) -> BusLegUserDetails:
 @router.get(
     "/years/{year}", summary="Get details of all bus legs for a user in a year"
 )
-async def get_legs_by_year(user_id, year: int) -> list[BusLegUserDetails]:
+async def get_legs_by_year(user_id: int, year: int) -> list[BusLegUserDetails]:
     with connect_with_env() as conn:
         legs = select_bus_legs_by_datetime(
             conn, user_id, datetime(year, 1, 1), datetime(year, 12, 31)

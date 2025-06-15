@@ -100,7 +100,7 @@ def get_bus_stops_from_stops_csv(stops_csv_path: str) -> list[BusStopData]:
     return stops
 
 
-def populate_bus_stops(conn: Connection, stops_csv: str):
+def populate_bus_stops(conn: Connection, stops_csv: str) -> None:
     information("Retrieving bus stops")
     stops = get_bus_stops_from_stops_csv(stops_csv)
     information("Inserting bus stops")

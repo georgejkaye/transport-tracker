@@ -2,9 +2,10 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Optional
+from psycopg import Connection
+from psycopg.rows import class_row
 
 from api.utils.database import register_type
-from psycopg import Connection
 
 
 @dataclass
@@ -42,7 +43,7 @@ def register_leg_stat(
     operator_code: str,
     operator_name: str,
     is_brand: bool,
-):
+) -> LegStat:
     return LegStat(
         leg_id,
         user_id,
@@ -83,7 +84,7 @@ def register_station_stat(
     boards: int,
     alights: int,
     intermediates: int,
-):
+) -> StationStat:
     return StationStat(
         station_crs,
         station_name,
@@ -115,7 +116,7 @@ def register_operator_stat(
     distance: Decimal,
     duration: timedelta,
     delay: int,
-):
+) -> OperatorStat:
     return OperatorStat(
         operator_id, operator_name, is_brand, count, distance, duration, delay
     )
@@ -131,7 +132,7 @@ class UnitStat:
 
 def register_unit_stat(
     stock_unit: int, count: int, distance: Decimal, duration: timedelta
-):
+) -> UnitStat:
     return UnitStat(stock_unit, count, distance, duration)
 
 
@@ -145,7 +146,7 @@ class ClassStat:
 
 def register_class_stat(
     stock_class: int, count: int, distance: Decimal, duration: timedelta
-):
+) -> ClassStat:
     return ClassStat(stock_class, count, distance, duration)
 
 
@@ -172,7 +173,7 @@ def register_stats(
     operator_stats: list[OperatorStat],
     class_stats: list[ClassStat],
     unit_stats: list[UnitStat],
-):
+) -> Stats:
     return Stats(
         journeys,
         distance,
@@ -186,7 +187,7 @@ def register_stats(
     )
 
 
-def register_stats_types(conn: Connection):
+def register_stats_types(conn: Connection) -> None:
     register_type(conn, "OutLegStat", register_leg_stat)
     register_type(conn, "OutStationStat", register_station_stat)
     register_type(conn, "OutOperatorStat", register_operator_stat)
@@ -202,9 +203,10 @@ def get_train_stats(
     search_end: Optional[datetime] = None,
 ) -> Stats:
     register_stats_types(conn)
-    row = conn.execute(
-        "SELECT GetStats(%s, %s, %s)", [user_id, search_start, search_end]
-    ).fetchone()
-    if row is None:
-        raise RuntimeError("Could not get stats")
-    return row[0]
+    with conn.cursor(row_factory=class_row(Stats)) as cur:
+        row = cur.execute(
+            "SELECT GetStats(%s, %s, %s)", [user_id, search_start, search_end]
+        ).fetchone()
+        if row is None:
+            raise RuntimeError("Could not get stats")
+        return row

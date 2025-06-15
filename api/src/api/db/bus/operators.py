@@ -3,6 +3,7 @@ from typing import Optional
 
 from api.utils.database import register_type
 from psycopg import Connection
+from psycopg.rows import class_row
 
 
 @dataclass
@@ -26,7 +27,7 @@ def register_bus_operator_details(
     )
 
 
-def register_bus_operator_details_types(conn: Connection):
+def register_bus_operator_details_types(conn: Connection) -> None:
     register_type(conn, "BusOperatorDetails", register_bus_operator_details)
 
 
@@ -58,9 +59,10 @@ def get_bus_operator_from_national_operator_code(
     conn: Connection, search_string: str
 ) -> Optional[BusOperatorDetails]:
     register_bus_operator_details_types(conn)
-    rows = conn.execute(
-        "SELECT GetBusOperatorsByNationalOperatorCode(%s)", [search_string]
-    ).fetchall()
-    if len(rows) != 1:
-        return None
-    return [row[0] for row in rows][0]
+    with conn.cursor(row_factory=class_row(BusOperatorDetails)) as cur:
+        rows = cur.execute(
+            "SELECT GetBusOperatorsByNationalOperatorCode(%s)", [search_string]
+        ).fetchall()
+        if len(rows) != 1:
+            return None
+        return [row for row in rows][0]

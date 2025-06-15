@@ -52,8 +52,13 @@ def extract_operator_data_from_traveline_xml(
     return traveline_operators
 
 
-def insert_operators(conn: Connection, operators: list[TravelineOperator]):
-    operator_values = []
+DbBusOperatorInData = tuple[str, str]
+
+
+def insert_operators(
+    conn: Connection, operators: list[TravelineOperator]
+) -> None:
+    operator_values: list[DbBusOperatorInData] = []
     for operator in operators:
         operator_values.append((operator.name, operator.national_code))
     conn.execute(

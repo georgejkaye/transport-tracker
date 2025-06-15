@@ -1,5 +1,5 @@
+from api.library.shapely import get_length
 import networkx as nx
-import shapely
 
 from decimal import Decimal
 from typing import Optional
@@ -23,51 +23,53 @@ from api.network.network import (
 def get_shortest_linestring(
     linestrings: list[tuple[StationPoint, StationPoint, LineString]],
 ) -> Optional[tuple[StationPoint, StationPoint, LineString]]:
+    if len(linestrings) == 0:
+        return None
     return min(
         linestrings,
-        default=None,
-        key=lambda linestring: shapely.length(linestring[2]),
+        key=lambda linestring: get_length(linestring[2]),
     )
 
 
-def get_edge_weight(edge_dict: EdgeDetails) -> float:
-    if edge.maxspeed is None:
+def get_edge_weight(edge: EdgeDetails) -> float:
+    max_speed_value = edge.tags["maxspeed"]
+    if max_speed_value is None:
         max_speed = 100
+    elif isinstance(max_speed_value, str):
+        max_speed = int(max_speed_value.split(" ")[0])
     else:
-        max_speed_value = edge_dict[0]["maxspeed"]
-        if isinstance(max_speed_value, str):
-            max_speed = int(max_speed_value.split(" ")[0])
-        else:
-            max_speed = max(
-                [int(string.split(" ")[0]) for string in max_speed_value]
-            )
-    return edge_dict[0]["length"] / max_speed
+        max_speed = max(
+            [int(string.split(" ")[0]) for string in max_speed_value]
+        )
+    if edge.tags["length"] is None:
+        raise RuntimeError(f"Edge ({edge.source} {edge.target}) has no length")
+    return edge.tags["length"] / max_speed
 
 
 def find_path_betwen_network_nodes(
-    network: MultiDiGraph, source_id: int, target_id: int
+    network: MultiDiGraph[int], source_id: int, target_id: int
 ) -> Optional[LineString]:
     path = nx.shortest_path(
         network, source_id, target_id, weight=get_edge_weight
     )
-    line_strings = []
+    line_strings: list[LineString] = []
     for i in range(0, len(path) - 1):
         source_node = path[i]
         target_node = path[i + 1]
         edge = get_edge_from_endpoints(network, source_node, target_node)
-        if edge.tags.get("geometry") is not None:
+        if edge.tags["geometry"] is not None:
             line_strings.append(edge.tags["geometry"])
         else:
-            source_node = network.nodes[edge.source]
-            source_x = source_node["x"]
-            source_y = source_node["y"]
+            source_node_dict = network.nodes[edge.source]
+            source_x = source_node_dict["x"]
+            source_y = source_node_dict["y"]
             source_point = Point(
                 float(round(Decimal(source_x), 16)),
                 float(round(Decimal(source_y), 16)),
             )
-            target_node = network.nodes[edge.target]
-            target_x = target_node["x"]
-            target_y = target_node["y"]
+            target_node_dict = network.nodes[edge.target]
+            target_x = target_node_dict["x"]
+            target_y = target_node_dict["y"]
             target_point = Point(
                 float(round(Decimal(target_x), 16)),
                 float(round(Decimal(target_y), 16)),
@@ -82,7 +84,7 @@ def find_path_betwen_network_nodes(
 
 
 def find_path_between_station_points(
-    network: MultiDiGraph, source: StationPoint, target: StationPoint
+    network: MultiDiGraph[int], source: StationPoint, target: StationPoint
 ) -> Optional[LineString]:
     source_id = get_node_id_from_station_point(source)
     target_id = get_node_id_from_station_point(target)
@@ -98,11 +100,11 @@ def find_path_between_station_points(
 
 
 def find_paths_between_nodes(
-    network: MultiDiGraph,
+    network: MultiDiGraph[int],
     sources: list[StationPoint],
     targets: list[StationPoint],
 ) -> list[tuple[StationPoint, StationPoint, LineString]]:
-    paths = []
+    paths: list[tuple[StationPoint, StationPoint, LineString]] = []
     for source in sources:
         for target in targets:
             path = find_path_between_station_points(network, source, target)
@@ -112,7 +114,7 @@ def find_paths_between_nodes(
 
 
 def find_shortest_path_between_multiple_nodes(
-    network: MultiDiGraph,
+    network: MultiDiGraph[int],
     sources: list[StationPoint],
     targets: list[StationPoint],
 ) -> Optional[tuple[StationPoint, StationPoint, LineString]]:
@@ -123,7 +125,7 @@ def find_shortest_path_between_multiple_nodes(
 
 
 def find_shortest_path_between_nodes(
-    network: MultiDiGraph,
+    network: MultiDiGraph[int],
     sources: StationPoint,
     targets: StationPoint,
 ) -> Optional[tuple[StationPoint, StationPoint, LineString]]:
@@ -171,7 +173,7 @@ def find_shortest_path_between_stations(
 
 
 def get_linestring_for_leg(
-    network: MultiDiGraph,
+    network: MultiDiGraph[int],
     leg_calls: list[ShortLegCall],
     station_points: dict[str, dict[Optional[str], StationPoint]],
 ) -> Optional[tuple[list[StationPoint], LineString]]:
@@ -193,40 +195,44 @@ def get_linestring_for_leg(
             )
         )
     for call in leg_calls[1:]:
-        call_paths = []
+        call_paths: list[tuple[list[StationPoint], Optional[LineString]]] = []
         points_to_test = station_points[call.station.crs]
         for platform_key in points_to_test.keys():
-            platform_paths = []
+            platform_paths: list[
+                tuple[list[StationPoint], Optional[LineString]]
+            ] = []
             point_to_test = points_to_test[platform_key]
             for stations, complete_path in complete_paths:
                 path = find_path_between_station_points(
                     network, stations[-1], point_to_test
                 )
-                if path is not None:
-                    if complete_path is None:
-                        new_path = path
-                    else:
-                        new_path = merge_linestrings([complete_path, path])
-                    new_stations = stations + [
-                        StationPoint(
-                            point_to_test.crs,
-                            point_to_test.name,
-                            point_to_test.platform,
-                            point_to_test.point,
-                            short_leg_call_to_point_times(call),
-                        )
-                    ]
-                    platform_paths.append((new_stations, new_path))
+                if path is None:
+                    continue
+                if complete_path is None:
+                    new_path = path
+                else:
+                    new_path = merge_linestrings([complete_path, path])
+                new_stations = stations + [
+                    StationPoint(
+                        point_to_test.crs,
+                        point_to_test.name,
+                        point_to_test.platform,
+                        point_to_test.point,
+                        short_leg_call_to_point_times(call),
+                    )
+                ]
+                platform_paths.append((new_stations, new_path))
             call_paths = call_paths + platform_paths
         complete_paths = call_paths
-    complete_path = min(
-        complete_paths,
-        default=None,
-        key=lambda result: shapely.length(result[1]),
-    )
-    if complete_path is None:
+    if len(complete_paths) == 0:
         return None
-    (station_path, line_path) = complete_path
+    shortest_path = min(
+        complete_paths,
+        key=lambda result: (
+            get_length(result[1]) if result[1] is not None else float("inf")
+        ),
+    )
+    (station_path, line_path) = shortest_path
     if line_path is None:
         return None
     return (station_path, line_path)

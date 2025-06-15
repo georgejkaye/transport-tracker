@@ -36,6 +36,7 @@ class TrainServiceInData:
     brand_code: Optional[str]
     power: Optional[str]
     calls: list[TrainServiceCallInData]
+    associated_services: list["TrainAssociatedServiceInData"]
 
 
 @dataclass

@@ -24,11 +24,13 @@ class TrainLegCallStationInData:
     crs: str
 
 
-def register_station_data(station_crs: str, station_name: str):
+def register_station_data(
+    station_crs: str, station_name: str
+) -> TrainLegCallStationInData:
     return TrainLegCallStationInData(station_name, station_crs)
 
 
-def register_short_train_station_types(conn: Connection):
+def register_short_train_station_types(conn: Connection) -> None:
     register_type(conn, "TrainStationOutData", register_station_data)
 
 
@@ -73,11 +75,11 @@ class TrainServiceAtStation:
     brand_code: str
 
 
-def short_string_of_service_at_station(service: TrainServiceAtStation):
+def short_string_of_service_at_station(service: TrainServiceAtStation) -> str:
     return f"{service.headcode} {get_multiple_short_station_string(service.origins)} to {get_multiple_short_station_string(service.destinations)}"
 
 
-def string_of_service_at_station(service: TrainServiceAtStation):
+def string_of_service_at_station(service: TrainServiceAtStation) -> str:
     return f"{service.headcode} {get_multiple_short_station_string(service.origins)} to {get_multiple_short_station_string(service.destinations)} plan {get_hourmin_string(service.plan_dep)} act {get_hourmin_string(service.act_dep)} ({service.operator_code})"
 
 
@@ -97,7 +99,7 @@ class TrainServiceAtStationToDestination:
 
 def string_of_service_at_station_to_destination(
     service: TrainServiceAtStationToDestination,
-):
+) -> str:
     return f"{service.headcode} {get_multiple_short_station_string(service.origins)} to {get_multiple_short_station_string(service.destinations)} plan {get_hourmin_string(service.plan_dep)} act {get_hourmin_string(service.act_dep)} ({service.operator_code})"
 
 
@@ -157,7 +159,9 @@ def response_to_short_train_station(
     return TrainLegCallStationInData(name, station.crs.upper())
 
 
-def get_multiple_short_station_string(locs: list[TrainLegCallStationInData]):
+def get_multiple_short_station_string(
+    locs: list[TrainLegCallStationInData],
+) -> str:
     string = ""
     for i, loc in enumerate(locs):
         if i == 0:

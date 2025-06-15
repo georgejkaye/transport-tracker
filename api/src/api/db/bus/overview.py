@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from psycopg import Connection
+from psycopg.rows import class_row
 from typing import Optional
 
 from api.db.bus.stop import (
@@ -39,7 +40,7 @@ def register_bus_call_details(
     )
 
 
-def register_bus_call_details_types(conn: Connection):
+def register_bus_call_details_types(conn: Connection) -> None:
     register_bus_call_stop_details_types(conn)
     register_type(conn, "BusCallDetails", register_bus_call_details)
 
@@ -75,7 +76,7 @@ def register_bus_leg_service_details(
     )
 
 
-def register_bus_leg_service_details_types(conn: Connection):
+def register_bus_leg_service_details_types(conn: Connection) -> None:
     register_bus_operator_details_types(conn)
     register_type(
         conn, "BusLegServiceDetails", register_bus_leg_service_details
@@ -103,7 +104,7 @@ def register_bus_leg_user_details(
     )
 
 
-def register_bus_leg_user_details_types(conn: Connection):
+def register_bus_leg_user_details_types(conn: Connection) -> None:
     register_bus_leg_service_details_types(conn)
     register_bus_call_details_types(conn)
     register_type(conn, "BusLegUserDetails", register_bus_leg_user_details)
@@ -130,7 +131,7 @@ def register_bus_vehicle_leg_details(
     )
 
 
-def register_bus_vehicle_leg_details_types(conn: Connection):
+def register_bus_vehicle_leg_details_types(conn: Connection) -> None:
     register_bus_leg_service_details_types(conn)
     register_bus_call_details_types(conn)
     register_type(
@@ -169,7 +170,7 @@ def register_bus_vehicle_user_details(
     )
 
 
-def register_bus_vehicle_user_details_types(conn: Connection):
+def register_bus_vehicle_user_details_types(conn: Connection) -> None:
     register_bus_operator_details_types(conn)
     register_bus_vehicle_leg_details_types(conn)
     register_type(
@@ -191,9 +192,10 @@ def get_bus_vehicle_overview_for_user(
     conn: Connection, user_id: int, vehicle_id: int
 ) -> Optional[BusVehicleUserDetails]:
     register_bus_vehicle_user_details_types(conn)
-    result = conn.execute(
-        "SELECT GetUserDetailsForBusVehicle(%s, %s)", [user_id, vehicle_id]
-    ).fetchone()
-    if result is None:
-        return None
-    return result[0]
+    with conn.cursor(row_factory=class_row(BusVehicleUserDetails)) as cur:
+        result = cur.execute(
+            "SELECT GetUserDetailsForBusVehicle(%s, %s)", [user_id, vehicle_id]
+        ).fetchone()
+        if result is None:
+            return None
+        return result

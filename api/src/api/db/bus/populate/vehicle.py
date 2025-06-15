@@ -11,7 +11,7 @@ from api.utils.database import connect, get_db_connection_data_from_args
 from api.utils.interactive import information
 
 
-def populate_bus_vehicles(conn: Connection):
+def populate_bus_vehicles(conn: Connection) -> None:
     information("Retrieving bus vehicles")
 
     operators = get_bus_operators(conn)

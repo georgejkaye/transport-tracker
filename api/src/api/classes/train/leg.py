@@ -39,7 +39,7 @@ class TrainStockReportInData:
 
 @dataclass
 class TrainLegInData:
-    services: list[TrainServiceInData]
+    primary_service: TrainServiceInData
     calls: list[TrainLegCallInData]
     distance: Decimal
     stock_reports: list[TrainStockReportInData]

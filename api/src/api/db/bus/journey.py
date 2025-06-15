@@ -7,7 +7,6 @@ from api.db.bus.operators import (
     BusOperatorDetails,
     get_bus_operator_from_national_operator_code,
 )
-from api.db.bus.overview import BusCallStopDetails
 from api.db.bus.service import (
     BusJourneyServiceDetails,
     BusServiceDetails,
@@ -15,6 +14,7 @@ from api.db.bus.service import (
     register_bus_journey_service_details_types,
 )
 from api.db.bus.stop import (
+    BusCallStopDetails,
     BusStopDetails,
     BusStopDeparture,
     get_bus_stops_from_atcos,
@@ -269,7 +269,7 @@ def register_bus_journey_call_details(
     )
 
 
-def register_bus_journey_call_details_types(conn: Connection):
+def register_bus_journey_call_details_types(conn: Connection) -> None:
     register_bus_call_stop_details_types(conn)
     register_type(
         conn, "BusJourneyCallDetails", register_bus_journey_call_details
@@ -295,7 +295,7 @@ def register_bus_journey_details(
     )
 
 
-def register_bus_journey_details_types(conn: Connection):
+def register_bus_journey_details_types(conn: Connection) -> None:
     register_bus_journey_service_details_types(conn)
     register_bus_journey_call_details_types(conn)
     register_bus_vehicle_details_types(conn)

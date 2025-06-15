@@ -1,9 +1,12 @@
+from api.classes.train.stock import StockReport
 from api.db.train.classes.output import (
     ShortLeg,
     ShortLegCall,
+    ShortLegSegment,
     get_operator_colour_from_leg,
 )
-from api.library.map import render_map
+from api.db.train.leg import select_legs
+from api.library.folium import create_polyline, render_map
 from api.network.pathfinding import (
     find_shortest_path_between_stations,
     get_linestring_for_leg,
@@ -62,7 +65,7 @@ def add_call_marker(
     colour: str,
     text: str,
     group: Optional[folium.FeatureGroup] = None,
-):
+) -> None:
     marker = folium.Marker(
         location=[call.point.y, call.point.x],
         tooltip=text,
@@ -208,11 +211,11 @@ def get_leg_map(
         ).add_to(m)
     for leg_line in leg_lines:
         tooltip = f"{leg_line.board_station} to {leg_line.alight_station}"
-        line = folium.PolyLine(
+        line = create_polyline(
             locations=[
                 (point[1], point[0]) for point in leg_line.points.coords
             ],
-            color=leg_line.colour,
+            colour=leg_line.colour,
             tooltip=tooltip,
             weight=4,
         )
@@ -374,7 +377,7 @@ def get_leg_line_for_leg_calls(
     station_points: dict[str, dict[Optional[str], StationPoint]],
 ) -> Optional[LegLine]:
     previous_call = leg_data[0]
-    paths = []
+    paths: list[tuple[StationPoint, StationPoint, LineString]] = []
     for call in leg_data[1:]:
         result = find_shortest_path_between_stations(
             network,
@@ -404,7 +407,7 @@ def get_leg_line_for_leg_calls(
 
 
 def get_leg_lines_for_leg_data(
-    network: MultiDiGraph,
+    network: MultiDiGraph[int],
     legs: list[list[ShortLegCall]],
     station_points: dict[str, dict[Optional[str], StationPoint]],
 ) -> list[LegLine]:
@@ -417,11 +420,11 @@ def get_leg_lines_for_leg_data(
 
 
 def get_leg_lines_for_legs(
-    network: MultiDiGraph,
+    network: MultiDiGraph[int],
     legs: list[ShortLeg],
     station_points: dict[str, dict[Optional[str], StationPoint]],
 ) -> list[LegLine]:
-    leg_strings = []
+    leg_strings: list[LegLine] = []
     for leg in legs:
         leg_string = get_leg_line_for_leg(network, leg, station_points)
         if leg_string is not None:
@@ -430,7 +433,7 @@ def get_leg_lines_for_legs(
 
 
 def get_leg_map_page(
-    network: MultiDiGraph,
+    network: MultiDiGraph[int],
     conn: Connection,
     user_id: int,
     text_type: MarkerTextType,
@@ -439,7 +442,7 @@ def get_leg_map_page(
     search_leg_id: Optional[int] = None,
 ) -> str:
     legs = select_legs(conn, user_id, search_start, search_end, search_leg_id)
-    stations = []
+    stations: list[tuple[str, Optional[str]]] = []
     for leg in legs:
         for call in leg.calls:
             stations.append((call.station.crs, call.platform))
@@ -457,9 +460,9 @@ class LegData:
 
 
 def get_leg_map_page_from_leg_data(
-    network: MultiDiGraph, legs: list[LegData]
+    network: MultiDiGraph[int], legs: list[LegData]
 ) -> str:
-    stations = set()
+    stations: set[tuple[str, Optional[str]]] = set()
     for leg in legs:
         stations.add((leg.board_station, None))
         stations.add((leg.alight_station, None))
@@ -518,7 +521,7 @@ class ShortLegCallWithGeometry:
     act_arr: Optional[datetime]
     act_dep: Optional[datetime]
     associated_service: Optional[list[ShortAssociatedService]]
-    leg_stock: Optional[list[TrainLegCallStockreportInData]]
+    leg_stock: Optional[list[StockReport]]
     mileage: Optional[Decimal]
     point: Optional[tuple[Decimal, Decimal]]
 
@@ -577,11 +580,12 @@ def short_legs_to_short_legs_with_geometries(
 
 
 def get_short_leg_with_geometry(
-    network: MultiDiGraph,
+    network: MultiDiGraph[int],
     leg: ShortLeg,
     station_points: dict[str, dict[str | None, StationPoint]],
 ) -> ShortLegWithGeometry:
     result = get_linestring_for_leg(network, leg.calls, station_points)
+    calls_with_geometry: list[ShortLegCallWithGeometry] = []
     if result is None:
         coords = None
         calls_with_geometry = [
@@ -594,7 +598,6 @@ def get_short_leg_with_geometry(
             (Decimal(coord[0]), Decimal(coord[1]))
             for coord in line_string.coords
         ]
-        calls_with_geometry = []
         for i, leg_call in enumerate(leg.calls):
             station_point = points[i]
             station_point_id = get_node_id_from_station_point(station_point)
@@ -630,7 +633,7 @@ def get_short_leg_with_geometry(
 
 
 def get_short_legs_with_geometries(
-    conn: Connection, network: MultiDiGraph, legs: list[ShortLeg]
+    conn: Connection, network: MultiDiGraph[int], legs: list[ShortLeg]
 ) -> list[ShortLegWithGeometry]:
     stations: set[tuple[str, Optional[str]]] = set()
     for leg in legs:

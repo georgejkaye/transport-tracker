@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 from dataclasses import dataclass
 from psycopg import Connection
+from psycopg.rows import class_row
 
 from api.utils.database import register_type
 
@@ -12,11 +13,12 @@ def select_operator_id(conn: Connection, operator_name: str) -> Optional[str]:
         FROM Operator
         WHERE operator_name = %(name)s
     """
-    rows = conn.execute(statement, {"name": operator_name}).fetchall()
-    if len(rows) != 1:
-        return None
-    row = rows[0]
-    return row[0]
+    with conn.cursor(row_factory=class_row(str)) as cur:
+        rows = cur.execute(statement, {"name": operator_name}).fetchall()
+        if len(rows) != 1:
+            return None
+        row = rows[0]
+        return row[0]
 
 
 @dataclass
@@ -43,11 +45,11 @@ def register_brand_data(
     brand_name: str,
     brand_bg: str,
     brand_fg: str,
-):
+) -> BrandData:
     return BrandData(brand_id, brand_code, brand_name, brand_bg, brand_fg)
 
 
-def register_brand_data_types(conn: Connection):
+def register_brand_data_types(conn: Connection) -> None:
     register_type(conn, "OutBrandData", register_brand_data)
 
 

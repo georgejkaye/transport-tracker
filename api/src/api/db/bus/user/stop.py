@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional
+from psycopg import Connection
+from psycopg.rows import class_row
+
 
 from api.db.bus.operators import (
     register_bus_operator_details_types,
@@ -12,7 +15,6 @@ from api.db.bus.overview import (
     register_bus_leg_service_details_types,
 )
 from api.utils.database import register_type
-from psycopg import Connection
 
 
 @dataclass
@@ -46,7 +48,7 @@ def register_bus_stop_leg_details(
     )
 
 
-def register_bus_stop_leg_user_details_types(conn: Connection):
+def register_bus_stop_leg_user_details_types(conn: Connection) -> None:
     register_bus_leg_service_details_types(conn)
     register_bus_operator_details_types(conn)
     register_bus_call_details_types(conn)
@@ -114,7 +116,7 @@ def register_bus_stop_user_details(
     )
 
 
-def register_bus_stop_user_details_types(conn: Connection):
+def register_bus_stop_user_details_types(conn: Connection) -> None:
     register_bus_stop_leg_user_details_types(conn)
     register_type(conn, "BusStopUserDetails", register_bus_stop_user_details)
 
@@ -123,31 +125,34 @@ def get_user_details_for_bus_stop(
     conn: Connection, user_id: int, bus_stop_id: int
 ) -> Optional[BusStopUserDetails]:
     register_bus_stop_user_details_types(conn)
-    result = conn.execute(
-        "SELECT GetUserDetailsForBusStop(%s, %s)", [user_id, bus_stop_id]
-    ).fetchone()
-    if result is None:
+    with conn.cursor(row_factory=class_row(BusStopUserDetails)) as cur:
+        result = cur.execute(
+            "SELECT GetUserDetailsForBusStop(%s, %s)", [user_id, bus_stop_id]
+        ).fetchone()
+        if result is None:
+            return result
         return result
-    return result[0]
 
 
 def get_user_details_for_bus_stop_by_atco(
     conn: Connection, user_id: int, atco: str
 ) -> Optional[BusStopUserDetails]:
     register_bus_stop_user_details_types(conn)
-    result = conn.execute(
-        "SELECT GetUserDetailsForBusStopByAtco(%s, %s)", [user_id, atco]
-    ).fetchone()
-    if result is None:
+    with conn.cursor(row_factory=class_row(BusStopUserDetails)) as cur:
+        result = cur.execute(
+            "SELECT GetUserDetailsForBusStopByAtco(%s, %s)", [user_id, atco]
+        ).fetchone()
+        if result is None:
+            return result
         return result
-    return result[0]
 
 
 def get_user_details_for_bus_stops(
     conn: Connection, user_id: int
 ) -> list[BusStopUserDetails]:
     register_bus_stop_user_details_types(conn)
-    result = conn.execute(
-        "SELECT GetUserDetailsForBusStops(%s)", [user_id]
-    ).fetchall()
-    return [row[0] for row in result]
+    with conn.cursor(row_factory=class_row(BusStopUserDetails)) as cur:
+        result = cur.execute(
+            "SELECT GetUserDetailsForBusStops(%s)", [user_id]
+        ).fetchall()
+        return result

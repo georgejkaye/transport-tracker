@@ -4,9 +4,17 @@ import json
 from decimal import Decimal
 from enum import Enum
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 from api.classes.train.association import AssociationType
+from api.classes.train.leg import (
+    TrainLegCallCallInData,
+    TrainLegCallInData,
+    TrainLegInData,
+    TrainStockReportInData,
+)
+from api.classes.train.service import TrainServiceInData
+from api.classes.train.stock import StockReport
 from api.db.train.classes.output import (
     string_of_stock_report,
 )
@@ -19,32 +27,23 @@ from api.utils.mileage import (
     miles_and_chains_to_miles,
     string_of_miles_and_chains,
 )
-from api.db.train.classes.input import (
-    TrainLegCallCallInData,
-    TrainLegCallInData,
-    TrainStockReportInData,
-)
 from api.db.train.toc import get_operator_brands
 
 from api.db.train.stations import (
     TrainServiceAtStation,
     TrainServiceAtStationToDestination,
     TrainStation,
-    compare_crs,
     get_services_at_station,
     select_station_from_crs,
     get_stations_from_substring,
     short_string_of_service_at_station,
-    string_of_service_at_station,
     string_of_service_at_station_to_destination,
-    string_of_short_train_station,
 )
 from api.db.train.stock import (
     Class,
     ClassAndSubclass,
     Formation,
     Stock,
-    StockReport,
     get_operator_stock,
     get_unique_classes,
     get_unique_subclasses,
@@ -63,14 +62,11 @@ from api.utils.interactive import (
     information,
     input_checkbox,
     input_confirm,
-    input_day,
-    input_month,
+    input_datetime,
     input_number,
     input_select,
     input_select_paginate,
     input_text,
-    input_time,
-    input_year,
 )
 from api.utils.times import (
     make_timezone_aware,
@@ -80,15 +76,15 @@ from api.utils.times import (
 from api.utils.debug import debug_msg
 
 
-def timedelta_from_string(str):
-    parts = str.split(":")
+def timedelta_from_string(string: str) -> timedelta:
+    parts = string.split(":")
     hour = int(parts[0])
     minutes = int(parts[1])
     return timedelta(hours=hour, minutes=minutes)
 
 
 def get_input_no(
-    prompt,
+    prompt: str,
     lower: Optional[int] = None,
     upper: Optional[int] = None,
     default: Optional[int] = None,
@@ -137,7 +133,7 @@ def get_input_no(
                 print(error_msg)
 
 
-def get_input_price(prompt):
+def get_input_price(prompt: str) -> Decimal:
     while True:
         string = input(f"{prompt} ")
         try:
@@ -254,6 +250,8 @@ def get_unit_class(
             return chosen_class
         case PickSingle(choice):
             return chosen_class
+        case _:
+            return None
 
 
 def get_unit_subclass(
@@ -288,6 +286,8 @@ def get_unit_subclass(
                 return chosen_subclass
             case PickSingle(_):
                 return chosen_subclass
+            case _:
+                return None
 
 
 def get_unit_no(stock_subclass: ClassAndSubclass) -> Optional[int]:
@@ -473,14 +473,14 @@ def get_stock(
         )
         segment_stock: list[StockReport] = []
         segment_start = current_call
+        next_remaining_calls: list[TrainLegCallInData] = []
 
         stock_end_opt = input_station_from_calls(segment_start, remaining_calls)
         if stock_end_opt is None:
             segment_end = remaining_calls[-1]
             segment_end_index = len(calls) - 1
-            next_remaining_calls = []
         else:
-            (stock_end, segment_end_index, next_remaining_calls) = stock_end_opt
+            (_, segment_end_index, next_remaining_calls) = stock_end_opt
         stock_calls = [current_call] + remaining_calls[
             0 : segment_end_index + 1
         ]
@@ -558,7 +558,7 @@ def compute_mileage(calls: list[TrainLegCallInData]) -> Decimal:
 def filter_services_by_time(
     earliest: datetime, latest: datetime, services: list[TrainServiceAtStation]
 ) -> list[TrainServiceAtStation]:
-    filtered_services = []
+    filtered_services: list[TrainServiceAtStation] = []
     for service in services:
         if (
             service.plan_dep
@@ -581,7 +581,7 @@ def get_leg_calls_between_calls(
     mileage_offset: Optional[Decimal] = None,
 ) -> Optional[list[TrainLegCallInData]]:
     start_dep_time = make_timezone_aware(start_dep_time)
-    leg_calls = []
+    leg_calls: list[TrainLegCallInData] = []
     boarded = False
     mileage_offset = Decimal(0)
     for call in service.calls:
@@ -634,6 +634,7 @@ def get_leg_calls_between_calls(
             return leg_calls
         if boarded:
             leg_call = TrainLegCallInData(
+                service,
                 call.station_crs,
                 call.station_name,
                 arr_call,
@@ -713,7 +714,7 @@ def record_new_leg(
     destination_station = get_station_from_input(conn, "Destination")
     if destination_station is None:
         return None
-    search_datetime = get_datetime(start)
+    search_datetime = input_datetime(start)
     service_at_station = get_service_at_station(
         conn, origin_station, search_datetime, destination_station
     )
@@ -747,20 +748,22 @@ def record_new_leg(
         match input_select(
             "Select brand", brands, lambda b: f"{b.name} ({b.code})"
         ):
-            case PickSingle(result):
-                brand_code = result.code
+            case PickSingle(brand):
+                brand_code = brand.code
             case _:
                 return None
-    for (service_id, run_date), service in services.items():
-        service.brand_code = brand_code
-    stock_segments = []
+    service.brand_code = brand_code
+    for associated_service in service.associated_services:
+        associated_service.associated_service.brand_code = brand_code
+    stock_segments: list[TrainStockReportInData] = []
+    leg_calls: list[TrainLegCallInData] = []
     mileage = compute_mileage(leg_calls)
     information(f"Computed mileage as {string_of_miles_and_chains(mileage)}")
-    leg = TrainLegInData(services, leg_calls, mileage, stock_segments)
+    leg = TrainLegInData(service, leg_calls, mileage, stock_segments)
     return leg
 
 
-def add_to_logfile(conn: Connection):
+def add_to_logfile(conn: Connection) -> None:
     users = input_user(conn)
     if users is None:
         return None
@@ -772,19 +775,19 @@ def add_to_logfile(conn: Connection):
         insert_train_leg(conn, user, leg)
 
 
-def read_logfile(log_file: str):
-    log = {}
+def read_logfile(log_file: str) -> dict[str, Any]:
+    log: dict[str, Any] = {}
     try:
         with open(log_file, "r") as input:
-            log = json.load(input)
-        if log is None:
-            log = {}
+            log_content = json.load(input)
+        if log_content is not None:
+            log = log_content
     except:
         debug_msg(f"Logfile {log_file} not found, making empty log")
     return log
 
 
-def write_logfile(log, log_file: str):
+def write_logfile(log: dict[str, Any], log_file: str) -> None:
     with open(log_file, "w+") as output:
         json.dump(log, output)
 

@@ -1,14 +1,12 @@
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Optional
 from psycopg import Connection
+from psycopg.rows import class_row
 
 from api.db.bus.operators import (
     BusOperatorDetails,
-    register_bus_operator_details,
     register_bus_operator_details_types,
 )
-from api.db.bus.stop import BusStopDetails
 from api.utils.database import register_type
 from api.utils.interactive import (
     PickSingle,
@@ -55,7 +53,7 @@ def register_bus_service_details(
     )
 
 
-def register_bus_service_details_types(conn: Connection):
+def register_bus_service_details_types(conn: Connection) -> None:
     register_bus_operator_details_types(conn)
     register_type(conn, "BusServiceDetails", register_bus_service_details)
 
@@ -92,7 +90,7 @@ def register_bus_journey_service_details(
     )
 
 
-def register_bus_journey_service_details_types(conn: Connection):
+def register_bus_journey_service_details_types(conn: Connection) -> None:
     register_bus_operator_details_types(conn)
     register_type(
         conn, "BusJourneyServiceDetails", register_bus_journey_service_details
@@ -115,48 +113,48 @@ def input_bus_service(
 def get_service_from_line_and_operator_national_code(
     conn: Connection, service_line: str, service_operator: str
 ) -> Optional[BusServiceDetails]:
-    rows = conn.execute(
-        "SELECT GetBusServicesByNationalOperatorCode(%s, %s)",
-        [service_operator, service_line],
-    ).fetchall()
-    if len(rows) == 0:
-        return None
-    services = [row[0] for row in rows]
-    if len(services) > 1:
-        return input_bus_service(services)
-    else:
-        return services[0]
+    with conn.cursor(row_factory=class_row(BusServiceDetails)) as cur:
+        rows = cur.execute(
+            "SELECT GetBusServicesByNationalOperatorCode(%s, %s)",
+            [service_operator, service_line],
+        ).fetchall()
+        if len(rows) == 0:
+            return None
+        if len(rows) > 1:
+            return input_bus_service(rows)
+        else:
+            return rows[0]
 
 
 def get_service_from_line_and_operator(
     conn: Connection, service_line: str, service_operator: BusOperatorDetails
 ) -> Optional[BusServiceDetails]:
     register_bus_service_details_types(conn)
-    rows = conn.execute(
-        "SELECT GetBusServicesByOperatorId(%s, %s)",
-        [service_operator.id, service_line],
-    ).fetchall()
-    if len(rows) == 0:
-        return None
-    services = [row[0] for row in rows]
-    if len(services) > 1:
-        return input_bus_service(services)
-    else:
-        return services[0]
+    with conn.cursor(row_factory=class_row(BusServiceDetails)) as cur:
+        rows = cur.execute(
+            "SELECT GetBusServicesByOperatorId(%s, %s)",
+            [service_operator.id, service_line],
+        ).fetchall()
+        if len(rows) == 0:
+            return None
+        if len(rows) > 1:
+            return input_bus_service(rows)
+        else:
+            return rows[0]
 
 
 def get_service_from_line_and_operator_name(
     conn: Connection, service_line: str, service_operator: str
 ) -> Optional[BusServiceDetails]:
     register_bus_service_details_types(conn)
-    rows = conn.execute(
-        "SELECT GetBusServicesByOperatorName(%s, %s)",
-        [service_operator, service_line],
-    ).fetchall()
-    if len(rows) == 0:
-        return None
-    services = [row[0] for row in rows]
-    if len(services) > 1:
-        return input_bus_service(services)
-    else:
-        return services[0]
+    with conn.cursor(row_factory=class_row(BusServiceDetails)) as cur:
+        rows = cur.execute(
+            "SELECT GetBusServicesByOperatorName(%s, %s)",
+            [service_operator, service_line],
+        ).fetchall()
+        if len(rows) == 0:
+            return None
+        if len(rows) > 1:
+            return input_bus_service(rows)
+        else:
+            return rows[0]

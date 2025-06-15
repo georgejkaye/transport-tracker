@@ -28,13 +28,13 @@ class ShortAssociatedService:
 
 def register_assoc_data(
     assoc_service_id: str, assoc_service_run_date: datetime, assoc_type: str
-):
+) -> ShortAssociatedService:
     return ShortAssociatedService(
         assoc_service_id, assoc_service_run_date, assoc_type
     )
 
 
-def register_short_associated_service_types(conn: Connection):
+def register_short_associated_service_types(conn: Connection) -> None:
     register_type(conn, "TrainAssociatedServiceOutData", register_assoc_data)
 
 
@@ -59,7 +59,7 @@ def register_call_data(
     act_dep: datetime,
     assocs: list[ShortAssociatedService],
     mileage: Decimal,
-):
+) -> ShortCall:
     return ShortCall(
         station,
         platform,
@@ -72,7 +72,7 @@ def register_call_data(
     )
 
 
-def register_short_call_types(conn: Connection):
+def register_short_call_types(conn: Connection) -> None:
     register_short_train_station_types(conn)
     register_short_associated_service_types(conn)
     register_type(conn, "TrainCallOutData", register_call_data)
@@ -104,7 +104,7 @@ def register_service_data(
     service_brand: Optional[BrandData],
     service_calls: list[ShortCall],
     service_assocs: list[ShortAssociatedService],
-):
+) -> ShortTrainService:
     return ShortTrainService(
         service_id,
         service_headcode,
@@ -120,7 +120,7 @@ def register_service_data(
     )
 
 
-def register_short_train_service_types(conn: Connection):
+def register_short_train_service_types(conn: Connection) -> None:
     register_short_train_station_types(conn)
     register_brand_data_types(conn)
     register_short_call_types(conn)

@@ -6,6 +6,7 @@ from decimal import Decimal, DecimalException
 from typing import Any, Callable, Optional
 from dotenv import load_dotenv
 from psycopg import Connection
+from psycopg.rows import TupleRow
 from psycopg.types.composite import CompositeInfo, register_composite
 
 from api.utils.environment import get_env_variable, get_secret
@@ -26,7 +27,7 @@ def get_db_connection_data_from_args(
     db_user_index: int = 2,
     db_password_index: int = 3,
     db_host_index: int = 4,
-):
+) -> DbConnectionData:
     if len(sys.argv) > max(
         db_name_index, db_user_index, db_password_index, db_host_index
     ):
@@ -46,7 +47,7 @@ class DbConnection:
         self.db_password = data.db_password or get_secret("DB_PASSWORD")
         self.db_host = data.db_host or get_env_variable("DB_HOST")
 
-    def __enter__(self):
+    def __enter__(self) -> Connection[TupleRow]:
         self.conn = Connection.connect(
             dbname=self.db_name,
             user=self.db_user,
@@ -55,7 +56,7 @@ class DbConnection:
         )
         return self.conn
 
-    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
         self.conn.close()
 
 
@@ -147,7 +148,7 @@ def insert(
     fields: list[str],
     values: list[list[str | None | NoEscape]],
     additional_query: str = "",
-):
+) -> None:
     partition_length = 500
     partitions = [
         values[i * partition_length : (i + 1) * partition_length]
@@ -171,7 +172,7 @@ def insert(
 
 def register_type(
     conn: Connection, name: str, factory: Optional[Callable[..., Any]] = None
-):
+) -> None:
     info = CompositeInfo.fetch(conn, name)
     if info is not None:
         register_composite(info, conn, factory)

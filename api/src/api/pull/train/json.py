@@ -3,6 +3,16 @@ from typing import Any, Optional
 
 from api.classes.train.association import AssociationType
 
+from api.classes.train.service import (
+    TrainAssociatedServiceInData,
+    TrainServiceCallAssociatedServiceInData,
+    TrainServiceCallInData,
+    TrainServiceInData,
+)
+from api.pull.train.html import (
+    get_call_mileage_from_service_soup,
+    get_train_service_soup,
+)
 from api.utils.credentials import get_api_credentials
 from api.utils.request import make_get_request
 from api.utils.times import get_datetime_route, make_timezone_aware
@@ -23,7 +33,7 @@ def get_service_json(service_id: str, run_date: datetime) -> Any:
 
 
 def get_datetime_from_service_json(
-    run_date: datetime, time_field: str, data: dict
+    run_date: datetime, time_field: str, data: dict[str, Any]
 ) -> Optional[datetime]:
     time_string = data.get(time_field)
     if time_string is None:
@@ -42,7 +52,7 @@ def get_datetime_from_service_json(
 
 
 def get_associated_service_from_associated_service_json(
-    associated_service_json: dict,
+    associated_service_json: dict[str, Any],
     first: bool,
     last: bool,
     service_uid: str,
@@ -87,7 +97,7 @@ def get_associated_service_from_associated_service_json(
 
 
 def get_associated_services_from_call_json(
-    call_json: dict,
+    call_json: dict[str, Any],
     is_first_call: bool,
     is_last_call: bool,
     service_uid: str,
@@ -117,7 +127,7 @@ def get_associated_services_from_call_json(
 
 
 def get_datetime_from_json_field(
-    run_date: datetime, field_name: str, json: dict
+    run_date: datetime, field_name: str, json: dict[str, Any]
 ) -> Optional[datetime]:
     time_string = json.get(field_name)
     if time_string is None:
@@ -136,7 +146,7 @@ def get_datetime_from_json_field(
 
 
 def get_call_from_call_json(
-    call_json: dict,
+    call_json: dict[str, Any],
     service_soup: Optional[BeautifulSoup],
     is_first_call: bool,
     is_last_call: bool,
@@ -192,11 +202,11 @@ def get_call_from_call_json(
 def get_service_calls_from_service_json(
     service_uid: str,
     service_run_date: datetime,
-    service_json: dict,
+    service_json: dict[str, Any],
     service_soup: Optional[BeautifulSoup],
     parent_service_uid: Optional[str],
     parent_service_run_date: Optional[datetime],
-) -> list[TrainServiceCallInData]:
+) -> tuple[list[TrainServiceCallInData], list[TrainAssociatedServiceInData]]:
     calls: list[TrainServiceCallInData] = []
     associated_services: list[TrainAssociatedServiceInData] = []
     for i, call_json in enumerate(service_json["locations"]):
@@ -227,13 +237,13 @@ def get_service_calls_from_service_json(
             for associated_service in call.associated_services
         ]
         associated_services.extend(service_associated_services)
-    return calls
+    return calls, associated_services
 
 
 def get_service_from_service_json_and_html(
     service_uid: str,
     service_run_date: datetime,
-    service_json: dict,
+    service_json: dict[str, Any],
     service_soup: Optional[BeautifulSoup],
     parent_service_uid: Optional[str],
     parent_service_run_date: Optional[datetime],
@@ -251,7 +261,7 @@ def get_service_from_service_json_and_html(
         for destination in service_json["destination"]
     ]
     operator_code = service_json["atocCode"]
-    calls = get_service_calls_from_service_json(
+    calls, associated_services = get_service_calls_from_service_json(
         service_uid,
         service_run_date,
         service_json,
@@ -269,6 +279,7 @@ def get_service_from_service_json_and_html(
         None,
         power,
         calls,
+        associated_services,
     )
     return train_service
 

@@ -41,10 +41,8 @@ def get_line_description_from_description_node(
         return None
     description_text = description_text_node.text or ""
     description_vias_node = description_node.find("Vias", namespaces)
-    if description_vias_node is None:
-        description_vias: list[str] = []
-    else:
-        description_vias: list[str] = []
+    description_vias: list[str] = []
+    if description_vias_node is not None:
         for description_via in description_vias_node.findall("Via", namespaces):
             if description_via.text is not None:
                 description_vias.append(
@@ -150,12 +148,16 @@ def get_transxchange_namespaces(root: ET.Element) -> dict[str, str]:
     return {"": namespace}
 
 
+DbBusServiceInData = tuple[str, str, str, Optional[str], Optional[str]]
+DbBusServiceViaInData = tuple[str, bool, str, int]
+
+
 def insert_services(
     conn: Connection,
     services: list[TransXChangeLine],
-):
-    service_values = []
-    via_values = []
+) -> None:
+    service_values: list[DbBusServiceInData] = []
+    via_values: list[DbBusServiceViaInData] = []
     for service in services:
         service_values.append(
             (
@@ -246,7 +248,7 @@ def extract_data_from_bods_zip(
 
 def populate_bus_services(
     conn: Connection, operator_nocs: set[str], bods_path: str
-):
+) -> None:
     information("Retrieving bus services")
     data = extract_data_from_bods_zip(bods_path, operator_nocs)
     information("Inserting bus services")
