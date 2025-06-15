@@ -8,25 +8,6 @@ from bs4 import BeautifulSoup, Tag
 from psycopg import Connection
 
 
-@dataclass
-class BusStopData:
-    atco: str
-    naptan: str
-    common_name: str
-    landmark: Optional[str]
-    street: str
-    crossing: Optional[str]
-    indicator: Optional[str]
-    bearing: str
-    locality: str
-    parent_locality: Optional[str]
-    grandparent_locality: Optional[str]
-    town: Optional[str]
-    suburb: Optional[str]
-    latitude: Decimal
-    longitude: Decimal
-
-
 def insert_bus_stops(conn: Connection, bus_stops: list[BusStopData]) -> None:
     bus_stop_tuples = [
         (
@@ -52,68 +33,6 @@ def insert_bus_stops(conn: Connection, bus_stops: list[BusStopData]) -> None:
         "SELECT * FROM InsertBusStops(%s::BusStopInData[])", [bus_stop_tuples]
     )
     conn.commit()
-
-
-@dataclass
-class BusStopDetails:
-    id: int
-    atco: str
-    naptan: str
-    common_name: str
-    landmark: str
-    street: str
-    crossing: Optional[str]
-    indicator: Optional[str]
-    bearing: str
-    locality: str
-    parent_locality: Optional[str]
-    grandparent_locality: Optional[str]
-    town: Optional[str]
-    suburb: Optional[str]
-    latitude: Decimal
-    longitude: Decimal
-
-
-def register_bus_stop_details(
-    id: int,
-    atco: str,
-    naptan: str,
-    common_name: str,
-    landmark: str,
-    street: str,
-    crossing: Optional[str],
-    indicator: Optional[str],
-    bearing: str,
-    locality: str,
-    parent_locality: Optional[str],
-    grandparent_locality: Optional[str],
-    town: Optional[str],
-    suburb: Optional[str],
-    latitude: float,
-    longitude: float,
-) -> BusStopDetails:
-    return BusStopDetails(
-        id,
-        atco,
-        naptan,
-        common_name,
-        landmark,
-        street,
-        crossing,
-        indicator,
-        bearing,
-        locality,
-        parent_locality,
-        grandparent_locality,
-        town,
-        suburb,
-        Decimal(latitude),
-        Decimal(longitude),
-    )
-
-
-def register_bus_stop_details_types(conn: Connection) -> None:
-    register_type(conn, "BusStopDetails", register_bus_stop_details)
 
 
 def short_string_of_bus_stop(bus_stop: BusStopDetails) -> str:
@@ -160,14 +79,6 @@ def get_bus_stop_page(
     url = get_bus_stop_page_url(bus_stop, search_datetime)
     soup = get_soup(url)
     return soup
-
-
-@dataclass
-class BusStopDeparture:
-    service: str
-    destination: str
-    dep_time: datetime
-    bustimes_journey_id: int
 
 
 def short_string_of_bus_stop_departure(departure: BusStopDeparture) -> str:
@@ -244,35 +155,3 @@ def get_departures_from_bus_stop(
     if soup is None:
         return []
     return get_departures_from_bus_stop_soup(soup, datetime_offset)
-
-
-@dataclass
-class BusCallStopDetails:
-    id: int
-    atco: str
-    name: str
-    locality: str
-    street: Optional[str]
-    indicator: Optional[str]
-
-
-def register_bus_call_stop_details(
-    bus_stop_id: int,
-    stop_atco: str,
-    stop_name: str,
-    stop_locality: str,
-    stop_street: Optional[str],
-    stop_indicator: Optional[str],
-) -> BusCallStopDetails:
-    return BusCallStopDetails(
-        bus_stop_id,
-        stop_atco,
-        stop_name,
-        stop_locality,
-        stop_street,
-        stop_indicator,
-    )
-
-
-def register_bus_call_stop_details_types(conn: Connection) -> None:
-    register_type(conn, "BusCallStopDetails", register_bus_call_stop_details)

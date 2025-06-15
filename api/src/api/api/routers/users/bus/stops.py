@@ -1,3 +1,5 @@
+from fastapi import APIRouter, HTTPException
+
 from api.db.bus.user.stop import (
     BusStopUserDetails,
     get_user_details_for_bus_stop,
@@ -5,19 +7,16 @@ from api.db.bus.user.stop import (
     get_user_details_for_bus_stops,
 )
 from api.utils.database import connect_with_env
-from fastapi import APIRouter, HTTPException
 
 
 router = APIRouter(prefix="/stops", tags=["users/bus/stops"])
 
 
-@router.get("/", summary="Get details of all bus stop for a user")
+@router.get("/", summary="Get details of all bus stops for a user")
 async def get_bus_stops(user_id: int) -> list[BusStopUserDetails]:
     with connect_with_env() as conn:
-        stop = get_user_details_for_bus_stops(conn, user_id)
-        if stop is None:
-            raise HTTPException(404, "Could not find user")
-        return stop
+        stops = get_user_details_for_bus_stops(conn, user_id)
+        return stops
 
 
 @router.get("/{stop_id}", summary="Get details of a bus stop for a user")

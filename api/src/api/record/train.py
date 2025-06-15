@@ -5,6 +5,12 @@ from decimal import Decimal
 from enum import Enum
 from datetime import datetime, timedelta
 from typing import Any, Optional, Tuple
+from api.classes.train.station import (
+    TrainServiceAtStation,
+    TrainStation,
+    short_string_of_service_at_station,
+)
+from api.pull.train.station import get_services_at_station
 from psycopg import Connection
 
 from api.classes.train.association import AssociationType
@@ -12,7 +18,9 @@ from api.classes.train.leg import (
     TrainLegCallCallInData,
     TrainLegCallInData,
     TrainLegInData,
+    TrainServiceAtStationToDestination,
     TrainStockReportInData,
+    string_of_service_at_station_to_destination,
 )
 from api.classes.train.service import TrainServiceInData
 from api.classes.train.stock import (
@@ -26,13 +34,11 @@ from api.classes.train.stock import (
     string_of_class,
     string_of_class_and_subclass,
     string_of_formation,
-)
-from api.db.train.classes.output import (
     string_of_stock_report,
 )
 
 from api.db.train.leg import insert_train_leg
-from api.pull.train.json import get_service_from_id
+from api.pull.train.service import get_service_from_id
 
 from api.user import input_user
 from api.utils.mileage import (
@@ -42,14 +48,8 @@ from api.utils.mileage import (
 from api.db.train.toc import get_operator_brands
 
 from api.db.train.stations import (
-    TrainServiceAtStation,
-    TrainServiceAtStationToDestination,
-    TrainStation,
-    get_services_at_station,
     select_station_from_crs,
     get_stations_from_substring,
-    short_string_of_service_at_station,
-    string_of_service_at_station_to_destination,
 )
 from api.db.train.stock import (
     get_operator_stock,

@@ -2,8 +2,8 @@ from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, HTTPException
 
-from api.db.train.stats import Stats, get_train_stats
 from api.utils.database import connect_with_env
+from api.db.train.stats import Stats, get_train_stats
 
 
 router = APIRouter(prefix="/stats", tags=["users/train/stats"])

@@ -1,41 +1,14 @@
-from dataclasses import dataclass
 from typing import Optional
+from api.classes.bus.db.input import DbBusModelInData, DbBusVehicleInData
+from api.classes.bus.db.output import BusVehicleDetails
+from api.classes.bus.vehicle import BusVehicleIn
 from bs4 import BeautifulSoup
 from psycopg import Connection
 
-from api.utils.database import register_type
 from api.utils.request import get_soup
 from api.db.bus.operators import (
     BusOperatorDetails,
-    register_bus_operator_details_types,
 )
-
-
-@dataclass
-class BusVehicleIn:
-    operator_id: int
-    vehicle_number: str
-    bustimes_id: str
-    numberplate: str
-    model: Optional[str]
-    livery_style: Optional[str]
-    name: Optional[str]
-
-
-def string_of_bus_vehicle_in(bus_vehicle: BusVehicleIn) -> str:
-    string_brackets = f"({bus_vehicle.numberplate}"
-    if bus_vehicle.name is not None:
-        string_brackets = f"{string_brackets}/{bus_vehicle.name}"
-    string_brackets = f"{string_brackets})"
-    return (
-        f"{bus_vehicle.vehicle_number} {string_brackets} - {bus_vehicle.model}"
-    )
-
-
-DbBusModelInData = tuple[Optional[str]]
-DbBusVehicleInData = tuple[
-    int, str, str, str, Optional[str], Optional[str], Optional[str]
-]
 
 
 def insert_bus_vehicles(
@@ -65,45 +38,6 @@ def insert_bus_vehicles(
         "SELECT InsertBusModelsAndVehicles(%s::BusModelInData[], %s::BusVehicleInData[])",
         [bus_model_tuples, bus_vehicle_tuples],
     )
-
-
-@dataclass
-class BusVehicleDetails:
-    id: int
-    operator: BusOperatorDetails
-    vehicle_number: str
-    bustimes_id: str
-    numberplate: str
-    model: Optional[str]
-    livery_style: Optional[str]
-    name: Optional[str]
-
-
-def register_bus_vehicle_details(
-    bus_vehicle_id: int,
-    bus_operator: BusOperatorDetails,
-    vehicle_number: str,
-    bustimes_id: str,
-    vehicle_numberplate: str,
-    vehicle_model: str,
-    vehicle_livery_style: Optional[str],
-    vehicle_name: Optional[str],
-) -> BusVehicleDetails:
-    return BusVehicleDetails(
-        bus_vehicle_id,
-        bus_operator,
-        vehicle_number,
-        bustimes_id,
-        vehicle_numberplate,
-        vehicle_model,
-        vehicle_livery_style,
-        vehicle_name,
-    )
-
-
-def register_bus_vehicle_details_types(conn: Connection) -> None:
-    register_bus_operator_details_types(conn)
-    register_type(conn, "BusVehicleDetails", register_bus_vehicle_details)
 
 
 def string_of_bus_vehicle_out(vehicle: BusVehicleDetails) -> str:

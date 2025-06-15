@@ -1,10 +1,10 @@
-from api.api.routers.utils import utils
 import uvicorn
 
 from fastapi import FastAPI
 
-from api.api.routers.users import user
 from api.utils.environment import get_env_variable
+from api.api.routers.utils import utils
+from api.api.routers.users import user
 
 app = FastAPI(
     title="Train tracker API",

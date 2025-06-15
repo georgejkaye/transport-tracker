@@ -96,3 +96,13 @@ class StockReport:
     subclass_no: Optional[int]
     stock_no: Optional[int]
     cars: Optional[int]
+
+
+def string_of_stock_report(report: StockReport) -> str:
+    if report.class_no is None:
+        return "Unknown"
+    if report.stock_no is not None:
+        return str(report.stock_no)
+    if report.subclass_no is None:
+        return f"Class {report.class_no}"
+    return f"Class {report.class_no}/{report.subclass_no}"

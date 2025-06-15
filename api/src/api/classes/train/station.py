@@ -6,6 +6,14 @@ from api.utils.times import get_hourmin_string
 
 
 @dataclass
+class TrainStation:
+    name: str
+    crs: str
+    operator: int
+    brand: Optional[int]
+
+
+@dataclass
 class TrainStationIdentifiers:
     crs: str
     name: str

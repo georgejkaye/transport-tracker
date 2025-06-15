@@ -1,4 +1,3 @@
-from api.library.shapely import get_length
 import networkx as nx
 
 from decimal import Decimal
@@ -6,10 +5,12 @@ from typing import Optional
 from networkx import MultiDiGraph
 from shapely import LineString, Point
 
-from api.db.train.points import StationPoint, get_relevant_station_points
-from api.db.train.classes.output import (
-    ShortLegCall,
-    short_leg_call_to_point_times,
+from api.library.shapely import get_length
+from api.classes.train.db.output import ShortLegCall
+from api.db.train.points import (
+    PointTimes,
+    StationPoint,
+    get_relevant_station_points,
 )
 from api.network.network import (
     EdgeDetails,
@@ -170,6 +171,12 @@ def find_shortest_path_between_stations(
     )
     shortest_path = get_shortest_linestring(paths)
     return shortest_path
+
+
+def short_leg_call_to_point_times(leg_call: ShortLegCall) -> PointTimes:
+    return PointTimes(
+        leg_call.plan_arr, leg_call.plan_dep, leg_call.act_arr, leg_call.act_dep
+    )
 
 
 def get_linestring_for_leg(

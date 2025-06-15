@@ -2,14 +2,14 @@ from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, HTTPException
 
-from api.db.train.leg import select_legs
 from api.utils.database import connect_with_env
-from api.api.network import network
+from api.db.train.leg import select_legs
 from api.network.map import (
     ShortLegWithGeometry,
     get_short_legs_with_geometries,
     short_legs_to_short_legs_with_geometries,
 )
+from api.api.network import network
 
 router = APIRouter(prefix="/legs", tags=["users/train/legs"])
 

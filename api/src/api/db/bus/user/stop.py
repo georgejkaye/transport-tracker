@@ -4,7 +4,7 @@ from typing import Optional
 from psycopg import Connection
 from psycopg.rows import class_row
 
-
+from api.utils.database import register_type
 from api.db.bus.operators import (
     register_bus_operator_details_types,
 )
@@ -14,7 +14,6 @@ from api.db.bus.overview import (
     register_bus_call_details_types,
     register_bus_leg_service_details_types,
 )
-from api.utils.database import register_type
 
 
 @dataclass
