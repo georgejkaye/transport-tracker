@@ -17,7 +17,6 @@ from api.utils.interactive import (
 from api.user import User, input_user
 from api.db.bus.journey import (
     BusCallIn,
-    BusJourneyDetails,
     BusJourneyIn,
     get_bus_journey,
     string_of_bus_call_in,
@@ -126,7 +125,7 @@ def get_bus_vehicle(
 
 def get_bus_leg_input(
     conn: Connection, users: list[User]
-) -> Optional[BusJourneyDetails]:
+) -> Optional[BusLegIn]:
     board_stop = get_bus_stop_input(conn, prompt="Board stop")
     if board_stop is None:
         print("Could not get board stop")
@@ -203,7 +202,7 @@ def get_bus_leg_input(
     if alight_call_and_index is None:
         return None
 
-    (alight_call, alight_call_index) = alight_call_and_index
+    (_, alight_call_index) = alight_call_and_index
 
     vehicle = get_bus_vehicle(conn, journey_timetable.operator)
 
@@ -216,6 +215,7 @@ def get_bus_leg_input(
     )
     leg = BusLegIn(journey, board_call_index, alight_call_index)
     insert_leg(conn, users, leg)
+    return leg
 
 
 if __name__ == "__main__":

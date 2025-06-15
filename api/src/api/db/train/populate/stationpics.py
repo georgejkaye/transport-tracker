@@ -6,7 +6,6 @@ from api.utils.database import connect, get_db_connection_data_from_args
 files = os.listdir(sys.argv[1])
 
 station_fields = ["station_crs", "station_img"]
-station_values = []
 
 connection_data = get_db_connection_data_from_args()
 with connect(connection_data) as conn:

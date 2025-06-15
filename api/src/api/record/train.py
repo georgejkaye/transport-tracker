@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
 from api.classes.train.association import AssociationType
-from api.db.train.classes.input import TrainLegInData, TrainServiceInData
 from api.db.train.classes.output import (
     string_of_stock_report,
 )

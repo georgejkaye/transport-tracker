@@ -759,6 +759,22 @@ test = ["hypothesis (>=6.46.1)", "pytest (>=7.3.2)", "pytest-xdist (>=2.2.0)"]
 xml = ["lxml (>=4.9.2)"]
 
 [[package]]
+name = "pandas-stubs"
+version = "2.2.3.250308"
+description = "Type annotations for pandas"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "pandas_stubs-2.2.3.250308-py3-none-any.whl", hash = "sha256:a377edff3b61f8b268c82499fdbe7c00fdeed13235b8b71d6a1dc347aeddc74d"},
+    {file = "pandas_stubs-2.2.3.250308.tar.gz", hash = "sha256:3a6e9daf161f00b85c83772ed3d5cff9522028f07a94817472c07b91f46710fd"},
+]
+
+[package.dependencies]
+numpy = ">=1.23.5"
+types-pytz = ">=2022.1.1"
+
+[[package]]
 name = "pathspec"
 version = "0.12.1"
 description = "Utility library for gitignore style pattern matching of file paths."
@@ -1358,6 +1374,39 @@ files = [
 ]
 
 [[package]]
+name = "types-geopandas"
+version = "1.0.1.20250601"
+description = "Typing stubs for geopandas"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "types_geopandas-1.0.1.20250601-py3-none-any.whl", hash = "sha256:eb3ecb7af7662f54523392f825840ab1f29c337ad391792d0f1f4ef6bcd4e9c4"},
+    {file = "types_geopandas-1.0.1.20250601.tar.gz", hash = "sha256:8dbede4699b89cc1670094189c6fff455e344eed7528a7b723197fa2f44558b3"},
+]
+
+[package.dependencies]
+numpy = ">=1.20"
+pandas-stubs = "<2.2.3.250527"
+pyproj = "*"
+types-shapely = "*"
+
+[[package]]
+name = "types-networkx"
+version = "3.5.0.20250610"
+description = "Typing stubs for networkx"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "types_networkx-3.5.0.20250610-py3-none-any.whl", hash = "sha256:c428b96c544f28fe955bfc2253581ed5d3389a59c03997b79da5188be0191c56"},
+    {file = "types_networkx-3.5.0.20250610.tar.gz", hash = "sha256:874196bef3f116f57ca86818a576274def24c5a66cb00ff77d3e1f376ab57157"},
+]
+
+[package.dependencies]
+numpy = ">=1.20"
+
+[[package]]
 name = "types-psycopg2"
 version = "2.9.21.20250516"
 description = "Typing stubs for psycopg2"
@@ -1375,7 +1424,7 @@ version = "2025.2.0.20250516"
 description = "Typing stubs for pytz"
 optional = false
 python-versions = ">=3.9"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "types_pytz-2025.2.0.20250516-py3-none-any.whl", hash = "sha256:e0e0c8a57e2791c19f718ed99ab2ba623856b11620cb6b637e5f62ce285a7451"},
     {file = "types_pytz-2025.2.0.20250516.tar.gz", hash = "sha256:e1216306f8c0d5da6dafd6492e72eb080c9a166171fa80dd7a1990fd8be7a7b3"},
@@ -1526,4 +1575,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "247e34828a90eb939d384034eb95161861ccb10d7a0e485cc820343a85cdcb5d"
+content-hash = "46f6842596c995d08517e2c724b71ad08f7baf11495a6dd2c4512401b1bbf0ab"

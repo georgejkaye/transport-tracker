@@ -1,4 +1,4 @@
-from api.db.train.points import StationPoint, string_of_station_point
+from api.network.library import project_graph
 import shapely
 import networkx as nx
 import osmnx as ox
@@ -12,7 +12,7 @@ from shapely import LineString, Point
 from shapely import geometry, ops
 from geopandas import GeoDataFrame
 
-from api.db.train.leg import ShortLeg
+from api.db.train.points import StationPoint, string_of_station_point
 
 coordinate_precision = 0.000001
 wgs84 = "EPSG:4326"
@@ -30,7 +30,7 @@ def prepend_to_linestring(linestring: LineString, point: Point) -> LineString:
 
 
 def append_to_linestring(linestring: LineString, point: Point) -> LineString:
-    new_coords = []
+    new_coords: list[Point] = []
     for x, y in linestring.coords:
         new_coords.append(Point(x, y))
     new_coords.append(point)
@@ -113,19 +113,19 @@ class EdgeDetails:
     tags: EdgeTags
 
 
-def get_edge_from_endpoints(
-    network: MultiDiGraph, source: int, target: int
+def get_edge_from_endpoints[T](
+    network: MultiDiGraph[int], source: int, target: int
 ) -> EdgeDetails:
     return EdgeDetails(source, target, network[source][target][0])
 
 
-def get_nearest_edge(network: MultiDiGraph, point: Point) -> EdgeDetails:
+def get_nearest_edge[T](network: MultiDiGraph[T], point: Point) -> EdgeDetails:
     (source, target, _) = ox.nearest_edges(network, point.x, point.y)
     return get_edge_from_endpoints(network, source, target)
 
 
-def get_closest_edge_on_network_to_point(
-    network: MultiDiGraph, point: Point
+def get_closest_edge_on_network_to_point[T](
+    network: MultiDiGraph[T], point: Point
 ) -> EdgeDetails:
     edge = get_nearest_edge(network, point)
     return edge
@@ -187,19 +187,24 @@ def split_linestring_at_point(
     raise RuntimeError("Could not split line string")
 
 
-def remove_edge(network: MultiDiGraph, source: int | str, target: int | str):
+def remove_edge[T](network: MultiDiGraph[T], source: T, target: T):
     if network.has_edge(source, target):
         network.remove_edge(source, target)
 
 
 def insert_node_to_network(
-    network: MultiDiGraph, point: Point, id: int, project_network: bool = True
+    network: MultiDiGraph[int],
+    point: Point,
+    id: int,
+    project_network: bool = True,
 ) -> MultiDiGraph:
     if network.has_node(id):
         return network
 
     if project_network:
-        projected_network = ox.project_graph(network, to_crs=osgb36)
+        projected_network: MultiDiGraph[int] = project_graph(
+            network, to_crs=osgb36
+        )
     else:
         projected_network = network
     projected_point = wgs84_to_osgb36_point(point)
@@ -288,10 +293,10 @@ def insert_node_to_network(
 
 
 def insert_nodes_to_network(
-    network: MultiDiGraph,
+    network: MultiDiGraph[int],
     stations: list[StationPoint],
     project_network: bool = True,
-) -> MultiDiGraph:
+) -> MultiDiGraph[int]:
     for station in stations:
         print(f"Inserting {string_of_station_point(station)}")
         network = insert_node_to_network(
@@ -304,11 +309,11 @@ def insert_nodes_to_network(
 
 
 def insert_node_dict_to_network(
-    network: MultiDiGraph,
+    network: MultiDiGraph[int],
     stations: dict[str, dict[Optional[str], StationPoint]],
     project_network: bool = False,
-) -> MultiDiGraph:
-    nodes = []
+) -> MultiDiGraph[int]:
+    nodes: list[StationPoint] = []
     for station_key in stations.keys():
         for platform_key in stations[station_key].keys():
             nodes.append(stations[station_key][platform_key])
@@ -316,13 +321,13 @@ def insert_node_dict_to_network(
 
 
 def insert_station_node_to_network(
-    network: MultiDiGraph,
+    network: MultiDiGraph[int],
     station_crs: str,
     station_platform: Optional[str],
     station_points: dict[str, dict[Optional[str], StationPoint]],
     project_network: bool = True,
     insert_all_points: bool = False,
-) -> tuple[MultiDiGraph, list[StationPoint]]:
+) -> tuple[MultiDiGraph[int], list[StationPoint]]:
     if (
         not insert_all_points
         and station_points[station_crs].get(station_platform) is not None

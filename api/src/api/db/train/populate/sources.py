@@ -41,7 +41,7 @@ kb_stations_namespace = "http://nationalrail.co.uk/xml/station"
 kb_tocs_namespace = "http://nationalrail.co.uk/xml/toc"
 
 
-def get_natrail_token_headers(natrail_token: str) -> dict:
+def get_natrail_token_headers(natrail_token: str) -> dict[str, str]:
     return {"X-Auth-Token": natrail_token}
 
 

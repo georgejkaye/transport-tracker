@@ -55,7 +55,7 @@ class DbConnection:
         )
         return self.conn
 
-    def __exit__(self):
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
         self.conn.close()
 
 
