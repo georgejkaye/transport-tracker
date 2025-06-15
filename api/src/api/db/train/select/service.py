@@ -2,13 +2,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
+from api.classes.train.station import TrainStationIdentifiers
+from api.db.train.stations import register_short_train_station_types
 from api.utils.database import register_type
 from psycopg import Connection
 
-from api.db.train.stations import (
-    TrainLegCallStationInData,
-    register_short_train_station_types,
-)
 from api.db.train.toc import (
     BrandData,
     OperatorData,
@@ -40,7 +38,7 @@ def register_short_associated_service_types(conn: Connection) -> None:
 
 @dataclass
 class ShortCall:
-    station: TrainLegCallStationInData
+    station: TrainStationIdentifiers
     platform: Optional[str]
     plan_arr: Optional[datetime]
     plan_dep: Optional[datetime]
@@ -51,7 +49,7 @@ class ShortCall:
 
 
 def register_call_data(
-    station: TrainLegCallStationInData,
+    station: TrainStationIdentifiers,
     platform: str,
     plan_arr: datetime,
     act_arr: datetime,
@@ -84,8 +82,8 @@ class ShortTrainService:
     headcode: str
     run_date: datetime
     service_start: datetime
-    origins: list[TrainLegCallStationInData]
-    destinations: list[TrainLegCallStationInData]
+    origins: list[TrainStationIdentifiers]
+    destinations: list[TrainStationIdentifiers]
     operator: OperatorData
     brand: Optional[BrandData]
     power: Optional[str]
@@ -98,8 +96,8 @@ def register_service_data(
     service_run_date: datetime,
     service_headcode: str,
     service_start: datetime,
-    service_origins: list[TrainLegCallStationInData],
-    service_destinations: list[TrainLegCallStationInData],
+    service_origins: list[TrainStationIdentifiers],
+    service_destinations: list[TrainStationIdentifiers],
     service_operator: OperatorData,
     service_brand: Optional[BrandData],
     service_calls: list[ShortCall],

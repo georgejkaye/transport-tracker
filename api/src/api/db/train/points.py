@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
+from api.classes.train.station import TrainStationIdentifiers
 from psycopg import Connection
 from shapely import Point
 
 from api.utils.database import register_type
-from api.db.train.stations import TrainLegCallStationInData
 
 
 @dataclass
@@ -134,7 +134,7 @@ def get_station_points_from_crses(
 def get_station_points_from_names(
     conn: Connection, stations: list[tuple[str, Optional[str]]]
 ) -> tuple[
-    dict[str, TrainLegCallStationInData],
+    dict[str, TrainStationIdentifiers],
     dict[str, dict[Optional[str], StationPoint]],
 ]:
     register_type(conn, "StationLatLon", register_station_latlon)
@@ -145,11 +145,11 @@ def get_station_points_from_names(
         "SELECT GetStationPointsFromNames(%s::StationNameAndPlatform[])",
         [stations],
     ).fetchall()
-    name_to_station_dict: dict[str, TrainLegCallStationInData] = {}
+    name_to_station_dict: dict[str, TrainStationIdentifiers] = {}
     for row in rows:
         result: StationPointNameSearchResult = row[0]
-        name_to_station_dict[result.search_name] = TrainLegCallStationInData(
-            result.name, result.crs
+        name_to_station_dict[result.search_name] = TrainStationIdentifiers(
+            result.crs, result.name
         )
     return (
         name_to_station_dict,

@@ -5,6 +5,7 @@ from decimal import Decimal
 from enum import Enum
 from datetime import datetime, timedelta
 from typing import Any, Optional, Tuple
+from psycopg import Connection
 
 from api.classes.train.association import AssociationType
 from api.classes.train.leg import (
@@ -14,13 +15,24 @@ from api.classes.train.leg import (
     TrainStockReportInData,
 )
 from api.classes.train.service import TrainServiceInData
-from api.classes.train.stock import StockReport
+from api.classes.train.stock import (
+    Class,
+    ClassAndSubclass,
+    Formation,
+    Stock,
+    StockReport,
+    sort_by_classes,
+    sort_by_subclasses,
+    string_of_class,
+    string_of_class_and_subclass,
+    string_of_formation,
+)
 from api.db.train.classes.output import (
     string_of_stock_report,
 )
+
 from api.db.train.leg import insert_train_leg
 from api.pull.train.json import get_service_from_id
-from psycopg import Connection
 
 from api.user import input_user
 from api.utils.mileage import (
@@ -40,19 +52,10 @@ from api.db.train.stations import (
     string_of_service_at_station_to_destination,
 )
 from api.db.train.stock import (
-    Class,
-    ClassAndSubclass,
-    Formation,
-    Stock,
     get_operator_stock,
     get_unique_classes,
     get_unique_subclasses,
     select_stock_cars,
-    sort_by_classes,
-    sort_by_subclasses,
-    string_of_class,
-    string_of_class_and_subclass,
-    string_of_formation,
 )
 from api.utils.database import connect, get_db_connection_data_from_args
 from api.utils.interactive import (
@@ -248,7 +251,7 @@ def get_unit_class(
             return None
         case PickUnknown():
             return chosen_class
-        case PickSingle(choice):
+        case PickSingle(_):
             return chosen_class
         case _:
             return None

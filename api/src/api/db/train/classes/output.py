@@ -4,9 +4,9 @@ from decimal import Decimal
 from typing import Optional
 from psycopg import Connection
 
+from api.classes.train.station import TrainStationIdentifiers
 from api.utils.times import change_timezone
 from api.utils.database import register_type
-from api.db.train.stations import TrainLegCallStationInData
 from api.db.train.toc import OperatorData
 from api.db.train.points import PointTimes
 from api.classes.train.stock import StockReport
@@ -45,8 +45,8 @@ def string_of_stock_report(report: StockReport) -> str:
 
 @dataclass
 class ShortLegSegment:
-    start: TrainLegCallStationInData
-    end: TrainLegCallStationInData
+    start: TrainStationIdentifiers
+    end: TrainStationIdentifiers
     duration: timedelta
     mileage: Optional[Decimal]
     stocks: list[StockReport]
@@ -54,8 +54,8 @@ class ShortLegSegment:
 
 def register_short_leg_segment(
     segment_start: datetime,
-    start_station: TrainLegCallStationInData,
-    end_station: TrainLegCallStationInData,
+    start_station: TrainStationIdentifiers,
+    end_station: TrainStationIdentifiers,
     distance: Decimal,
     duration: timedelta,
     stock_data: list[StockReport],
@@ -76,7 +76,7 @@ def register_short_leg_segment_types(conn: Connection) -> None:
 
 @dataclass
 class ShortLegCall:
-    station: TrainLegCallStationInData
+    station: TrainStationIdentifiers
     platform: Optional[str]
     plan_arr: Optional[datetime]
     plan_dep: Optional[datetime]
@@ -98,7 +98,7 @@ def register_leg_call_data(
     dep_service_run_date: datetime,
     plan_dep: datetime,
     act_dep: datetime,
-    station: TrainLegCallStationInData,
+    station: TrainStationIdentifiers,
     platform: str,
     mileage: Decimal,
     stocks: list[StockReport],

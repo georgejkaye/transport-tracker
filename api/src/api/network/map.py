@@ -1,3 +1,4 @@
+from api.classes.train.station import TrainStationIdentifiers
 from api.classes.train.stock import StockReport
 from api.db.train.classes.output import (
     ShortLeg,
@@ -29,7 +30,6 @@ from api.db.train.select.service import (
     ShortAssociatedService,
     ShortTrainService,
 )
-from api.db.train.stations import TrainLegCallStationInData
 from api.db.train.points import (
     StationPoint,
     get_station_points_from_crses,
@@ -514,7 +514,7 @@ def get_leg_map_page_from_leg_data(
 
 @dataclass
 class ShortLegCallWithGeometry:
-    station: TrainLegCallStationInData
+    station: TrainStationIdentifiers
     platform: Optional[str]
     plan_arr: Optional[datetime]
     plan_dep: Optional[datetime]

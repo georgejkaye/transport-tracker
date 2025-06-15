@@ -1,88 +1,21 @@
 from datetime import datetime
-from decimal import Decimal
 from typing import Optional
+from api.classes.train.db.input import (
+    DbTrainAssociatedServiceInData,
+    DbTrainCallInData,
+    DbTrainLegCallInData,
+    DbTrainLegInData,
+    DbTrainServiceEndpointInData,
+    DbTrainServiceInData,
+    DbTrainStockSegmentInData,
+)
 from psycopg import Connection
+from psycopg.rows import class_row
 
 from api.user import User
 from api.db.train.classes.output import ShortLeg, register_leg_data_types
 from api.classes.train.association import string_of_association_type
 from api.classes.train.leg import TrainLegInData
-
-DbTrainServiceInData = tuple[
-    str, datetime, str, str, Optional[str], Optional[str]
-]
-
-DbTrainServiceEndpointInData = tuple[str, datetime, str, bool]
-
-DbTrainCallInData = tuple[
-    str,
-    datetime,
-    str,
-    Optional[str],
-    Optional[datetime],
-    Optional[datetime],
-    Optional[datetime],
-    Optional[datetime],
-    Optional[Decimal],
-]
-
-DbTrainAssociatedServiceInData = tuple[
-    str,
-    datetime,
-    str,
-    Optional[datetime],
-    Optional[datetime],
-    Optional[datetime],
-    Optional[datetime],
-    str,
-    datetime,
-    str,
-]
-
-DbTrainLegCallInData = tuple[
-    str,
-    Optional[str],
-    Optional[datetime],
-    Optional[datetime],
-    Optional[datetime],
-    Optional[datetime],
-    Optional[datetime],
-    Optional[str],
-    Optional[datetime],
-    Optional[datetime],
-    Optional[datetime],
-    Optional[datetime],
-    Optional[datetime],
-    Optional[Decimal],
-]
-
-DbTrainStockSegmentInData = tuple[
-    Optional[int],
-    Optional[int],
-    Optional[int],
-    Optional[int],
-    str,
-    datetime,
-    str,
-    Optional[datetime],
-    Optional[datetime],
-    str,
-    datetime,
-    str,
-    Optional[datetime],
-    Optional[datetime],
-]
-
-DbTrainLegInData = tuple[
-    int,
-    list[DbTrainServiceInData],
-    list[DbTrainServiceEndpointInData],
-    list[DbTrainCallInData],
-    list[DbTrainAssociatedServiceInData],
-    list[DbTrainLegCallInData],
-    Decimal,
-    list[DbTrainStockSegmentInData],
-]
 
 
 def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData) -> None:
@@ -281,9 +214,9 @@ def select_legs(
     search_leg_id: Optional[int] = None,
 ) -> list[ShortLeg]:
     register_leg_data_types(conn)
-    rows = conn.execute(
-        "SELECT SelectLegs(%s, %s, %s, %s)",
-        [user_id, search_start, search_end, search_leg_id],
-    ).fetchall()
-
-    return [row[0] for row in rows]
+    with conn.cursor(row_factory=class_row(ShortLeg)) as cur:
+        rows = cur.execute(
+            "SELECT SelectLegs(%s, %s, %s, %s)",
+            [user_id, search_start, search_end, search_leg_id],
+        ).fetchall()
+        return rows
