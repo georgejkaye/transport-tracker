@@ -27,10 +27,14 @@ async def get_legs(
             conn, user_id, search_start=start_date, search_end=end_date
         )
         if fetch_geometries:
-            legs = get_short_legs_with_geometries(conn, network, legs)
+            legs_with_geometries = get_short_legs_with_geometries(
+                conn, network, legs
+            )
         else:
-            legs = short_legs_to_short_legs_with_geometries(legs)
-        return legs
+            legs_with_geometries = short_legs_to_short_legs_with_geometries(
+                legs
+            )
+        return legs_with_geometries
 
 
 @router.get("/years/{year}", summary="Get train legs across a year")

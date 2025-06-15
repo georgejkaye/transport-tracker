@@ -12,6 +12,7 @@ from api.db.train.classes.output import (
     short_leg_call_to_point_times,
 )
 from api.network.network import (
+    EdgeDetails,
     get_edge_from_endpoints,
     get_node_id_from_station_point,
     insert_node_to_network,
@@ -29,8 +30,8 @@ def get_shortest_linestring(
     )
 
 
-def get_edge_weight(source, target, edge_dict) -> float:
-    if edge_dict[0].get("maxspeed") is None:
+def get_edge_weight(edge_dict: EdgeDetails) -> float:
+    if edge.maxspeed is None:
         max_speed = 100
     else:
         max_speed_value = edge_dict[0]["maxspeed"]
@@ -132,7 +133,7 @@ def find_shortest_path_between_nodes(
 
 
 def find_paths_between_stations(
-    network: MultiDiGraph,
+    network: MultiDiGraph[int],
     origin_crs: str,
     origin_platform: Optional[str],
     destination_crs: str,
@@ -150,7 +151,7 @@ def find_paths_between_stations(
 
 
 def find_shortest_path_between_stations(
-    network: MultiDiGraph,
+    network: MultiDiGraph[int],
     origin_crs: str,
     origin_platform: Optional[str],
     destination_crs: str,

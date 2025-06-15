@@ -1,11 +1,16 @@
-from api.db.train.select.service import (
-    ShortAssociatedService,
-    ShortTrainService,
+from api.db.train.classes.output import (
+    ShortLeg,
+    ShortLegCall,
+    get_operator_colour_from_leg,
 )
-from api.db.train.stations import TrainLegCallStationInData
+from api.library.map import render_map
+from api.network.pathfinding import (
+    find_shortest_path_between_stations,
+    get_linestring_for_leg,
+)
 import folium
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -17,14 +22,11 @@ from pydantic import Field
 from shapely import LineString, Point
 
 from api.utils.database import connect_with_env
-from api.db.train.leg import (
-    ShortLeg,
-    ShortLegCall,
-    ShortLegSegment,
-    TrainLegCallStockreportInData,
-    get_operator_colour_from_leg,
-    select_legs,
+from api.db.train.select.service import (
+    ShortAssociatedService,
+    ShortTrainService,
 )
+from api.db.train.stations import TrainLegCallStationInData
 from api.db.train.points import (
     StationPoint,
     get_station_points_from_crses,
@@ -33,10 +35,6 @@ from api.db.train.points import (
 from api.network.network import (
     get_node_id_from_station_point,
     merge_linestrings,
-)
-from api.network.pathfinding import (
-    find_shortest_path_between_stations,
-    get_linestring_for_leg,
 )
 
 
@@ -197,7 +195,7 @@ def get_leg_map(
         attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         name="Map",
     ).add_to(m)
-    station_count_dict = {}
+    station_count_dict: StationCountDict = {}
     line_group = folium.FeatureGroup(name="Legs")
     for map_point in map_points:
         folium.Circle(
@@ -252,39 +250,74 @@ def get_leg_map(
     call_group.add_to(m)
     endpoint_group.add_to(m)
     folium.LayerControl().add_to(m)
-    return m.get_root().render()
+    return render_map(m)
 
 
-def get_leg_map_from_gml(gml_data: BeautifulSoup) -> str:
+def get_leg_map_from_gml(gml_data: BeautifulSoup) -> Optional[str]:
     geometry_key = gml_data.find_all("key", {"attr.name": "geometry"})
-    geometry_attribute = geometry_key[0]["id"]
-    lat_key = gml_data.find_all("key", {"attr.name": "y"})
-    lat_attribute = lat_key[0]["id"]
-    lon_key = gml_data.find_all("key", {"attr.name": "x"})
-    lon_attribute = lon_key[0]["id"]
+    geometry_key_id = geometry_key[0]
+    if not isinstance(geometry_key_id, Tag):
+        return None
+    geometry_attribute = geometry_key_id.get("id")
+    if not isinstance(geometry_attribute, str):
+        return None
+    lat_keys = gml_data.find_all("key", {"attr.name": "y"})
+    lat_first_key = lat_keys[0]
+    if not isinstance(lat_first_key, Tag):
+        return None
+    lat_attribute = lat_first_key.get("id")
+    if lat_attribute is None:
+        return None
+    lon_keys = gml_data.find_all("key", {"attr.name": "x"})
+    lon_first_key = lon_keys[0]
+    if not isinstance(lon_first_key, Tag):
+        return None
+    lon_attribute = lon_first_key.get("id")
+    if lon_attribute is None:
+        return None
     nodes = gml_data.find_all("node")
-    node_dict = {}
+    node_dict: dict[str, tuple[Decimal, Decimal]] = {}
     for node in nodes:
+        if not isinstance(node, Tag):
+            return None
         node_id = node.get("id")
-        node_lat = node.find("data", {"key": lat_attribute}).text
-        node_lon = node.find("data", {"key": lon_attribute}).text
-        node_dict[node_id] = (Decimal(node_lat), Decimal(node_lon))
+        if not isinstance(node_id, str):
+            return None
+        node_lat = node.find("data", {"key": lat_attribute})
+        if node_lat is None:
+            return None
+        node_lat_text = node_lat.text
+        node_lon = node.find("data", {"key": lon_attribute})
+        if node_lon is None:
+            return None
+        node_lon_text = node_lon.text
+        node_dict[node_id] = (Decimal(node_lat_text), Decimal(node_lon_text))
 
     edges = gml_data.find_all("edge")
 
-    leg_lines = []
+    leg_lines: list[LegLine] = []
 
     for edge in edges:
+        if not isinstance(edge, Tag):
+            return None
         edge_source = edge.get("source")
         edge_target = edge.get("target")
+
+        if (
+            edge_source is None
+            or edge_target is None
+            or not isinstance(edge_source, str)
+            or not isinstance(edge_target, str)
+        ):
+            return None
 
         (source_lat, source_lon) = node_dict[edge_source]
         (target_lat, target_lon) = node_dict[edge_target]
 
-        edge_nodes = [Point(source_lon, source_lat)]
+        edge_nodes = [Point(float(source_lon), float(source_lat))]
 
         intermediate_nodes = edge.find("data", {"key": geometry_attribute})
-        edge_nodes.append(Point(source_lon, source_lat))
+
         if intermediate_nodes is not None:
             linestring_text = intermediate_nodes.text
             node_string_list = linestring_text[12:-1].split(", ")
@@ -293,7 +326,7 @@ def get_leg_map_from_gml(gml_data: BeautifulSoup) -> str:
                 edge_nodes.append(
                     Point(float(node_points[0]), float(node_points[1]))
                 )
-        edge_nodes.append(Point(target_lon, target_lat))
+        edge_nodes.append(Point(float(target_lon), float(target_lat)))
 
         leg_line = LegLine(
             "",
@@ -308,7 +341,7 @@ def get_leg_map_from_gml(gml_data: BeautifulSoup) -> str:
     return get_leg_map([], leg_lines, StationInfo(False))
 
 
-def get_leg_map_from_gml_file(leg_file: str | Path) -> str:
+def get_leg_map_from_gml_file(leg_file: str | Path) -> Optional[str]:
     with open(leg_file, "r") as f:
         data = f.read()
     xml_data = BeautifulSoup(data, "xml")
@@ -316,7 +349,7 @@ def get_leg_map_from_gml_file(leg_file: str | Path) -> str:
 
 
 def get_leg_line_for_leg(
-    network: MultiDiGraph,
+    network: MultiDiGraph[int],
     leg: ShortLeg,
     station_points: dict[str, dict[Optional[str], StationPoint]],
 ) -> Optional[LegLine]:
@@ -336,7 +369,7 @@ def get_leg_line_for_leg(
 
 
 def get_leg_line_for_leg_calls(
-    network: MultiDiGraph,
+    network: MultiDiGraph[int],
     leg_data: list[ShortLegCall],
     station_points: dict[str, dict[Optional[str], StationPoint]],
 ) -> Optional[LegLine]:
