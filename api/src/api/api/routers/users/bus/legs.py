@@ -3,8 +3,8 @@ from datetime import datetime
 from typing import Optional
 
 from api.utils.database import connect_with_env
+from api.classes.bus.leg import BusLegUserDetails
 from api.db.bus.leg import (
-    BusLegUserDetails,
     select_bus_leg_by_id,
     select_bus_legs,
     select_bus_legs_by_datetime,

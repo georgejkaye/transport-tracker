@@ -2,11 +2,10 @@ from datetime import datetime, timedelta
 import json
 from typing import Optional
 
-from api.classes.bus.db.output import BusStopDetails
 from api.classes.bus.journey import BusCallIn, BusJourneyTimetable
+from api.classes.bus.stop import BusStopDeparture, BusStopDetails
 from api.db.bus.operators import get_bus_operator_from_national_operator_code
 from api.db.bus.service import get_service_from_line_and_operator
-from api.db.bus.stop import BusStopDeparture
 from api.utils.request import get_soup
 from api.utils.times import make_timezone_aware
 from bs4 import BeautifulSoup

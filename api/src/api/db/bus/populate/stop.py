@@ -4,12 +4,13 @@ import sys
 
 from decimal import Decimal
 from typing import Optional
+from api.classes.bus.stop import BusStopData
 from psycopg import Connection
 from shapely import Point
 
 from api.utils.interactive import information
 
-from api.db.bus.stop import BusStopData, insert_bus_stops
+from api.db.bus.stop import insert_bus_stops
 from api.network.network import osgb36_to_wgs84_point
 
 naptan_stops_csv_url = "https://beta-naptan.dft.gov.uk/Download/National/csv"

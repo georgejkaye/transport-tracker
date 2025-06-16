@@ -1,18 +1,10 @@
-from dataclasses import dataclass
-from datetime import datetime, timedelta
+from typing import Optional
+from api.classes.bus.vehicle import (
+    BusVehicleUserDetails,
+    register_bus_vehicle_user_details_types,
+)
 from psycopg import Connection
 from psycopg.rows import class_row
-from typing import Optional
-
-from api.utils.database import register_type
-from api.db.bus.stop import (
-    BusCallStopDetails,
-    register_bus_call_stop_details_types,
-)
-from api.db.bus.operators import (
-    BusOperatorDetails,
-    register_bus_operator_details_types,
-)
 
 
 def get_bus_vehicle_overviews_for_user(

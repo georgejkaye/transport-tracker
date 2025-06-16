@@ -1,10 +1,5 @@
-from api.classes.train.db.output import (
-    ShortAssociatedService,
-    ShortLeg,
-    ShortLegCall,
-    ShortLegSegment,
-    ShortTrainService,
-)
+from api.classes.train.leg import ShortLeg, ShortLegCall, ShortLegSegment
+from api.classes.train.service import ShortAssociatedService, ShortTrainService
 import folium
 
 from bs4 import BeautifulSoup, Tag
@@ -19,15 +14,24 @@ from pydantic import Field
 from shapely import LineString, Point
 
 from api.utils.database import connect_with_env
-
 from api.library.folium import create_polyline, render_map
-
-from api.classes.train.station import TrainStationIdentifiers
+from api.classes.train.station import StationPoint, TrainStationIdentifiers
 from api.classes.train.stock import StockReport
-
+from api.classes.network.map import (
+    AlightCount,
+    BoardCount,
+    CallCount,
+    CallInfo,
+    CountType,
+    LegLine,
+    MapPoint,
+    MarkerTextType,
+    StationCount,
+    StationCountDict,
+    StationInfo,
+)
 from api.db.train.leg import select_legs
 from api.db.train.points import (
-    StationPoint,
     get_station_points_from_crses,
     get_station_points_from_names,
 )
@@ -40,25 +44,6 @@ from api.network.pathfinding import (
     find_shortest_path_between_stations,
     get_linestring_for_leg,
 )
-
-
-@dataclass
-class MapPoint:
-    point: Point
-    colour: str
-    size: int
-    tooltip: str
-
-
-@dataclass
-class LegLine:
-    board_station: str
-    alight_station: str
-    calls: list[StationPoint]
-    points: LineString
-    colour: str
-    count_lr: int
-    count_rl: int
 
 
 def add_call_marker(
@@ -74,46 +59,6 @@ def add_call_marker(
     )
     if group is not None:
         group.add_child(marker)
-
-
-@dataclass
-class CallInfo:
-    pass
-
-
-@dataclass
-class StationInfo:
-    include_counts: bool
-
-
-type MarkerTextType = CallInfo | StationInfo
-
-
-@dataclass
-class StationCount:
-    board: int
-    call: int
-    alight: int
-
-
-@dataclass
-class BoardCount:
-    pass
-
-
-@dataclass
-class CallCount:
-    pass
-
-
-@dataclass
-class AlightCount:
-    pass
-
-
-type CountType = BoardCount | CallCount | AlightCount
-
-type StationCountDict = dict[str, tuple[StationPoint, StationCount]]
 
 
 def update_station_count_dict(

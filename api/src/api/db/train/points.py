@@ -1,47 +1,15 @@
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Optional
-from api.classes.train.station import TrainStationIdentifiers
 from psycopg import Connection
 from shapely import Point
 
 from api.utils.database import register_type
-
-
-@dataclass
-class PointTimes:
-    plan_dep: Optional[datetime]
-    plan_arr: Optional[datetime]
-    act_dep: Optional[datetime]
-    act_arr: Optional[datetime]
-
-
-@dataclass
-class StationPoint:
-    crs: str
-    name: str
-    platform: Optional[str]
-    point: Point
-    call: Optional[PointTimes] = None
-
-
-@dataclass
-class StationLocation:
-    platform: Optional[str]
-    point: Point
-
-
-@dataclass
-class StationAndPlatform:
-    crs: str
-    platform: Optional[str]
-
-
-@dataclass
-class StationPointCrsSearchResult:
-    crs: str
-    name: str
-    station_points: list[StationLocation]
+from api.classes.train.station import (
+    StationLocation,
+    StationPoint,
+    StationPointCrsSearchResult,
+    TrainStationIdentifiers,
+)
 
 
 def get_station_point_from_crs_and_platform(

@@ -1,9 +1,8 @@
 from datetime import datetime
 from typing import Optional
+from api.classes.train.operators import BrandData, register_brand_data_types
 from psycopg import Connection
 from psycopg.rows import class_row
-
-from api.classes.train.db.output import BrandData, register_brand_data_types
 
 
 def select_operator_id(conn: Connection, operator_name: str) -> Optional[str]:

@@ -5,13 +5,13 @@ from psycopg import Connection
 from psycopg.rows import class_row
 
 from api.utils.database import register_type
-from api.db.bus.operators import (
+from api.classes.bus.db.output import (
+    BusCallDetails,
+    register_bus_call_details_types,
     register_bus_operator_details_types,
 )
-from api.db.bus.overview import (
-    BusCallDetails,
+from api.classes.bus.leg import (
     BusLegServiceDetails,
-    register_bus_call_details_types,
     register_bus_leg_service_details_types,
 )
 

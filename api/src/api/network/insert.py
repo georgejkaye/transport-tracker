@@ -1,5 +1,4 @@
 import sys
-import osmnx as ox
 
 from typing import Optional
 

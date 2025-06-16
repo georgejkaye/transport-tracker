@@ -1,5 +1,28 @@
 from datetime import datetime, timedelta
 from typing import Optional
+from api.classes.bus.journey import (
+    BusCallIn,
+    BusJourneyIn,
+    string_of_bus_call_in,
+)
+from api.classes.bus.leg import BusLegIn
+from api.classes.bus.operators import BusOperatorDetails
+from api.classes.bus.stop import (
+    BusStopDeparture,
+    BusStopDetails,
+    short_string_of_bus_stop_departure,
+    short_string_of_bus_stop_details,
+)
+from api.classes.bus.vehicle import BusVehicleDetails
+from api.db.bus.leg import insert_leg
+from api.db.bus.stop import get_bus_stops
+from api.db.bus.vehicle import (
+    get_bus_vehicles_by_id,
+    get_bus_vehicles_by_operator_and_id,
+    string_of_bus_vehicle_out,
+)
+from api.pull.bus.journey import get_bus_journey
+from api.pull.bus.stop import get_departures_from_bus_stop
 from psycopg import Connection
 
 from api.utils.database import connect, get_db_connection_data_from_args
@@ -15,28 +38,6 @@ from api.utils.interactive import (
     input_year,
 )
 from api.user import User, input_user
-from api.db.bus.journey import (
-    BusCallIn,
-    BusJourneyIn,
-    get_bus_journey,
-    string_of_bus_call_in,
-)
-from api.db.bus.leg import BusLegIn, insert_leg
-from api.db.bus.operators import BusOperatorDetails
-from api.db.bus.stop import (
-    BusStopDetails,
-    BusStopDeparture,
-    get_bus_stops,
-    get_departures_from_bus_stop,
-    short_string_of_bus_stop,
-    short_string_of_bus_stop_departure,
-)
-from api.db.bus.vehicle import (
-    BusVehicleDetails,
-    get_bus_vehicles_by_id,
-    get_bus_vehicles_by_operator_and_id,
-    string_of_bus_vehicle_out,
-)
 
 
 def get_bus_stop_input(
@@ -47,7 +48,7 @@ def get_bus_stop_input(
         return None
     bus_stops = get_bus_stops(conn, search_string)
     bus_stop_choice = input_select_paginate(
-        "Select bus stop", bus_stops, display=short_string_of_bus_stop
+        "Select bus stop", bus_stops, display=short_string_of_bus_stop_details
     )
     match bus_stop_choice:
         case PickSingle(bus_stop):

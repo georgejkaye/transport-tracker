@@ -7,9 +7,10 @@ from api.utils.request import make_get_request
 from api.utils.times import get_datetime_route, make_timezone_aware
 from api.classes.train.station import (
     TrainServiceAtStation,
+    TrainStation,
     TrainStationIdentifiers,
 )
-from api.db.train.stations import TrainStation, select_station_from_name
+from api.db.train.stations import select_station_from_name
 
 
 station_endpoint = "https://api.rtt.io/api/v1/json/search"

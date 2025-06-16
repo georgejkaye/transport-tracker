@@ -1,9 +1,11 @@
 from typing import Optional
-
-from api.classes.bus.db.output import register_bus_operator_details_types
-from api.classes.bus.operators import BusOperatorDetails
 from psycopg import Connection
 from psycopg.rows import class_row
+
+from api.classes.bus.operators import (
+    BusOperatorDetails,
+    register_bus_operator_details_types,
+)
 
 
 def get_bus_operators(conn: Connection) -> list[BusOperatorDetails]:

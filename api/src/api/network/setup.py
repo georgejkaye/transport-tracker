@@ -1,17 +1,15 @@
 import sys
+
 from api.library.networkx import (
     get_nodes,
     load_osmnx_graphml,
     project_graph,
     save_osmnx_graphml,
 )
-import osmnx as ox
-
+from api.utils.database import connect_with_env
 from api.db.train.points import (
     get_station_points,
 )
-
-from api.utils.database import connect_with_env
 from api.network.network import (
     get_railway_network,
     insert_node_dict_to_network,

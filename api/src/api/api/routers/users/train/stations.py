@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
+from api.classes.train.db.output import StationData
 from api.db.train.stations import (
-    StationData,
     select_station,
     select_stations,
 )

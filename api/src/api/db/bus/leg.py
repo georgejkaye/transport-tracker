@@ -1,23 +1,11 @@
-from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional
-from api.classes.bus.db.input import DbBusCallInData
-from api.classes.bus.db.output import (
-    BusVehicleDetails,
-    register_bus_vehicle_details_types,
-)
-from api.classes.bus.leg import BusLegIn, BusLegUserDetails
 from psycopg import Connection
 from psycopg.rows import class_row
 
-from api.db.bus.overview import (
-    BusCallDetails,
-    BusLegServiceDetails,
-    register_bus_call_details_types,
-    register_bus_leg_service_details_types,
-)
 from api.user import User
-from api.utils.database import register_type
+from api.classes.bus.journey import DbBusCallInData
+from api.classes.bus.leg import BusLegIn, BusLegUserDetails, register_leg_types
 
 
 def insert_leg(conn: Connection, users: list[User], leg: BusLegIn) -> None:

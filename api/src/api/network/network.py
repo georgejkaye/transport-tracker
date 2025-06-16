@@ -1,3 +1,4 @@
+from api.classes.train.station import StationPoint
 import shapely
 import networkx as nx
 import osmnx as ox
@@ -21,7 +22,7 @@ from api.library.networkx import (
     project_graph,
 )
 from api.library.shapely import get_distance
-from api.db.train.points import StationPoint, string_of_station_point
+from api.db.train.points import string_of_station_point
 
 coordinate_precision = 0.000001
 wgs84 = "EPSG:4326"
