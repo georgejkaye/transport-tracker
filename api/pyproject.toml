@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{ include = "api", from = "src" }]
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.13"
 Jinja2 = "^3.1.6"
 termcolor = "^2.3.0"
 libsass = "^0.22.0"
@@ -24,9 +24,6 @@ folium = "^0.19.3"
 osmnx = "^2.0.1"
 python-slugify = "^8.0.4"
 cssutils = "^2.11.1"
-types-shapely = "^2.1.0.20250512"
-types-geopandas = "^1.0.1.20250601"
-types-networkx = "^3.5.0.20250610"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.6.0"
@@ -35,6 +32,9 @@ types-pyyaml = "^6.0.12.11"
 types-requests = "^2.31.0.2"
 types-psycopg2 = "^2.9.21.20240417"
 types-pytz = "^2025.2.0.20250516"
+types-shapely = "^2.1.0.20250512"
+types-geopandas = "^1.0.1.20250601"
+types-networkx = "^3.5.0.20250610"
 
 [tool.black]
 line-length = 80
