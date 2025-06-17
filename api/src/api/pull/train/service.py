@@ -1,11 +1,8 @@
-from api.classes.interactive import PickSingle
-from api.classes.train.operators import BrandData
-from api.db.train.toc import get_operator_brands
-from api.utils.interactive import input_select
 from bs4 import BeautifulSoup, Tag
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Optional
+from psycopg import Connection
 
 from api.utils.credentials import get_api_credentials
 from api.utils.mileage import miles_and_chains_to_miles
@@ -19,7 +16,9 @@ from api.classes.train.service import (
     TrainServiceCallInData,
     TrainServiceInData,
 )
-from psycopg import Connection
+from api.classes.interactive import PickSingle
+from api.db.train.toc import get_operator_brands
+from api.utils.interactive import input_select
 
 
 service_endpoint = "https://api.rtt.io/api/v1/json/service"
@@ -55,6 +54,7 @@ def get_datetime_from_service_json(
 
 
 def get_associated_service_from_associated_service_json(
+    conn: Connection,
     associated_service_json: dict[str, Any],
     first: bool,
     last: bool,
@@ -62,6 +62,7 @@ def get_associated_service_from_associated_service_json(
     service_run_date: datetime,
     parent_uid: Optional[str],
     parent_run_date: Optional[datetime],
+    brand_code: Optional[str],
 ) -> Optional[TrainServiceCallAssociatedServiceInData]:
     assoc_uid = associated_service_json["associatedUid"]
     assoc_date = datetime.strptime(
@@ -76,7 +77,12 @@ def get_associated_service_from_associated_service_json(
         return None
 
     associated_service = get_service_from_id(
-        assoc_uid, assoc_date, service_uid, service_run_date
+        conn,
+        assoc_uid,
+        assoc_date,
+        service_uid,
+        service_run_date,
+        brand_code=brand_code,
     )
     if associated_service is None:
         return None
@@ -100,6 +106,7 @@ def get_associated_service_from_associated_service_json(
 
 
 def get_associated_services_from_call_json(
+    conn: Connection,
     call_json: dict[str, Any],
     is_first_call: bool,
     is_last_call: bool,
@@ -107,6 +114,7 @@ def get_associated_services_from_call_json(
     service_run_date: datetime,
     parent_service_uid: Optional[str],
     parent_service_run_date: Optional[datetime],
+    brand_code: Optional[str],
 ) -> list[TrainServiceCallAssociatedServiceInData]:
     assocs_data = call_json.get("associations")
     if assocs_data is None:
@@ -116,6 +124,7 @@ def get_associated_services_from_call_json(
         for assoc_data in assocs_data
         if (
             assoc := get_associated_service_from_associated_service_json(
+                conn,
                 assoc_data,
                 is_first_call,
                 is_last_call,
@@ -123,6 +132,7 @@ def get_associated_services_from_call_json(
                 service_run_date,
                 parent_service_uid,
                 parent_service_run_date,
+                brand_code=brand_code,
             )
         )
         is not None
@@ -149,6 +159,7 @@ def get_datetime_from_json_field(
 
 
 def get_call_from_call_json(
+    conn: Connection,
     call_json: dict[str, Any],
     service_soup: Optional[BeautifulSoup],
     is_first_call: bool,
@@ -157,6 +168,7 @@ def get_call_from_call_json(
     service_run_date: datetime,
     parent_service_uid: Optional[str],
     parent_service_run_date: Optional[datetime],
+    brand_code: Optional[str],
 ) -> TrainServiceCallInData:
     station_crs = call_json["crs"]
     station_name = call_json["description"]
@@ -174,6 +186,7 @@ def get_call_from_call_json(
     )
     platform = call_json.get("platform")
     associated_services = get_associated_services_from_call_json(
+        conn,
         call_json,
         is_first_call,
         is_last_call,
@@ -181,6 +194,7 @@ def get_call_from_call_json(
         service_run_date,
         parent_service_uid,
         parent_service_run_date,
+        brand_code=brand_code,
     )
     mileage = (
         get_call_mileage_from_service_soup(
@@ -203,12 +217,14 @@ def get_call_from_call_json(
 
 
 def get_service_calls_from_service_json(
+    conn: Connection,
     service_uid: str,
     service_run_date: datetime,
     service_json: dict[str, Any],
     service_soup: Optional[BeautifulSoup],
     parent_service_uid: Optional[str],
     parent_service_run_date: Optional[datetime],
+    brand_code: Optional[str] = None,
 ) -> tuple[list[TrainServiceCallInData], list[TrainAssociatedServiceInData]]:
     calls: list[TrainServiceCallInData] = []
     associated_services: list[TrainAssociatedServiceInData] = []
@@ -218,6 +234,7 @@ def get_service_calls_from_service_json(
         is_first_call = i == 0
         is_last_call = i == len(service_json["locations"]) - 1
         call = get_call_from_call_json(
+            conn,
             call_json,
             service_soup,
             is_first_call,
@@ -226,6 +243,7 @@ def get_service_calls_from_service_json(
             service_run_date,
             parent_service_uid,
             parent_service_run_date,
+            brand_code=brand_code,
         )
         calls.append(call)
         service_associated_services = [
@@ -243,13 +261,34 @@ def get_service_calls_from_service_json(
     return calls, associated_services
 
 
+def get_brand_code_input(
+    conn: Connection, operator_code: str, run_date: datetime
+) -> Optional[str]:
+    brands = get_operator_brands(conn, operator_code, run_date)
+    if len(brands) == 0:
+        return None
+    elif len(brands) == 1:
+        return brands[0].code
+    else:
+        match input_select(
+            "Select brand", brands, lambda b: f"{b.name} ({b.code})"
+        ):
+            case PickSingle(brand):
+                return brand.code
+            case _:
+                return None
+
+
 def get_service_from_service_json_and_html(
+    conn: Connection,
     service_uid: str,
     service_run_date: datetime,
     service_json: dict[str, Any],
     service_soup: Optional[BeautifulSoup],
     parent_service_uid: Optional[str],
     parent_service_run_date: Optional[datetime],
+    brand_code: Optional[str] = None,
+    query_brand: bool = False,
 ) -> Optional[TrainServiceInData]:
     if (
         not service_json.get("isPassenger")
@@ -264,13 +303,17 @@ def get_service_from_service_json_and_html(
         for destination in service_json["destination"]
     ]
     operator_code = service_json["atocCode"]
+    if brand_code is None and query_brand:
+        brand_code = get_brand_code_input(conn, operator_code, service_run_date)
     calls, associated_services = get_service_calls_from_service_json(
+        conn,
         service_uid,
         service_run_date,
         service_json,
         service_soup,
         parent_service_uid,
         parent_service_run_date,
+        brand_code=brand_code,
     )
     train_service = TrainServiceInData(
         service_uid,
@@ -279,7 +322,7 @@ def get_service_from_service_json_and_html(
         origins,
         destinations,
         operator_code,
-        None,
+        brand_code,
         power,
         calls,
         associated_services,
@@ -288,11 +331,14 @@ def get_service_from_service_json_and_html(
 
 
 def get_service_from_id(
+    conn: Connection,
     service_uid: str,
     service_run_date: datetime,
     parent_service_uid: Optional[str] = None,
     parent_service_run_date: Optional[datetime] = None,
     scrape_html: bool = False,
+    brand_code: Optional[str] = None,
+    query_brand: bool = False,
 ) -> Optional[TrainServiceInData]:
     service_json = get_service_json(service_uid, service_run_date)
     if scrape_html:
@@ -300,12 +346,15 @@ def get_service_from_id(
     else:
         service_html = None
     return get_service_from_service_json_and_html(
+        conn,
         service_uid,
         service_run_date,
         service_json,
         service_html,
         parent_service_uid,
         parent_service_run_date,
+        brand_code=brand_code,
+        query_brand=query_brand,
     )
 
 

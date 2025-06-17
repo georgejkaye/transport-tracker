@@ -678,7 +678,7 @@ def filter_services_by_time_and_stop(
         information(string.ljust(max_string_length), end="\r")
 
         full_service = get_service_from_id(
-            service.id, service.run_date, scrape_html=False
+            conn, service.id, service.run_date, scrape_html=False
         )
         if full_service is None:
             continue
@@ -706,6 +706,35 @@ def filter_services_by_time_and_stop(
     return services_filtered_by_destination
 
 
+def get_service_from_service_id_input(
+    conn: Connection,
+    run_date: datetime,
+) -> Optional[TrainServiceInData]:
+    result = None
+    while result is None:
+        service_id = input_text("Service id")
+        if service_id is None:
+            return None
+        result = get_service_from_id(
+            conn, service_id, run_date, scrape_html=True, query_brand=True
+        )
+        if result is None:
+            print("Invalid service id, try again")
+        else:
+            return result
+
+
+def get_service_from_service_at_station_input(
+    conn: Connection,
+    service_at_station: TrainServiceAtStationToDestination,
+    run_date: datetime,
+) -> Optional[TrainServiceInData]:
+    service_id = service_at_station.id
+    return get_service_from_id(
+        conn, service_id, run_date, scrape_html=True, query_brand=True
+    )
+
+
 def record_new_leg(
     conn: Connection,
     start: datetime | None = None,
@@ -721,43 +750,14 @@ def record_new_leg(
     service_at_station = get_service_at_station(
         conn, origin_station, search_datetime, destination_station
     )
-    service = None
-    service_id = None
-    run_date = datetime(
-        search_datetime.year, search_datetime.month, search_datetime.day
-    )
     if service_at_station is None:
-        result = None
-        while result is None:
-            service_id = input_text("Service id")
-            if service_id is None:
-                return None
-            result = get_service_from_id(service_id, run_date, scrape_html=True)
-            if result is None:
-                print("Invalid service id, try again")
-            else:
-                service = result
+        service = get_service_from_service_id_input(conn, search_datetime)
     else:
-        service_id = service_at_station.id
-        service = get_service_from_id(service_id, run_date, scrape_html=True)
-    if service is None or service_id is None:
+        service = get_service_from_service_at_station_input(
+            conn, service_at_station, search_datetime
+        )
+    if service is None:
         return None
-    brands = get_operator_brands(conn, service.operator_code, run_date)
-    if len(brands) == 0:
-        brand_code = None
-    elif len(brands) == 1:
-        brand_code = brands[0].code
-    else:
-        match input_select(
-            "Select brand", brands, lambda b: f"{b.name} ({b.code})"
-        ):
-            case PickSingle(brand):
-                brand_code = brand.code
-            case _:
-                return None
-    service.brand_code = brand_code
-    for associated_service in service.associated_services:
-        associated_service.associated_service.brand_code = brand_code
     stock_segments: list[TrainStockReportInData] = []
     leg_calls: list[TrainLegCallInData] = []
     mileage = compute_mileage(leg_calls)
