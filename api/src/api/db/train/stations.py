@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 
 from psycopg import Connection
+from psycopg.rows import class_row
 
 from api.classes.train.operators import BrandData, OperatorData
 from api.classes.train.station import (
@@ -9,6 +10,7 @@ from api.classes.train.station import (
     StationData,
     TrainStation,
     TrainStationIdentifiers,
+    TrainStationOutData,
 )
 from api.utils.database import (
     str_or_null_to_datetime,
@@ -17,44 +19,39 @@ from api.utils.database import (
 
 def select_station_from_crs(
     conn: Connection, crs: str
-) -> Optional[TrainStation]:
+) -> Optional[TrainStationOutData]:
     query = """
-        SELECT
-            station_name, operator_id, brand_id FROM Station
-        WHERE UPPER(station_crs) = UPPER(%(crs)s)
+        SELECT select_station_by_crs(%(crs)s);
     """
-    rows = conn.execute(query, {"crs": crs}).fetchall()
-    if len(rows) == 0 or len(rows) > 1:
-        return None
-    row = rows[0]
-    return TrainStation(row[0], crs.upper(), row[1], row[2])
+    with conn.cursor(row_factory=class_row(TrainStationOutData)) as cur:
+        rows = cur.execute(query, {"crs": crs}).fetchall()
+        if len(rows) == 0 or len(rows) > 1:
+            return None
+        return rows[0]
 
 
 def select_station_from_name(
     conn: Connection, name: str
-) -> Optional[TrainStation]:
+) -> Optional[TrainStationOutData]:
     query = """
-        SELECT station_name, station_crs, operator_id, brand_id
-        FROM Station
-        WHERE LOWER(station_name) = LOWER(%(name)s)
+        SELECT select_station_by_crs(%(crs)s);
     """
-    rows = conn.execute(query, {"name": name}).fetchall()
-    if not len(rows) == 1:
-        return None
-    row = rows[0]
-    return TrainStation(row[0], row[1], row[2], row[3])
+    with conn.cursor(row_factory=class_row(TrainStationOutData)) as cur:
+        rows = cur.execute(query, {"name": name}).fetchall()
+        if len(rows) == 0 or len(rows) > 1:
+            return None
+        return rows[0]
 
 
 def get_stations_from_substring(
     conn: Connection, substring: str
-) -> list[TrainStation]:
+) -> list[TrainStationOutData]:
     query = """
-        SELECT station_name, station_crs, operator_id, brand_id
-        FROM Station
-        WHERE LOWER(station_name) LIKE '%%' || LOWER(%(subs)s) || '%%'
+        SELECT select_station_by_name_substring(%(substring)s);
     """
-    rows = conn.execute(query, {"subs": substring}).fetchall()
-    return [TrainStation(row[0], row[1], row[2], row[3]) for row in rows]
+    with conn.cursor(row_factory=class_row(TrainStationOutData)) as cur:
+        rows = cur.execute(query, {"substring": substring}).fetchall()
+        return rows
 
 
 def compare_crs(a: str, b: str) -> bool:
@@ -286,9 +283,7 @@ def select_stations(
         if brand_id is None:
             brand_data = None
         else:
-            brand_data = BrandData(
-                brand_id, brand_code, brand_name, brand_bg, brand_fg
-            )
+            brand_data = BrandData(brand_id, brand_code, brand_name, brand_bg, brand_fg)
         leg_objects: list[LegAtStation] = []
         if legs is not None:
             for leg_row in legs:
@@ -316,9 +311,7 @@ def select_stations(
                     TrainStationIdentifiers(
                         leg_row["start_crs"], leg_row["start_name"]
                     ),
-                    TrainStationIdentifiers(
-                        leg_row["end_crs"], leg_row["start_crs"]
-                    ),
+                    TrainStationIdentifiers(leg_row["end_crs"], leg_row["start_crs"]),
                     datetime.fromisoformat(leg_row["stop_time"]),
                     str_or_null_to_datetime(leg_row["plan_arr"]),
                     str_or_null_to_datetime(leg_row["act_arr"]),

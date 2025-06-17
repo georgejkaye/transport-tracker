@@ -698,6 +698,7 @@ def get_service_from_service_id_input(
             print("Invalid service id, try again")
         else:
             return result
+    return None
 
 
 def get_service_from_service_at_station_input(

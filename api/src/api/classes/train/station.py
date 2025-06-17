@@ -130,3 +130,12 @@ class StationData:
     starts: int
     finishes: int
     passes: int
+
+
+@dataclass
+class TrainStationOutData:
+    id: int
+    name: str
+    crs: str
+    operator_code: int
+    brand_code: Optional[int]

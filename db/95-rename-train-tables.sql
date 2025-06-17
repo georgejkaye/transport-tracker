@@ -11,7 +11,7 @@ ALTER TABLE OperatorCode RENAME TO TrainOperatorCode;
 ALTER TABLE OperatorStock RENAME TO TrainOperatorStock;
 ALTER TABLE Service RENAME TO TrainService;
 ALTER TABLE ServiceEndpoint RENAME TO TrainServiceEndpoint;
-ALTER TABLE Station RENAME TO TrainStation;
+ALTER TABLE Station RENAME TO train_station;
 ALTER TABLE StationName RENAME TO TrainStationName;
 ALTER TABLE StationPoint RENAME TO TrainStationPoint;
 ALTER TABLE Stock RENAME TO TrainStock;
@@ -117,9 +117,9 @@ ALTER TABLE TrainAssociatedService DROP COLUMN associated_run_date;
 
 --- make TrainStation.station_crs type text
 
-ALTER TABLE TrainStation ALTER COLUMN station_crs TYPE TEXT;
-ALTER TABLE TrainStation ADD CONSTRAINT trainstation_check_station_crs CHECK(station_crs ~ '^[[:alpha:]]{3}$');
-ALTER TABLE TrainStation ADD CONSTRAINT trainstation_station_crs_unique UNIQUE(station_crs);
+ALTER TABLE train_station ALTER COLUMN station_crs TYPE TEXT;
+ALTER TABLE train_station ADD CONSTRAINT trainstation_check_station_crs CHECK(station_crs ~ '^[[:alpha:]]{3}$');
+ALTER TABLE train_station ADD CONSTRAINT trainstation_station_crs_unique UNIQUE(station_crs);
 
 --- make station id primary key
 
@@ -128,9 +128,9 @@ ALTER TABLE TrainStationPoint DROP CONSTRAINT stationpoint_station_crs_fkey;
 ALTER TABLE TrainServiceEndpoint DROP CONSTRAINT serviceendpoint_station_crs_fkey;
 ALTER TABLE TrainCall DROP CONSTRAINT call_station_crs_fkey;
 
-ALTER TABLE TrainStation DROP CONSTRAINT station_pkey;
-ALTER TABLE TrainStation ADD COLUMN station_id SERIAL;
-ALTER TABLE TrainStation ADD CONSTRAINT trainstation_pkey PRIMARY KEY(station_id);
+ALTER TABLE train_station DROP CONSTRAINT station_pkey;
+ALTER TABLE train_station ADD COLUMN station_id SERIAL;
+ALTER TABLE train_station ADD CONSTRAINT trainstation_pkey PRIMARY KEY(station_id);
 
 ---- add new foreign key to TrainStationName
 
