@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta
 from typing import Optional
+
+from bs4 import BeautifulSoup, Tag
+
 from api.classes.bus.stop import BusStopDeparture, BusStopDetails
 from api.utils.request import get_soup
-from bs4 import BeautifulSoup, Tag
 
 
 def get_bus_stop_page_url(

@@ -1,10 +1,10 @@
 from datetime import datetime
 from typing import Optional
+
 from fastapi import APIRouter, HTTPException
 
-from api.utils.database import connect_with_env
 from api.db.train.stats import Stats, get_train_stats
-
+from api.utils.database import connect_with_env
 
 router = APIRouter(prefix="/stats", tags=["users/train/stats"])
 

@@ -1,18 +1,12 @@
 import decimal
 import json
-
+from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import Enum
-from datetime import datetime, timedelta
-from api.classes.train.operators import BrandData
-from psycopg import Connection
 from typing import Any, Optional, Tuple
 
-from api.classes.train.station import (
-    TrainServiceAtStation,
-    TrainStation,
-    short_string_of_service_at_station,
-)
+from psycopg import Connection
+
 from api.classes.train.association import AssociationType
 from api.classes.train.leg import (
     TrainLegCallCallInData,
@@ -23,6 +17,11 @@ from api.classes.train.leg import (
     string_of_service_at_station_to_destination,
 )
 from api.classes.train.service import TrainServiceInData
+from api.classes.train.station import (
+    TrainServiceAtStation,
+    TrainStation,
+    short_string_of_service_at_station,
+)
 from api.classes.train.stock import (
     Class,
     ClassAndSubclass,
@@ -36,20 +35,10 @@ from api.classes.train.stock import (
     string_of_formation,
     string_of_stock_report,
 )
-from api.pull.train.station import get_services_at_station
-from api.pull.train.service import get_service_from_id
 from api.db.train.leg import insert_train_leg
-
-from api.user import input_user
-from api.utils.mileage import (
-    miles_and_chains_to_miles,
-    string_of_miles_and_chains,
-)
-from api.db.train.toc import get_operator_brands
-
 from api.db.train.stations import (
-    select_station_from_crs,
     get_stations_from_substring,
+    select_station_from_crs,
 )
 from api.db.train.stock import (
     get_operator_stock,
@@ -57,7 +46,11 @@ from api.db.train.stock import (
     get_unique_subclasses,
     select_stock_cars,
 )
+from api.pull.train.service import get_service_from_id
+from api.pull.train.station import get_services_at_station
+from api.user import input_user
 from api.utils.database import connect, get_db_connection_data_from_args
+from api.utils.debug import debug_msg
 from api.utils.interactive import (
     PickMultiple,
     PickSingle,
@@ -71,12 +64,15 @@ from api.utils.interactive import (
     input_select_paginate,
     input_text,
 )
+from api.utils.mileage import (
+    miles_and_chains_to_miles,
+    string_of_miles_and_chains,
+)
 from api.utils.times import (
+    add,
     make_timezone_aware,
     pad_front,
-    add,
 )
-from api.utils.debug import debug_msg
 
 
 def timedelta_from_string(string: str) -> timedelta:
@@ -503,7 +499,7 @@ def get_stock(
                 if number_of_units is None:
                     return None
                 for i in range(0, number_of_units):
-                    information(f"Selecting unit {i+1}")
+                    information(f"Selecting unit {i + 1}")
                     stock_report = get_unit_report(
                         conn,
                         service.run_date,

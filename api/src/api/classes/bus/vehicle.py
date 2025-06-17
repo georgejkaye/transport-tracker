@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from psycopg import Connection
 from typing import Optional
+
+from psycopg import Connection
 
 from api.classes.bus.operators import (
     BusOperatorDetails,

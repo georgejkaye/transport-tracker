@@ -1,6 +1,8 @@
+from typing import Optional
+
 from psycopg import Connection
 from psycopg.rows import class_row
-from typing import Optional
+
 from api.classes.bus.overview import (
     BusVehicleUserDetails,
     register_bus_vehicle_user_details_types,

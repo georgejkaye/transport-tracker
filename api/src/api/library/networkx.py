@@ -3,8 +3,10 @@ Wrapper file to hide away the mean type errors
 """
 
 from __future__ import annotations
+
 from pathlib import Path
 from typing import Any, Iterator, Optional
+
 import osmnx as ox
 from networkx import MultiDiGraph
 

@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from psycopg import Connection
+
 from api.classes.bus.operators import (
     BusOperatorDetails,
     register_bus_operator_details_types,
 )
 from api.utils.database import register_type
-from psycopg import Connection
 
 
 @dataclass

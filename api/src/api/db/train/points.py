@@ -1,15 +1,16 @@
 from dataclasses import dataclass
 from typing import Optional
+
 from psycopg import Connection
 from shapely import Point
 
-from api.utils.database import register_type
 from api.classes.train.station import (
     StationLocation,
     StationPoint,
     StationPointCrsSearchResult,
     TrainStationIdentifiers,
 )
+from api.utils.database import register_type
 
 
 def get_station_point_from_crs_and_platform(

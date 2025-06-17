@@ -8,7 +8,6 @@ from api.db.bus.user.stop import (
 )
 from api.utils.database import connect_with_env
 
-
 router = APIRouter(prefix="/stops", tags=["users/bus/stops"])
 
 

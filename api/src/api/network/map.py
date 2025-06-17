@@ -1,24 +1,18 @@
 from __future__ import annotations
 
-import folium
-
-from bs4 import BeautifulSoup, Tag
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
-from networkx import MultiDiGraph
-from psycopg import Connection
 from pathlib import Path
 from typing import Optional
+
+import folium
+from bs4 import BeautifulSoup, Tag
+from networkx import MultiDiGraph
+from psycopg import Connection
 from pydantic import Field
 from shapely import LineString, Point
 
-from api.utils.database import connect_with_env
-from api.library.folium import create_polyline, render_map
-from api.classes.train.leg import ShortLeg, ShortLegCall, ShortLegSegment
-from api.classes.train.service import ShortAssociatedService, ShortTrainService
-from api.classes.train.station import StationPoint, TrainStationIdentifiers
-from api.classes.train.stock import StockReport
 from api.classes.network.map import (
     AlightCount,
     BoardCount,
@@ -32,12 +26,16 @@ from api.classes.network.map import (
     StationCountDict,
     StationInfo,
 )
+from api.classes.train.leg import ShortLeg, ShortLegCall, ShortLegSegment
+from api.classes.train.service import ShortAssociatedService, ShortTrainService
+from api.classes.train.station import StationPoint, TrainStationIdentifiers
+from api.classes.train.stock import StockReport
 from api.db.train.leg import select_legs
 from api.db.train.points import (
     get_station_points_from_crses,
     get_station_points_from_names,
 )
-
+from api.library.folium import create_polyline, render_map
 from api.network.network import (
     get_node_id_from_station_point,
     merge_linestrings,
@@ -46,6 +44,7 @@ from api.network.pathfinding import (
     find_shortest_path_between_stations,
     get_linestring_for_leg,
 )
+from api.utils.database import connect_with_env
 
 
 def add_call_marker(

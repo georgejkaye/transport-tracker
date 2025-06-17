@@ -1,5 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Optional
+
+from psycopg import Connection
+
 from api.classes.bus.journey import (
     BusCallIn,
     BusJourneyIn,
@@ -23,8 +26,7 @@ from api.db.bus.vehicle import (
 )
 from api.pull.bus.journey import get_bus_journey
 from api.pull.bus.stop import get_departures_from_bus_stop
-from psycopg import Connection
-
+from api.user import User, input_user
 from api.utils.database import connect, get_db_connection_data_from_args
 from api.utils.interactive import (
     PickSingle,
@@ -37,7 +39,6 @@ from api.utils.interactive import (
     input_time,
     input_year,
 )
-from api.user import User, input_user
 
 
 def get_bus_stop_input(

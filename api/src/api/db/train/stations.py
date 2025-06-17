@@ -1,16 +1,17 @@
 from datetime import datetime
 from typing import Optional
-from api.classes.train.operators import BrandData, OperatorData
+
 from psycopg import Connection
 
-from api.utils.database import (
-    str_or_null_to_datetime,
-)
+from api.classes.train.operators import BrandData, OperatorData
 from api.classes.train.station import (
     LegAtStation,
     StationData,
     TrainStation,
     TrainStationIdentifiers,
+)
+from api.utils.database import (
+    str_or_null_to_datetime,
 )
 
 

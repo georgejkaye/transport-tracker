@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-import networkx as nx
-
 from decimal import Decimal
 from typing import Optional
+
+import networkx as nx
 from networkx import MultiDiGraph
 from shapely import LineString, Point
 
-from api.library.shapely import get_length
 from api.classes.train.leg import ShortLegCall
 from api.classes.train.station import PointTimes, StationPoint
 from api.db.train.points import get_relevant_station_points
+from api.library.shapely import get_length
 from api.network.network import (
     EdgeDetails,
     get_edge_from_endpoints,

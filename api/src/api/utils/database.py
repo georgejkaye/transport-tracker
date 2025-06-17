@@ -1,9 +1,9 @@
 import sys
-
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, DecimalException
 from typing import Any, Callable, Optional
+
 from dotenv import load_dotenv
 from psycopg import Connection
 from psycopg.rows import TupleRow

@@ -7,7 +7,6 @@ from api.db.train.stations import (
 )
 from api.utils.database import connect_with_env
 
-
 router = APIRouter(prefix="/stations", tags=["users/train/stations"])
 
 

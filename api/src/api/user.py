@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from typing import Optional
-from api.classes.interactive import PickMultiple
+
 from psycopg import Connection
 from psycopg.rows import class_row
 
+from api.classes.interactive import PickMultiple
 from api.utils.database import register_type
 from api.utils.interactive import (
     input_checkbox,

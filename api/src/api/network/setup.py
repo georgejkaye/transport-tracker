@@ -1,14 +1,13 @@
 import sys
 
+from api.db.train.points import (
+    get_station_points,
+)
 from api.library.networkx import (
     get_nodes,
     load_osmnx_graphml,
     project_graph,
     save_osmnx_graphml,
-)
-from api.utils.database import connect_with_env
-from api.db.train.points import (
-    get_station_points,
 )
 from api.network.network import (
     get_railway_network,
@@ -16,6 +15,7 @@ from api.network.network import (
     osgb36,
     wgs84,
 )
+from api.utils.database import connect_with_env
 from api.utils.interactive import input_confirm
 
 input = input_confirm("Download network?", default=False)

@@ -1,11 +1,8 @@
 from dataclasses import dataclass
 from datetime import timedelta
-from api.classes.bus.vehicle import (
-    BusVehicleDetails,
-    register_bus_vehicle_details_types,
-)
-from psycopg import Connection
 from typing import Optional
+
+from psycopg import Connection
 
 from api.classes.bus.journey import (
     BusCallDetails,
@@ -15,6 +12,10 @@ from api.classes.bus.journey import (
 from api.classes.bus.operators import (
     BusOperatorDetails,
     register_bus_operator_details_types,
+)
+from api.classes.bus.vehicle import (
+    BusVehicleDetails,
+    register_bus_vehicle_details_types,
 )
 from api.utils.database import register_type
 

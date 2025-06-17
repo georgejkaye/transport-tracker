@@ -1,5 +1,4 @@
 from api.utils.credentials import Credentials
-
 from api.utils.request import (
     data_directory,
     download_binary,

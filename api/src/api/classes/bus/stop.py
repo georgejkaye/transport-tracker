@@ -3,8 +3,9 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from api.utils.database import register_type
 from psycopg import Connection
+
+from api.utils.database import register_type
 
 
 @dataclass

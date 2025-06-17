@@ -1,11 +1,10 @@
 import sys
-
 from typing import Optional
 
-from api.library.networkx import load_osmnx_graphml, save_osmnx_graphml
-from api.utils.database import connect_with_env
-from api.network.network import insert_station_node_to_network
 from api.db.train.points import get_station_points_from_crses
+from api.library.networkx import load_osmnx_graphml, save_osmnx_graphml
+from api.network.network import insert_station_node_to_network
+from api.utils.database import connect_with_env
 
 network = load_osmnx_graphml(sys.argv[1])
 

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Optional
+
 from psycopg import Connection
 from psycopg.rows import class_row
 

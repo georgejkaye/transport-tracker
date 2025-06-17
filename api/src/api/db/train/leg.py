@@ -1,15 +1,9 @@
 from datetime import datetime
 from typing import Optional
-from api.classes.train.service import (
-    DbTrainAssociatedServiceInData,
-    DbTrainCallInData,
-    DbTrainServiceEndpointInData,
-    DbTrainServiceInData,
-)
+
 from psycopg import Connection
 from psycopg.rows import class_row
 
-from api.user import User
 from api.classes.train.association import string_of_association_type
 from api.classes.train.leg import (
     DbTrainLegCallInData,
@@ -19,6 +13,13 @@ from api.classes.train.leg import (
     TrainLegInData,
     register_leg_data_types,
 )
+from api.classes.train.service import (
+    DbTrainAssociatedServiceInData,
+    DbTrainCallInData,
+    DbTrainServiceEndpointInData,
+    DbTrainServiceInData,
+)
+from api.user import User
 
 
 def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData) -> None:

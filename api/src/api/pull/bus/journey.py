@@ -1,6 +1,9 @@
-from datetime import datetime, timedelta
 import json
+from datetime import datetime, timedelta
 from typing import Optional
+
+from bs4 import BeautifulSoup
+from psycopg import Connection
 
 from api.classes.bus.journey import BusCallIn, BusJourneyTimetable
 from api.classes.bus.stop import BusStopDeparture, BusStopDetails
@@ -8,8 +11,6 @@ from api.db.bus.operators import get_bus_operator_from_national_operator_code
 from api.db.bus.service import get_service_from_line_and_operator
 from api.utils.request import get_soup
 from api.utils.times import make_timezone_aware
-from bs4 import BeautifulSoup
-from psycopg import Connection
 
 
 def get_bus_journey_url(bustimes_journey_id: int) -> str:

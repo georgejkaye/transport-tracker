@@ -1,4 +1,5 @@
 from typing import Optional
+
 from bs4 import BeautifulSoup
 
 from api.classes.bus.operators import BusOperatorDetails

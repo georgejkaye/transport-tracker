@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException
 from datetime import datetime
 from typing import Optional
 
-from api.utils.database import connect_with_env
+from fastapi import APIRouter, HTTPException
+
 from api.classes.bus.leg import BusLegUserDetails
 from api.db.bus.leg import (
     select_bus_leg_by_id,
@@ -11,7 +11,7 @@ from api.db.bus.leg import (
     select_bus_legs_by_end_datetime,
     select_bus_legs_by_start_datetime,
 )
-
+from api.utils.database import connect_with_env
 
 router = APIRouter(prefix="/legs", tags=["users/bus/legs"])
 

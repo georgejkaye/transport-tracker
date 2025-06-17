@@ -2,10 +2,10 @@ import sys
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 
-from api.utils.database import connect, get_db_connection_data_from_args
-from api.utils.interactive import information
 from psycopg import Connection
 
+from api.utils.database import connect, get_db_connection_data_from_args
+from api.utils.interactive import information
 
 traveline_operators_data_url = "https://www.travelinedata.org.uk/wp-content/themes/desktop/nocadvanced_download.php?reportFormat=xmlFlatFile&allTable%5B%5D=table_noclines&allTable%5B%5D=table_noc_table&submit=Submit"
 

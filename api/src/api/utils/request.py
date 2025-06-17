@@ -1,14 +1,14 @@
-from json import JSONDecodeError
-import xml.etree.ElementTree as ET
 import gzip
 import os
 import shutil
+import xml.etree.ElementTree as ET
 import zipfile
-from bs4 import BeautifulSoup
-import requests
-
+from json import JSONDecodeError
 from pathlib import Path
 from typing import Any, Optional
+
+import requests
+from bs4 import BeautifulSoup
 from dotenv import dotenv_values
 from requests import Response
 from requests.auth import HTTPBasicAuth

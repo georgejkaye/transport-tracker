@@ -1,12 +1,13 @@
 from datetime import datetime
 from typing import Optional
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
-from api.utils.database import connect_with_env
+from api.api.network import network
 from api.classes.network.map import CallInfo, StationInfo
 from api.network.map import get_leg_map_page
-from api.api.network import network
+from api.utils.database import connect_with_env
 
 router = APIRouter(prefix="/map", tags=["users/train/map"])
 

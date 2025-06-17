@@ -1,6 +1,7 @@
 from datetime import datetime
 from math import ceil
 from typing import Callable, Optional
+
 from questionary import Choice, checkbox, text
 from termcolor import colored
 
@@ -11,12 +12,12 @@ from api.classes.interactive import (
     PickSingle,
     PickUnknown,
 )
-from api.utils.times import make_timezone_aware
 from api.library.questionary import (
     ask_bool_question,
     ask_select_question,
     ask_text_question,
 )
+from api.utils.times import make_timezone_aware
 
 
 def thick_line(length: int = 80) -> None:

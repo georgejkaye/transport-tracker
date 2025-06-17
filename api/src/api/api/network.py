@@ -1,5 +1,4 @@
 from api.library.networkx import load_osmnx_graphml
-
 from api.utils.environment import get_env_variable
 
 network_path = get_env_variable("NETWORK_PATH")

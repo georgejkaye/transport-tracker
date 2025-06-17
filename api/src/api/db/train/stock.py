@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+
 from psycopg import Connection
 
 from api.classes.train.stock import Class, ClassAndSubclass, Formation, Stock

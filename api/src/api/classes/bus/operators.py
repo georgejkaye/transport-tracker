@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
+
 from psycopg import Connection
 
 from api.utils.database import register_type

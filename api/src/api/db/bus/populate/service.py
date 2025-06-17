@@ -1,15 +1,16 @@
+import io
 import re
 import string
-import zipfile
-import io
 import xml.etree.ElementTree as ET
-
-from pathlib import Path
+import zipfile
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
+
+from psycopg import Connection
+
 from api.db.bus.populate.operators import TravelineOperator
 from api.utils.interactive import information
-from psycopg import Connection
 
 xmlns_re = r"\{(.*)\}.*"
 

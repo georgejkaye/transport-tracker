@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-import shapely
-import networkx as nx
-import osmnx as ox
-
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional, TypedDict
-from osmnx import settings as oxsettings
-from networkx import MultiDiGraph
-from shapely import LineString, Point
-from shapely import geometry, ops
+
+import networkx as nx
+import osmnx as ox
+import shapely
 from geopandas import GeoDataFrame
+from networkx import MultiDiGraph
+from osmnx import settings as oxsettings
+from shapely import LineString, Point, geometry, ops
 
 from api.classes.train.station import StationPoint
+from api.db.train.points import string_of_station_point
 from api.library.networkx import (
     add_edge,
     add_node,
@@ -24,7 +24,6 @@ from api.library.networkx import (
     project_graph,
 )
 from api.library.shapely import get_distance
-from api.db.train.points import string_of_station_point
 
 coordinate_precision = 0.000001
 wgs84 = "EPSG:4326"

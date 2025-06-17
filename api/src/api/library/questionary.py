@@ -1,6 +1,8 @@
 from typing import Optional
+
+from questionary import Choice, confirm, select, text
+
 from api.classes.interactive import PickChoice
-from questionary import Choice, text, confirm
 
 
 def ask_text_question(message: str, default: str) -> Optional[str]:
@@ -14,4 +16,6 @@ def ask_bool_question(message: str, default: bool = True) -> bool:
 def ask_select_question[T](
     message: str, choices: list[Choice], use_shortcuts: bool, instruction: str
 ) -> PickChoice[T]:
-    return select(message, choices, use_shortcuts=use_shortcuts, instruction=instruction).ask()  # type: ignore
+    return select(
+        message, choices, use_shortcuts=use_shortcuts, instruction=instruction
+    ).ask()  # type: ignore

@@ -1,6 +1,8 @@
 from dataclasses import dataclass
-from api.classes.train.station import StationPoint
+
 from shapely import LineString, Point
+
+from api.classes.train.station import StationPoint
 
 
 @dataclass

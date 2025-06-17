@@ -1,16 +1,17 @@
 from typing import Optional
+
 from psycopg import Connection
 from psycopg.rows import class_row
 
-from api.utils.interactive import (
-    PickSingle,
-    input_select_paginate,
-)
 from api.classes.bus.operators import BusOperatorDetails
 from api.classes.bus.service import (
     BusServiceDetails,
     register_bus_service_details_types,
     short_string_of_bus_service,
+)
+from api.utils.interactive import (
+    PickSingle,
+    input_select_paginate,
 )
 
 

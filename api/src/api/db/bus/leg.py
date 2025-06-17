@@ -1,11 +1,12 @@
 from datetime import datetime
 from typing import Optional
+
 from psycopg import Connection
 from psycopg.rows import class_row
 
-from api.user import User
 from api.classes.bus.journey import DbBusCallInData
 from api.classes.bus.leg import BusLegIn, BusLegUserDetails, register_leg_types
+from api.user import User
 
 
 def insert_leg(conn: Connection, users: list[User], leg: BusLegIn) -> None:
