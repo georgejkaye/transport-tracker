@@ -9,7 +9,6 @@ from typing import Optional
 
 from psycopg import Connection
 
-from api.db.bus.populate.operators import TravelineOperator
 from api.utils.interactive import information
 
 xmlns_re = r"\{(.*)\}.*"

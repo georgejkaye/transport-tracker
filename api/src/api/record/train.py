@@ -48,7 +48,7 @@ from api.db.train.stock import (
 )
 from api.pull.train.service import get_service_from_id
 from api.pull.train.station import get_services_at_station
-from api.user import input_user
+from api.db.user import input_user
 from api.utils.database import connect, get_db_connection_data_from_args
 from api.utils.debug import debug_msg
 from api.utils.interactive import (
@@ -256,9 +256,7 @@ def get_unit_class(
 def get_unit_subclass(
     operator_stock: list[Stock], stock_class: Class
 ) -> Optional[PickUnknown | PickSingle[ClassAndSubclass]]:
-    valid_subclasses = get_unique_subclasses(
-        operator_stock, stock_class=stock_class
-    )
+    valid_subclasses = get_unique_subclasses(operator_stock, stock_class=stock_class)
     # If there are no subclasses then we are done
     if len(valid_subclasses) == 0:
         stock_subclass = None
@@ -399,9 +397,7 @@ def get_unit_report(
         stock_cars_res = get_unit_cars(
             conn,
             run_date,
-            ClassAndSubclass(
-                stock_class.class_no, stock_class.class_name, None, None
-            ),
+            ClassAndSubclass(stock_class.class_no, stock_class.class_name, None, None),
             operator,
             brand,
         )
@@ -415,9 +411,7 @@ def get_unit_report(
     elif stock_class is not None and stock_subclass is not None:
         stock_subclass_no = stock_subclass.subclass_no
         stock_unit_no = get_unit_no(stock_subclass)
-        stock_cars_res = get_unit_cars(
-            conn, run_date, stock_subclass, operator, brand
-        )
+        stock_cars_res = get_unit_cars(conn, run_date, stock_subclass, operator, brand)
         match stock_cars_res:
             case None:
                 return None
@@ -460,16 +454,12 @@ def get_stock(
     last_used_stock = previous
 
     # Currently getting this automatically isn't implemented
-    stock_list = get_operator_stock(
-        conn, service.operator_code, service.run_date
-    )
+    stock_list = get_operator_stock(conn, service.operator_code, service.run_date)
     current_call = calls[0]
     remaining_calls = calls[1:]
 
     while len(remaining_calls) > 0:
-        information(
-            f"Recording stock formation after {current_call.station_name}"
-        )
+        information(f"Recording stock formation after {current_call.station_name}")
         segment_stock: list[StockReport] = []
         segment_start = current_call
         next_remaining_calls: list[TrainLegCallInData] = []
@@ -480,9 +470,7 @@ def get_stock(
             segment_end_index = len(calls) - 1
         else:
             (_, segment_end_index, next_remaining_calls) = stock_end_opt
-        stock_calls = [current_call] + remaining_calls[
-            0 : segment_end_index + 1
-        ]
+        stock_calls = [current_call] + remaining_calls[0 : segment_end_index + 1]
         remaining_calls = next_remaining_calls
         segment_end = stock_calls[-1]
 
@@ -527,9 +515,7 @@ def get_stock(
         )
         used_stock.append(segment)
         last_used_stock = segment
-        information(
-            f"Stock formation {len(used_stock) + stock_number} recorded"
-        )
+        information(f"Stock formation {len(used_stock) + stock_number} recorded")
         current_call = segment_end
     return used_stock
 
@@ -626,9 +612,7 @@ def get_leg_calls_between_calls(
                 continue
             if boarded:
                 associated_leg_calls[0].arr_call = arr_call
-                associated_leg_calls[0].association_type = (
-                    call_association.association
-                )
+                associated_leg_calls[0].association_type = call_association.association
             leg_calls.extend(associated_leg_calls)
             return leg_calls
         if boarded:
@@ -658,12 +642,8 @@ def filter_services_by_time_and_stop(
     destination: TrainStation,
     services: list[TrainServiceAtStation],
 ) -> list[TrainServiceAtStationToDestination]:
-    services_filtered_by_time = filter_services_by_time(
-        earliest, latest, services
-    )
-    services_filtered_by_destination: list[
-        TrainServiceAtStationToDestination
-    ] = []
+    services_filtered_by_time = filter_services_by_time(earliest, latest, services)
+    services_filtered_by_destination: list[TrainServiceAtStationToDestination] = []
     max_string_length = 0
     for i, service in enumerate(services_filtered_by_time):
         string = f"Checking service {i}/{len(services_filtered_by_time)}: {short_string_of_service_at_station(service)}"

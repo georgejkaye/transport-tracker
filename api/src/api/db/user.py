@@ -1,22 +1,14 @@
-from dataclasses import dataclass
 from typing import Optional
 
 from psycopg import Connection
 from psycopg.rows import class_row
 
 from api.classes.interactive import PickMultiple
+from api.classes.user import User, register_user
 from api.utils.database import register_type
 from api.utils.interactive import (
     input_checkbox,
 )
-
-
-@dataclass
-class User:
-    user_id: int
-    user_name: str
-    display_name: str
-    hashed_password: str
 
 
 def insert_user(
@@ -27,12 +19,6 @@ def insert_user(
         [user_name, display_name, hashed_password],
     )
     conn.commit()
-
-
-def register_user(
-    user_id: int, user_name: str, display_name: str, hashed_password: str
-) -> User:
-    return User(user_id, user_name, display_name, hashed_password)
 
 
 def get_user(conn: Connection, user_name: str) -> Optional[User]:
@@ -67,16 +53,3 @@ def input_user(conn: Connection) -> Optional[list[User]]:
             return users
         case _:
             return None
-
-
-@dataclass
-class UserPublic:
-    id: int
-    user_name: str
-    display_name: str
-
-
-def register_user_public(
-    user_id: int, user_name: str, display_name: str
-) -> UserPublic:
-    return UserPublic(user_id, user_name, display_name)

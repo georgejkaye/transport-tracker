@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
+from psycopg import Connection
+
 from api.classes.bus.operators import (
     BusOperatorDetails,
     register_bus_operator_details_types,
@@ -12,7 +14,6 @@ from api.classes.bus.vehicle import (
     register_bus_vehicle_details_types,
 )
 from api.utils.database import register_type
-from psycopg import Connection
 
 
 @dataclass
@@ -28,11 +29,11 @@ class BusCallIn:
 
 def string_of_bus_call_in(bus_call: BusCallIn) -> str:
     if bus_call.plan_arr is not None:
-        time_string = f" arr {bus_call.plan_arr.strftime("%H:%M")}"
+        time_string = f" arr {bus_call.plan_arr.strftime('%H:%M')}"
     else:
         time_string = ""
     if bus_call.plan_dep is not None:
-        time_string = f"{time_string} dep {bus_call.plan_dep.strftime("%H:%M")}"
+        time_string = f"{time_string} dep {bus_call.plan_dep.strftime('%H:%M')}"
     return f"{bus_call.stop_name}{time_string}"
 
 
@@ -161,9 +162,7 @@ def register_bus_journey_call_details(
 
 def register_bus_journey_call_details_types(conn: Connection) -> None:
     register_bus_call_stop_details_types(conn)
-    register_type(
-        conn, "BusJourneyCallDetails", register_bus_journey_call_details
-    )
+    register_type(conn, "BusJourneyCallDetails", register_bus_journey_call_details)
 
 
 @dataclass

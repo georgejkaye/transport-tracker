@@ -19,7 +19,7 @@ from api.classes.train.service import (
     DbTrainServiceEndpointInData,
     DbTrainServiceInData,
 )
-from api.user import User
+from api.classes.user import User
 
 
 def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData) -> None:
