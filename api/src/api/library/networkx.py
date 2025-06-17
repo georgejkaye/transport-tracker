@@ -2,13 +2,14 @@
 Wrapper file to hide away the mean type errors
 """
 
+from __future__ import annotations
 from pathlib import Path
 from typing import Any, Iterator, Optional
 import osmnx as ox
-from networkx import Graph, MultiDiGraph
+from networkx import MultiDiGraph
 
 
-def get_nodes[T](network: Graph[T]) -> Iterator[dict[str, Any]]:
+def get_nodes[T](network: MultiDiGraph[T]) -> Iterator[dict[str, Any]]:
     return network.nodes()  # type: ignore[return-value]
 
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import shapely
 import networkx as nx
 import osmnx as ox
