@@ -1,4 +1,3 @@
-from api.classes.train.station import StationPoint
 import shapely
 import networkx as nx
 import osmnx as ox
@@ -12,6 +11,7 @@ from shapely import LineString, Point
 from shapely import geometry, ops
 from geopandas import GeoDataFrame
 
+from api.classes.train.station import StationPoint
 from api.library.networkx import (
     add_edge,
     add_node,

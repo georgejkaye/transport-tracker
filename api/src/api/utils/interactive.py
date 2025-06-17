@@ -1,10 +1,16 @@
-from dataclasses import dataclass
 from datetime import datetime
 from math import ceil
 from typing import Callable, Optional
 from questionary import Choice, checkbox, text
 from termcolor import colored
 
+from api.classes.interactive import (
+    PickCancel,
+    PickChoice,
+    PickMultiple,
+    PickSingle,
+    PickUnknown,
+)
 from api.utils.times import make_timezone_aware
 from api.library.questionary import (
     ask_bool_question,
@@ -212,29 +218,6 @@ def input_time(
 
 def input_confirm(message: str, default: bool = True) -> bool:
     return ask_bool_question(message, default)
-
-
-@dataclass
-class PickSingle[T]:
-    choice: T
-
-
-@dataclass
-class PickMultiple[T]:
-    choices: list[T]
-
-
-@dataclass
-class PickUnknown:
-    pass
-
-
-@dataclass
-class PickCancel:
-    pass
-
-
-type PickChoice[T] = PickSingle[T] | PickMultiple[T] | PickUnknown | PickCancel
 
 
 def choice_from_object[T](

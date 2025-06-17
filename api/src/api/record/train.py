@@ -4,15 +4,15 @@ import json
 from decimal import Decimal
 from enum import Enum
 from datetime import datetime, timedelta
+from api.classes.train.operators import BrandData
+from psycopg import Connection
 from typing import Any, Optional, Tuple
+
 from api.classes.train.station import (
     TrainServiceAtStation,
     TrainStation,
     short_string_of_service_at_station,
 )
-from api.pull.train.station import get_services_at_station
-from psycopg import Connection
-
 from api.classes.train.association import AssociationType
 from api.classes.train.leg import (
     TrainLegCallCallInData,
@@ -36,9 +36,9 @@ from api.classes.train.stock import (
     string_of_formation,
     string_of_stock_report,
 )
-
-from api.db.train.leg import insert_train_leg
+from api.pull.train.station import get_services_at_station
 from api.pull.train.service import get_service_from_id
+from api.db.train.leg import insert_train_leg
 
 from api.user import input_user
 from api.utils.mileage import (

@@ -1,5 +1,5 @@
 from typing import Optional
-from api.utils.interactive import PickChoice
+from api.classes.interactive import PickChoice
 from questionary import Choice, text, confirm
 
 

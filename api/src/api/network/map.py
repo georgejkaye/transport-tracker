@@ -1,5 +1,4 @@
-from api.classes.train.leg import ShortLeg, ShortLegCall, ShortLegSegment
-from api.classes.train.service import ShortAssociatedService, ShortTrainService
+
 import folium
 
 from bs4 import BeautifulSoup, Tag
@@ -15,6 +14,8 @@ from shapely import LineString, Point
 
 from api.utils.database import connect_with_env
 from api.library.folium import create_polyline, render_map
+from api.classes.train.leg import ShortLeg, ShortLegCall, ShortLegSegment
+from api.classes.train.service import ShortAssociatedService, ShortTrainService
 from api.classes.train.station import StationPoint, TrainStationIdentifiers
 from api.classes.train.stock import StockReport
 from api.classes.network.map import (

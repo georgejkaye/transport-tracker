@@ -1,6 +1,6 @@
+from api.classes.bus.overview import BusVehicleUserDetails
 from fastapi import APIRouter, HTTPException
 
-from api.classes.bus.db.output import BusVehicleUserDetails
 from api.db.bus.overview import (
     get_bus_vehicle_overview_for_user,
     get_bus_vehicle_overviews_for_user,

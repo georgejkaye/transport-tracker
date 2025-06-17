@@ -1,3 +1,7 @@
+from api.classes.interactive import PickSingle
+from api.classes.train.operators import BrandData
+from api.db.train.toc import get_operator_brands
+from api.utils.interactive import input_select
 from bs4 import BeautifulSoup, Tag
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -15,6 +19,7 @@ from api.classes.train.service import (
     TrainServiceCallInData,
     TrainServiceInData,
 )
+from psycopg import Connection
 
 
 service_endpoint = "https://api.rtt.io/api/v1/json/service"
