@@ -8,7 +8,6 @@ from api.classes.train.operators import BrandData, OperatorData
 from api.classes.train.station import (
     LegAtStation,
     StationData,
-    TrainStation,
     TrainStationIdentifiers,
     TrainStationOutData,
 )
@@ -21,7 +20,7 @@ def select_station_from_crs(
     conn: Connection, crs: str
 ) -> Optional[TrainStationOutData]:
     query = """
-        SELECT select_station_by_crs(%(crs)s);
+        SELECT * FROM select_station_by_crs(%(crs)s);
     """
     with conn.cursor(row_factory=class_row(TrainStationOutData)) as cur:
         rows = cur.execute(query, {"crs": crs}).fetchall()
@@ -34,7 +33,7 @@ def select_station_from_name(
     conn: Connection, name: str
 ) -> Optional[TrainStationOutData]:
     query = """
-        SELECT select_station_by_crs(%(crs)s);
+        SELECT * FROM select_station_by_crs(%(crs)s);
     """
     with conn.cursor(row_factory=class_row(TrainStationOutData)) as cur:
         rows = cur.execute(query, {"name": name}).fetchall()
@@ -47,7 +46,7 @@ def get_stations_from_substring(
     conn: Connection, substring: str
 ) -> list[TrainStationOutData]:
     query = """
-        SELECT select_station_by_name_substring(%(substring)s);
+        SELECT * FROM select_station_by_name_substring(%(substring)s);
     """
     with conn.cursor(row_factory=class_row(TrainStationOutData)) as cur:
         rows = cur.execute(query, {"substring": substring}).fetchall()

@@ -5,8 +5,8 @@ from psycopg import Connection
 
 from api.classes.train.station import (
     TrainServiceAtStation,
-    TrainStation,
     TrainStationIdentifiers,
+    TrainStationOutData,
 )
 from api.db.train.stations import select_station_from_name
 from api.utils.credentials import get_api_credentials
@@ -17,11 +17,9 @@ station_endpoint = "https://api.rtt.io/api/v1/json/search"
 
 
 def get_services_at_station(
-    conn: Connection, station: TrainStation, dt: datetime
+    conn: Connection, station: TrainStationOutData, dt: datetime
 ) -> list[TrainServiceAtStation]:
-    endpoint = (
-        f"{station_endpoint}/{station.crs}/{get_datetime_route(dt, True)}"
-    )
+    endpoint = f"{station_endpoint}/{station.station_crs}/{get_datetime_route(dt, True)}"
     rtt_credentials = get_api_credentials("RTT")
     response = make_get_request(endpoint, rtt_credentials)
     if not response.status_code == 200:
@@ -44,7 +42,7 @@ def response_to_train_station_identifiers(
     if station is None:
         print(f"No station with name {name} found. Please update the database.")
         exit(1)
-    return TrainStationIdentifiers(station.crs.upper(), name)
+    return TrainStationIdentifiers(station.station_crs.upper(), name)
 
 
 def response_to_datetime(

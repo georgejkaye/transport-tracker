@@ -134,8 +134,8 @@ class StationData:
 
 @dataclass
 class TrainStationOutData:
-    id: int
-    name: str
-    crs: str
-    operator_code: int
-    brand_code: Optional[int]
+    station_id: int
+    station_name: str
+    station_crs: str
+    operator_id: int
+    brand_id: Optional[int]

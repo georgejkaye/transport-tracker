@@ -19,7 +19,7 @@ from api.classes.train.leg import (
 from api.classes.train.service import TrainServiceInData
 from api.classes.train.station import (
     TrainServiceAtStation,
-    TrainStation,
+    TrainStationOutData,
     short_string_of_service_at_station,
 )
 from api.classes.train.stock import (
@@ -147,16 +147,16 @@ def get_input_price(prompt: str) -> Decimal:
 
 
 def get_station_from_input(
-    conn: Connection, prompt: str, stn: TrainStation | None = None
-) -> Optional[TrainStation]:
+    conn: Connection, prompt: str, stn: TrainStationOutData | None = None
+) -> Optional[TrainStationOutData]:
     """
     Get a string specifying a station from a user.
     Can either be a three letter code (in which case confirmation will be asked for)
     or a full station name
     """
     if stn is not None:
-        full_prompt = f"{prompt} ({stn.name})"
-        default = stn.crs
+        full_prompt = f"{prompt} ({stn.station_name})"
+        default = stn.station_crs
     else:
         full_prompt = prompt
         default = ""
@@ -171,7 +171,7 @@ def get_station_from_input(
         if len(input_string) == 3:
             crs_station = select_station_from_crs(conn, input_string)
             if crs_station is not None:
-                resp = input_confirm(f"Did you mean {crs_station.name}")
+                resp = input_confirm(f"Did you mean {crs_station.station_name}")
                 if resp:
                     return crs_station
         # Otherwise search for substrings in the full names of stations
@@ -180,7 +180,7 @@ def get_station_from_input(
             print("No matches found, try again")
         elif len(matches) == 1:
             match = matches[0]
-            resp = input_confirm(f"Did you mean {match.name}?")
+            resp = input_confirm(f"Did you mean {match.station_name}?")
             if resp:
                 return match
         else:
@@ -188,7 +188,7 @@ def get_station_from_input(
             choice = input_select_paginate(
                 "Select a station",
                 matches,
-                display=lambda x: x.name,
+                display=lambda x: x.station_name,
             )
             match choice:
                 case PickSingle(stn):
@@ -199,9 +199,9 @@ def get_station_from_input(
 
 def get_service_at_station(
     conn: Connection,
-    origin: TrainStation,
+    origin: TrainStationOutData,
     search_datetime: datetime,
-    destination: TrainStation,
+    destination: TrainStationOutData,
 ) -> Optional[TrainServiceAtStationToDestination]:
     """
     Record a new journey in the logfile
@@ -211,7 +211,7 @@ def get_service_at_station(
     timeframe = 15
     earliest_time = add(search_datetime, -timeframe)
     latest_time = add(search_datetime, timeframe)
-    information("Searching for services from " + origin.name)
+    information("Searching for services from " + origin.station_name)
     # The results encompass a ~1 hour period
     # We only want to check our given timeframe
     # We also only want services that stop at our destination
@@ -638,8 +638,8 @@ def get_leg_calls_between_calls(
 def filter_services_by_time_and_stop(
     earliest: datetime,
     latest: datetime,
-    origin: TrainStation,
-    destination: TrainStation,
+    origin: TrainStationOutData,
+    destination: TrainStationOutData,
     services: list[TrainServiceAtStation],
 ) -> list[TrainServiceAtStationToDestination]:
     services_filtered_by_time = filter_services_by_time(earliest, latest, services)
@@ -659,7 +659,7 @@ def filter_services_by_time_and_stop(
         if full_service is None:
             continue
         leg_calls_from_origin_to_destination = get_leg_calls_between_calls(
-            full_service, origin.crs, service.plan_dep, destination.crs
+            full_service, origin.station_crs, service.plan_dep, destination.station_crs
         )
         if leg_calls_from_origin_to_destination is not None:
             services_filtered_by_destination.append(
@@ -715,7 +715,7 @@ def get_service_from_service_at_station_input(
 def record_new_leg(
     conn: Connection,
     start: datetime | None = None,
-    default_station: TrainStation | None = None,
+    default_station: TrainStationOutData | None = None,
 ) -> TrainLegInData | None:
     origin_station = get_station_from_input(conn, "Origin", default_station)
     if origin_station is None:
