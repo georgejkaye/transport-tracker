@@ -291,7 +291,7 @@ def get_service_from_service_json_and_html(
 ) -> Optional[TrainServiceInData]:
     if (
         not service_json.get("isPassenger")
-        and not service_json.get("serviceType") == "train"
+        or not service_json.get("serviceType") == "train"
     ):
         return None
     headcode = service_json["trainIdentity"]
