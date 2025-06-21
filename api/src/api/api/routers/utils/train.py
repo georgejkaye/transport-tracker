@@ -62,8 +62,8 @@ async def get_route_between_stations(
             [],
             [
                 LegLine(
-                    from_station.name,
-                    to_station.name,
+                    from_station.station_name,
+                    to_station.station_name,
                     [source_point, target_point],
                     linestring,
                     "#000000",
