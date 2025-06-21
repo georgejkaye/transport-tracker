@@ -93,7 +93,7 @@ DbTrainAssociatedServiceInData = tuple[
     Optional[datetime],
     str,
     datetime,
-    str,
+    int,
 ]
 
 ##

@@ -58,8 +58,8 @@ class TrainStockReportInData:
 class TrainLegInData:
     primary_service: TrainServiceInData
     calls: list[TrainLegCallInData]
-    distance: Decimal
-    stock_reports: list[TrainStockReportInData]
+    distance: Optional[Decimal]
+    stock_reports: Optional[list[TrainStockReportInData]]
 
 
 @dataclass
@@ -127,8 +127,8 @@ DbTrainLegInData = tuple[
     list[DbTrainCallInData],
     list[DbTrainAssociatedServiceInData],
     list[DbTrainLegCallInData],
-    Decimal,
-    list[DbTrainStockSegmentInData],
+    Optional[Decimal],
+    Optional[list[DbTrainStockSegmentInData]],
 ]
 
 
