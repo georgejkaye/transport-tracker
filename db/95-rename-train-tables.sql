@@ -263,6 +263,9 @@ ALTER TABLE train_associated_service_type
 ADD CONSTRAINT train_associated_service_type_name_unique
 UNIQUE (type_name);
 
+ALTER TABLE train_associated_service_type
+ALTER COLUMN type_name SET NOT NULL;
+
 ALTER TABLE train_associated_service
 DROP CONSTRAINT associatedservice_associated_type_fkey;
 
