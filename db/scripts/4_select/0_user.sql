@@ -1,25 +1,20 @@
-CREATE OR REPLACE FUNCTION GetUsers () RETURNS SETOF UserOutData
-LANGUAGE plpgsql
+CREATE OR REPLACE FUNCTION select_users ()
+RETURNS SETOF user_out_data
+LANGUAGE sql
 AS
 $$
-BEGIN
-    RETURN QUERY
-    SELECT user_id, user_name, display_name, hashed_password
-    FROM Traveller;
-END;
+SELECT user_id, user_name, display_name, hashed_password
+FROM traveller;
 $$;
 
-CREATE OR REPLACE FUNCTION GetUserByUsername (
+CREATE OR REPLACE FUNCTION select_user_by_username (
     p_username TEXT
-) RETURNS UserOutData
-LANGUAGE plpgsql
+)
+RETURNS user_out_data
+LANGUAGE sql
 AS
 $$
-BEGIN
-    RETURN (
-        SELECT (user_id, user_name, display_name, hashed_password)::UserOutData
-        FROM Traveller
-        WHERE p_username = user_name
-    );
-END;
+SELECT (user_id, user_name, display_name, hashed_password)::user_out_data
+FROM traveller
+WHERE p_username = user_name
 $$;
