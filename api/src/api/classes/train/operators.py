@@ -28,7 +28,7 @@ def register_operator_data(
 
 @dataclass
 class BrandData:
-    id: int
+    brand_id: int
     code: str
     name: str
     bg: Optional[str]
