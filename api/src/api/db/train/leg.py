@@ -4,7 +4,7 @@ from typing import Optional
 from psycopg import Connection
 from psycopg.rows import class_row
 
-from api.classes.train.association import string_of_association_type
+from api.classes.train.association import int_of_association_type
 from api.classes.train.leg import (
     DbTrainLegCallInData,
     DbTrainLegInData,
@@ -83,7 +83,7 @@ def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData) -> None:
                         call.act_dep,
                         association.associated_service.unique_identifier,
                         association.associated_service.run_date,
-                        string_of_association_type(association.association),
+                        int_of_association_type(association.association),
                     )
                 )
     for leg_call in leg.calls:
@@ -153,42 +153,43 @@ def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData) -> None:
                 leg_call.mileage,
             )
         )
-    for stock_report in leg.stock_reports:
-        for stock in stock_report.stock_report:
-            leg_stock_data.append(
-                (
-                    stock.class_no,
-                    stock.subclass_no,
-                    stock.stock_no,
-                    stock.cars,
-                    stock_report.start_call.service.unique_identifier,
-                    stock_report.start_call.service.run_date,
-                    stock_report.start_call.station_crs,
+    if leg.stock_reports is not None:
+        for stock_report in leg.stock_reports:
+            for stock in stock_report.stock_report:
+                leg_stock_data.append(
                     (
-                        stock_report.start_call.dep_call.plan_dep
-                        if stock_report.start_call.dep_call is not None
-                        else None
-                    ),
-                    (
-                        stock_report.start_call.dep_call.act_dep
-                        if stock_report.start_call.dep_call is not None
-                        else None
-                    ),
-                    stock_report.end_call.service.unique_identifier,
-                    stock_report.end_call.service.run_date,
-                    stock_report.end_call.station_crs,
-                    (
-                        stock_report.end_call.arr_call.plan_arr
-                        if stock_report.end_call.arr_call is not None
-                        else None
-                    ),
-                    (
-                        stock_report.end_call.arr_call.act_arr
-                        if stock_report.end_call.arr_call is not None
-                        else None
-                    ),
+                        stock.class_no,
+                        stock.subclass_no,
+                        stock.stock_no,
+                        stock.cars,
+                        stock_report.start_call.service.unique_identifier,
+                        stock_report.start_call.service.run_date,
+                        stock_report.start_call.station_crs,
+                        (
+                            stock_report.start_call.dep_call.plan_dep
+                            if stock_report.start_call.dep_call is not None
+                            else None
+                        ),
+                        (
+                            stock_report.start_call.dep_call.act_dep
+                            if stock_report.start_call.dep_call is not None
+                            else None
+                        ),
+                        stock_report.end_call.service.unique_identifier,
+                        stock_report.end_call.service.run_date,
+                        stock_report.end_call.station_crs,
+                        (
+                            stock_report.end_call.arr_call.plan_arr
+                            if stock_report.end_call.arr_call is not None
+                            else None
+                        ),
+                        (
+                            stock_report.end_call.arr_call.act_arr
+                            if stock_report.end_call.arr_call is not None
+                            else None
+                        ),
+                    )
                 )
-            )
     leg_tuple: DbTrainLegInData = (
         user.user_id,
         service_data,
@@ -200,11 +201,7 @@ def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData) -> None:
         leg_stock_data,
     )
     conn.execute(
-        """
-        SELECT * FROM InsertLeg(
-            %s::TrainLegInData,
-        )
-        """,
+        "SELECT * FROM InsertLeg(%s::TrainLegInData)",
         [leg_tuple],
     )
     conn.commit()

@@ -20,6 +20,18 @@ def string_of_association_type(at: AssociationType) -> str:
             return "OTHER_DIVIDES"
 
 
+def int_of_association_type(at: AssociationType) -> int:
+    match at:
+        case AssociationType.THIS_JOINS:
+            return 1
+        case AssociationType.OTHER_JOINS:
+            return 2
+        case AssociationType.THIS_DIVIDES:
+            return 3
+        case AssociationType.OTHER_DIVIDES:
+            return 4
+
+
 def string_to_association_type(string: str) -> Optional[AssociationType]:
     if string == "JOINS_TO":
         return AssociationType.THIS_JOINS

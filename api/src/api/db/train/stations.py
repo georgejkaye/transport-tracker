@@ -20,10 +20,10 @@ def select_station_from_crs(
     conn: Connection, crs: str
 ) -> Optional[TrainStationOutData]:
     query = """
-        SELECT * FROM select_station_by_crs(%(crs)s);
+        SELECT * FROM select_station_by_crs(%s);
     """
     with conn.cursor(row_factory=class_row(TrainStationOutData)) as cur:
-        rows = cur.execute(query, {"crs": crs}).fetchall()
+        rows = cur.execute(query, [crs]).fetchall()
         if len(rows) == 0 or len(rows) > 1:
             return None
         return rows[0]
@@ -33,10 +33,10 @@ def select_station_from_name(
     conn: Connection, name: str
 ) -> Optional[TrainStationOutData]:
     query = """
-        SELECT * FROM select_station_by_crs(%(crs)s);
+        SELECT * FROM select_station_by_name(%s);
     """
     with conn.cursor(row_factory=class_row(TrainStationOutData)) as cur:
-        rows = cur.execute(query, {"name": name}).fetchall()
+        rows = cur.execute(query, [name]).fetchall()
         if len(rows) == 0 or len(rows) > 1:
             return None
         return rows[0]
@@ -46,10 +46,10 @@ def get_stations_from_substring(
     conn: Connection, substring: str
 ) -> list[TrainStationOutData]:
     query = """
-        SELECT * FROM select_station_by_name_substring(%(substring)s);
+        SELECT * FROM select_station_by_name_substring(%s);
     """
     with conn.cursor(row_factory=class_row(TrainStationOutData)) as cur:
-        rows = cur.execute(query, {"substring": substring}).fetchall()
+        rows = cur.execute(query, [substring]).fetchall()
         return rows
 
 
@@ -282,7 +282,9 @@ def select_stations(
         if brand_id is None:
             brand_data = None
         else:
-            brand_data = BrandData(brand_id, brand_code, brand_name, brand_bg, brand_fg)
+            brand_data = BrandData(
+                brand_id, brand_code, brand_name, brand_bg, brand_fg
+            )
         leg_objects: list[LegAtStation] = []
         if legs is not None:
             for leg_row in legs:
@@ -310,7 +312,9 @@ def select_stations(
                     TrainStationIdentifiers(
                         leg_row["start_crs"], leg_row["start_name"]
                     ),
-                    TrainStationIdentifiers(leg_row["end_crs"], leg_row["start_crs"]),
+                    TrainStationIdentifiers(
+                        leg_row["end_crs"], leg_row["start_crs"]
+                    ),
                     datetime.fromisoformat(leg_row["stop_time"]),
                     str_or_null_to_datetime(leg_row["plan_arr"]),
                     str_or_null_to_datetime(leg_row["act_arr"]),

@@ -4,28 +4,24 @@ from psycopg import Connection
 from psycopg.rows import class_row
 
 from api.classes.interactive import PickMultiple
-from api.classes.user import User, register_user
-from api.utils.database import register_type
-from api.utils.interactive import (
-    input_checkbox,
-)
+from api.classes.user import User
+from api.utils.interactive import input_checkbox
 
 
 def insert_user(
     conn: Connection, user_name: str, display_name: str, hashed_password: str
 ) -> None:
     conn.execute(
-        "SELECT InsertUser(%s, %s, %s)",
+        "SELECT insert_user(%s, %s, %s)",
         [user_name, display_name, hashed_password],
     )
     conn.commit()
 
 
 def get_user(conn: Connection, user_name: str) -> Optional[User]:
-    register_type(conn, "UserOutData", register_user)
     with conn.cursor(row_factory=class_row(User)) as cur:
         result = cur.execute(
-            "SELECT GetUserByUsername(%s)", [user_name]
+            "SELECT * FROM select_user_by_username(%s)", [user_name]
         ).fetchone()
         if result is None:
             return None
@@ -33,9 +29,9 @@ def get_user(conn: Connection, user_name: str) -> Optional[User]:
 
 
 def get_users(conn: Connection) -> list[User]:
-    register_type(conn, "UserOutData", register_user)
-    rows = conn.execute("SELECT GetUsers()").fetchall()
-    return [row[0] for row in rows]
+    with conn.cursor(row_factory=class_row(User)) as cur:
+        rows = cur.execute("SELECT * FROM select_users()").fetchall()
+        return rows
 
 
 def input_user(conn: Connection) -> Optional[list[User]]:
