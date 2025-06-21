@@ -317,3 +317,28 @@ SET associated_type_id = (
 
 ALTER TABLE train_leg_call
 DROP COLUMN assoc_type;
+
+UPDATE train_associated_service_type
+SET type_name = 'THIS_JOINS'
+WHERE type_name = 'JOINS_TO';
+
+UPDATE train_associated_service_type
+SET type_name = 'OTHER_JOINS'
+WHERE type_name = 'JOINS_WITH';
+
+UPDATE train_associated_service_type
+SET type_name = 'THIS_DIVIDES'
+WHERE type_name = 'DIVIDES_TO';
+
+UPDATE train_associated_service_type
+SET type_name = 'OTHER_DIVIDES'
+WHERE type_name = 'DIVIDES_FROM';
+
+-- rename types and functions
+
+DROP FUNCTION GetUsers;
+DROP FUNCTION GetUserByUsername;
+DROP TYPE UserOutData;
+DROP TYPE UserOutPublicData;
+
+DROP FUNCTION SelectCallAssocData;

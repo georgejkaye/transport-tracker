@@ -169,16 +169,16 @@ CREATE TABLE train_associated_service_type (
 );
 
 INSERT INTO train_associated_service_type(associated_type_id, type_name)
-VALUES (1, 'DIVIDES_TO');
+VALUES (1, 'THIS_JOINS');
 
 INSERT INTO train_associated_service_type(associated_type_id, type_name)
-VALUES (2, 'DIVIDES_FROM');
+VALUES (2, 'OTHER_JOINS');
 
 INSERT INTO train_associated_service_type(associated_type_id, type_name)
-VALUES (3, 'JOINS_TO');
+VALUES (3, 'THIS_DIVIDES');
 
 INSERT INTO train_associated_service_type(associated_type_id, type_name)
-VALUES (4, 'JOINS_WITH');
+VALUES (4, 'OTHER_DIVIDES');
 
 CREATE TABLE train_associated_service (
     call_id INTEGER NOT NULL,
