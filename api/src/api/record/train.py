@@ -22,16 +22,13 @@ from api.classes.train.station import (
     short_string_of_service_at_station,
 )
 from api.classes.train.stock import (
-    Class,
-    ClassAndSubclass,
-    Formation,
     Stock,
     StockReport,
+    StockSubclass,
     sort_by_classes,
     sort_by_subclasses,
     string_of_class,
     string_of_class_and_subclass,
-    string_of_formation,
     string_of_stock_report,
 )
 from api.db.train.leg import insert_train_leg
@@ -41,9 +38,6 @@ from api.db.train.stations import (
 )
 from api.db.train.stock import (
     get_operator_stock,
-    get_unique_classes,
-    get_unique_subclasses,
-    select_stock_cars,
 )
 from api.db.user import input_user
 from api.pull.train.service import get_service_from_id
@@ -70,7 +64,6 @@ from api.utils.mileage import (
 from api.utils.times import (
     add,
     make_timezone_aware,
-    pad_front,
 )
 
 
@@ -169,11 +162,10 @@ def get_service_at_station(
 
 def get_unit_class(
     operator_stock: list[Stock],
-) -> Optional[PickUnknown | PickSingle[Class]]:
-    valid_classes = get_unique_classes(operator_stock)
+) -> Optional[PickUnknown | PickSingle[Stock]]:
     chosen_class = input_select(
         "Class number",
-        sort_by_classes(valid_classes),
+        sort_by_classes(operator_stock),
         unknown=True,
         display=string_of_class,
     )
@@ -189,29 +181,17 @@ def get_unit_class(
 
 
 def get_unit_subclass(
-    operator_stock: list[Stock], stock_class: Class
-) -> Optional[PickUnknown | PickSingle[ClassAndSubclass]]:
-    valid_subclasses = get_unique_subclasses(
-        operator_stock, stock_class=stock_class
-    )
-    # If there are no subclasses then we are done
-    if len(valid_subclasses) == 0:
-        stock_subclass = None
-        subclass = ClassAndSubclass(
-            stock_class.class_no, stock_class.class_name, None, None
-        )
-        return PickSingle(subclass)
-    elif len(valid_subclasses) == 1:
-        stock_subclass = valid_subclasses[0]
-        subclass = stock_subclass
-        return PickSingle(subclass)
+    stock: Stock,
+) -> Optional[PickUnknown | PickSingle[StockSubclass]]:
+    if len(stock.stock_subclasses) == 1:
+        return PickSingle(stock.stock_subclasses[0])
     else:
         chosen_subclass = input_select(
             "Subclass no",
-            sort_by_subclasses(valid_subclasses),
+            sort_by_subclasses(stock.stock_subclasses),
             unknown=True,
             cancel=False,
-            display=string_of_class_and_subclass,
+            display=lambda c: string_of_class_and_subclass(stock, c),
         )
         match chosen_subclass:
             case None:
@@ -224,41 +204,33 @@ def get_unit_subclass(
                 return None
 
 
-def get_unit_no(stock_subclass: ClassAndSubclass) -> Optional[int]:
+def get_unit_no(
+    stock_class: Stock, stock_subclass: StockSubclass
+) -> Optional[int]:
     while True:
         unit_no_opt = input_number(
             "Stock number",
-            lower=stock_subclass.class_no * 1000,
-            upper=stock_subclass.class_no * 1000 + 999,
+            lower=stock_class.stock_class * 1000,
+            upper=stock_class.stock_class * 1000 + 999,
             unknown=True,
         )
         return unit_no_opt
 
 
 def get_unit_cars(
-    conn: Connection,
-    run_date: datetime,
-    stock_subclass: ClassAndSubclass,
-    operator: str,
-    brand: Optional[str],
-) -> PickUnknown | PickSingle[Formation] | None:
-    stock = Stock(
-        stock_subclass.class_no,
-        stock_subclass.class_name,
-        stock_subclass.subclass_no,
-        stock_subclass.subclass_name,
-        operator,
-        brand,
-    )
-    car_options = select_stock_cars(conn, stock, run_date)
-    # If there is no choice we know the answer already
-    if len(car_options) == 1:
+    stock_class: Stock,
+    stock_subclass: StockSubclass,
+) -> PickUnknown | PickSingle[int] | None:
+    if len(stock_subclass.stock_cars) == 1:
         information(
-            f"{string_of_class_and_subclass(stock_subclass, name=False)} always has {car_options[0].cars} cars"
+            f"{string_of_class_and_subclass(stock_class, stock_subclass, name=False)} always has {stock_subclass.stock_cars[0]} cars"
         )
-        return PickSingle(car_options[0])
+        return PickSingle(stock_subclass.stock_cars[0])
     result = input_select(
-        "Number of cars", car_options, string_of_formation, unknown=True
+        "Number of cars",
+        stock_subclass.stock_cars,
+        lambda c: f"{c} car{'s' if c > 1 else ''}",
+        unknown=True,
     )
     match result:
         case None:
@@ -301,58 +273,31 @@ def string_of_stock_change(change: StockChange) -> str:
 
 
 def get_unit_report(
-    conn: Connection,
-    run_date: datetime,
     stock_list: list[Stock],
-    operator: str,
-    brand: Optional[str],
 ) -> Optional[StockReport]:
     stock_class_res = get_unit_class(stock_list)
     match stock_class_res:
         case None:
             return None
-        case PickUnknown():
+        case PickSingle(stock_class_choice):
+            stock_class = stock_class_choice
+        case _:
             stock_class = None
-            stock_class_no = None
             stock_subclass = None
-            stock_subclass_no = None
-            stock_cars = None
-            stock_unit_no = None
-        case PickSingle(stock_class):
-            stock_class_no = stock_class.class_no
-            stock_subclass_res = get_unit_subclass(stock_list, stock_class)
-            match stock_subclass_res:
-                case None:
-                    return None
-                case PickUnknown():
-                    stock_subclass = None
-                case PickSingle(choice):
-                    stock_subclass = choice
-    if stock_class is not None and stock_subclass is None:
-        stock_subclass_no = None
-        stock_unit_no = None
-        stock_cars_res = get_unit_cars(
-            conn,
-            run_date,
-            ClassAndSubclass(
-                stock_class.class_no, stock_class.class_name, None, None
-            ),
-            operator,
-            brand,
-        )
-        match stock_cars_res:
+    if stock_class is not None:
+        stock_subclass_res = get_unit_subclass(stock_class)
+        match stock_subclass_res:
             case None:
                 return None
             case PickUnknown():
-                stock_cars = None
-            case PickSingle(form):
-                stock_cars = form
-    elif stock_class is not None and stock_subclass is not None:
-        stock_subclass_no = stock_subclass.subclass_no
-        stock_unit_no = get_unit_no(stock_subclass)
-        stock_cars_res = get_unit_cars(
-            conn, run_date, stock_subclass, operator, brand
-        )
+                stock_subclass = None
+            case PickSingle(stock_subclass_choice):
+                stock_subclass = stock_subclass_choice
+    else:
+        stock_subclass = None
+    if stock_class is not None and stock_subclass is not None:
+        stock_unit_no = get_unit_no(stock_class, stock_subclass)
+        stock_cars_res = get_unit_cars(stock_class, stock_subclass)
         match stock_cars_res:
             case None:
                 return None
@@ -361,12 +306,13 @@ def get_unit_report(
             case PickSingle(form):
                 stock_cars = form
     else:
-        return None
+        stock_unit_no = None
+        stock_cars = None
     return StockReport(
-        stock_class_no,
-        stock_subclass_no,
+        stock_class.stock_class if stock_class is not None else None,
+        stock_subclass.stock_subclass if stock_subclass is not None else None,
         stock_unit_no,
-        stock_cars.cars if stock_cars is not None else None,
+        stock_cars,
     )
 
 
@@ -435,13 +381,7 @@ def get_stock(
                     return None
                 for i in range(0, number_of_units):
                     information(f"Selecting unit {i + 1}")
-                    stock_report = get_unit_report(
-                        conn,
-                        service.run_date,
-                        stock_list,
-                        service.operator_code,
-                        service.brand_code,
-                    )
+                    stock_report = get_unit_report(stock_list)
                     if stock_report is None:
                         return None
                     segment_stock.append(stock_report)
