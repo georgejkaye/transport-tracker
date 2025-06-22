@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Optional
 
+from api.classes.train.operators import OperatorData
 from bs4 import BeautifulSoup, Tag
 from psycopg import Connection
 
@@ -13,7 +14,10 @@ from api.classes.train.service import (
     TrainServiceCallInData,
     TrainServiceInData,
 )
-from api.db.train.toc import get_operator_brands
+from api.db.train.toc import (
+    get_operator_brands,
+    get_operator_by_operator_by_operator_code,
+)
 from api.utils.credentials import get_api_credentials
 from api.utils.interactive import input_select
 from api.utils.mileage import miles_and_chains_to_miles
@@ -61,7 +65,8 @@ def get_associated_service_from_associated_service_json(
     service_run_date: datetime,
     parent_uid: Optional[str],
     parent_run_date: Optional[datetime],
-    brand_code: Optional[str],
+    service_operator: OperatorData,
+    brand_id: Optional[int],
 ) -> Optional[TrainServiceCallAssociatedServiceInData]:
     assoc_uid = associated_service_json["associatedUid"]
     assoc_date = datetime.strptime(
@@ -81,7 +86,8 @@ def get_associated_service_from_associated_service_json(
         assoc_date,
         service_uid,
         service_run_date,
-        brand_code=brand_code,
+        service_operator=service_operator,
+        brand_id=brand_id,
     )
     if associated_service is None:
         return None
@@ -113,7 +119,8 @@ def get_associated_services_from_call_json(
     service_run_date: datetime,
     parent_service_uid: Optional[str],
     parent_service_run_date: Optional[datetime],
-    brand_code: Optional[str],
+    service_operator: OperatorData,
+    brand_id :Optional[int],
 ) -> list[TrainServiceCallAssociatedServiceInData]:
     assocs_data = call_json.get("associations")
     if assocs_data is None:
@@ -131,7 +138,8 @@ def get_associated_services_from_call_json(
                 service_run_date,
                 parent_service_uid,
                 parent_service_run_date,
-                brand_code=brand_code,
+                service_operator,
+                brand_id=brand_id,
             )
         )
         is not None
@@ -167,7 +175,8 @@ def get_call_from_call_json(
     service_run_date: datetime,
     parent_service_uid: Optional[str],
     parent_service_run_date: Optional[datetime],
-    brand_code: Optional[str],
+    service_operator: OperatorData,
+    brand_id: Optional[int],
 ) -> TrainServiceCallInData:
     station_crs = call_json["crs"]
     station_name = call_json["description"]
@@ -193,7 +202,8 @@ def get_call_from_call_json(
         service_run_date,
         parent_service_uid,
         parent_service_run_date,
-        brand_code=brand_code,
+        service_operator,
+        brand_id=brand_id,
     )
     mileage = (
         get_call_mileage_from_service_soup(
@@ -223,7 +233,8 @@ def get_service_calls_from_service_json(
     service_soup: Optional[BeautifulSoup],
     parent_service_uid: Optional[str],
     parent_service_run_date: Optional[datetime],
-    brand_code: Optional[str] = None,
+    service_operator: OperatorData,
+    brand_id: Optional[int] = None,
 ) -> tuple[list[TrainServiceCallInData], list[TrainAssociatedServiceInData]]:
     calls: list[TrainServiceCallInData] = []
     associated_services: list[TrainAssociatedServiceInData] = []
@@ -242,7 +253,8 @@ def get_service_calls_from_service_json(
             service_run_date,
             parent_service_uid,
             parent_service_run_date,
-            brand_code=brand_code,
+            service_operator=service_operator,
+            brand_id=brand_id
         )
         calls.append(call)
         service_associated_services = [
@@ -260,20 +272,19 @@ def get_service_calls_from_service_json(
     return calls, associated_services
 
 
-def get_brand_code_input(
-    conn: Connection, operator_code: str, run_date: datetime
-) -> Optional[str]:
-    brands = get_operator_brands(conn, operator_code, run_date)
-    if len(brands) == 0:
+def get_brand_code_id_input(operator: OperatorData) -> Optional[int]:
+    if len(operator.operator_brands) == 0:
         return None
-    elif len(brands) == 1:
-        return brands[0].code
+    elif len(operator.operator_brands) == 1:
+        return operator.operator_brands[0].brand_id
     else:
         match input_select(
-            "Select brand", brands, lambda b: f"{b.name} ({b.code})"
+            "Select brand",
+            operator.operator_brands,
+            lambda b: f"{b.brand_name} ({b.brand_code})",
         ):
             case PickSingle(brand):
-                return brand.code
+                return brand.brand_id
             case _:
                 return None
 
@@ -286,7 +297,8 @@ def get_service_from_service_json_and_html(
     service_soup: Optional[BeautifulSoup],
     parent_service_uid: Optional[str],
     parent_service_run_date: Optional[datetime],
-    brand_code: Optional[str] = None,
+    service_operator: Optional[OperatorData] = None,
+    brand_id: Optional[int] = None,
     query_brand: bool = False,
 ) -> Optional[TrainServiceInData]:
     if (
@@ -302,8 +314,19 @@ def get_service_from_service_json_and_html(
         for destination in service_json["destination"]
     ]
     operator_code = service_json["atocCode"]
-    if brand_code is None and query_brand:
-        brand_code = get_brand_code_input(conn, operator_code, service_run_date)
+    if (
+        service_operator is None
+        or service_operator.operator_code != operator_code
+    ):
+        operator_data = get_operator_by_operator_by_operator_code(
+            conn, operator_code, service_run_date
+        )
+        if operator_data is None:
+            raise RuntimeError(f"Could not get operator for code {operator_code}")
+    else:
+        operator_data = service_operator
+    if brand_id is None and query_brand:
+        brand_id = get_brand_code_id_input(operator_data)
     calls, associated_services = get_service_calls_from_service_json(
         conn,
         service_uid,
@@ -312,7 +335,8 @@ def get_service_from_service_json_and_html(
         service_soup,
         parent_service_uid,
         parent_service_run_date,
-        brand_code=brand_code,
+        service_operator=operator_data,
+        brand_id=brand_id
     )
     train_service = TrainServiceInData(
         service_uid,
@@ -320,8 +344,8 @@ def get_service_from_service_json_and_html(
         headcode,
         origins,
         destinations,
-        operator_code,
-        brand_code,
+        operator_data.operator_id,
+        brand_id,
         power,
         calls,
         associated_services,
@@ -336,7 +360,8 @@ def get_service_from_id(
     parent_service_uid: Optional[str] = None,
     parent_service_run_date: Optional[datetime] = None,
     scrape_html: bool = False,
-    brand_code: Optional[str] = None,
+    service_operator: Optional[OperatorData] = None,
+    brand_id: Optional[int] = None,
     query_brand: bool = False,
 ) -> Optional[TrainServiceInData]:
     service_json = get_service_json(service_uid, service_run_date)
@@ -352,7 +377,8 @@ def get_service_from_id(
         service_html,
         parent_service_uid,
         parent_service_run_date,
-        brand_code=brand_code,
+        service_operator=service_operator
+        brand_id=brand_id,
         query_brand=query_brand,
     )
 

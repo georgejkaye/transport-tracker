@@ -44,8 +44,8 @@ class TrainServiceInData:
     headcode: str
     origin_names: list[str]
     destination_names: list[str]
-    operator_code: str
-    brand_code: Optional[str]
+    operator_code: int
+    brand_code: Optional[int]
     power: Optional[str]
     calls: list[TrainServiceCallInData]
     associated_services: list["TrainAssociatedServiceInData"]

@@ -4,7 +4,11 @@ from typing import Optional
 from psycopg import Connection
 from psycopg.rows import class_row
 
-from api.classes.train.operators import BrandData
+from api.classes.train.operators import (
+    BrandData,
+    OperatorData,
+    register_train_operator_out_data,
+)
 
 
 def select_operator_id(conn: Connection, operator_name: str) -> Optional[int]:
@@ -27,3 +31,15 @@ def get_operator_brands(
             [operator_code, run_date],
         ).fetchall()
         return rows
+
+
+def get_operator_by_operator_by_operator_code(
+    conn: Connection, operator_code: str, run_date: datetime
+) -> Optional[OperatorData]:
+    register_train_operator_out_data(conn)
+    with conn.cursor(row_factory=class_row(OperatorData)) as cur:
+        row = cur.execute(
+            "SELECT * FROM select_operator_by_operator_code(%s, %s)",
+            [operator_code, run_date],
+        ).fetchone()
+        return row
