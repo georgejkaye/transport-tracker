@@ -120,7 +120,7 @@ def get_associated_services_from_call_json(
     parent_service_uid: Optional[str],
     parent_service_run_date: Optional[datetime],
     service_operator: OperatorData,
-    brand_id :Optional[int],
+    brand_id: Optional[int],
 ) -> list[TrainServiceCallAssociatedServiceInData]:
     assocs_data = call_json.get("associations")
     if assocs_data is None:
@@ -254,7 +254,7 @@ def get_service_calls_from_service_json(
             parent_service_uid,
             parent_service_run_date,
             service_operator=service_operator,
-            brand_id=brand_id
+            brand_id=brand_id,
         )
         calls.append(call)
         service_associated_services = [
@@ -322,7 +322,9 @@ def get_service_from_service_json_and_html(
             conn, operator_code, service_run_date
         )
         if operator_data is None:
-            raise RuntimeError(f"Could not get operator for code {operator_code}")
+            raise RuntimeError(
+                f"Could not get operator for code {operator_code}"
+            )
     else:
         operator_data = service_operator
     if brand_id is None and query_brand:
@@ -336,7 +338,7 @@ def get_service_from_service_json_and_html(
         parent_service_uid,
         parent_service_run_date,
         service_operator=operator_data,
-        brand_id=brand_id
+        brand_id=brand_id,
     )
     train_service = TrainServiceInData(
         service_uid,
@@ -377,7 +379,7 @@ def get_service_from_id(
         service_html,
         parent_service_uid,
         parent_service_run_date,
-        service_operator=service_operator
+        service_operator=service_operator,
         brand_id=brand_id,
         query_brand=query_brand,
     )

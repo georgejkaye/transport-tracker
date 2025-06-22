@@ -49,7 +49,7 @@ SELECT
     train_operator.operation_range,
     train_brand_array.train_brand
 FROM train_operator
-INNER JOIN (
+LEFT JOIN (
     SELECT
         train_brand.parent_operator AS operator_id,
         ARRAY_AGG((

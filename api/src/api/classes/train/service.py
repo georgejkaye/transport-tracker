@@ -7,14 +7,12 @@ from api.classes.train.association import AssociationType
 from api.classes.train.operators import (
     BrandData,
     OperatorData,
-    register_brand_data_types,
 )
 from api.classes.train.station import (
     TrainStationIdentifiers,
     register_short_train_station_types,
 )
 from api.utils.database import register_type
-from api.utils.times import change_timezone
 from psycopg import Connection
 
 
@@ -108,16 +106,8 @@ class ShortAssociatedService:
     association: str
 
 
-def register_assoc_data(
-    assoc_service_id: str, assoc_service_run_date: datetime, assoc_type: str
-) -> ShortAssociatedService:
-    return ShortAssociatedService(
-        assoc_service_id, assoc_service_run_date, assoc_type
-    )
-
-
 def register_short_associated_service_types(conn: Connection) -> None:
-    register_type(conn, "TrainAssociatedServiceOutData", register_assoc_data)
+    register_type(conn, "TrainAssociatedServiceOutData", ShortAssociatedService)
 
 
 @dataclass
@@ -132,32 +122,10 @@ class ShortCall:
     mileage: Optional[Decimal]
 
 
-def register_call_data(
-    station: TrainStationIdentifiers,
-    platform: str,
-    plan_arr: datetime,
-    act_arr: datetime,
-    plan_dep: datetime,
-    act_dep: datetime,
-    assocs: list[ShortAssociatedService],
-    mileage: Decimal,
-) -> ShortCall:
-    return ShortCall(
-        station,
-        platform,
-        change_timezone(plan_arr),
-        change_timezone(act_arr),
-        change_timezone(plan_dep),
-        change_timezone(act_dep),
-        assocs,
-        mileage,
-    )
-
-
 def register_short_call_types(conn: Connection) -> None:
     register_short_train_station_types(conn)
     register_short_associated_service_types(conn)
-    register_type(conn, "TrainCallOutData", register_call_data)
+    register_type(conn, "TrainCallOutData", ShortCall)
 
 
 @dataclass
@@ -204,7 +172,6 @@ def register_service_data(
 
 def register_short_train_service_types(conn: Connection) -> None:
     register_short_train_station_types(conn)
-    register_brand_data_types(conn)
     register_short_call_types(conn)
     register_short_associated_service_types(conn)
-    register_type(conn, "TrainServiceOutData", register_service_data)
+    register_type(conn, "TrainServiceOutData", ShortTrainService)
