@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from math import ceil
 from typing import Callable, Optional
 
@@ -272,7 +273,7 @@ def input_select_paginate[T](
         page_choice: PickChoice[T] = ask_select_question(
             message, choice_objects, use_shortcuts=True, instruction=""
         )
-        match (page_choice):
+        match page_choice:
             case PickUnknown():
                 continue
             case _:
@@ -329,3 +330,17 @@ def input_datetime(start: Optional[datetime] = None) -> datetime:
         raise RuntimeError()
     input_datetime = datetime(year, month, date, time.hour, time.minute)
     return make_timezone_aware(input_datetime)
+
+
+def input_price(prompt: str) -> Decimal:
+    while True:
+        string = input(f"{prompt} ")
+        try:
+            price_text = string.replace("£", "")
+            price = Decimal(price_text)
+            if price < 0:
+                print(f"Expected positive price but got '{price}'")
+            else:
+                return price
+        except InvalidOperation:
+            print(f"Expected price but got '{string}'")

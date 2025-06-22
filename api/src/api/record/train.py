@@ -1,4 +1,3 @@
-import decimal
 import json
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -80,70 +79,6 @@ def timedelta_from_string(string: str) -> timedelta:
     hour = int(parts[0])
     minutes = int(parts[1])
     return timedelta(hours=hour, minutes=minutes)
-
-
-def get_input_no(
-    prompt: str,
-    lower: Optional[int] = None,
-    upper: Optional[int] = None,
-    default: Optional[int] = None,
-    pad: int = 0,
-    unknown: bool = False,
-) -> Optional[int]:
-    """
-    Get a natural number of a given length from the user,
-    optionally with an upper bound and a default value to use if no input is given
-    """
-    while True:
-        prompt_string = prompt
-        # Tell the user the default option
-        if default is not None:
-            prompt_string = prompt_string + " (" + pad_front(default, pad) + ")"
-        prompt_string = prompt_string + ": "
-        # Get input from the user
-        string = input(prompt_string)
-        # If the user gives an empty input, use the default if it exists
-        if string == "":
-            if default is not None:
-                return int(default)
-            elif unknown:
-                return None
-        if not string.isdigit():
-            print(f"Expected number but got '{string}'")
-        else:
-            nat = int(string)
-            # Check the number is in the range
-            if (
-                nat >= 0
-                and (upper is None or nat <= upper)
-                and (lower is None or nat >= lower)
-            ):
-                return nat
-            else:
-                error_msg = "Expected number in range "
-                if lower is None:
-                    lower_string = "0"
-                else:
-                    lower_string = str(lower)
-                error_msg = f"{error_msg}{lower_string}-"
-                if upper is not None:
-                    error_msg = f"{error_msg}{upper}"
-                error_msg = error_msg + " but got " + string
-                print(error_msg)
-
-
-def get_input_price(prompt: str) -> Decimal:
-    while True:
-        string = input(f"{prompt} ")
-        try:
-            price_text = string.replace("£", "")
-            price = Decimal(price_text)
-            if price < 0:
-                print(f"Expected positive price but got '{price}'")
-            else:
-                return price
-        except decimal.InvalidOperation:
-            print(f"Expected price but got '{string}'")
 
 
 def get_station_from_input(
