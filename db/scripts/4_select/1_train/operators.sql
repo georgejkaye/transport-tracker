@@ -7,7 +7,7 @@ AS
 $$
 SELECT operator_id
 FROM train_operator
-WHERE operator_name;
+WHERE operator_name = p_operator_name;
 $$;
 
 CREATE OR REPLACE FUNCTION select_brands_by_operator_code (
@@ -28,6 +28,42 @@ FROM train_brand
 INNER JOIN train_operator
 ON train_brand.parent_operator = train_operator.operator_id
 WHERE p_operator_code = train_operator.operator_code
-AND operation_range @> p_run_date::date
+AND p_run_date::date <@ train_operator.operation_range
 ORDER BY train_brand.brand_name;
+$$;
+
+CREATE OR REPLACE FUNCTION select_operator_by_operator_code (
+    p_operator_code TEXT,
+    p_run_date TIMESTAMP WITH TIME ZONE
+)
+RETURNS SETOF train_operator_out_data
+LANGUAGE sql
+AS
+$$
+SELECT
+    train_operator.operator_id,
+    train_operator.operator_code,
+    train_operator.operator_name,
+    train_operator.bg_colour,
+    train_operator.fg_colour,
+    train_operator.operation_range,
+    train_brand_array.train_brand
+FROM train_operator
+INNER JOIN (
+    SELECT
+        train_brand.parent_operator AS operator_id,
+        ARRAY_AGG((
+            train_brand.brand_id,
+            train_brand.brand_code,
+            train_brand.brand_name,
+            train_brand.bg_colour,
+            train_brand.fg_colour)::train_brand_out_data
+            ORDER BY train_brand.brand_name
+        ) AS train_brand
+    FROM train_brand
+    GROUP BY train_brand.parent_operator
+) train_brand_array
+ON train_operator.operator_id = train_brand_array.operator_id
+WHERE train_operator.operator_code = p_operator_code
+AND train_operator.operation_range @> p_run_date::date;
 $$;
