@@ -11,17 +11,6 @@ class Class:
         return hash(self.class_no)
 
 
-def string_of_class(stock_class: Class) -> str:
-    string = f"Class {stock_class.class_no}"
-    if stock_class.class_name is not None:
-        string = f"{string} ({stock_class.class_name})"
-    return string
-
-
-def sort_by_classes(stock: list[Class]) -> list[Class]:
-    return sorted(stock, key=lambda x: x.class_no)
-
-
 @dataclass
 class ClassAndSubclass:
     class_no: int
@@ -37,31 +26,6 @@ class ClassAndSubclass:
         return hash(self.class_no * 10 + subclass_hash)
 
 
-def string_of_class_and_subclass(
-    stock: ClassAndSubclass, name: bool = True
-) -> str:
-    string = f"Class {stock.class_no}"
-    if stock.subclass_no is not None:
-        string = f"{string}/{stock.subclass_no}"
-    if name:
-        if stock.subclass_name is not None:
-            string = f"{string} ({stock.subclass_name})"
-        elif stock.class_name is not None:
-            string = f"{string} ({stock.class_name})"
-    return string
-
-
-def subclass_sort_key(stock: ClassAndSubclass) -> int:
-    if stock.subclass_no is None:
-        return stock.class_no * 10
-    else:
-        return stock.class_no * 10 + stock.subclass_no
-
-
-def sort_by_subclasses(stock: list[ClassAndSubclass]) -> list[ClassAndSubclass]:
-    return sorted(stock, key=subclass_sort_key)
-
-
 @dataclass
 class StockUnit:
     class_no: int
@@ -72,13 +36,49 @@ class StockUnit:
 
 
 @dataclass
+class StockSubclass:
+    stock_subclass: Optional[int]
+    stock_subclass_name: Optional[str]
+    stock_cars: list[int]
+
+
+def sort_by_subclasses(stock: list[StockSubclass]) -> list[StockSubclass]:
+    return sorted(
+        stock,
+        key=lambda c: c.stock_subclass if c.stock_subclass is not None else -1,
+    )
+
+
+@dataclass
 class Stock:
-    class_no: int
-    class_name: Optional[str]
-    subclass_no: Optional[int]
-    subclass_name: Optional[str]
-    operator: str
-    brand: Optional[str]
+    stock_class: int
+    stock_class_name: Optional[str]
+    stock_subclasses: list[StockSubclass]
+
+
+def string_of_class(stock_class: Stock) -> str:
+    string = f"Class {stock_class.stock_class}"
+    if stock_class.stock_class_name is not None:
+        string = f"{string} ({stock_class.stock_class_name})"
+    return string
+
+
+def string_of_class_and_subclass(
+    stock: Stock, subclass: StockSubclass, name: bool = True
+) -> str:
+    string = f"Class {stock.stock_class}"
+    if subclass.stock_subclass is not None:
+        string = f"{string}/{subclass.stock_subclass}"
+    if name:
+        if subclass.stock_subclass_name is not None:
+            string = f"{string} ({subclass.stock_subclass_name})"
+        elif stock.stock_class_name is not None:
+            string = f"{string} ({stock.stock_class_name})"
+    return string
+
+
+def sort_by_classes(stock: list[Stock]) -> list[Stock]:
+    return sorted(stock, key=lambda x: x.stock_class)
 
 
 @dataclass
