@@ -196,9 +196,8 @@ CREATE TABLE train_associated_service (
         UNIQUE (call_id, associated_service_id, associated_type)
 );
 
-CREATE TABLE train_leg (
-    leg_id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
+CREATE TABLE train_sequence (
+    sequence_id SERIAL PRIMARY KEY,
     distance NUMERIC NOT NULL,
     FOREIGN KEY (user_id) REFERENCES Traveller(user_id),
     CONSTRAINT distance_positive CHECK (distance > 0)
@@ -206,19 +205,28 @@ CREATE TABLE train_leg (
 
 CREATE TABLE train_leg_call (
     leg_call_id SERIAL PRIMARY KEY,
-    leg_id INTEGER NOT NULL,
+    train_sequence_id INTEGER NOT NULL,
     arr_call_id INTEGER,
     dep_call_id INTEGER,
     mileage NUMERIC,
     associated_type_id INTEGER,
     CONSTRAINT leg_call_unique UNIQUE (leg_id, arr_call_id, dep_call_id),
-    FOREIGN KEY (leg_id) REFERENCES train_leg(leg_id) ON DELETE CASCADE,
+    FOREIGN KEY (leg_id) REFERENCES train_sequence(sequence_id) ON DELETE CASCADE,
     FOREIGN KEY (arr_call_id) REFERENCES train_call(call_id) ON DELETE CASCADE,
     FOREIGN KEY (dep_call_id) REFERENCES train_call(call_id) ON DELETE CASCADE,
     FOREIGN KEY (associated_type_id)
         REFERENCES train_associated_service_type(associated_type_id),
     CONSTRAINT mileage_positive CHECK (mileage >= 0),
     CONSTRAINT arr_or_dep CHECK (num_nulls(arr_call_id, dep_call_id) <= 1)
+);
+
+CREATE TABLE train_leg (
+    train_leg_id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    train_sequence_id INTEGER NOT NULL
+    FOREIGN KEY (user_id) REFERENCES traveller(user_id),
+    FOREIGN KEY (train_sequence_id)
+        REFERENCES train_sequence(train_sequence_id);
 );
 
 CREATE TABLE train_stock_segment (
