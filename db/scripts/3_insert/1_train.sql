@@ -84,47 +84,81 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION InsertLeg(
-    p_user_id INTEGER,
-    p_leg_distance DECIMAL,
-    p_legcalls TrainLegCallInData[],
-    p_stockreports TrainStockReportInData[]
+CREATE OR REPLACE FUNCTION insert_leg(
+    p_user_id INTEGER[],
+    p_leg_id train_leg_in_data
 )
 RETURNS VOID
 LANGUAGE plpgsql
 AS
 $$
 DECLARE
-    v_leg_id INT;
+    v_sequence_id INT;
 BEGIN
-    INSERT INTO TrainLeg(user_id, distance)
-    VALUES (p_user_id, p_leg_distance)
-    RETURNING leg_id INTO v_leg_id;
+    INSERT INTO train_sequence (distance)
+    VALUES (p_leg_id.leg_distance)
+    RETURNING train_sequence_id INTO v_sequence_id;
 
-    INSERT INTO TrainLegCall(leg_id, arr_call_id, dep_call_id, mileage, assoc_type)
-        SELECT
-            v_leg_id,
-            (SELECT GetCallFromLegCall(
-                v_legcall.arr_call_service_id,
-                v_legcall.arr_call_run_date,
-                v_legcall.arr_call_station_crs,
-                v_legcall.arr_call_plan_arr,
-                v_legcall.arr_call_plan_dep,
-                v_legcall.arr_call_act_arr,
-                v_legcall.arr_call_act_dep
-            )),
-            (SELECT GetCallFromLegCall(
-                v_legcall.dep_call_service_id,
-                v_legcall.dep_call_run_date,
-                v_legcall.dep_call_station_crs,
-                v_legcall.dep_call_plan_arr,
-                v_legcall.dep_call_plan_dep,
-                v_legcall.dep_call_act_arr,
-                v_legcall.dep_call_act_dep
-            )),
-            v_legcall.mileage,
-            v_legcall.assoc_type
-        FROM UNNEST(p_legcalls) AS v_legcall;
+    INSERT INTO train_service (
+        unique_identifier,
+        run_date,
+        headcode,
+        operator_id,
+        brand_id,
+        power
+    )
+    VALUES (
+        v_service.unique_identifier,
+        v_service.run_data,
+        v_service.headcode,
+        (
+            SELECT operator_id
+            FROM train_operator
+            WHERE train_operator.operator_code = v_service.operator_code
+            AND v_service.run_date::date <@ train_operator.operation_range
+        ),
+        (
+            SELECT brand_id
+            FROM train_brand
+            INNER JOIN
+            WHERE train_brand.brand_code = v_service.brand_code
+        )
+    )
+
+    )
+
+
+
+    INSERT INTO train_leg_call(
+        train_sequence_id,
+        arr_call_id,
+        dep_call_id,
+        mileage,
+        assoc_type
+    )
+    SELECT
+        v_sequence_id,
+        (SELECT GetCallFromLegCall(
+            v_legcall.arr_call_service_id,
+            v_legcall.arr_call_run_date,
+            v_legcall.arr_call_station_crs,
+            v_legcall.arr_call_plan_arr,
+            v_legcall.arr_call_plan_dep,
+            v_legcall.arr_call_act_arr,
+            v_legcall.arr_call_act_dep
+        )),
+        (SELECT GetCallFromLegCall(
+            v_legcall.dep_call_service_id,
+            v_legcall.dep_call_run_date,
+            v_legcall.dep_call_station_crs,
+            v_legcall.dep_call_plan_arr,
+            v_legcall.dep_call_plan_dep,
+            v_legcall.dep_call_act_arr,
+            v_legcall.dep_call_act_dep
+        )),
+        v_legcall.mileage,
+        v_legcall.assoc_type
+    FROM UNNEST(p_legcalls) AS v_legcall;
     INSERT INTO TrainStockSegment(start_call, end_call)
         SELECT
             (SELECT GetCallFromLegCall(
@@ -191,5 +225,9 @@ BEGIN
         ))
     FROM UNNEST(p_stockreports) AS v_stockreport
     ON CONFLICT DO NOTHING;
+
+    INSERT INTO train_leg(user_id, train_sequence_id)
+    VALUES (v_user, v_train_sequence_id)
+    FROM UNNEST(p_users) AS v_user;
 END;
 $$;
