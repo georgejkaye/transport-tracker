@@ -22,6 +22,18 @@ CREATE TYPE train_brand_out_data AS (
     brand_fg TEXT
 );
 
+CREATE TYPE train_stock_subclass_out_data AS (
+    stock_subclass INTEGER,
+    stock_subclass_name TEXT,
+    stock_cars INTEGER[]
+);
+
+CREATE TYPE train_stock_out_data AS (
+    stock_class INTEGER,
+    stock_class_name TEXT,
+    stock_subclasses train_stock_subclass_out_data[]
+);
+
 CREATE TYPE train_service_in_data AS (
     unique_identifier TEXT,
     run_date TIMESTAMP WITH TIME ZONE,
