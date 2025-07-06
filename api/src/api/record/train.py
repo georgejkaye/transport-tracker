@@ -342,7 +342,7 @@ def get_stock(
 
     # Currently getting this automatically isn't implemented
     stock_list = get_operator_stock(
-        conn, service.operator_code, service.run_date
+        conn, service.operator_id, service.brand_id, service.run_date
     )
     current_call = calls[0]
     remaining_calls = calls[1:]

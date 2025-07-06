@@ -95,7 +95,7 @@ def update_station_count_dict(
 def get_call_info_time_string(call_time: Optional[datetime]) -> str:
     if call_time is None:
         return "--"
-    return f"{call_time.strftime("%H%M")}"
+    return f"{call_time.strftime('%H%M')}"
 
 
 def get_call_info_text(station_point: StationPoint) -> str:
@@ -301,11 +301,11 @@ def get_leg_map_from_gml_file(leg_file: str | Path) -> Optional[str]:
 def get_operator_colour_from_leg(leg: ShortLeg) -> str:
     service_key = list(leg.services.keys())[0]
     service = leg.services[service_key]
-    if service.brand is not None and service.brand.bg is not None:
-        return service.brand.bg
-    if service.operator.bg is None:
+    if service.brand is not None and service.brand.brand_bg is not None:
+        return service.brand.brand_bg
+    if service.operator.operator_bg is None:
         return "#000000"
-    return service.operator.bg
+    return service.operator.operator_bg
 
 
 def get_leg_line_for_leg(

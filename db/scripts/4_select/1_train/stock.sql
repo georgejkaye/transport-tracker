@@ -1,5 +1,6 @@
 CREATE OR REPLACE FUNCTION select_operator_stock (
-    p_operator_code TEXT,
+    p_operator_id INTEGER,
+    p_brand_id INTEGER,
     p_run_date TIMESTAMP WITH TIME ZONE
 )
 RETURNS SETOF train_stock_out_data
@@ -53,8 +54,11 @@ INNER JOIN train_operator
 ON train_operator_stock.operator_id = train_operator.operator_id
 LEFT JOIN train_brand
 ON train_operator_stock.brand_id = train_brand.brand_id
-WHERE (operator_code = p_operator_code OR brand_code = p_operator_code)
-AND p_run_date::date <@ train_operator.operation_range
+WHERE (
+    train_operator.operator_id = p_operator_id
+    OR train_brand.brand_id = p_brand_id
+)
+AND train_operator.operation_range @> p_run_date::date
 GROUP BY train_stock.stock_class
 ORDER BY train_stock.stock_class ASC;
 $$;

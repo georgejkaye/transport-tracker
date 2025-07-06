@@ -42,8 +42,8 @@ class TrainServiceInData:
     headcode: str
     origin_names: list[str]
     destination_names: list[str]
-    operator_code: int
-    brand_code: Optional[int]
+    operator_id: int
+    brand_id: Optional[int]
     power: Optional[str]
     calls: list[TrainServiceCallInData]
     associated_services: list["TrainAssociatedServiceInData"]
@@ -64,7 +64,7 @@ class TrainAssociatedServiceInData:
 ###
 
 DbTrainServiceInData = tuple[
-    str, datetime, str, str, Optional[str], Optional[str]
+    str, datetime, str, int, Optional[int], Optional[str]
 ]
 
 DbTrainServiceEndpointInData = tuple[str, datetime, str, bool]

@@ -35,8 +35,8 @@ def get_db_service_tuple(
         service.unique_identifier,
         service.run_date,
         service.headcode,
-        service.operator_code,
-        service.brand_code,
+        service.operator_id,
+        service.brand_id,
         service.power,
     )
 

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from api.utils.database import register_type
 from psycopg import Connection
@@ -24,13 +25,16 @@ def get_unique_classes_from_subclasses(
 
 
 def get_operator_stock(
-    conn: Connection, operator_code: str, run_date: datetime
+    conn: Connection,
+    operator_id: int,
+    brand_id: Optional[int],
+    run_date: datetime,
 ) -> list[Stock]:
     register_type(conn, "train_stock_subclass_out_data", StockSubclass)
     with conn.cursor(row_factory=class_row(Stock)) as cur:
         rows = cur.execute(
-            "SELECT * FROM select_operator_stock(%s, %s)",
-            [operator_code, run_date],
+            "SELECT * FROM select_operator_stock(%s, %s, %s)",
+            [operator_id, brand_id, run_date],
         ).fetchall()
         return rows
 
