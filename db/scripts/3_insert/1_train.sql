@@ -175,6 +175,32 @@ BEGIN
         v_call.mileage
     FROM UNNEST(p_leg.service_calls) AS p_call;
 
+    INSERT INTO train_associated_service (
+        call_id,
+        associated_type_id,
+        associated_service_id
+    ) SELECT
+        (
+            SELECT call_id
+            FROM train_call
+            INNER JOIN train_service
+            ON train_call.train_service_id = train_service.train_service_id
+            WHERE train_service.unique_identifier = v_assoc.unique_identifier
+            AND train_service.run_date = v_assoc.run_date
+            AND train_call.plan_arr = v_assoc.plan_arr
+            AND train_call.plan_dep = v_assoc.plan_dep
+            AND train_call.act_arr = v_assoc.plan_arr
+            AND train_call.act_dep = v_assoc.act_dep
+        ),
+        (
+            SELECT train_service_id
+            FROM train_service
+            WHERE train_service.unique_identifier = v_assoc.assoc_unique_identifier
+            AND train_service.run_date = v_assoc.assoc_run_date
+        ),
+        v_assoc.assoc_type
+    FROM UNNEST(p_leg.service_associations) AS v_assoc;
+
     INSERT INTO train_leg_call(
         train_sequence_id,
         arr_call_id,
