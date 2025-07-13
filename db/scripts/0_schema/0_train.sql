@@ -197,14 +197,14 @@ CREATE TABLE train_associated_service (
 );
 
 CREATE TABLE train_leg (
-    leg_id SERIAL PRIMARY KEY,
+    train_leg_id SERIAL PRIMARY KEY,
     distance NUMERIC NOT NULL,
     CONSTRAINT distance_positive CHECK (distance > 0)
 );
 
 CREATE TABLE train_leg_call (
     leg_call_id SERIAL PRIMARY KEY,
-    leg_id INTEGER NOT NULL,
+    train_leg_id INTEGER NOT NULL,
     arr_call_id INTEGER,
     dep_call_id INTEGER,
     mileage NUMERIC,

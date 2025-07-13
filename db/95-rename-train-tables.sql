@@ -337,12 +337,9 @@ WHERE type_name = 'DIVIDES_FROM';
 -- split train sequence and train leg
 
 ALTER TABLE train_leg
-RENAME TO train_sequence;
+RENAME leg_id TO train_leg_id;
 
-ALTER TABLE train_sequence
-RENAME leg_id TO train_sequence_id;
-
-CREATE TABLE train_leg (
+CREATE TABLE transport_user_train_leg (
     train_leg_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
     train_sequence_id INTEGER NOT NULL,
@@ -351,11 +348,11 @@ CREATE TABLE train_leg (
         REFERENCES train_sequence(train_sequence_id)
 );
 
-INSERT INTO train_leg (user_id, train_sequence_id)
+INSERT INTO transport_user_train_leg (user_id, train_sequence_id)
 SELECT user_id, train_sequence_id FROM train_sequence;
 
 ALTER TABLE train_leg_call
-RENAME leg_id TO train_sequence_id;
+RENAME leg_id TO train_leg_id;
 
 -- rename types and functions
 
