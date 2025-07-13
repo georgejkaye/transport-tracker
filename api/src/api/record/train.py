@@ -276,6 +276,8 @@ def get_unit_report(
     stock_list: list[Stock],
 ) -> Optional[StockReport]:
     stock_class_res = get_unit_class(stock_list)
+    stock_class: Optional[Stock] = None
+    stock_subclass: Optional[StockSubclass] = None
     match stock_class_res:
         case None:
             return None
