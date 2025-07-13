@@ -47,7 +47,7 @@ SELECT
     train_operator.bg_colour,
     train_operator.fg_colour,
     train_operator.operation_range,
-    train_brand_array.train_brand
+    COALESCE(train_brand_array.train_brand, ARRAY[]::train_brand_out_data[])
 FROM train_operator
 LEFT JOIN (
     SELECT
