@@ -86,18 +86,19 @@ $$;
 
 CREATE OR REPLACE FUNCTION insert_leg(
     p_user_id INTEGER[],
-    p_leg_id train_leg_in_data
+    p_leg train_leg_in_data
 )
 RETURNS VOID
 LANGUAGE plpgsql
 AS
 $$
 DECLARE
-    v_sequence_id INT;
+    v_train_leg_id INT;
+    v_train_call_with_service_id
 BEGIN
-    INSERT INTO train_sequence (distance)
-    VALUES (p_leg_id.leg_distance)
-    RETURNING train_sequence_id INTO v_sequence_id;
+    INSERT INTO train_leg (distance)
+    VALUES (p_leg.leg_distance)
+    RETURNING train_leg_id INTO v_train_leg_id;
 
     INSERT INTO train_service (
         unique_identifier,
@@ -107,27 +108,72 @@ BEGIN
         brand_id,
         power
     )
-    VALUES (
+    SELECT
         v_service.unique_identifier,
         v_service.run_data,
         v_service.headcode,
+        v_service.operator_id,
+        v_service.brand_id,
+        v_service.power
+    FROM UNNEST(p_leg.leg_services) AS v_service;
+
+    INSERT INTO train_service_endpoint (
+        train_service_id,
+        train_station_id,
+        origin
+    ) SELECT
         (
-            SELECT operator_id
-            FROM train_operator
-            WHERE train_operator.operator_code = v_service.operator_code
-            AND v_service.run_date::date <@ train_operator.operation_range
+            SELECT train_service_id
+            FROM train_service
+            WHERE train_service.unique_identifier = v_endpoint.unique_identifier
+            AND train_service.run_date = v_endpoint.run_date
         ),
         (
-            SELECT brand_id
-            FROM train_brand
-            INNER JOIN
-            WHERE train_brand.brand_code = v_service.brand_code
+            SELECT train_station_id
+            FROM train_station
+            INNER JOIN train_station_name
+            ON train_station.train_station_id
+                = train_station_name.train_station_id
+            WHERE train_station.station_name = v_endpoint.station_name
+            OR train_station_name.alternate_station_name
+                = v_endpoint.station_name
         )
-    )
+        v_endpoint.origin
+    FROM SELECT UNNEST(p_leg.service_endpoints) AS v_endpoint;
 
-    )
-
-
+    INSERT INTO train_call (
+        train_service_id,
+        train_station_id,
+        platform,
+        plan_arr,
+        plan_dep,
+        act_arr,
+        act_dep,
+        mileage
+    ) SELECT
+        (
+            SELECT train_service_id
+            FROM train_service
+            WHERE train_service.unique_identifier = v_call.unique_identifier
+            AND train_service.run_date = v_call.run_date
+        ),
+        (
+            SELECT train_station_id
+            FROM train_station
+            INNER JOIN train_station_name
+            ON train_station.train_station_id
+                = train_station_name.train_station_id
+            WHERE train_station.station_name = v_call.station_name
+            OR train_station_name.alternate_station_name
+                = v_call.station_name
+        ),
+        v_call.platform,
+        v_call.plan_arr,
+        v_call.plan_dep,
+        v_call.act_arr,
+        v_call.act_dep,
+        v_call.mileage
+    FROM UNNEST(p_leg.service_calls) AS p_call;
 
     INSERT INTO train_leg_call(
         train_sequence_id,
