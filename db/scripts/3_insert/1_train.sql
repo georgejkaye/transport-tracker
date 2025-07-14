@@ -8,7 +8,6 @@ AS
 $$
 DECLARE
     v_train_leg_id INT;
-    v_train_call_with_service_id
 BEGIN
     INSERT INTO train_leg (distance)
     VALUES (p_leg.leg_distance)
@@ -51,9 +50,9 @@ BEGIN
             WHERE train_station.station_name = v_endpoint.station_name
             OR train_station_name.alternate_station_name
                 = v_endpoint.station_name
-        )
+        ),
         v_endpoint.origin
-    FROM SELECT UNNEST(p_leg.service_endpoints) AS v_endpoint;
+    FROM UNNEST(p_leg.service_endpoints) AS v_endpoint;
 
     INSERT INTO train_call (
         train_service_id,
@@ -190,7 +189,7 @@ BEGIN
             AND train_call.act_arr = v_stock_segment.end_call_act_arr
             AND train_call.plan_dep = v_stock_segment.end_call_plan_dep
             AND train_call.act_dep = v_stock_segment.end_call_act_dep
-        ),
+        )
         FROM UNNEST(p_leg.leg_stock) AS v_stockreport
         ON CONFLICT DO NOTHING;
 
@@ -258,7 +257,7 @@ BEGIN
                     = v_stock_segment.end_call_plan_dep
                 AND train_call.act_dep
                     = v_stock_segment.end_call_act_dep
-            ),
+            )
         ),
         (
             SELECT stock_report_id
@@ -279,7 +278,7 @@ BEGIN
         user_id,
         train_sequence_id
     )
-    VALUES (v_user, v_train_sequence_id)
+    SELECT (v_user, v_train_sequence_id)
     FROM UNNEST(p_users) AS v_user;
 END;
 $$;
