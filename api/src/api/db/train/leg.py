@@ -196,8 +196,8 @@ def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData) -> None:
         service_call_data,
         service_association_data,
         leg_call_data,
-        leg.distance,
         leg_stock_data,
+        leg.distance,
     )
     conn.execute(
         "SELECT * FROM insert_leg(%s::train_leg_in_data)",

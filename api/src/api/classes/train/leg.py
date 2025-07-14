@@ -127,8 +127,8 @@ DbTrainLegInData = tuple[
     list[DbTrainCallInData],
     list[DbTrainAssociatedServiceInData],
     list[DbTrainLegCallInData],
-    Optional[Decimal],
     Optional[list[DbTrainStockSegmentInData]],
+    Optional[Decimal],
 ]
 
 
