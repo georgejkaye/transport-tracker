@@ -4,7 +4,7 @@ LANGUAGE sql
 AS
 $$
 SELECT user_id, user_name, display_name, hashed_password
-FROM traveller;
+FROM transport_user;
 $$;
 
 CREATE OR REPLACE FUNCTION select_user_by_username (
@@ -15,6 +15,6 @@ LANGUAGE sql
 AS
 $$
 SELECT (user_id, user_name, display_name, hashed_password)::user_out_data
-FROM traveller
+FROM transport_user
 WHERE p_username = user_name
 $$;
