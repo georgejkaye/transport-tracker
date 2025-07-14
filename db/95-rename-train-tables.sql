@@ -336,20 +336,26 @@ WHERE type_name = 'DIVIDES_FROM';
 
 -- split train sequence and train leg
 
+ALTER TABLE traveller
+RENAME TO transport_user;
+
 ALTER TABLE train_leg
 RENAME leg_id TO train_leg_id;
 
 CREATE TABLE transport_user_train_leg (
-    train_leg_id SERIAL PRIMARY KEY,
+    transport_user_train_leg_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
-    train_sequence_id INTEGER NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES traveller(user_id),
-    FOREIGN KEY (train_sequence_id)
-        REFERENCES train_sequence(train_sequence_id)
+    train_leg_id INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES transport_user(user_id),
+    FOREIGN KEY (train_leg_id)
+        REFERENCES train_leg(train_leg_id)
 );
 
-INSERT INTO transport_user_train_leg (user_id, train_sequence_id)
-SELECT user_id, train_sequence_id FROM train_sequence;
+INSERT INTO transport_user_train_leg (user_id, train_leg_id)
+SELECT user_id, train_leg_id FROM train_leg;
+
+ALTER TABLE train_leg
+DROP COLUMN user_id;
 
 ALTER TABLE train_leg_call
 RENAME leg_id TO train_leg_id;
