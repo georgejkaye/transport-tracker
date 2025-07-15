@@ -117,18 +117,19 @@ ALTER TABLE train_call DROP COLUMN run_date;
 
 ALTER TABLE train_associated_service
 RENAME COLUMN associated_id TO associated_unique_identifier;
-ALTER TABLE train_associated_service ADD associated_service_id INT;
+ALTER TABLE train_associated_service ADD train_service_id INT;
 
-UPDATE train_associated_service SET associated_service_id = (
+UPDATE train_associated_service SET train_service_id = (
     SELECT train_service.train_service_id
     FROM train_service
-    WHERE train_service.run_date = train_associated_service.associated_run_date
+    WHERE train_service.run_date
+        = train_associated_service.associated_run_date
     AND train_service.unique_identifier
         = train_associated_service.associated_unique_identifier
 );
 
 ALTER TABLE train_associated_service
-ALTER COLUMN associated_service_id SET NOT NULL;
+ALTER COLUMN train_service_id SET NOT NULL;
 
 ALTER TABLE train_associated_service
 ADD CONSTRAINT train_associated_service_associated_service_id_fkey
@@ -193,7 +194,7 @@ UPDATE train_station_point SET train_station_id = (
     WHERE train_station.station_crs = train_station_point.station_crs
 );
 
-ALTER TABLE train_station_point ALTER COLUMN station_id SET NOT NULL;
+ALTER TABLE train_station_point ALTER COLUMN train_station_id SET NOT NULL;
 
 ALTER TABLE train_station_point
 ADD CONSTRAINT train_station_point_station_id_fkey
@@ -254,7 +255,7 @@ UNIQUE (call_id, associated_service_id, associated_type);
 -- Make associated type have ids
 
 ALTER TABLE train_associated_service_type
-ADD COLUMN associated_type_id SERIAL;
+ADD COLUMN train_associated_type_id SERIAL;
 
 ALTER TABLE train_associated_service_type
 RENAME COLUMN associated_type TO type_name;
@@ -277,15 +278,15 @@ DROP CONSTRAINT associatedtype_pkey;
 
 ALTER TABLE train_associated_service_type
 ADD CONSTRAINT train_associated_service_type_pkey
-PRIMARY KEY (associated_type_id);
+PRIMARY KEY (train_associated_type_id);
 
 ALTER TABLE train_associated_service
-ADD COLUMN associated_type_id INTEGER;
+ADD COLUMN train_associated_type_id INTEGER;
 
 ALTER TABLE train_associated_service
-ADD CONSTRAINT train_associated_service_associated_type_id_fkey
-FOREIGN KEY(associated_type_id)
-REFERENCES train_associated_service_type(associated_type_id);
+ADD CONSTRAINT train_associated_service_train_associated_type_id_fkey
+FOREIGN KEY(train_associated_type_id)
+REFERENCES train_associated_service_type(train_associated_type_id);
 
 UPDATE train_associated_service
 SET associated_type_id = (
@@ -339,9 +340,6 @@ WHERE type_name = 'DIVIDES_FROM';
 ALTER TABLE traveller
 RENAME TO transport_user;
 
-ALTER TABLE train_leg
-RENAME leg_id TO train_leg_id;
-
 CREATE TABLE transport_user_train_leg (
     transport_user_train_leg_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
@@ -357,14 +355,52 @@ SELECT user_id, train_leg_id FROM train_leg;
 ALTER TABLE train_leg
 DROP COLUMN user_id;
 
+-- put train in front of primary ids
+
+ALTER TABLE train_operator
+RENAME operator_id TO train_operator_id;
+
+ALTER TABLE train_brand
+RENAME brand_id TO train_brand_id;
+
+ALTER TABLE train_brand
+RENAME parent_operator TO train_operator_id;
+
+ALTER TABLE train_operator_stock
+RENAME operator_id TO train_operator_id;
+
+ALTER TABLE train_operator_stock
+RENAME brand_id TO train_brand_id;
+
+ALTER TABLE train_station
+RENAME operator_id TO train_operator_id;
+
+ALTER TABLE train_station
+RENAME brand_id TO train_brand_id;
+
+ALTER TABLE train_service
+RENAME operator_id TO train_operator_id;
+
+ALTER TABLE train_brand
+RENAME brand_id TO train_brand_id;
+
+ALTER TABLE train_call
+RENAME call_id TO train_call_id;
+
+ALTER TABLE train_leg
+RENAME leg_id TO train_leg_id;
+
 ALTER TABLE train_leg_call
 RENAME leg_id TO train_leg_id;
 
--- rename types and functions
+ALTER TABLE train_stock_segment
+RENAME stock_segment_id TO train_stock_segment_id;
 
-DROP FUNCTION GetUsers;
-DROP FUNCTION GetUserByUsername;
-DROP TYPE UserOutData;
-DROP TYPE UserOutPublicData;
+ALTER TABLE train_stock_report
+RENAME stock_report_id TO train_stock_report_id;
 
-DROP FUNCTION SelectCallAssocData;
+ALTER TABLE train_stock_segment_report
+RENAME stock_segment_id TO train_stock_segment_id;
+
+ALTER TABLE train_stock_segment_report
+RENAME stock_report_id TO train_stock_report_id;

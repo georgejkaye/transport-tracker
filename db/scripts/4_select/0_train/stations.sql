@@ -9,8 +9,8 @@ SELECT
     train_station_id,
     station_crs,
     station_name,
-    operator_id,
-    brand_id
+    train_operator_id,
+    train_brand_id
 FROM train_station
 WHERE LOWER(station_crs) = LOWER(p_station_crs)
 $$;
@@ -26,8 +26,8 @@ SELECT
     train_station_id,
     station_crs,
     station_name,
-    operator_id,
-    brand_id
+    train_operator_id,
+    train_brand_id
 FROM train_station
 WHERE LOWER(station_name) = LOWER(p_station_name)
 $$;
@@ -43,8 +43,8 @@ SELECT
     train_station_id,
     station_crs,
     station_name,
-    operator_id,
-    brand_id
+    train_operator_id,
+    train_brand_id
 FROM train_station
 WHERE LOWER(station_name) LIKE '%' || LOWER(p_name_substring) || '%'
 ORDER BY station_name;

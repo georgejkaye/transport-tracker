@@ -5,7 +5,7 @@ CREATE TABLE train_operator_code (
 );
 
 CREATE TABLE train_operator (
-    operator_id SERIAL PRIMARY KEY,
+    train_operator_id SERIAL PRIMARY KEY,
     operator_code TEXT,
     operator_name TEXT NOT NULL,
     bg_colour TEXT,
@@ -14,18 +14,18 @@ CREATE TABLE train_operator (
     FOREIGN KEY (operator_code) REFERENCES train_operator_code(operator_code),
     CONSTRAINT no_overlapping_operators
     exclude USING gist (
-        operator_id WITH =, operation_range WITH &&
+        train_operator_id WITH =, operation_range WITH &&
     )
 );
 
 CREATE TABLE train_brand (
-    brand_id SERIAL PRIMARY KEY,
+    train_brand_id SERIAL PRIMARY KEY,
     brand_code TEXT,
     brand_name TEXT NOT NULL,
     parent_operator INTEGER NOT NULL,
     bg_colour TEXT,
     fg_colour TEXT,
-    FOREIGN KEY (parent_operator) REFERENCES train_operator(operator_id)
+    FOREIGN KEY (parent_operator) REFERENCES train_operator(train_operator_id)
 );
 
 CREATE TABLE train_stock (
@@ -60,37 +60,46 @@ $$
 BEGIN
     RETURN p_brand_id IS NULL
         OR (p_brand_id IS NULL AND p_operator_id IS NULL)
-        OR (SELECT parent_operator FROM TrainBrand WHERE brand_id = p_brand_id) = p_operator_id;
+        OR (
+            SELECT parent_operator FROM train_brand
+            WHERE train_brand_id = p_brand_id
+        ) = p_operator_id;
 END;
 $$;
 
 CREATE TABLE train_operator_stock (
-    operator_id INTEGER NOT NULL,
-    brand_id INTEGER,
+    train_operator_id INTEGER NOT NULL,
+    train_brand_id INTEGER,
     stock_class INTEGER NOT NULL,
     stock_subclass INTEGER,
-    FOREIGN KEY (operator_id) REFERENCES train_operator(operator_id),
-    FOREIGN KEY (brand_id) REFERENCES train_brand(brand_id),
-    FOREIGN KEY (stock_class) REFERENCES train_stock(stock_class),
+    FOREIGN KEY (train_operator_id)
+        REFERENCES train_operator(train_operator_id),
+    FOREIGN KEY (train_brand_id)
+        REFERENCES train_brand(train_brand_id),
+    FOREIGN KEY (stock_class)
+        REFERENCES train_stock(stock_class),
     FOREIGN KEY (stock_class, stock_subclass)
         REFERENCES train_stock_subclass(stock_class, stock_subclass),
     CONSTRAINT train_operator_stock_unique_stock
-        UNIQUE
-            NULLS NOT DISTINCT
-            (operator_id, brand_id, stock_class, stock_subclass),
-    CONSTRAINT valid_brand CHECK (is_valid_brand(brand_id, operator_id))
+        UNIQUE NULLS NOT DISTINCT
+            (train_operator_id, train_brand_id, stock_class, stock_subclass),
+    CONSTRAINT valid_brand
+        CHECK (is_valid_brand(train_brand_id, train_operator_id))
 );
 
 CREATE TABLE train_station (
     train_station_id SERIAL PRIMARY KEY,
     station_crs TEXT NOT NULL,
     station_name TEXT NOT NULL,
-    operator_id INTEGER NOT NULL,
-    brand_id INTEGER,
+    train_operator_id INTEGER NOT NULL,
+    train_brand_id INTEGER,
     station_img TEXT,
-    FOREIGN KEY (operator_id) REFERENCES train_operator(operator_id),
-    FOREIGN KEY (brand_id) REFERENCES train_brand(brand_id),
-    CONSTRAINT valid_brand CHECK (is_valid_brand(brand_id, operator_id)),
+    FOREIGN KEY (train_operator_id)
+        REFERENCES train_operator(train_operator_id),
+    FOREIGN KEY (train_brand_id)
+        REFERENCES train_brand(train_brand_id),
+    CONSTRAINT valid_brand
+        CHECK (is_valid_brand(train_brand_id, train_operator_id)),
     CONSTRAINT train_station_check_station_crs_length
         CHECK (VALUE ~ '^[[:alpha:]]{3}$'),
     CONSTRAINT train_station_unique_station_crs UNIQUE station_crs
@@ -99,7 +108,7 @@ CREATE TABLE train_station (
 CREATE TABLE train_station_name (
     train_station_id INT NOT NULL,
     alternate_station_name TEXT NOT NULL,
-    FOREIGN KEY (train_station_id) REFERENCES train_station(station_id)
+    FOREIGN KEY (train_station_id) REFERENCES train_station(train_station_id)
 );
 
 CREATE TABLE train_station_point (
@@ -107,7 +116,7 @@ CREATE TABLE train_station_point (
     platform TEXT,
     latitude DECIMAL NOT NULL,
     longitude DECIMAL NOT NULL,
-    FOREIGN KEY (train_station_id) REFERENCES train_station(station_id),
+    FOREIGN KEY (train_station_id) REFERENCES train_station(train_station_id),
     CONSTRAINT point_unique
         UNIQUE NULLS NOT DISTINCT (train_station_id, platform)
 );
@@ -117,15 +126,15 @@ CREATE TABLE train_service (
     unique_identifier TEXT NOT NULL,
     run_date TIMESTAMP WITH TIME ZONE NOT NULL,
     headcode TEXT NOT NULL,
-    operator_id INTEGER NOT NULL,
-    brand_id INTEGER,
+    train_operator_id INTEGER NOT NULL,
+    train_brand_id INTEGER,
     power TEXT,
-    FOREIGN KEY (operator_id) REFERENCES train_operator(operator_id),
-    FOREIGN KEY (brand_id) REFERENCES TrainBrand(brand_id),
+    FOREIGN KEY (train_operator_id) REFERENCES train_operator(train_operator_id),
+    FOREIGN KEY (train_brand_id) REFERENCES train_brand(train_brand_id),
     CONSTRAINT train_service_unique_service_id_run_date
         UNIQUE (train_service_id, run_date),
     CONSTRAINT train_service_check_is_valid_brand
-        CHECK (is_valid_brand(brand_id, operator_id))
+        CHECK (is_valid_brand(train_brand_id, train_operator_id))
     CONSTRAINT train_service_check_headcode_length
         CHECK (LENGTH(headcode) = 4)
 );
@@ -157,43 +166,45 @@ CREATE TABLE train_call (
     CONSTRAINT train_call_unique_dep
         UNIQUE (train_service_id, run_date, station_crs, plan_dep),
     FOREIGN KEY (train_service_id)
-        REFERENCES train_service(service_id)
+        REFERENCES train_service(train_service_id)
         ON DELETE CASCADE,
-    FOREIGN KEY (train_station_id) REFERENCES train_station(station_id),
+    FOREIGN KEY (train_station_id)
+        REFERENCES train_station(train_station_id),
     CONSTRAINT mileage_positive CHECK (mileage >= 0)
 );
 
 CREATE TABLE train_associated_service_type (
-    associated_type_id SERIAL PRIMARY KEY,
+    train_associated_type_id SERIAL PRIMARY KEY,
     type_name TEXT NOT NULL UNIQUE
 );
 
-INSERT INTO train_associated_service_type(associated_type_id, type_name)
+INSERT INTO train_associated_service_type(train_associated_type_id, type_name)
 VALUES (1, 'THIS_JOINS');
 
-INSERT INTO train_associated_service_type(associated_type_id, type_name)
+INSERT INTO train_associated_service_type(train_associated_type_id, type_name)
 VALUES (2, 'OTHER_JOINS');
 
-INSERT INTO train_associated_service_type(associated_type_id, type_name)
+INSERT INTO train_associated_service_type(train_associated_type_id, type_name)
 VALUES (3, 'THIS_DIVIDES');
 
-INSERT INTO train_associated_service_type(associated_type_id, type_name)
+INSERT INTO train_associated_service_type(train_associated_type_id, type_name)
 VALUES (4, 'OTHER_DIVIDES');
 
 CREATE TABLE train_associated_service (
-    call_id INTEGER NOT NULL,
-    associated_service_id INT NOT NULL,
-    associated_type TEXT NOT NULL,
-    FOREIGN KEY (associated_type)
-        REFERENCES train_associated_service_type(associated_type),
-    FOREIGN KEY (call_id)
-        REFERENCES train_call(call_id)
+    train_call_id INTEGER NOT NULL,
+    train_associated_service_id INT NOT NULL,
+    train_associated_service_type_id INT NOT NULL,
+    FOREIGN KEY (train_associated_type_id)
+        REFERENCES
+            train_associated_service_type(train_associated_service_type_id),
+    FOREIGN KEY (train_call_id)
+        REFERENCES train_call(train_call_id)
         ON DELETE CASCADE,
-    FOREIGN KEY (associated_service_id)
+    FOREIGN KEY (train_associated_service_id)
         REFERENCES train_service(train_service_id)
         ON DELETE CASCADE,
     CONSTRAINT train_associated_service_unique_call_service_type
-        UNIQUE (call_id, associated_service_id, associated_type)
+        UNIQUE (train_call_id, train_service_id, train_associated_type_id)
 );
 
 CREATE TABLE train_leg (
@@ -223,8 +234,10 @@ CREATE TABLE train_stock_segment (
     stock_segment_id SERIAL PRIMARY KEY,
     start_call INTEGER NOT NULL,
     end_call INTEGER NOT NULL,
-    FOREIGN KEY (start_call) REFERENCES train_call(call_id) ON DELETE CASCADE,
-    FOREIGN KEY (end_call) REFERENCES train_call(call_id) ON DELETE CASCADE,
+    FOREIGN KEY (start_call)
+        REFERENCES train_call(train_call_id) ON DELETE CASCADE,
+    FOREIGN KEY (end_call)
+        REFERENCES train_call(train_call_id) ON DELETE CASCADE,
     CONSTRAINT stock_segment_unique UNIQUE (start_call, end_call)
 );
 
@@ -267,7 +280,7 @@ END;
 $$;
 
 CREATE TABLE train_stock_report (
-    stock_report_id SERIAL PRIMARY KEY,
+    train_stock_report_id SERIAL PRIMARY KEY,
     stock_class INTEGER,
     stock_subclass INTEGER,
     stock_number INTEGER,
