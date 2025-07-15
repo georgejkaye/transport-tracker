@@ -17,8 +17,8 @@ BEGIN
         unique_identifier,
         run_date,
         headcode,
-        operator_id,
-        brand_id,
+        train_operator_id,
+        train_brand_id,
         power
     )
     SELECT
@@ -42,9 +42,9 @@ BEGIN
             AND train_service.run_date = v_endpoint.run_date
         ),
         (
-            SELECT train_station_id
+            SELECT train_station.train_station_id
             FROM train_station
-            INNER JOIN train_station_name
+            LEFT JOIN train_station_name
             ON train_station.train_station_id
                 = train_station_name.train_station_id
             WHERE train_station.station_name = v_endpoint.station_name
@@ -71,14 +71,12 @@ BEGIN
             AND train_service.run_date = v_call.run_date
         ),
         (
-            SELECT train_station_id
+            SELECT train_station.train_station_id
             FROM train_station
-            INNER JOIN train_station_name
+            LEFT JOIN train_station_name
             ON train_station.train_station_id
                 = train_station_name.train_station_id
-            WHERE train_station.station_name = v_call.station_name
-            OR train_station_name.alternate_station_name
-                = v_call.station_name
+            WHERE train_station.station_crs = v_call.station_crs
         ),
         v_call.platform,
         v_call.plan_arr,
@@ -86,7 +84,7 @@ BEGIN
         v_call.act_arr,
         v_call.act_dep,
         v_call.mileage
-    FROM UNNEST(p_leg.service_calls) AS p_call;
+    FROM UNNEST(p_leg.service_calls) AS v_call;
 
     INSERT INTO train_associated_service (
         call_id,

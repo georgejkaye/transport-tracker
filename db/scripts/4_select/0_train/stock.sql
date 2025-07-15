@@ -51,12 +51,12 @@ AND (
         = train_operator_stock.stock_subclass
 )
 INNER JOIN train_operator
-ON train_operator_stock.operator_id = train_operator.operator_id
+ON train_operator_stock.train_operator_id = train_operator.train_operator_id
 LEFT JOIN train_brand
-ON train_operator_stock.brand_id = train_brand.brand_id
+ON train_operator_stock.train_brand_id = train_brand.train_brand_id
 WHERE (
-    train_operator.operator_id = p_operator_id
-    OR train_brand.brand_id = p_brand_id
+    train_operator.train_operator_id = p_operator_id
+    OR train_brand.train_brand_id = p_brand_id
 )
 AND train_operator.operation_range @> p_run_date::date
 GROUP BY train_stock.stock_class

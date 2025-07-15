@@ -22,10 +22,10 @@ CREATE TABLE train_brand (
     train_brand_id SERIAL PRIMARY KEY,
     brand_code TEXT,
     brand_name TEXT NOT NULL,
-    parent_operator INTEGER NOT NULL,
+    train_operator_id INTEGER NOT NULL,
     bg_colour TEXT,
     fg_colour TEXT,
-    FOREIGN KEY (parent_operator) REFERENCES train_operator(train_operator_id)
+    FOREIGN KEY (train_operator_id) REFERENCES train_operator(train_operator_id)
 );
 
 CREATE TABLE train_stock (
@@ -52,16 +52,15 @@ CREATE TABLE train_stock_formation (
 
 CREATE OR REPLACE FUNCTION is_valid_brand(
     p_brand_id INTEGER,
-    p_operator_id INT
+    p_operator_id INTEGER
 ) RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
     RETURN p_brand_id IS NULL
-        OR (p_brand_id IS NULL AND p_operator_id IS NULL)
         OR (
-            SELECT parent_operator FROM train_brand
+            SELECT train_operator_id FROM train_brand
             WHERE train_brand_id = p_brand_id
         ) = p_operator_id;
 END;

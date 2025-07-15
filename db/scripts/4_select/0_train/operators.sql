@@ -5,7 +5,7 @@ RETURNS INTEGER
 LANGUAGE sql
 AS
 $$
-SELECT operator_id
+SELECT train_operator_id
 FROM train_operator
 WHERE operator_name = p_operator_name;
 $$;
@@ -19,14 +19,14 @@ LANGUAGE sql
 AS
 $$
 SELECT
-    train_brand.brand_id,
+    train_brand.train_brand_id,
     train_brand.brand_code,
     train_brand.brand_name,
     train_brand.bg_colour,
     train_brand.fg_colour
 FROM train_brand
 INNER JOIN train_operator
-ON train_brand.parent_operator = train_operator.operator_id
+ON train_brand.train_operator_id = train_operator.train_operator_id
 WHERE p_operator_code = train_operator.operator_code
 AND p_run_date::date <@ train_operator.operation_range
 ORDER BY train_brand.brand_name;
@@ -41,7 +41,7 @@ LANGUAGE sql
 AS
 $$
 SELECT
-    train_operator.operator_id,
+    train_operator.train_operator_id,
     train_operator.operator_code,
     train_operator.operator_name,
     train_operator.bg_colour,
@@ -51,9 +51,9 @@ SELECT
 FROM train_operator
 LEFT JOIN (
     SELECT
-        train_brand.parent_operator AS operator_id,
+        train_brand.train_operator_id AS train_operator_id,
         ARRAY_AGG((
-            train_brand.brand_id,
+            train_brand.train_brand_id,
             train_brand.brand_code,
             train_brand.brand_name,
             train_brand.bg_colour,
@@ -61,9 +61,9 @@ LEFT JOIN (
             ORDER BY train_brand.brand_name
         ) AS train_brand
     FROM train_brand
-    GROUP BY train_brand.parent_operator
+    GROUP BY train_brand.train_operator_id
 ) train_brand_array
-ON train_operator.operator_id = train_brand_array.operator_id
+ON train_operator.train_operator_id = train_brand_array.train_operator_id
 WHERE train_operator.operator_code = p_operator_code
 AND train_operator.operation_range @> p_run_date::date;
 $$;
