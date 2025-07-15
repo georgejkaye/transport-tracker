@@ -94,7 +94,7 @@ BEGIN
         associated_service_id
     ) SELECT
         (
-            SELECT call_id
+            SELECT train_call_id
             FROM train_call
             INNER JOIN train_service
             ON train_call.train_service_id = train_service.train_service_id
@@ -125,27 +125,34 @@ BEGIN
     SELECT
         v_train_leg_id,
         (
-            SELECT call_id
+            SELECT train_call_id
             FROM train_call
             INNER JOIN train_station
-            ON train_call.station_id = train_station.station_id
+            ON train_call.train_station_id = train_station.train_station_id
             INNER JOIN train_service
-            ON train_call.service_id = train_service.service_id
-            WHERE train_station.station_crs = v_legcall.station_crs
-            AND train_service.unique_identifier = v_legcall.start_call_service_uid
-            AND train_service.run_date = v_legcall.start_call_service_run_date
-            AND train_call.plan_arr = v_legcall.start_call_plan_arr
-            AND train_call.act_arr = v_legcall.start_call_act_arr
-            AND train_call.plan_dep = v_legcall.start_call_plan_dep
-            AND train_call.act_dep = v_legcall.start_call_act_dep
+            ON train_call.train_service_id = train_service.train_service_id
+            WHERE train_station.station_crs
+                = v_legcall.station_crs
+            AND train_service.unique_identifier
+                = v_legcall.start_call_service_uid
+            AND train_service.run_date
+                = v_legcall.start_call_service_run_date
+            AND train_call.plan_arr
+                = v_legcall.start_call_plan_arr
+            AND train_call.act_arr
+                = v_legcall.start_call_act_arr
+            AND train_call.plan_dep
+                = v_legcall.start_call_plan_dep
+            AND train_call.act_dep
+                = v_legcall.start_call_act_dep
         ),
         (
             SELECT call_id
             FROM train_call
             INNER JOIN train_station
-            ON train_call.station_id = train_station.station_id
+            ON train_call.train_station_id = train_station.train_station_id
             INNER JOIN train_service
-            ON train_call.service_id = train_service.service_id
+            ON train_call.train_service_id = train_service.train_service_id
             WHERE train_station.station_crs = v_legcall.station_crs
             AND train_service.unique_identifier = v_legcall.dep_call_service_uid
             AND train_service.run_date = v_legcall.dep_call_service_run_date
@@ -167,28 +174,42 @@ BEGIN
             ON train_call.station_id = train_station.station_id
             INNER JOIN train_service
             ON train_call.service_id = train_service.service_id
-            WHERE train_station.station_crs = v_stock_segment.station_crs
-            AND train_service.unique_identifier = v_stock_segment.arr_call_service_uid
-            AND train_service.run_date = v_stock_segment.arr_call_service_run_date
-            AND train_call.plan_arr = v_stock_segment.arr_call_plan_arr
-            AND train_call.act_arr = v_stock_segment.arr_call_act_arr
-            AND train_call.plan_dep = v_stock_segment.arr_call_plan_dep
-            AND train_call.act_dep = v_stock_segment.arr_call_act_dep
+            WHERE train_station.station_crs
+                = v_stock_segment.station_crs
+            AND train_service.unique_identifier
+                = v_stock_segment.arr_call_service_uid
+            AND train_service.run_date
+                = v_stock_segment.arr_call_service_run_date
+            AND train_call.plan_arr
+                = v_stock_segment.arr_call_plan_arr
+            AND train_call.act_arr
+                = v_stock_segment.arr_call_act_arr
+            AND train_call.plan_dep
+                = v_stock_segment.arr_call_plan_dep
+            AND train_call.act_dep
+                = v_stock_segment.arr_call_act_dep
         ),
         (
-            SELECT call_id
+            SELECT train_call_id
             FROM train_call
             INNER JOIN train_station
-            ON train_call.station_id = train_station.station_id
+            ON train_call.train_station_id = train_station.train_station_id
             INNER JOIN train_service
-            ON train_call.service_id = train_service.service_id
-            WHERE train_station.station_crs = v_stock_segment.station_crs
-            AND train_service.unique_identifier = v_stock_segment.end_call_service_uid
-            AND train_service.run_date = v_stock_segment.end_call_service_run_date
-            AND train_call.plan_arr = v_stock_segment.end_call_plan_arr
-            AND train_call.act_arr = v_stock_segment.end_call_act_arr
-            AND train_call.plan_dep = v_stock_segment.end_call_plan_dep
-            AND train_call.act_dep = v_stock_segment.end_call_act_dep
+            ON train_call.train_service_id = train_service.train_service_id
+            WHERE train_station.station_crs
+                = v_stock_segment.station_crs
+            AND train_service.unique_identifier
+                = v_stock_segment.end_call_service_uid
+            AND train_service.run_date
+                = v_stock_segment.end_call_service_run_date
+            AND train_call.plan_arr
+                = v_stock_segment.end_call_plan_arr
+            AND train_call.act_arr
+                = v_stock_segment.end_call_act_arr
+            AND train_call.plan_dep
+                = v_stock_segment.end_call_plan_dep
+            AND train_call.act_dep
+                = v_stock_segment.end_call_act_dep
         )
         FROM UNNEST(p_leg.leg_stock) AS v_stockreport
         ON CONFLICT DO NOTHING;
@@ -207,20 +228,20 @@ BEGIN
     ON CONFLICT DO NOTHING;
 
     INSERT INTO TrainStockSegmentReport(
-        stock_segment_id,
+        train_stock_segment_id,
         stock_report_id
     ) SELECT
         (
-            SELECT stock_segment_id
+            SELECT train_stock_segment_id
             FROM train_stock_segment
             WHERE start_call = (
-                SELECT call_id
+                SELECT train_call_id
                 FROM train_call
                 INNER JOIN train_station
-                ON train_call.station_id = train_station.station_id
+                ON train_call.train_station_id = train_station.train_station_id
                 INNER JOIN train_service
-                ON train_call.service_id
-                    = train_service.service_id
+                ON train_call.train_service_id
+                    = train_service.train_service_id
                 WHERE train_station.station_crs
                     = v_stock_segment.station_crs
                 AND train_service.unique_identifier
@@ -237,12 +258,12 @@ BEGIN
                     = v_stock_segment.arr_call_act_dep
             )
             AND end_call = (
-                SELECT call_id
+                SELECT train_call_id
                 FROM train_call
                 INNER JOIN train_station
-                ON train_call.station_id = train_station.station_id
+                ON train_call.train_station_id = train_station.train_station_id
                 INNER JOIN train_service
-                ON train_call.service_id = train_service.service_id
+                ON train_call.train_service_id = train_service.train_service_id
                 WHERE train_station.station_crs
                     = v_stock_segment.station_crs
                 AND train_service.unique_identifier
@@ -260,7 +281,7 @@ BEGIN
             )
         ),
         (
-            SELECT stock_report_id
+            SELECT train_stock_report_id
             FROM train_stock_report
             WHERE train_stock_report.stock_class
             IS NOT DISTINCT FROM v_stockreport.stock_class
@@ -276,7 +297,7 @@ BEGIN
 
     INSERT INTO transport_user_train_leg (
         user_id,
-        train_sequence_id
+        train_leg_id
     )
     SELECT (v_user, v_train_sequence_id)
     FROM UNNEST(p_users) AS v_user;
