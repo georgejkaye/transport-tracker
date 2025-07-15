@@ -23,7 +23,7 @@ BEGIN
     )
     SELECT
         v_service.unique_identifier,
-        v_service.run_data,
+        v_service.run_date,
         v_service.headcode,
         v_service.operator_id,
         v_service.brand_id,

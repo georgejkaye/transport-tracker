@@ -138,12 +138,11 @@ CREATE TYPE train_stock_segment_in_data AS (
 );
 
 CREATE TYPE train_leg_in_data AS (
-    user_id INT,
     leg_services train_service_in_data[],
     service_endpoints train_service_endpoint_in_data[],
     service_calls train_call_in_data[],
     service_associations train_associated_service_in_data[],
     leg_calls train_leg_call_in_data[],
-    leg_stock train_stock_segment_in_data[]
-    leg_distance DECIMAL,
+    leg_stock train_stock_segment_in_data[],
+    leg_distance DECIMAL
 );
