@@ -381,6 +381,9 @@ RENAME brand_id TO train_brand_id;
 ALTER TABLE train_service
 RENAME operator_id TO train_operator_id;
 
+ALTER TABLE train_service
+RENAME brand_id TO train_brand_id;
+
 ALTER TABLE train_brand
 RENAME brand_id TO train_brand_id;
 
