@@ -121,7 +121,6 @@ DbTrainStockSegmentInData = tuple[
 ]
 
 DbTrainLegInData = tuple[
-    int,
     list[DbTrainServiceInData],
     list[DbTrainServiceEndpointInData],
     list[DbTrainCallInData],

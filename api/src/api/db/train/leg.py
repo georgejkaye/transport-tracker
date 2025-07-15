@@ -154,7 +154,10 @@ def get_db_leg_stock_tuple(
     )
 
 
-def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData) -> None:
+def insert_train_leg(
+    conn: Connection, users: list[User], leg: TrainLegInData
+) -> None:
+    user_ids = [user.user_id for user in users]
     service_data: list[DbTrainServiceInData] = []
     service_endpoint_data: list[DbTrainServiceEndpointInData] = []
     service_call_data: list[DbTrainCallInData] = []
@@ -190,7 +193,6 @@ def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData) -> None:
                     get_db_leg_stock_tuple(stock, stock_report)
                 )
     leg_tuple: DbTrainLegInData = (
-        user.user_id,
         service_data,
         service_endpoint_data,
         service_call_data,
@@ -200,8 +202,8 @@ def insert_train_leg(conn: Connection, user: User, leg: TrainLegInData) -> None:
         leg.distance,
     )
     conn.execute(
-        "SELECT * FROM insert_leg(%s::train_leg_in_data)",
-        [leg_tuple],
+        "SELECT * FROM insert_leg(%s::integer[], %s::train_leg_in_data)",
+        [user_ids, leg_tuple],
     )
     conn.commit()
 

@@ -623,6 +623,7 @@ def get_service_from_service_at_station_input(
 
 
 def string_of_departure(call: TrainServiceCallInData) -> str:
+    dep_time = None
     if call.plan_dep is not None:
         dep_time = call.plan_dep
     else:
@@ -715,8 +716,7 @@ def add_to_logfile(conn: Connection) -> None:
     if leg is None:
         print("Could not get leg")
         exit(1)
-    for user in users:
-        insert_train_leg(conn, user, leg)
+    insert_train_leg(conn, users, leg)
 
 
 def read_logfile(log_file: str) -> dict[str, Any]:
