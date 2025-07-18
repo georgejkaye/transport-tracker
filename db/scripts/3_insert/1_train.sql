@@ -8,11 +8,15 @@ AS
 $$
 DECLARE
     v_train_leg_id INT;
+    v_service_ids INT[];
 BEGIN
     INSERT INTO train_leg (distance)
     VALUES (p_leg.leg_distance)
     RETURNING train_leg_id INTO v_train_leg_id;
 
+    RAISE NOTICE 'Hello!'
+
+    WITH new_train_service(train_service_id) AS (
     INSERT INTO train_service (
         unique_identifier,
         run_date,
@@ -28,7 +32,11 @@ BEGIN
         v_service.operator_id,
         v_service.brand_id,
         v_service.power
-    FROM UNNEST(p_leg.leg_services) AS v_service;
+    FROM UNNEST(p_leg.leg_services) AS v_service
+    RETURNING train_service_id)
+    SELECT array_agg(train_service_id) FROM new_train_service INTO v_service_ids;
+
+    RAISE NOTICE 'service id: %s', v_service_ids;
 
     INSERT INTO train_service_endpoint (
         train_service_id,
@@ -98,19 +106,27 @@ BEGIN
             ON train_call.train_service_id = train_service.train_service_id
             WHERE train_service.unique_identifier = v_assoc.unique_identifier
             AND train_service.run_date = v_assoc.run_date
-            AND train_call.plan_arr = v_assoc.plan_arr
-            AND train_call.plan_dep = v_assoc.plan_dep
-            AND train_call.act_arr = v_assoc.plan_arr
-            AND train_call.act_dep = v_assoc.act_dep
+            AND (
+                v_assoc.plan_arr IS NOT NULL
+                AND train_call.plan_arr = v_assoc.plan_arr)
+            AND (
+                v_assoc.act_arr IS NOT NULL
+                AND train_call.act_arr = v_assoc.act_arr)
+            AND (
+                v_assoc.plan_arr IS NOT NULL
+                AND train_call.plan_dep = v_assoc.plan_dep)
+            AND (
+                v_assoc.plan_arr IS NOT NULL
+                AND train_call.act_dep = v_assoc.act_dep)
         ),
+        v_assoc.assoc_type,
         (
             SELECT train_service_id
             FROM train_service
             WHERE train_service.unique_identifier
                 = v_assoc.assoc_unique_identifier
             AND train_service.run_date = v_assoc.assoc_run_date
-        ),
-        v_assoc.assoc_type
+        )
     FROM UNNEST(p_leg.service_associations) AS v_assoc;
 
     INSERT INTO train_leg_call(
@@ -135,14 +151,18 @@ BEGIN
                 = v_legcall.start_call_service_uid
             AND train_service.run_date
                 = v_legcall.start_call_service_run_date
-            AND train_call.plan_arr
-                = v_legcall.start_call_plan_arr
-            AND train_call.act_arr
-                = v_legcall.start_call_act_arr
-            AND train_call.plan_dep
-                = v_legcall.start_call_plan_dep
-            AND train_call.act_dep
-                = v_legcall.start_call_act_dep
+            AND (
+                v_call.plan_arr IS NOT NULL
+                AND train_call.plan_arr = v_legcall.start_call_plan_arr)
+            AND (
+                v_call.act_arr IS NOT NULL
+                AND train_call.act_arr = v_legcall.start_call_act_arr)
+            AND (
+                v_call.plan_dep IS NOT NULL
+                AND train_call.plan_dep = v_legcall.start_call_plan_dep)
+            AND (
+                v_call.plan_arr IS NOT NULL
+                AND train_call.act_dep = v_legcall.start_call_act_dep)
         ),
         (
             SELECT call_id
@@ -154,10 +174,18 @@ BEGIN
             WHERE train_station.station_crs = v_legcall.station_crs
             AND train_service.unique_identifier = v_legcall.dep_call_service_uid
             AND train_service.run_date = v_legcall.dep_call_service_run_date
-            AND train_call.plan_arr = v_legcall.dep_call_plan_arr
-            AND train_call.act_arr = v_legcall.dep_call_act_arr
-            AND train_call.plan_dep = v_legcall.dep_call_plan_dep
-            AND train_call.act_dep = v_legcall.dep_call_act_dep
+            AND (
+                v_call.plan_arr IS NOT NULL
+                AND train_call.plan_arr = v_legcall.end_call_plan_arr)
+            AND (
+                v_call.act_arr IS NOT NULL
+                AND train_call.act_arr = v_legcall.end_call_act_arr)
+            AND (
+                v_call.plan_dep IS NOT NULL
+                AND train_call.plan_dep = v_legcall.end_call_plan_dep)
+            AND (
+                v_call.plan_arr IS NOT NULL
+                AND train_call.act_dep = v_legcall.end_call_act_dep)
         ),
         v_legcall.mileage,
         v_legcall.associated_type_id
@@ -173,19 +201,23 @@ BEGIN
             INNER JOIN train_service
             ON train_call.service_id = train_service.service_id
             WHERE train_station.station_crs
-                = v_stock_segment.station_crs
+                = v_stockreport.station_crs
             AND train_service.unique_identifier
-                = v_stock_segment.arr_call_service_uid
+                = v_stockreport.arr_call_service_uid
             AND train_service.run_date
-                = v_stock_segment.arr_call_service_run_date
-            AND train_call.plan_arr
-                = v_stock_segment.arr_call_plan_arr
-            AND train_call.act_arr
-                = v_stock_segment.arr_call_act_arr
-            AND train_call.plan_dep
-                = v_stock_segment.arr_call_plan_dep
-            AND train_call.act_dep
-                = v_stock_segment.arr_call_act_dep
+                = v_stockreport.arr_call_service_run_date
+            AND (
+                v_call.plan_arr IS NOT NULL
+                AND train_call.plan_arr = v_legcall.start_call_plan_arr)
+            AND (
+                v_call.act_arr IS NOT NULL
+                AND train_call.act_arr = v_legcall.start_call_act_arr)
+            AND (
+                v_call.plan_dep IS NOT NULL
+                AND train_call.plan_dep = v_legcall.start_call_plan_dep)
+            AND (
+                v_call.plan_arr IS NOT NULL
+                AND train_call.act_dep = v_legcall.start_call_act_dep)
         ),
         (
             SELECT train_call_id
@@ -195,19 +227,23 @@ BEGIN
             INNER JOIN train_service
             ON train_call.train_service_id = train_service.train_service_id
             WHERE train_station.station_crs
-                = v_stock_segment.station_crs
+                = v_stockreport.station_crs
             AND train_service.unique_identifier
-                = v_stock_segment.end_call_service_uid
+                = v_stockreport.end_call_service_uid
             AND train_service.run_date
-                = v_stock_segment.end_call_service_run_date
-            AND train_call.plan_arr
-                = v_stock_segment.end_call_plan_arr
-            AND train_call.act_arr
-                = v_stock_segment.end_call_act_arr
-            AND train_call.plan_dep
-                = v_stock_segment.end_call_plan_dep
-            AND train_call.act_dep
-                = v_stock_segment.end_call_act_dep
+                = v_stockreport.end_call_service_run_date
+            AND (
+                v_stockreport.plan_arr IS NOT NULL
+                AND train_call.plan_arr = v_legcall.end_call_plan_arr)
+            AND (
+                v_stockreport.act_arr IS NOT NULL
+                AND train_call.act_arr = v_stockreport.end_call_act_arr)
+            AND (
+                v_call.plan_dep IS NOT NULL
+                AND train_call.plan_dep = v_legcall.end_call_plan_dep)
+            AND (
+                v_call.plan_arr IS NOT NULL
+                AND train_call.act_dep = v_legcall.end_call_act_dep)
         )
         FROM UNNEST(p_leg.leg_stock) AS v_stockreport
         ON CONFLICT DO NOTHING;
@@ -240,20 +276,22 @@ BEGIN
                 INNER JOIN train_service
                 ON train_call.train_service_id
                     = train_service.train_service_id
-                WHERE train_station.station_crs
-                    = v_stock_segment.station_crs
-                AND train_service.unique_identifier
-                    = v_stock_segment.arr_call_service_uid
+                WHERE train_service.unique_identifier
+                    = v_stockreport.start_call_service_id
                 AND train_service.run_date
-                    = v_stock_segment.arr_call_service_run_date
-                AND train_call.plan_arr
-                    = v_stock_segment.arr_call_plan_arr
-                AND train_call.act_arr
-                    = v_stock_segment.arr_call_act_arr
-                AND train_call.plan_dep
-                    = v_stock_segment.arr_call_plan_dep
-                AND train_call.act_dep
-                    = v_stock_segment.arr_call_act_dep
+                    = v_stockreport.start_call_service_run_date
+                AND (
+                    v_stockreport.plan_arr IS NOT NULL
+                    AND train_call.plan_arr = v_stockreport.start_call_plan_arr)
+                AND (
+                    v_stockreport.act_arr IS NOT NULL
+                    AND train_call.act_arr = v_stockreport.start_call_act_arr)
+                AND (
+                    v_stockreport.plan_dep IS NOT NULL
+                    AND train_call.plan_dep = v_stockreport.start_call_plan_dep)
+                AND (
+                    v_stockreport.plan_arr IS NOT NULL
+                    AND train_call.act_dep = v_stockreport.start_call_act_dep)
             )
             AND end_call = (
                 SELECT train_call_id
@@ -263,19 +301,23 @@ BEGIN
                 INNER JOIN train_service
                 ON train_call.train_service_id = train_service.train_service_id
                 WHERE train_station.station_crs
-                    = v_stock_segment.station_crs
+                    = v_stockreport.station_crs
                 AND train_service.unique_identifier
-                    = v_stock_segment.end_call_service_uid
+                    = v_stockreport.end_call_service_uid
                 AND train_service.run_date
-                    = v_stock_segment.end_call_service_run_date
-                AND train_call.plan_arr
-                    = v_stock_segment.end_call_plan_arr
-                AND train_call.act_arr
-                    = v_stock_segment.end_call_act_arr
-                AND train_call.plan_dep
-                    = v_stock_segment.end_call_plan_dep
-                AND train_call.act_dep
-                    = v_stock_segment.end_call_act_dep
+                    = v_stockreport.end_call_service_run_date
+                AND (
+                    v_stockreport.plan_arr IS NOT NULL
+                    AND train_call.plan_arr = v_stockreport.end_call_plan_arr)
+                AND (
+                    v_stockreport.act_arr IS NOT NULL
+                    AND train_call.act_arr = v_stockreport.end_call_act_arr)
+                AND (
+                    v_stockreport.plan_dep IS NOT NULL
+                    AND train_call.plan_dep = v_stockreport.end_call_plan_dep)
+                AND (
+                    v_stockreport.plan_arr IS NOT NULL
+                    AND train_call.act_dep = v_stockreport.end_call_act_dep)
             )
         ),
         (
