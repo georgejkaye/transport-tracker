@@ -294,8 +294,8 @@ CREATE TABLE train_stock_report (
 );
 
 CREATE TABLE train_stock_segment_report (
-    stock_segment_id INTEGER NOT NULL,
-    stock_report_id INTEGER NOT NULL,
+    train_stock_segment_id INTEGER NOT NULL,
+    train_stock_report_id INTEGER NOT NULL,
     FOREIGN KEY (stock_segment_id)
         REFERENCES train_stock_segment(stock_segment_id),
     FOREIGN KEY (stock_report_id)
