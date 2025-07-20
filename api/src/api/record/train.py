@@ -398,7 +398,7 @@ def get_stock(
                         return None
                     case PickMultiple(choices):
                         segment_stock = choices
-        stock_mileage = compute_mileage(stock_calls)
+        stock_mileage = get_mileage(stock_calls)
         segment = TrainStockReportInData(
             segment_stock, stock_calls[0], stock_calls[-1], stock_mileage
         )
@@ -423,12 +423,11 @@ def input_mileage(calls: list[TrainLegCallInData]) -> Decimal:
     return miles_and_chains_to_miles(miles, chains)
 
 
-def compute_mileage(calls: list[TrainLegCallInData]) -> Decimal:
-    start_mileage = calls[0].mileage
+def get_mileage(calls: list[TrainLegCallInData]) -> Decimal:
     end_mileage = calls[-1].mileage
-    if start_mileage is None or end_mileage is None:
+    if end_mileage is None:
         return input_mileage(calls)
-    return end_mileage - start_mileage
+    return end_mileage
 
 
 def filter_services_by_time(
@@ -464,24 +463,24 @@ def get_leg_calls_between_calls(
     start_station_crs: str,
     start_dep_time: datetime,
     end_station_crs: str,
-    mileage_offset: Optional[Decimal] = None,
+    parent_mileage_offset: Decimal = Decimal(0),
 ) -> Optional[list[TrainLegCallInData]]:
     start_dep_time = make_timezone_aware(start_dep_time)
     leg_calls: list[TrainLegCallInData] = []
     boarded = False
     mileage_offset = Decimal(0)
     for call in service.calls:
-        mileage_offset = (
-            (mileage_offset + call.mileage)
-            if mileage_offset is not None and call.mileage is not None
-            else None
-        )
-        if (
-            not boarded
-            and call.station_crs == start_station_crs
-            and call.plan_dep == start_dep_time
-        ):
-            boarded = True
+        if not boarded:
+            if (
+                call.station_crs == start_station_crs
+                and call.plan_dep == start_dep_time
+            ):
+                boarded = True
+                mileage_offset = (
+                    -call.mileage + parent_mileage_offset
+                    if call.mileage is not None
+                    else None
+                )
         if boarded:
             arr_call = TrainLegCallCallInData(
                 service.unique_identifier,
@@ -507,7 +506,7 @@ def get_leg_calls_between_calls(
                 associated_service.calls[0].station_crs,
                 associated_service.calls[0].plan_dep,
                 end_station_crs,
-                mileage_offset,
+                mileage_offset if mileage_offset is not None else Decimal(0),
             )
             if associated_leg_calls is None:
                 continue
@@ -526,7 +525,7 @@ def get_leg_calls_between_calls(
                 arr_call,
                 arr_call,
                 (
-                    call.mileage - mileage_offset
+                    call.mileage + mileage_offset
                     if call.mileage is not None and mileage_offset is not None
                     else None
                 ),
@@ -695,13 +694,22 @@ def record_new_leg(
             )
             return None
     else:
+        if service_at_station.plan_dep is None:
+            return None
         service = get_service_from_service_at_station_input(
             conn, service_at_station, search_datetime
         )
-        leg_calls = service_at_station.calls_to_destination
-    if service is None:
-        return None
-    mileage = compute_mileage(leg_calls)
+        if service is None:
+            return None
+        leg_calls = get_leg_calls_between_calls(
+            service,
+            origin_station.station_crs,
+            service_at_station.plan_dep,
+            destination_station.station_crs,
+        )
+        if leg_calls is None:
+            return None
+    mileage = get_mileage(leg_calls)
     stock_segments = get_stock(conn, leg_calls, service)
     information(f"Computed mileage as {string_of_miles_and_chains(mileage)}")
     leg = TrainLegInData(service, leg_calls, mileage, stock_segments)
