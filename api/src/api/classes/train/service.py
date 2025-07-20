@@ -175,3 +175,11 @@ def register_short_train_service_types(conn: Connection) -> None:
     register_short_call_types(conn)
     register_short_associated_service_types(conn)
     register_type(conn, "TrainServiceOutData", ShortTrainService)
+
+
+@dataclass
+class RttLocationTag:
+    mileage: Optional[Decimal]
+    crs: str
+    gbtt_arr: Optional[datetime]
+    gbtt_dep: Optional[datetime]

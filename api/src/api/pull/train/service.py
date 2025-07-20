@@ -3,12 +3,14 @@ from decimal import Decimal
 from typing import Any, Optional
 
 from api.classes.train.operators import OperatorData
+from api.utils.soup import get_tag_by_class_name, get_tags_by_class_name
 from bs4 import BeautifulSoup, Tag
 from psycopg import Connection
 
 from api.classes.interactive import PickSingle
 from api.classes.train.association import AssociationType
 from api.classes.train.service import (
+    RttLocationTag,
     TrainAssociatedServiceInData,
     TrainServiceCallAssociatedServiceInData,
     TrainServiceCallInData,
@@ -174,6 +176,7 @@ def get_call_from_call_json(
     parent_service_run_date: Optional[datetime],
     service_operator: OperatorData,
     brand_id: Optional[int],
+    rtt_location_tags: Optional[list[RttLocationTag]],
 ) -> TrainServiceCallInData:
     station_crs = call_json["crs"]
     station_name = call_json["description"]
@@ -204,9 +207,9 @@ def get_call_from_call_json(
     )
     mileage = (
         get_call_mileage_from_service_soup(
-            service_soup, station_crs, plan_arr, plan_dep
+            rtt_location_tags, station_crs, plan_arr, plan_dep
         )
-        if service_soup is not None
+        if rtt_location_tags is not None
         else None
     )
     return TrainServiceCallInData(
@@ -235,6 +238,12 @@ def get_service_calls_from_service_json(
 ) -> tuple[list[TrainServiceCallInData], list[TrainAssociatedServiceInData]]:
     calls: list[TrainServiceCallInData] = []
     associated_services: list[TrainAssociatedServiceInData] = []
+    if service_soup is not None:
+        rtt_location_tags = get_rtt_location_tags_from_service_page(
+            service_soup
+        )
+    else:
+        rtt_location_tags = None
     for i, call_json in enumerate(service_json["locations"]):
         if call_json.get("crs") is None:
             continue
@@ -252,6 +261,7 @@ def get_service_calls_from_service_json(
             parent_service_run_date,
             service_operator=service_operator,
             brand_id=brand_id,
+            rtt_location_tags=rtt_location_tags,
         )
         calls.append(call)
         service_associated_services = [
@@ -393,68 +403,124 @@ def get_train_service_soup(
     return soup
 
 
-def get_location_div_from_service_page(
+def get_rtt_location_tag_from_service_page_call_div(
+    call: Tag,
+) -> Optional[RttLocationTag]:
+    call_distance = get_tag_by_class_name(call, "distance")
+
+    if call_distance is None:
+        call_distance_value = None
+    else:
+        call_distance_miles = get_tag_by_class_name(call_distance, "miles")
+        call_distance_chains = get_tag_by_class_name(call_distance, "chains")
+
+        if call_distance_miles is None or call_distance_chains is None:
+            call_distance_value = None
+        else:
+            call_distance_miles_value = int(call_distance_miles.get_text())
+            call_distance_chains_value = int(call_distance_chains.get_text())
+            call_distance_value = miles_and_chains_to_miles(
+                call_distance_miles_value, call_distance_chains_value
+            )
+
+    call_location = get_tag_by_class_name(call, "location")
+
+    if call_location is None:
+        return None
+    else:
+        call_location_split = call_location.get_text().split("[")
+        if len(call_location_split) != 2:
+            return None
+        else:
+            call_location_crs_value = call_location_split[1][0:3]
+
+    call_gbtt = get_tag_by_class_name(call, "gbtt")
+
+    if call_gbtt is None:
+        return None
+    else:
+        call_gbtt_arr = get_tag_by_class_name(call_gbtt, "arr")
+
+        if call_gbtt_arr is None:
+            call_gbtt_arr_value = None
+        else:
+            call_gbtt_arr_text = call_gbtt_arr.get_text()
+            if call_gbtt_arr_text == "":
+                call_gbtt_arr_value = None
+            else:
+                call_gbtt_arr_value = datetime.strptime(
+                    call_gbtt_arr_text, "%H%M"
+                )
+
+        call_gbtt_dep = get_tag_by_class_name(call_gbtt, "dep")
+
+        if call_gbtt_dep is None:
+            call_gbtt_dep_value = None
+        else:
+            call_gbtt_dep_text = call_gbtt_dep.get_text()
+            if call_gbtt_dep_text == "":
+                call_gbtt_dep_value = None
+            else:
+                call_gbtt_dep_value = datetime.strptime(
+                    call_gbtt_dep_text, "%H%M"
+                )
+
+    return RttLocationTag(
+        call_distance_value,
+        call_location_crs_value,
+        call_gbtt_arr_value,
+        call_gbtt_dep_value,
+    )
+
+
+def get_rtt_location_tags_from_service_page(
     service_soup: BeautifulSoup,
+) -> list[RttLocationTag]:
+    calls = get_tags_by_class_name(service_soup, "call")
+    return [
+        rtt_location_tag
+        for call in calls
+        if (
+            rtt_location_tag := get_rtt_location_tag_from_service_page_call_div(
+                call
+            )
+        )
+        is not None
+    ]
+
+
+def get_rtt_location_tag_from_list(
+    rtt_location_tags: list[RttLocationTag],
     crs: str,
     plan_arr: Optional[datetime],
     plan_dep: Optional[datetime],
-) -> Optional[Tag]:
-    calls = service_soup.find_all(class_="call")
-    for call in calls:
-        if isinstance(call, Tag):
-            location = call.find(".location")
-            gbtt_arr = call.find(".gbtt .arr")
-            gbtt_dep = call.find(".gbtt .dep")
-
-            if (
-                not isinstance(location, Tag)
-                or crs.upper() not in location.get_text()
-            ):
-                continue
-
-            if plan_arr is not None:
-                if (
-                    not isinstance(gbtt_arr, Tag)
-                    or plan_arr.strftime("%H%M") != gbtt_arr.get_text()
-                ):
-                    continue
-
-            if plan_dep is not None:
-                if (
-                    not isinstance(gbtt_dep, Tag)
-                    or plan_dep.strftime("%H%M") != gbtt_dep.get_text()
-                ):
-                    continue
-
-            return call
+) -> Optional[RttLocationTag]:
+    for rtt_location_tag in rtt_location_tags:
+        if rtt_location_tag.crs.upper() != crs:
+            continue
+        if plan_arr is not None and (
+            rtt_location_tag.gbtt_arr is None
+            or rtt_location_tag.gbtt_arr.hour != plan_arr.hour
+            and rtt_location_tag.gbtt_arr.minute != plan_arr.minute
+        ):
+            continue
+        if plan_dep is not None and (
+            rtt_location_tag.gbtt_dep is None
+            or rtt_location_tag.gbtt_dep.hour != plan_dep.hour
+            and rtt_location_tag.gbtt_dep.minute != plan_dep.minute
+        ):
+            continue
+        return rtt_location_tag
     return None
 
 
-def get_miles_and_chains_from_call_div(
-    call_div_soup: Tag,
-) -> Optional[Decimal]:
-    miles = call_div_soup.find(class_="miles")
-    chains = call_div_soup.find(class_="chains")
-    if miles is None or chains is None:
-        return None
-    miles_text = miles.get_text()
-    miles_int = int(miles_text)
-    chains_text = chains.get_text()
-    chains_int = int(chains_text)
-    return miles_and_chains_to_miles(miles_int, chains_int)
-
-
 def get_call_mileage_from_service_soup(
-    service_soup: BeautifulSoup,
+    rtt_location_tags: list[RttLocationTag],
     station_crs: str,
     plan_arr: Optional[datetime],
     plan_dep: Optional[datetime],
 ) -> Optional[Decimal]:
-    call_div = get_location_div_from_service_page(
-        service_soup, station_crs, plan_arr, plan_dep
+    rtt_location_tag = get_rtt_location_tag_from_list(
+        rtt_location_tags, station_crs, plan_arr, plan_dep
     )
-    return (
-        get_miles_and_chains_from_call_div(call_div)
-        if call_div is not None
-        else None
-    )
+    return rtt_location_tag.mileage if rtt_location_tag is not None else None
