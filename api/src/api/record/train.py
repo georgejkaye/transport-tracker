@@ -399,8 +399,15 @@ def get_stock(
                     case PickMultiple(choices):
                         segment_stock = choices
         stock_mileage = get_mileage(stock_calls)
+        if stock_calls[0].dep_call is None or stock_calls[-1].arr_call is None:
+            raise RuntimeError("Could not get ends of stock segment")
         segment = TrainStockReportInData(
-            segment_stock, stock_calls[0], stock_calls[-1], stock_mileage
+            segment_stock,
+            stock_calls[0].station_crs,
+            stock_calls[0].dep_call,
+            stock_calls[-1].station_crs,
+            stock_calls[-1].arr_call,
+            stock_mileage,
         )
         used_stock.append(segment)
         last_used_stock = segment
@@ -519,7 +526,6 @@ def get_leg_calls_between_calls(
             return leg_calls
         if boarded:
             leg_call = TrainLegCallInData(
-                service,
                 call.station_crs,
                 call.station_name,
                 arr_call,

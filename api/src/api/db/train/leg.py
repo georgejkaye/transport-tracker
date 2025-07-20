@@ -128,32 +128,16 @@ def get_db_leg_stock_tuple(
         stock.subclass_no,
         stock.stock_no,
         stock.cars,
-        stock_report.start_call.service.unique_identifier,
-        stock_report.start_call.service.run_date,
-        stock_report.start_call.station_crs,
-        (
-            stock_report.start_call.dep_call.plan_dep
-            if stock_report.start_call.dep_call is not None
-            else None
-        ),
-        (
-            stock_report.start_call.dep_call.act_dep
-            if stock_report.start_call.dep_call is not None
-            else None
-        ),
-        stock_report.end_call.service.unique_identifier,
-        stock_report.end_call.service.run_date,
-        stock_report.end_call.station_crs,
-        (
-            stock_report.end_call.arr_call.plan_arr
-            if stock_report.end_call.arr_call is not None
-            else None
-        ),
-        (
-            stock_report.end_call.arr_call.act_arr
-            if stock_report.end_call.arr_call is not None
-            else None
-        ),
+        stock_report.start_call.service_run_id,
+        stock_report.start_call.service_run_date,
+        stock_report.start_crs,
+        stock_report.start_call.plan_dep,
+        stock_report.start_call.act_dep,
+        stock_report.end_call.service_run_id,
+        stock_report.end_call.service_run_date,
+        stock_report.end_crs,
+        stock_report.end_call.plan_arr,
+        stock_report.end_call.act_arr,
     )
 
 

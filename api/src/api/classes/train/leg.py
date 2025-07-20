@@ -37,7 +37,6 @@ class TrainLegCallCallInData:
 
 @dataclass
 class TrainLegCallInData:
-    service: TrainServiceInData
     station_crs: str
     station_name: str
     arr_call: Optional[TrainLegCallCallInData]
@@ -49,8 +48,10 @@ class TrainLegCallInData:
 @dataclass
 class TrainStockReportInData:
     stock_report: list[StockReport]
-    start_call: TrainLegCallInData
-    end_call: TrainLegCallInData
+    start_crs: str
+    start_call: TrainLegCallCallInData
+    end_crs: str
+    end_call: TrainLegCallCallInData
     mileage: Optional[Decimal]
 
 
