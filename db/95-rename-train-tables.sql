@@ -441,3 +441,52 @@ CHECK (is_valid_brand(train_brand_id, train_operator_id));
 ALTER TABLE train_operator_stock
 ADD CONSTRAINT train_operator_stock_check_is_valid_brand
 CHECK (is_valid_brand(train_brand_id, train_operator_id));
+
+-- isvalidstockformation constraint
+
+ALTER TABLE train_stock_report
+DROP CONSTRAINT valid_stock;
+
+DROP FUNCTION isvalidstockformation;
+
+CREATE OR REPLACE FUNCTION is_valid_stock_formation (
+    p_stock_class INTEGER,
+    p_stock_subclass INTEGER,
+    p_stock_cars INT
+) RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    IF p_stock_class IS NULL
+    THEN
+        RETURN TRUE;
+    END IF;
+    IF p_stock_subclass IS NULL
+    THEN
+        IF p_stock_cars IS NULL
+        THEN
+            RETURN EXISTS(
+                SELECT * FROM public.train_stock_formation
+                WHERE stock_class = p_stock_class
+            );
+        ELSE
+            RETURN EXISTS(
+                SELECT * FROM public.train_stock_formation
+                WHERE stock_class = p_stock_class
+                AND cars = p_stock_cars
+            );
+        END IF;
+    END IF;
+    RETURN EXISTS (
+        SELECT * FROM public.train_stock_formation
+        WHERE stock_class = p_stock_class
+        AND stock_subclass = p_stock_subclass
+        AND cars = p_stock_cars
+    );
+END;
+$$;
+
+ALTER TABLE train_stock_report
+ADD CONSTRAINT train_stock_report_check_valid_stock_formation
+CHECK (is_valid_stock_formation(stock_class, stock_subclass, stock_cars));
