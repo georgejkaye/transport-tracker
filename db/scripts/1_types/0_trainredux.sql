@@ -1,3 +1,19 @@
+DROP TYPE train_station_out_data CASCADE;
+DROP TYPE train_brand_out_data CASCADE;
+DROP TYPE train_operator_out_data CASCADE;
+DROP TYPE train_stock_subclass_out_data CASCADE;
+DROP TYPE train_stock_out_data CASCADE;
+DROP TYPE train_service_in_data CASCADE;
+DROP TYPE train_service_endpoint_in_data CASCADE;
+DROP TYPE train_call_in_data CASCADE;
+DROP TYPE train_associated_service_in_data CASCADE;
+DROP TYPE train_service_call_associated_service_in_data CASCADE;
+DROP TYPE train_service_call_in_data CASCADE;
+DROP TYPE train_service_in_data CASCADE;
+DROP TYPE train_leg_call_in_data CASCADE;
+DROP TYPE train_stock_segment_in_data CASCADE;
+DROP TYPE train_leg_in_data CASCADE;
+
 CREATE TYPE train_station_out_data AS (
     station_id INTEGER,
     station_crs TEXT,
@@ -91,15 +107,6 @@ CREATE TYPE train_service_call_in_data AS (
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE,
     mileage DECIMAL
-);
-
-CREATE TYPE train_service_in_data AS (
-    unique_identifier TEXT,
-    run_date TIMESTAMP WITH TIME ZONE,
-    headcode TEXT,
-    operator_code TEXT,
-    brand_code TEXT,
-    power TEXT
 );
 
 CREATE TYPE train_leg_call_in_data AS (
