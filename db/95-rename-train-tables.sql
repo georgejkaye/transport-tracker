@@ -490,3 +490,15 @@ $$;
 ALTER TABLE train_stock_report
 ADD CONSTRAINT train_stock_report_check_valid_stock_formation
 CHECK (is_valid_stock_formation(stock_class, stock_subclass, stock_cars));
+
+-- add call constraint
+
+ALTER TABLE train_call
+ADD CONSTRAINT train_call_unique_service_station_arr_dep
+    UNIQUE NULLS NOT DISTINCT (
+        train_service_id,
+        train_station_id,
+        plan_arr,
+        act_arr,
+        plan_dep,
+        act_dep);

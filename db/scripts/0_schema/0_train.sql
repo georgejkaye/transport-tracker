@@ -170,6 +170,14 @@ CREATE TABLE train_call (
     FOREIGN KEY (train_station_id)
         REFERENCES train_station(train_station_id),
     CONSTRAINT mileage_positive CHECK (mileage >= 0)
+    CONSTRAINT train_call_unique_service_station_arr_dep
+        UNIQUE NULLS NOT DISTINCT (
+            train_service_id,
+            train_station_id,
+            plan_arr,
+            act_arr,
+            plan_dep,
+            act_dep)
 );
 
 CREATE TABLE train_associated_service_type (
