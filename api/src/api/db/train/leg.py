@@ -114,6 +114,9 @@ def get_db_leg_call_tuple(leg_call: TrainLegCallInData) -> DbTrainLegCallInData:
         (leg_call.dep_call.plan_dep if leg_call.dep_call is not None else None),
         (leg_call.dep_call.act_arr if leg_call.dep_call is not None else None),
         leg_call.mileage,
+        int_of_association_type(leg_call.association_type)
+        if leg_call.association_type is not None
+        else None,
     )
 
 

@@ -101,6 +101,7 @@ DbTrainLegCallInData = tuple[
     Optional[datetime],
     Optional[datetime],
     Optional[Decimal],
+    Optional[int],
 ]
 
 DbTrainStockSegmentInData = tuple[
