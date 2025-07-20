@@ -407,3 +407,37 @@ RENAME stock_segment_id TO train_stock_segment_id;
 
 ALTER TABLE train_stock_segment_report
 RENAME stock_report_id TO train_stock_report_id;
+
+-- fix brand constraint
+
+ALTER TABLE train_service
+DROP CONSTRAINT valid_brand;
+
+ALTER TABLE train_operator_stock
+DROP CONSTRAINT valid_brand;
+
+DROP FUNCTION isvalidbrand;
+
+CREATE OR REPLACE FUNCTION is_valid_brand(
+    p_brand_id INTEGER,
+    p_operator_id INTEGER
+) RETURNS BOOLEAN
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN p_brand_id IS NULL
+        OR (
+            SELECT train_operator_id FROM train_brand
+            WHERE train_brand_id = p_brand_id
+        ) = p_operator_id;
+END;
+$$;
+
+ALTER TABLE train_service
+ADD CONSTRAINT train_service_check_is_valid_brand
+CHECK (is_valid_brand(train_brand_id, train_operator_id));
+
+ALTER TABLE train_operator_stock
+ADD CONSTRAINT train_operator_stock_check_is_valid_brand
+CHECK (is_valid_brand(train_brand_id, train_operator_id));
