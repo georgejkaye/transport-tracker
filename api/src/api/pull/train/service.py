@@ -288,8 +288,6 @@ def get_brand_code_id_input(operator: OperatorData) -> Optional[int]:
 
 def get_service_from_service_json_and_html(
     conn: Connection,
-    service_uid: str,
-    service_run_date: datetime,
     service_json: dict[str, Any],
     service_soup: Optional[BeautifulSoup],
     parent_service_uid: Optional[str],
@@ -303,6 +301,8 @@ def get_service_from_service_json_and_html(
         or not service_json.get("serviceType") == "train"
     ):
         return None
+    service_uid = service_json["serviceUid"]
+    service_run_date = datetime.strptime(service_json["runDate"], "%Y-%m-%d")
     headcode = service_json["trainIdentity"]
     power = service_json.get("powerType")
     origins = [origin["description"] for origin in service_json["origin"]]
@@ -370,8 +370,6 @@ def get_service_from_id(
         service_html = None
     return get_service_from_service_json_and_html(
         conn,
-        service_uid,
-        service_run_date,
         service_json,
         service_html,
         parent_service_uid,
