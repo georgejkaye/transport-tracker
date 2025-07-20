@@ -28,8 +28,8 @@ class TrainServiceCallInData:
     station_name: str
     platform: Optional[str]
     plan_arr: Optional[datetime]
-    plan_dep: Optional[datetime]
     act_arr: Optional[datetime]
+    plan_dep: Optional[datetime]
     act_dep: Optional[datetime]
     associated_services: list[TrainServiceCallAssociatedServiceInData]
     mileage: Optional[Decimal]

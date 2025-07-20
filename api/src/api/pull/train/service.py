@@ -180,11 +180,11 @@ def get_call_from_call_json(
     plan_arr = get_datetime_from_json_field(
         service_run_date, "gbttBookedArrival", call_json
     )
-    plan_dep = get_datetime_from_json_field(
-        service_run_date, "gbttBookedDeparture", call_json
-    )
     act_arr = get_datetime_from_json_field(
         service_run_date, "realtimeArrival", call_json
+    )
+    plan_dep = get_datetime_from_json_field(
+        service_run_date, "gbttBookedDeparture", call_json
     )
     act_dep = get_datetime_from_json_field(
         service_run_date, "realtimeDeparture", call_json
@@ -214,8 +214,8 @@ def get_call_from_call_json(
         station_name,
         platform,
         plan_arr,
-        plan_dep,
         act_arr,
+        plan_dep,
         act_dep,
         associated_services,
         mileage,
