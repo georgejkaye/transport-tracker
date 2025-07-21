@@ -470,12 +470,12 @@ def get_leg_calls_between_calls(
     start_station_crs: str,
     start_dep_time: datetime,
     end_station_crs: str,
-    parent_mileage_offset: Decimal = Decimal(0),
+    first_call_mileage: Decimal = Decimal(0),
 ) -> Optional[list[TrainLegCallInData]]:
     start_dep_time = make_timezone_aware(start_dep_time)
     leg_calls: list[TrainLegCallInData] = []
     boarded = False
-    mileage_offset = Decimal(0)
+    board_call_mileage: Optional[Decimal] = Decimal(0)
     for call in service.calls:
         if not boarded:
             if (
@@ -483,8 +483,8 @@ def get_leg_calls_between_calls(
                 and call.plan_dep == start_dep_time
             ):
                 boarded = True
-                mileage_offset = (
-                    -call.mileage + parent_mileage_offset
+                board_call_mileage = (
+                    call.mileage + first_call_mileage
                     if call.mileage is not None
                     else None
                 )
@@ -513,7 +513,9 @@ def get_leg_calls_between_calls(
                 associated_service.calls[0].station_crs,
                 associated_service.calls[0].plan_dep,
                 end_station_crs,
-                mileage_offset if mileage_offset is not None else Decimal(0),
+                board_call_mileage
+                if board_call_mileage is not None
+                else Decimal(0),
             )
             if associated_leg_calls is None:
                 continue
@@ -531,8 +533,9 @@ def get_leg_calls_between_calls(
                 arr_call,
                 arr_call,
                 (
-                    call.mileage + mileage_offset
-                    if call.mileage is not None and mileage_offset is not None
+                    call.mileage - board_call_mileage
+                    if call.mileage is not None
+                    and board_call_mileage is not None
                     else None
                 ),
                 None,
