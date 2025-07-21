@@ -502,3 +502,8 @@ ADD CONSTRAINT train_call_unique_service_station_arr_dep
         act_arr,
         plan_dep,
         act_dep);
+
+-- drop old user data types
+
+DROP TYPE useroutdata CASCADE;
+DROP TYPE useroutpublicdata CASCADE;
