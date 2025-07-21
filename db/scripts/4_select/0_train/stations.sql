@@ -1,3 +1,7 @@
+DROP FUNCTION select_station_by_crs;
+DROP FUNCTION select_station_by_name;
+DROP FUNCTION select_station_by_name_substring;
+
 CREATE OR REPLACE FUNCTION select_station_by_crs (
     p_station_crs TEXT
 )

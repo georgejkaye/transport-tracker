@@ -1,3 +1,6 @@
+DROP FUNCTION select_users;
+DROP FUNCTION select_user_by_username;
+
 CREATE OR REPLACE FUNCTION select_users ()
 RETURNS SETOF user_out_data
 LANGUAGE sql

@@ -1,3 +1,5 @@
+DROP FUNCTION insert_leg;
+
 CREATE OR REPLACE FUNCTION insert_leg (
     p_users INTEGER[],
     p_leg train_leg_in_data
