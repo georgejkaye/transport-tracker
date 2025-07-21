@@ -326,6 +326,8 @@ BEGIN
             IS NOT DISTINCT FROM v_stock_report.stock_number
             AND train_stock_report.stock_cars
             IS NOT DISTINCT FROM v_stock_report.stock_cars
+            ORDER BY train_stock_report_id
+            LIMIT 1
         )
     FROM UNNEST(p_leg.leg_stock) AS v_stock_report
     ON CONFLICT DO NOTHING;
