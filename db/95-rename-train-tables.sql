@@ -344,9 +344,11 @@ CREATE TABLE transport_user_train_leg (
     transport_user_train_leg_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
     train_leg_id INTEGER NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES transport_user(user_id),
+    FOREIGN KEY (user_id)
+        REFERENCES transport_user(user_id),
     FOREIGN KEY (train_leg_id)
-        REFERENCES train_leg(train_leg_id)
+        REFERENCES train_leg(train_leg_id),
+    UNIQUE (user_id, train_leg_id)
 );
 
 INSERT INTO transport_user_train_leg (user_id, train_leg_id)
