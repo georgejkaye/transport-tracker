@@ -1,7 +1,7 @@
 import sys
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from dotenv import load_dotenv
 from psycopg import Connection
@@ -81,7 +81,9 @@ def str_or_null_to_datetime(
         return None
 
 
-def register_type[T](conn: Connection, name: str, factory: type) -> None:
+def register_type[T](
+    conn: Connection, name: str, factory: type | Callable[..., T]
+) -> None:
     info = CompositeInfo.fetch(conn, name)
     if info is not None:
         register_composite(info, conn, factory)
