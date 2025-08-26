@@ -4,7 +4,7 @@ CREATE OR REPLACE FUNCTION insert_leg (
     p_users INTEGER[],
     p_leg train_leg_in_data
 )
-RETURNS VOID
+RETURNS INTEGER
 LANGUAGE plpgsql
 AS
 $$
@@ -18,24 +18,24 @@ BEGIN
     RETURNING train_leg_id INTO v_train_leg_id;
 
     WITH new_train_service(train_service_id) AS (
-    INSERT INTO train_service (
-        unique_identifier,
-        run_date,
-        headcode,
-        train_operator_id,
-        train_brand_id,
-        power
-    )
-    SELECT
-        v_service.unique_identifier,
-        v_service.run_date,
-        v_service.headcode,
-        v_service.operator_id,
-        v_service.brand_id,
-        v_service.power
-    FROM UNNEST(p_leg.leg_services) AS v_service
-    ON CONFLICT DO NOTHING
-    RETURNING train_service_id)
+        INSERT INTO train_service (
+            unique_identifier,
+            run_date,
+            headcode,
+            train_operator_id,
+            train_brand_id,
+            power
+        )
+        SELECT
+            v_service.unique_identifier,
+            v_service.run_date,
+            v_service.headcode,
+            v_service.operator_id,
+            v_service.brand_id,
+            v_service.power
+        FROM UNNEST(p_leg.leg_services) AS v_service
+        ON CONFLICT DO NOTHING
+        RETURNING train_service_id)
     SELECT array_agg(train_service_id)
     FROM new_train_service
     INTO v_service_ids;
@@ -68,39 +68,39 @@ BEGIN
     ON CONFLICT DO NOTHING;
 
     WITH new_train_call(train_call_id) AS (
-    INSERT INTO train_call (
-        train_service_id,
-        train_station_id,
-        platform,
-        plan_arr,
-        act_arr,
-        plan_dep,
-        act_dep,
-        mileage
-    ) SELECT
-        (
-            SELECT train_service_id
-            FROM train_service
-            WHERE train_service.unique_identifier = v_call.unique_identifier
-            AND train_service.run_date = v_call.run_date
-        ),
-        (
-            SELECT train_station.train_station_id
-            FROM train_station
-            LEFT JOIN train_station_name
-            ON train_station.train_station_id
-                = train_station_name.train_station_id
-            WHERE train_station.station_crs = v_call.station_crs
-        ),
-        v_call.platform,
-        v_call.plan_arr,
-        v_call.act_arr,
-        v_call.plan_dep,
-        v_call.act_dep,
-        v_call.mileage
-    FROM UNNEST(p_leg.service_calls) AS v_call
-    ON CONFLICT DO NOTHING
-    RETURNING train_call_id)
+        INSERT INTO train_call (
+            train_service_id,
+            train_station_id,
+            platform,
+            plan_arr,
+            act_arr,
+            plan_dep,
+            act_dep,
+            mileage
+        ) SELECT
+            (
+                SELECT train_service_id
+                FROM train_service
+                WHERE train_service.unique_identifier = v_call.unique_identifier
+                AND train_service.run_date = v_call.run_date
+            ),
+            (
+                SELECT train_station.train_station_id
+                FROM train_station
+                LEFT JOIN train_station_name
+                ON train_station.train_station_id
+                    = train_station_name.train_station_id
+                WHERE train_station.station_crs = v_call.station_crs
+            ),
+            v_call.platform,
+            v_call.plan_arr,
+            v_call.act_arr,
+            v_call.plan_dep,
+            v_call.act_dep,
+            v_call.mileage
+        FROM UNNEST(p_leg.service_calls) AS v_call
+        ON CONFLICT DO NOTHING
+        RETURNING train_call_id)
     SELECT array_agg(train_call_id)
     FROM new_train_call
     INTO v_call_ids;
@@ -338,5 +338,7 @@ BEGIN
     )
     SELECT v_user, v_train_leg_id
     FROM UNNEST(p_users) AS v_user;
+
+    RETURN v_train_leg_id;
 END;
 $$;
