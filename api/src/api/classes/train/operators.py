@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import date
 from typing import Optional
+
 from psycopg import Connection
 from psycopg.types.range import Range
 
@@ -23,9 +24,6 @@ class OperatorData:
     operator_name: str
     operator_bg: Optional[str]
     operator_fg: Optional[str]
-    operation_range: Range[date]
+    operation_range_start: Optional[date]
+    operation_range_end: Optional[date]
     operator_brands: list[BrandData]
-
-
-def register_train_operator_out_data(conn: Connection) -> None:
-    register_type(conn, "train_brand_out_data", BrandData)

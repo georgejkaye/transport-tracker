@@ -3,6 +3,8 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
+from psycopg import Connection
+
 from api.classes.train.association import AssociationType
 from api.classes.train.operators import (
     BrandData,
@@ -13,7 +15,6 @@ from api.classes.train.station import (
     register_short_train_station_types,
 )
 from api.utils.database import register_type
-from psycopg import Connection
 
 
 @dataclass
