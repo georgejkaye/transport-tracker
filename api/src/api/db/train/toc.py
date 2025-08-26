@@ -1,14 +1,15 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from psycopg import Connection
 from psycopg.rows import class_row
+from psycopg.types.range import Range
 
 from api.classes.train.operators import (
     BrandData,
     OperatorData,
-    register_train_operator_out_data,
 )
+from api.utils.database import register_type
 
 
 def select_operator_id(conn: Connection, operator_name: str) -> Optional[int]:
@@ -43,3 +44,34 @@ def get_operator_by_operator_by_operator_code(
             [operator_code, run_date],
         ).fetchone()
         return row
+
+
+def register_operator_data_factory(
+    operator_id: int,
+    operator_code: str,
+    operator_name: str,
+    operator_bg: str,
+    operator_fg: str,
+    operation_range: Range[date],
+    operator_brands: list[BrandData],
+) -> OperatorData:
+    return OperatorData(
+        operator_id,
+        operator_code,
+        operator_name,
+        operator_bg,
+        operator_fg,
+        operation_range.lower,
+        operation_range.upper,
+        operator_brands,
+    )
+
+
+def register_train_operator_data(conn: Connection) -> None:
+    register_type(
+        conn, "train_operator_out_data", register_operator_data_factory
+    )
+
+
+def register_train_operator_out_data(conn: Connection) -> None:
+    register_type(conn, "train_brand_out_data", BrandData)
