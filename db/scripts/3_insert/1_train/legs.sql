@@ -1,6 +1,6 @@
-DROP FUNCTION insert_leg;
+DROP FUNCTION insert_train_leg;
 
-CREATE OR REPLACE FUNCTION insert_leg (
+CREATE OR REPLACE FUNCTION insert_train_leg (
     p_users INTEGER[],
     p_leg train_leg_in_data
 )
@@ -16,6 +16,8 @@ BEGIN
     INSERT INTO train_leg (distance)
     VALUES (p_leg.leg_distance)
     RETURNING train_leg_id INTO v_train_leg_id;
+
+    RAISE LOG 'Inserted train_leg_id: %', v_train_leg_id;
 
     WITH new_train_service(train_service_id) AS (
         INSERT INTO train_service (
