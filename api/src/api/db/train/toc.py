@@ -1,13 +1,14 @@
-from datetime import date, datetime
+from datetime import datetime
 from typing import Optional
 
 from psycopg import Connection
 from psycopg.rows import class_row
-from psycopg.types.range import Range
 
 from api.classes.train.operators import (
     BrandData,
     OperatorData,
+    OperatorDbData,
+    operator_db_data_to_operator_data,
 )
 from api.utils.database import register_type
 
@@ -38,39 +39,14 @@ def get_operator_by_operator_by_operator_code(
     conn: Connection, operator_code: str, run_date: datetime
 ) -> Optional[OperatorData]:
     register_train_operator_out_data(conn)
-    with conn.cursor(row_factory=class_row(OperatorData)) as cur:
+    with conn.cursor(row_factory=class_row(OperatorDbData)) as cur:
         row = cur.execute(
             "SELECT * FROM select_operator_by_operator_code(%s, %s)",
             [operator_code, run_date],
         ).fetchone()
-        return row
-
-
-def register_operator_data_factory(
-    operator_id: int,
-    operator_code: str,
-    operator_name: str,
-    operator_bg: str,
-    operator_fg: str,
-    operation_range: Range[date],
-    operator_brands: list[BrandData],
-) -> OperatorData:
-    return OperatorData(
-        operator_id,
-        operator_code,
-        operator_name,
-        operator_bg,
-        operator_fg,
-        operation_range.lower,
-        operation_range.upper,
-        operator_brands,
-    )
-
-
-def register_train_operator_data(conn: Connection) -> None:
-    register_type(
-        conn, "train_operator_out_data", register_operator_data_factory
-    )
+        return (
+            operator_db_data_to_operator_data(row) if row is not None else None
+        )
 
 
 def register_train_operator_out_data(conn: Connection) -> None:
