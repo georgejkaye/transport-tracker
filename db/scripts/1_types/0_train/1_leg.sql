@@ -1,11 +1,13 @@
 DROP TYPE train_leg_call_in_data CASCADE;
 DROP TYPE train_leg_in_data CASCADE;
 
-DROP TYPE transport_user_train_leg_station_out_data CASCADE;
-DROP TYPE transport_user_train_leg_operator_out_data CASCADE;
-DROP TYPE transport_user_train_leg_station_out_data CASCADE;
-DROP TYPE transport_user_train_leg_associated_service_out_data CASCADE;
-DROP TYPE transport_user_train_leg_service_out_data CASCADE;
+DROP TYPE train_leg_station_out_data CASCADE;
+DROP TYPE train_leg_operator_out_data CASCADE;
+DROP TYPE train_leg_associated_service_out_data CASCADE;
+DROP TYPE train_leg_service_call_out_data CASCADE;
+DROP TYPE train_leg_service_out_data CASCADE;
+DROP TYPE train_leg_call_out_data CASCADE;
+DROP TYPE train_leg_out_data CASCADE;
 
 CREATE TYPE train_leg_call_in_data AS (
     station_crs TEXT,
@@ -35,13 +37,12 @@ CREATE TYPE train_leg_in_data AS (
     leg_distance DECIMAL
 );
 
-
-CREATE TYPE transport_user_train_leg_station_out_data AS (
+CREATE TYPE train_leg_station_out_data AS (
     crs TEXT,
     name TEXT
 );
 
-CREATE TYPE transport_user_train_leg_operator_out_data AS (
+CREATE TYPE train_leg_operator_out_data AS (
     id INTEGER,
     code TEXT,
     name TEXT,
@@ -49,32 +50,35 @@ CREATE TYPE transport_user_train_leg_operator_out_data AS (
     fg_colour TEXT
 );
 
-CREATE TYPE transport_user_train_leg_associated_service_out_data AS (
+CREATE TYPE train_leg_associated_service_out_data AS (
     service_id INTEGER,
     association_type INTEGER
 );
 
-CREATE TYPE transport_user_train_leg_service_call_out_data AS (
-    station transport_user_train_leg_station_out_data,
+CREATE TYPE train_leg_service_call_out_data AS (
+    station train_leg_station_out_data,
     platform TEXT,
     plan_arr TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE,
-    associations transport_user_train_leg_associated_service_out_data[],
+    associations train_leg_associated_service_out_data[],
     mileage DECIMAL
 );
 
-
-CREATE TYPE transport_user_train_leg_service_out_data AS (
+CREATE TYPE train_leg_service_out_data AS (
     service_id INTEGER,
-    headcode TEXT,
+    unique_identifier TEXT,
     run_date TIMESTAMP WITH TIME ZONE,
-    start_datetime TIMESTAMP WITH TIME ZONE,
-    origins transport_user_train_leg_service_endpoint_out_data[],
-    destinations transport_user_train_leg_service_endpoint_out_data[],
-    operator transport_user_train_leg_operator_out_data,
-    brand transport_user_train_leg_operator_out_data,
-    power TEXT,
-    calls transport_user_train_leg_call_out_data[]
+    headcode TEXT,
+    start_datetime TIMESTAMP WITH TIME ZONE
+    -- origins train_leg_service_endpoint_out_data[],
+    -- destinations train_leg_service_endpoint_out_data[],
+    -- operator train_leg_operator_out_data,
+    -- brand train_leg_operator_out_data
+);
+
+CREATE TYPE train_leg_out_data AS (
+    train_leg_id INTEGER,
+    services train_leg_service_out_data[]
 );
