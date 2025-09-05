@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Optional
 
-from api.classes.train.stock import StockReport
 from psycopg import Connection
 from psycopg.rows import class_row
 
@@ -10,6 +9,7 @@ from api.classes.train.leg import (
     DbTrainLegCallInData,
     DbTrainLegInData,
     DbTrainStockSegmentInData,
+    InsertTrainLegResult,
     ShortLeg,
     TrainLegCallInData,
     TrainLegInData,
@@ -25,6 +25,7 @@ from api.classes.train.service import (
     TrainServiceCallInData,
     TrainServiceInData,
 )
+from api.classes.train.stock import StockReport
 from api.classes.user import User
 
 
@@ -143,7 +144,7 @@ def get_db_leg_stock_tuple(
 
 def insert_train_leg(
     conn: Connection, users: list[User], leg: TrainLegInData
-) -> None:
+) -> Optional[int]:
     user_ids = [user.user_id for user in users]
     service_data: list[DbTrainServiceInData] = []
     service_endpoint_data: list[DbTrainServiceEndpointInData] = []
@@ -188,11 +189,14 @@ def insert_train_leg(
         leg_stock_data,
         leg.distance,
     )
-    conn.execute(
-        "SELECT * FROM insert_leg(%s::integer[], %s::train_leg_in_data)",
-        [user_ids, leg_tuple],
-    )
-    conn.commit()
+    with conn.cursor(row_factory=class_row(InsertTrainLegResult)) as cur:
+        result = cur.execute(
+            "SELECT * FROM insert_train_leg(%s::integer[], %s::train_leg_in_data)",
+            [user_ids, leg_tuple],
+        )
+        res = result.fetchone()
+        conn.commit()
+        return res.insert_train_leg if res is not None else None
 
 
 def select_legs(

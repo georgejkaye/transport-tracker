@@ -733,7 +733,11 @@ def add_to_logfile(conn: Connection) -> None:
     if leg is None:
         print("Could not get leg")
         exit(1)
-    insert_train_leg(conn, users, leg)
+    leg_id = insert_train_leg(conn, users, leg)
+    if leg_id is None:
+        information(f"Could not insert leg")
+    else:
+        information(f"Inserted leg id {leg_id}")
 
 
 def read_logfile(log_file: str) -> dict[str, Any]:

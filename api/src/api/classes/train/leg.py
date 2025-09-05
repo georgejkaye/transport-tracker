@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Optional
 
+from psycopg import Connection
+
 from api.classes.train.association import AssociationType
 from api.classes.train.service import (
     DbTrainAssociatedServiceInData,
@@ -22,7 +24,6 @@ from api.classes.train.station import (
 from api.classes.train.stock import StockReport
 from api.utils.database import register_type
 from api.utils.times import get_hourmin_string
-from psycopg import Connection
 
 
 @dataclass
@@ -204,3 +205,8 @@ def register_leg_data_types(conn: Connection) -> None:
     register_short_leg_call_types(conn)
     register_short_leg_segment_types(conn)
     register_type(conn, "TrainLegOutData", ShortLeg)
+
+
+@dataclass
+class InsertTrainLegResult:
+    insert_train_leg: int
