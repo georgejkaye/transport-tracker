@@ -6,7 +6,6 @@ DROP TYPE train_leg_operator_out_data CASCADE;
 DROP TYPE train_leg_associated_service_out_data CASCADE;
 DROP TYPE train_leg_service_call_out_data CASCADE;
 DROP TYPE train_leg_service_out_data CASCADE;
-DROP TYPE train_leg_call_out_data CASCADE;
 DROP TYPE train_leg_out_data CASCADE;
 
 CREATE TYPE train_leg_call_in_data AS (
@@ -38,6 +37,7 @@ CREATE TYPE train_leg_in_data AS (
 );
 
 CREATE TYPE train_leg_station_out_data AS (
+    station_id INTEGER,
     crs TEXT,
     name TEXT
 );
@@ -71,11 +71,11 @@ CREATE TYPE train_leg_service_out_data AS (
     unique_identifier TEXT,
     run_date TIMESTAMP WITH TIME ZONE,
     headcode TEXT,
-    start_datetime TIMESTAMP WITH TIME ZONE
-    -- origins train_leg_service_endpoint_out_data[],
-    -- destinations train_leg_service_endpoint_out_data[],
-    -- operator train_leg_operator_out_data,
-    -- brand train_leg_operator_out_data
+    start_datetime TIMESTAMP WITH TIME ZONE,
+    origins train_leg_station_out_data[],
+    destinations train_leg_station_out_data[],
+    operator train_leg_operator_out_data,
+    brand train_leg_operator_out_data
 );
 
 CREATE TYPE train_leg_out_data AS (
