@@ -181,27 +181,35 @@ CREATE TABLE train_call (
 );
 
 CREATE TABLE train_associated_service_type (
-    train_associated_type_id SERIAL PRIMARY KEY,
+    train_associated_service_type_id SERIAL PRIMARY KEY,
     type_name TEXT NOT NULL UNIQUE
 );
 
-INSERT INTO train_associated_service_type(train_associated_type_id, type_name)
+INSERT INTO train_associated_service_type(
+    train_associated_service_type_id,
+    type_name)
 VALUES (1, 'THIS_JOINS');
 
-INSERT INTO train_associated_service_type(train_associated_type_id, type_name)
+INSERT INTO train_associated_service_type(
+    train_associated_service_type_id,
+    type_name)
 VALUES (2, 'OTHER_JOINS');
 
-INSERT INTO train_associated_service_type(train_associated_type_id, type_name)
+INSERT INTO train_associated_service_type(
+    train_associated_service_type_id,
+    type_name)
 VALUES (3, 'THIS_DIVIDES');
 
-INSERT INTO train_associated_service_type(train_associated_type_id, type_name)
+INSERT INTO train_associated_service_type(
+    train_associated_service_type_id,
+    type_name)
 VALUES (4, 'OTHER_DIVIDES');
 
 CREATE TABLE train_associated_service (
     train_call_id INTEGER NOT NULL,
     train_associated_service_id INT NOT NULL,
     train_associated_service_type_id INT NOT NULL,
-    FOREIGN KEY (train_associated_type_id)
+    FOREIGN KEY (train_associated_service_type_id)
         REFERENCES
             train_associated_service_type(train_associated_service_type_id),
     FOREIGN KEY (train_call_id)
@@ -211,7 +219,7 @@ CREATE TABLE train_associated_service (
         REFERENCES train_service(train_service_id)
         ON DELETE CASCADE,
     CONSTRAINT train_associated_service_unique_call_service_type
-        UNIQUE (train_call_id, train_service_id, train_associated_type_id)
+        UNIQUE (train_call_id, train_service_id, train_associated_service_type_id)
 );
 
 CREATE TABLE train_leg (
@@ -226,7 +234,7 @@ CREATE TABLE train_leg_call (
     arr_call_id INTEGER,
     dep_call_id INTEGER,
     mileage NUMERIC,
-    associated_type_id INTEGER,
+    train_associated_service_type_id INTEGER,
     CONSTRAINT leg_call_unique UNIQUE (leg_id, arr_call_id, dep_call_id),
     FOREIGN KEY (leg_id) REFERENCES train_leg(leg_id) ON DELETE CASCADE,
     FOREIGN KEY (arr_call_id) REFERENCES train_call(call_id) ON DELETE CASCADE,

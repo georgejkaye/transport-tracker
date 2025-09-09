@@ -255,7 +255,7 @@ UNIQUE (call_id, associated_service_id, associated_type);
 -- Make associated type have ids
 
 ALTER TABLE train_associated_service_type
-ADD COLUMN train_associated_type_id SERIAL;
+ADD COLUMN train_associated_service_type_id SERIAL;
 
 ALTER TABLE train_associated_service_type
 RENAME COLUMN associated_type TO type_name;
@@ -278,40 +278,40 @@ DROP CONSTRAINT associatedtype_pkey;
 
 ALTER TABLE train_associated_service_type
 ADD CONSTRAINT train_associated_service_type_pkey
-PRIMARY KEY (train_associated_type_id);
+PRIMARY KEY (train_associated_service_type_id);
 
 ALTER TABLE train_associated_service
-ADD COLUMN train_associated_type_id INTEGER;
+ADD COLUMN train_associated_service_type_id INTEGER;
 
 ALTER TABLE train_associated_service
-ADD CONSTRAINT train_associated_service_train_associated_type_id_fkey
-FOREIGN KEY(train_associated_type_id)
-REFERENCES train_associated_service_type(train_associated_type_id);
+ADD CONSTRAINT train_associated_service_train_associated_service_type_id_fkey
+FOREIGN KEY (train_associated_service_type_id)
+REFERENCES train_associated_service_type(train_associated_service_type_id);
 
 UPDATE train_associated_service
-SET associated_type_id = (
-    SELECT associated_type_id
+SET train_associated_service_type_id = (
+    SELECT train_associated_service_type_id
     FROM train_associated_service_type
     WHERE type_name = associated_type
 );
 
 ALTER TABLE train_associated_service
-ALTER COLUMN associated_type_id SET NOT NULL;
+ALTER COLUMN train_associated_service_type_id SET NOT NULL;
 
 ALTER TABLE train_associated_service
 DROP COLUMN associated_type;
 
 ALTER TABLE train_leg_call
-ADD COLUMN associated_type_id INTEGER;
+ADD COLUMN train_associated_service_type_id INTEGER;
 
 ALTER TABLE train_leg_call
-ADD CONSTRAINT train_leg_call_associated_type_id_fkey
-FOREIGN KEY(associated_type_id)
-REFERENCES train_associated_service_type(associated_type_id);
+ADD CONSTRAINT train_leg_call_associated_service_type_id_fkey
+FOREIGN KEY (train_associated_service_type_id)
+REFERENCES train_associated_service_type(train_associated_service_type_id);
 
 UPDATE train_leg_call
-SET associated_type_id = (
-    SELECT associated_type_id
+SET train_associated_service_type_id = (
+    SELECT train_associated_service_type_id
     FROM train_associated_service_type
     WHERE type_name = assoc_type
 );
