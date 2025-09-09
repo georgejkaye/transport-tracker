@@ -1,9 +1,12 @@
 DROP VIEW train_leg_view;
 
+DROP FUNCTION select_train_leg_by_id;
+
 CREATE OR REPLACE VIEW train_leg_view AS
 SELECT
     train_leg.train_leg_id,
-    train_leg_service.services
+    train_leg_service.services,
+    train_leg_call.calls
 FROM train_leg
 INNER JOIN (
     SELECT
@@ -103,8 +106,73 @@ INNER JOIN (
         = train_service_destination.train_service_id
     INNER JOIN train_operator
     ON train_service.train_operator_id = train_operator.train_operator_id
-    INNER JOIN train_brand
+    LEFT JOIN train_brand
     ON train_service.train_brand_id = train_brand.train_brand_id
     GROUP BY train_leg.train_leg_id
 ) train_leg_service
-ON train_leg.train_leg_id = train_leg_service.train_leg_id;
+ON train_leg.train_leg_id = train_leg_service.train_leg_id
+INNER JOIN (
+    SELECT
+        train_leg_call.train_leg_id,
+        ARRAY_AGG((
+            (
+                COALESCE(
+                    train_station_arr.train_station_id,
+                    train_station_dep.train_station_id
+                ),
+                COALESCE(
+                    train_station_arr.station_crs,
+                    train_station_dep.station_crs
+                ),
+                COALESCE(
+                    train_station_arr.station_name,
+                    train_station_dep.station_name
+                )
+            )::train_leg_station_out_data,
+            COALESCE(
+                train_call_arr.platform,
+                train_call_dep.platform
+            ),
+            train_call_arr.plan_arr,
+            train_call_arr.act_arr,
+            train_call_dep.plan_dep,
+            train_call_dep.act_dep,
+            train_associated_service_type.type_name,
+            train_leg_call.mileage
+        )::train_leg_call_out_data
+        ORDER BY COALESCE(
+            train_call_arr.plan_arr,
+            train_call_dep.plan_dep,
+            train_call_arr.act_arr,
+            train_call_dep.act_dep
+        )) AS calls
+    FROM train_leg_call
+    LEFT JOIN train_call train_call_arr
+    ON train_leg_call.arr_call_id = train_call_arr.train_call_id
+    LEFT JOIN train_call train_call_dep
+    ON train_leg_call.dep_call_id = train_call_dep.train_call_id
+    LEFT JOIN train_station train_station_arr
+    ON train_call_arr.train_station_id = train_station_arr.train_station_id
+    LEFT JOIN train_station train_station_dep
+    ON train_call_dep.train_station_id = train_station_dep.train_station_id
+    LEFT JOIN train_associated_service_type
+    ON train_leg_call.train_associated_type_id
+        = train_associated_service_type.train_associated_service_type_id
+    GROUP BY train_leg_id
+) train_leg_call
+ON train_leg.train_leg_id = train_leg_call.train_leg_id;
+
+CREATE OR REPLACE FUNCTION select_train_leg_by_id (
+    p_train_leg_id INTEGER
+)
+RETURNS train_leg_out_data
+LANGUAGE sql
+AS
+$$
+SELECT
+    train_leg_view.train_leg_id,
+    train_leg_view.services,
+    train_leg_view.calls
+FROM train_leg_view
+WHERE train_leg_view.train_leg_id = p_train_leg_id;
+$$;

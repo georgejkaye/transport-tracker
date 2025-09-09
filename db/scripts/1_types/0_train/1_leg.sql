@@ -4,7 +4,7 @@ DROP TYPE train_leg_in_data CASCADE;
 DROP TYPE train_leg_station_out_data CASCADE;
 DROP TYPE train_leg_operator_out_data CASCADE;
 DROP TYPE train_leg_associated_service_out_data CASCADE;
-DROP TYPE train_leg_service_call_out_data CASCADE;
+DROP TYPE train_leg_call_out_data CASCADE;
 DROP TYPE train_leg_service_out_data CASCADE;
 DROP TYPE train_leg_out_data CASCADE;
 
@@ -55,14 +55,14 @@ CREATE TYPE train_leg_associated_service_out_data AS (
     association_type INTEGER
 );
 
-CREATE TYPE train_leg_service_call_out_data AS (
+CREATE TYPE train_leg_call_out_data AS (
     station train_leg_station_out_data,
     platform TEXT,
     plan_arr TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE,
-    associations train_leg_associated_service_out_data[],
+    service_association_type TEXT,
     mileage DECIMAL
 );
 
@@ -80,5 +80,6 @@ CREATE TYPE train_leg_service_out_data AS (
 
 CREATE TYPE train_leg_out_data AS (
     train_leg_id INTEGER,
-    services train_leg_service_out_data[]
+    services train_leg_service_out_data[],
+    calls train_leg_call_out_data[]
 );
