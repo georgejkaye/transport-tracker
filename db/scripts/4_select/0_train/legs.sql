@@ -359,7 +359,7 @@ ON train_leg.train_leg_id = train_leg_stock.train_leg_id;
 CREATE OR REPLACE FUNCTION select_train_leg_by_id (
     p_train_leg_id INTEGER
 )
-RETURNS train_leg_out_data
+RETURNS SETOF train_leg_out_data
 LANGUAGE sql
 AS
 $$
