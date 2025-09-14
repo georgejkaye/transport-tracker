@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Optional
 
 from psycopg import Connection
@@ -8,13 +7,13 @@ from api.classes.train.association import int_of_association_type
 from api.classes.train.leg import (
     DbTrainLegCallInData,
     DbTrainLegInData,
+    DbTrainLegOutData,
     DbTrainStockSegmentInData,
     InsertTrainLegResult,
-    ShortLeg,
     TrainLegCallInData,
     TrainLegInData,
     TrainStockReportInData,
-    register_leg_data_types,
+    register_train_leg_out_data,
 )
 from api.classes.train.service import (
     DbTrainAssociatedServiceInData,
@@ -199,17 +198,13 @@ def insert_train_leg(
         return res.insert_train_leg if res is not None else None
 
 
-def select_legs(
-    conn: Connection,
-    user_id: int,
-    search_start: Optional[datetime] = None,
-    search_end: Optional[datetime] = None,
-    search_leg_id: Optional[int] = None,
-) -> list[ShortLeg]:
-    register_leg_data_types(conn)
-    with conn.cursor(row_factory=class_row(ShortLeg)) as cur:
-        rows = cur.execute(
-            "SELECT SelectLegs(%s, %s, %s, %s)",
-            [user_id, search_start, search_end, search_leg_id],
-        ).fetchall()
-        return rows
+def select_train_leg_by_id(
+    conn: Connection, train_leg_id: int
+) -> Optional[DbTrainLegOutData]:
+    register_train_leg_out_data(conn)
+    with conn.cursor(row_factory=class_row(DbTrainLegOutData)) as cur:
+        result = cur.execute(
+            "SELECT * FROM select_train_leg_by_id(%s::integer)", [train_leg_id]
+        )
+        res = result.fetchone()
+        return res

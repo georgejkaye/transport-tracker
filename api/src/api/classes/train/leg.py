@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
@@ -11,11 +11,7 @@ from api.classes.train.service import (
     DbTrainCallInData,
     DbTrainServiceEndpointInData,
     DbTrainServiceInData,
-    ShortAssociatedService,
-    ShortTrainService,
     TrainServiceInData,
-    register_short_associated_service_types,
-    register_short_train_service_types,
 )
 from api.classes.train.station import (
     TrainStationIdentifiers,
@@ -134,79 +130,85 @@ DbTrainLegInData = tuple[
 ]
 
 
-def register_stock_report_types(conn: Connection) -> None:
-    register_type(conn, "TrainLegStockOutData", StockReport)
-
-
-@dataclass
-class ShortLegSegment:
-    start: TrainStationIdentifiers
-    end: TrainStationIdentifiers
-    duration: timedelta
-    mileage: Optional[Decimal]
-    stocks: list[StockReport]
-
-
-def register_short_leg_segment(
-    segment_start: datetime,
-    start_station: TrainStationIdentifiers,
-    end_station: TrainStationIdentifiers,
-    distance: Decimal,
-    duration: timedelta,
-    stock_data: list[StockReport],
-) -> ShortLegSegment:
-    return ShortLegSegment(
-        start_station,
-        end_station,
-        duration,
-        distance,
-        stock_data,
-    )
-
-
-def register_short_leg_segment_types(conn: Connection) -> None:
-    register_stock_report_types(conn)
-    register_type(conn, "TrainLegStockOutData", ShortLegSegment)
-
-
-@dataclass
-class ShortLegCall:
-    station: TrainStationIdentifiers
-    platform: Optional[str]
-    plan_arr: Optional[datetime]
-    plan_dep: Optional[datetime]
-    act_arr: Optional[datetime]
-    act_dep: Optional[datetime]
-    associated_service: Optional[list[ShortAssociatedService]]
-    leg_stock: Optional[list[StockReport]]
-    mileage: Optional[Decimal]
-
-
-def register_short_leg_call_types(conn: Connection) -> None:
-    register_stock_report_types(conn)
-    register_short_associated_service_types(conn)
-    register_type(conn, "TrainLegCallOutData", ShortLegCall)
-
-
-@dataclass
-class ShortLeg:
-    id: int
-    user_id: int
-    leg_start: datetime
-    services: dict[str, ShortTrainService]
-    calls: list[ShortLegCall]
-    stocks: list[ShortLegSegment]
-    distance: Optional[Decimal]
-    duration: Optional[timedelta]
-
-
-def register_leg_data_types(conn: Connection) -> None:
-    register_short_train_service_types(conn)
-    register_short_leg_call_types(conn)
-    register_short_leg_segment_types(conn)
-    register_type(conn, "TrainLegOutData", ShortLeg)
-
-
 @dataclass
 class InsertTrainLegResult:
     insert_train_leg: int
+
+
+@dataclass
+class DbTrainLegStationOutData:
+    station_id: int
+    crs: str
+    name: str
+
+
+@dataclass
+class DbTrainLegOperatorOutData:
+    id: int
+    code: str
+    name: str
+    bg_colour: str
+    fg_colour: str
+
+
+@dataclass
+class DbTrainLegServiceOutData:
+    service_id: int
+    unique_identifier: str
+    run_date: datetime
+    headcode: str
+    start_datetime: datetime
+    origins: list[DbTrainLegStationOutData]
+    destinations: list[DbTrainLegStationOutData]
+    operator: list[DbTrainLegOperatorOutData]
+    brand: list[DbTrainLegOperatorOutData]
+
+
+@dataclass
+class DbTrainLegCallOutData:
+    station: DbTrainLegStationOutData
+    platform: Optional[str]
+    plan_arr: Optional[datetime]
+    act_arr: Optional[datetime]
+    act_dep: Optional[datetime]
+    service_association_type: Optional[str]
+    mileage: Optional[Decimal]
+
+
+@dataclass
+class DbTrainLegStockReportOutData:
+    stock_class: Optional[int]
+    stock_subclass: Optional[int]
+    stock_number: Optional[int]
+    stock_cars: Optional[int]
+
+
+@dataclass
+class DbTrainLegStockSegmentOutData:
+    stock_start: DbTrainLegStationOutData
+    stock_end: DbTrainLegStationOutData
+    stock_reports: DbTrainLegStockReportOutData
+
+
+@dataclass
+class DbTrainLegOutData:
+    train_leg_id: int
+    services: list[DbTrainLegServiceOutData]
+    calls: list[DbTrainLegCallOutData]
+    stock: list[DbTrainLegStockSegmentOutData]
+
+
+def register_train_leg_out_data(conn: Connection) -> None:
+    register_type(
+        conn, "train_leg_operator_out_data", DbTrainLegOperatorOutData
+    )
+    register_type(conn, "train_leg_station_out_data", DbTrainLegStationOutData)
+    register_type(conn, "train_leg_service_out_data", DbTrainLegServiceOutData)
+    register_type(conn, "train_leg_call_out_data", DbTrainLegCallOutData)
+    register_type(
+        conn, "train_leg_stock_report_out_data", DbTrainLegStockReportOutData
+    )
+    register_type(
+        conn, "train_leg_stock_segment_out_data", DbTrainLegStockSegmentOutData
+    )
+    register_type(conn, "train_leg_out_data", DbTrainLegOutData)
