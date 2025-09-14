@@ -6,6 +6,8 @@ DROP TYPE train_leg_operator_out_data CASCADE;
 DROP TYPE train_leg_associated_service_out_data CASCADE;
 DROP TYPE train_leg_call_out_data CASCADE;
 DROP TYPE train_leg_service_out_data CASCADE;
+DROP TYPE train_leg_stock_report_out_data CASCADE;
+DROP TYPE train_leg_stock_segment_out_data CASCADE;
 DROP TYPE train_leg_out_data CASCADE;
 
 CREATE TYPE train_leg_call_in_data AS (
@@ -78,8 +80,22 @@ CREATE TYPE train_leg_service_out_data AS (
     brand train_leg_operator_out_data
 );
 
+CREATE TYPE train_leg_stock_report_out_data AS (
+    stock_class INTEGER,
+    stock_subclass INTEGER,
+    stock_number INTEGER,
+    stock_cars INTEGER
+);
+
+CREATE TYPE train_leg_stock_segment_out_data AS (
+    stock_start train_leg_station_out_data,
+    stock_end train_leg_station_out_data,
+    stock_reports train_leg_stock_report_out_data[]
+);
+
 CREATE TYPE train_leg_out_data AS (
     train_leg_id INTEGER,
     services train_leg_service_out_data[],
-    calls train_leg_call_out_data[]
+    calls train_leg_call_out_data[],
+    stock train_leg_stock_segment_out_data[]
 );
