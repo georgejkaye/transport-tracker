@@ -22,7 +22,7 @@ $$;
 CREATE OR REPLACE FUNCTION select_station_by_name (
     p_station_name TEXT
 )
-RETURNS train_station_out_data
+RETURNS SETOF train_station_out_data
 LANGUAGE sql
 AS
 $$
