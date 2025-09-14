@@ -24,7 +24,7 @@ CREATE TYPE train_leg_call_in_data AS (
     dep_call_act_arr TIMESTAMP WITH TIME ZONE,
     dep_call_plan_dep TIMESTAMP WITH TIME ZONE,
     dep_call_act_dep TIMESTAMP WITH TIME ZONE,
-    mileage DECIMAL,
+    mileage NUMERIC,
     associated_type_id INTEGER
 );
 
@@ -35,7 +35,7 @@ CREATE TYPE train_leg_in_data AS (
     service_associations train_associated_service_in_data[],
     leg_calls train_leg_call_in_data[],
     leg_stock train_stock_segment_in_data[],
-    leg_distance DECIMAL
+    leg_distance NUMERIC
 );
 
 CREATE TYPE train_leg_station_out_data AS (
@@ -65,7 +65,7 @@ CREATE TYPE train_leg_call_out_data AS (
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE,
     service_association_type TEXT,
-    mileage DECIMAL
+    mileage NUMERIC
 );
 
 CREATE TYPE train_leg_service_out_data AS (
