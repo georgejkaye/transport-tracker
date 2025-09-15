@@ -19,6 +19,7 @@ class TrainStation:
 
 @dataclass
 class TrainStationIdentifiers:
+    station_id: int
     crs: str
     name: str
 
@@ -92,16 +93,6 @@ class StationPointCrsSearchResult:
     station_points: list[StationLocation]
 
 
-def register_station_data(
-    station_crs: str, station_name: str
-) -> TrainStationIdentifiers:
-    return TrainStationIdentifiers(station_crs, station_name)
-
-
-def register_short_train_station_types(conn: Connection) -> None:
-    register_type(conn, "TrainStationOutData", register_station_data)
-
-
 @dataclass
 class LegAtStation:
     id: int
@@ -139,3 +130,13 @@ class TrainStationOutData:
     station_crs: str
     operator_id: int
     brand_id: Optional[int]
+
+
+@dataclass
+class DbTrainStationPointOutData:
+    station_id: int
+    station_crs: str
+    station_name: str
+    platform: Optional[str]
+    latitude: Decimal
+    longitude: Decimal
