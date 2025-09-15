@@ -1,18 +1,19 @@
 from typing import Optional
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
-from api.utils.database import connect_with_env
+from api.api.network import network
 from api.classes.network.map import LegLine, StationInfo
 from api.db.train.points import get_station_points_from_crses
-from api.db.train.stations import select_station_from_crs
+from api.db.train.stations import select_station_by_crs
 from api.network.map import (
     LegData,
     get_leg_map,
     get_leg_map_page_from_leg_data,
 )
 from api.network.pathfinding import find_shortest_path_between_stations
-from api.api.network import network
+from api.utils.database import connect_with_env
 
 router = APIRouter(prefix="/train", tags=["utils/train"])
 
@@ -29,13 +30,13 @@ async def get_route_between_stations(
     to_platform: Optional[str] = None,
 ) -> str:
     with connect_with_env() as conn:
-        from_station = select_station_from_crs(conn, from_crs)
+        from_station = select_station_by_crs(conn, from_crs)
         if from_station is None:
             raise HTTPException(
                 status_code=404,
                 detail=f"Could not find station for code {from_crs}",
             )
-        to_station = select_station_from_crs(conn, to_crs)
+        to_station = select_station_by_crs(conn, to_crs)
         if to_station is None:
             raise HTTPException(
                 status_code=404,
