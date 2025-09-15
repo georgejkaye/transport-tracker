@@ -6,6 +6,7 @@ from psycopg.rows import class_row
 
 from api.classes.train.operators import BrandData, OperatorData
 from api.classes.train.station import (
+    DbTrainStationPointOutData,
     LegAtStation,
     StationData,
     TrainStationIdentifiers,
@@ -16,7 +17,7 @@ from api.utils.database import (
 )
 
 
-def select_station_from_crs(
+def select_station_by_crs(
     conn: Connection, crs: str
 ) -> Optional[TrainStationOutData]:
     query = """
@@ -29,7 +30,7 @@ def select_station_from_crs(
         return rows[0]
 
 
-def select_station_from_name(
+def select_station_by_name(
     conn: Connection, name: str
 ) -> Optional[TrainStationOutData]:
     query = """
@@ -42,13 +43,24 @@ def select_station_from_name(
         return rows[0]
 
 
-def get_stations_from_substring(
+def select_stations_by_name_substring(
     conn: Connection, substring: str
 ) -> list[TrainStationOutData]:
     query = """
-        SELECT * FROM select_station_by_name_substring(%s);
+        SELECT * FROM select_stations_by_name_substring(%s);
     """
     with conn.cursor(row_factory=class_row(TrainStationOutData)) as cur:
+        rows = cur.execute(query, [substring]).fetchall()
+        return rows
+
+
+def select_station_points_by_names_and_platforms(
+    conn: Connection, substring: str
+) -> list[DbTrainStationPointOutData]:
+    query = """
+        SELECT * FROM select_station_points_by_names_and_platforms(%s);
+    """
+    with conn.cursor(row_factory=class_row(DbTrainStationPointOutData)) as cur:
         rows = cur.execute(query, [substring]).fetchall()
         return rows
 

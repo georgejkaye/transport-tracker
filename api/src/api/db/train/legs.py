@@ -25,7 +25,7 @@ from api.classes.train.service import (
     TrainServiceInData,
 )
 from api.classes.train.stock import StockReport
-from api.classes.user import User
+from api.classes.users.users import User
 
 
 def get_db_service_tuple(
@@ -190,7 +190,7 @@ def insert_train_leg(
     )
     with conn.cursor(row_factory=class_row(InsertTrainLegResult)) as cur:
         result = cur.execute(
-            "SELECT * FROM insert_train_leg(%s::integer[], %s::train_leg_in_data)",
+            "SELECT * FROM insert_train_leg(%s, %s)",
             [user_ids, leg_tuple],
         )
         res = result.fetchone()
@@ -204,7 +204,17 @@ def select_train_leg_by_id(
     register_train_leg_out_data(conn)
     with conn.cursor(row_factory=class_row(DbTrainLegOutData)) as cur:
         result = cur.execute(
-            "SELECT * FROM select_train_leg_by_id(%s::integer)", [train_leg_id]
+            "SELECT * FROM select_train_leg_by_id(%s)", [train_leg_id]
         )
-        res = result.fetchone()
-        return res
+        return result.fetchone()
+
+
+def select_train_legs_by_ids(
+    conn: Connection, train_leg_ids: list[int]
+) -> list[DbTrainLegOutData]:
+    register_train_leg_out_data(conn)
+    with conn.cursor(row_factory=class_row(DbTrainLegOutData)) as cur:
+        result = cur.execute(
+            "SELECT * FROM select_train_legs_by_ids(%s)", [train_leg_ids]
+        )
+        return result.fetchall()
