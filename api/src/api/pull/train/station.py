@@ -8,7 +8,7 @@ from api.classes.train.station import (
     TrainStationIdentifiers,
     TrainStationOutData,
 )
-from api.db.train.stations import select_station_from_name
+from api.db.train.stations import select_station_by_name
 from api.utils.credentials import get_api_credentials
 from api.utils.request import make_get_request
 from api.utils.times import get_datetime_route, make_timezone_aware
@@ -38,7 +38,7 @@ def response_to_train_station_identifiers(
     conn: Connection, data: dict[str, Any]
 ) -> TrainStationIdentifiers:
     name = data["description"]
-    station = select_station_from_name(conn, name)
+    station = select_station_by_name(conn, name)
     if station is None:
         print(f"No station with name {name} found. Please update the database.")
         exit(1)

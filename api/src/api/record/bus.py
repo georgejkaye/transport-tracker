@@ -17,7 +17,7 @@ from api.classes.bus.stop import (
     short_string_of_bus_stop_details,
 )
 from api.classes.bus.vehicle import BusVehicleDetails
-from api.classes.user import User
+from api.classes.users.users import User
 from api.db.bus.leg import insert_leg
 from api.db.bus.stop import get_bus_stops
 from api.db.bus.vehicle import (
@@ -25,7 +25,7 @@ from api.db.bus.vehicle import (
     get_bus_vehicles_by_operator_and_id,
     string_of_bus_vehicle_out,
 )
-from api.db.user import input_user
+from api.db.users.users import input_user
 from api.pull.bus.journey import get_bus_journey
 from api.pull.bus.stop import get_departures_from_bus_stop
 from api.utils.database import connect, get_db_connection_data_from_args
@@ -107,7 +107,9 @@ def get_bus_vehicle(
     vehicle_id = input_text("Vehicle id")
     if vehicle_id is None:
         return None
-    vehicles = get_bus_vehicles_by_operator_and_id(conn, bus_operator, vehicle_id)
+    vehicles = get_bus_vehicles_by_operator_and_id(
+        conn, bus_operator, vehicle_id
+    )
     if len(vehicles) == 1:
         return vehicles[0]
     if len(vehicles) > 1:
@@ -124,7 +126,9 @@ def get_bus_vehicle(
     return input_vehicle(vehicles)
 
 
-def get_bus_leg_input(conn: Connection, users: list[User]) -> Optional[BusLegIn]:
+def get_bus_leg_input(
+    conn: Connection, users: list[User]
+) -> Optional[BusLegIn]:
     board_stop = get_bus_stop_input(conn, prompt="Board stop")
     if board_stop is None:
         print("Could not get board stop")
@@ -160,7 +164,9 @@ def get_bus_leg_input(conn: Connection, users: list[User]) -> Optional[BusLegIn]
             day_of_week_diff = day_of_week_diff + 7
         new_board_date = today.date() + timedelta(days=day_of_week_diff)
 
-        new_board_datetime = datetime.combine(new_board_date, board_datetime.time())
+        new_board_datetime = datetime.combine(
+            new_board_date, board_datetime.time()
+        )
         information(
             f"{board_datetime.strftime('%d/%m/%Y %H:%M:%S')} is before today, "
             + f"using {new_board_datetime.strftime('%d/%m/%Y %H:%M:%S')} instead"

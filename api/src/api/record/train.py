@@ -31,15 +31,15 @@ from api.classes.train.stock import (
     string_of_class_and_subclass,
     string_of_stock_report,
 )
-from api.db.train.leg import insert_train_leg
+from api.db.train.legs import insert_train_leg
 from api.db.train.stations import (
-    get_stations_from_substring,
-    select_station_from_crs,
+    select_station_by_crs,
+    select_stations_by_name_substring,
 )
 from api.db.train.stock import (
     get_operator_stock,
 )
-from api.db.user import input_user
+from api.db.users.users import input_user
 from api.pull.train.service import get_service_from_id
 from api.pull.train.station import get_services_at_station
 from api.utils.database import connect, get_db_connection_data_from_args
@@ -97,13 +97,13 @@ def get_station_from_input(
         if len(input_string) == 0 and stn is not None:
             return stn
         if len(input_string) == 3:
-            crs_station = select_station_from_crs(conn, input_string)
+            crs_station = select_station_by_crs(conn, input_string)
             if crs_station is not None:
                 resp = input_confirm(f"Did you mean {crs_station.station_name}")
                 if resp:
                     return crs_station
         # Otherwise search for substrings in the full names of stations
-        matches = get_stations_from_substring(conn, input_string)
+        matches = select_stations_by_name_substring(conn, input_string)
         if len(matches) == 0:
             print("No matches found, try again")
         elif len(matches) == 1:

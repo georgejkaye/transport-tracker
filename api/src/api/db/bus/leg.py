@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from api.classes.user import User
+from api.classes.users.users import User
 from psycopg import Connection
 from psycopg.rows import class_row
 

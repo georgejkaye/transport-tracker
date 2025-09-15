@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
-from psycopg import Connection
+
 from shapely import Point
 
-from api.utils.database import register_type
-from api.utils.times import get_hourmin_string
 from api.classes.train.operators import BrandData, OperatorData
+from api.utils.times import get_hourmin_string
 
 
 @dataclass
