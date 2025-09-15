@@ -3,9 +3,9 @@ DROP TYPE transport_user_train_leg_operator_out_data CASCADE;
 DROP TYPE transport_user_train_leg_station CASCADE;
 
 CREATE TYPE transport_user_train_leg_station AS (
-    train_station_id INTEGER,
-    station_crs TEXT,
-    station_name TEXT
+    id INTEGER,
+    crs TEXT,
+    name TEXT
 );
 
 CREATE TYPE transport_user_train_leg_operator_out_data AS (
@@ -17,7 +17,7 @@ CREATE TYPE transport_user_train_leg_operator_out_data AS (
 );
 
 CREATE TYPE transport_user_train_leg_out_data AS (
-    train_leg_id INTEGER,
+    id INTEGER,
     origin transport_user_train_leg_station,
     destination transport_user_train_leg_station,
     start_datetime TIMESTAMP WITH TIME ZONE,
