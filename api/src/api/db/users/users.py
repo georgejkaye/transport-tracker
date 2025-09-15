@@ -4,7 +4,7 @@ from psycopg import Connection
 from psycopg.rows import class_row
 
 from api.classes.interactive import PickMultiple
-from api.classes.user import User
+from api.classes.users.users import User
 from api.utils.interactive import input_checkbox
 
 
