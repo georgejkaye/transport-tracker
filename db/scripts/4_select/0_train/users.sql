@@ -1,4 +1,4 @@
-DROP FUNCTION select_transport_user_leg_by_user_id;
+DROP FUNCTION select_transport_user_train_leg_by_user_id;
 DROP VIEW transport_user_train_leg_view;
 
 CREATE VIEW transport_user_train_leg_view AS
@@ -121,6 +121,6 @@ SELECT
     delay
 FROM transport_user_train_leg_view
 WHERE user_id = p_user_id
-AND start_datetime >= p_search_start
-AND start_datetime <= p_search_end
+AND (p_search_start IS NULL OR start_datetime >= p_search_start)
+AND (p_search_end IS NULL OR start_datetime <= p_search_end)
 $$;
