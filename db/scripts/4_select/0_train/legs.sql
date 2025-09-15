@@ -1,6 +1,7 @@
 DROP VIEW train_leg_view;
 
 DROP FUNCTION select_train_leg_by_id;
+DROP FUNCTION select_train_legs_by_ids;
 
 CREATE OR REPLACE VIEW train_leg_view AS
 SELECT
@@ -370,4 +371,20 @@ SELECT
     train_leg_view.stock
 FROM train_leg_view
 WHERE train_leg_view.train_leg_id = p_train_leg_id;
+$$;
+
+CREATE OR REPLACE FUNCTION select_train_legs_by_ids (
+    p_train_leg_ids INTEGER[]
+)
+RETURNS SETOF train_leg_out_data
+LANGUAGE sql
+AS
+$$
+SELECT
+    train_leg_view.train_leg_id,
+    train_leg_view.services,
+    train_leg_view.calls,
+    train_leg_view.stock
+FROM train_leg_view
+WHERE train_leg_view.train_leg_id = ANY(p_train_leg_ids);
 $$;
