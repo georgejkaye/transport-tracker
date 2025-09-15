@@ -13,6 +13,10 @@ from psycopg import Connection
 from pydantic import Field
 from shapely import LineString, Point
 
+from api.classes.network.geometry import (
+    TrainLegCallGeometry,
+    TrainLegGeometry,
+)
 from api.classes.network.map import (
     AlightCount,
     BoardCount,
@@ -20,17 +24,18 @@ from api.classes.network.map import (
     CallInfo,
     CountType,
     LegLine,
+    MapCall,
     MapPoint,
     MarkerTextType,
     StationCount,
     StationCountDict,
     StationInfo,
 )
-from api.classes.train.leg import ShortLeg, ShortLegCall, ShortLegSegment
-from api.classes.train.service import ShortAssociatedService, ShortTrainService
-from api.classes.train.station import StationPoint, TrainStationIdentifiers
-from api.classes.train.stock import StockReport
-from api.db.train.leg import select_legs
+from api.classes.train.leg import (
+    DbTrainLegCallOutData,
+    DbTrainLegOutData,
+)
+from api.classes.train.station import StationPoint
 from api.db.train.points import (
     get_station_points_from_crses,
     get_station_points_from_names,
@@ -330,7 +335,7 @@ def get_leg_line_for_leg(
 
 def get_leg_line_for_leg_calls(
     network: MultiDiGraph[int],
-    leg_data: list[ShortLegCall],
+    leg_data: list[MapCall],
     station_points: dict[str, dict[Optional[str], StationPoint]],
 ) -> Optional[LegLine]:
     previous_call = leg_data[0]
@@ -365,7 +370,7 @@ def get_leg_line_for_leg_calls(
 
 def get_leg_lines_for_leg_data(
     network: MultiDiGraph[int],
-    legs: list[list[ShortLegCall]],
+    legs: list[list[MapCall]],
     station_points: dict[str, dict[Optional[str], StationPoint]],
 ) -> list[LegLine]:
     leg_lines: list[LegLine] = []
@@ -430,34 +435,26 @@ def get_leg_map_page_from_leg_data(
         (name_to_station_dict, station_points) = get_station_points_from_names(
             conn, list(stations)
         )
-    base_leg_data: list[list[ShortLegCall]] = []
+    base_leg_data: list[list[MapCall]] = []
     for leg in legs:
         board_station = name_to_station_dict[leg.board_station]
         alight_station = name_to_station_dict[leg.alight_station]
         calls = [
-            ShortLegCall(
-                board_station, None, None, None, None, None, None, [], None
+            MapCall(
+                board_station, None, None, None, None, None, None
             )
         ]
         if leg.via is not None:
             for via_station in leg.via:
                 call_station = name_to_station_dict[via_station]
                 calls.append(
-                    ShortLegCall(
-                        call_station,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        [],
-                        None,
-                        None,
+                    DbTrainLegCallOutData(
+                        call_station, None, None, None, None, None, None
                     )
                 )
         calls.append(
-            ShortLegCall(
-                alight_station, None, None, None, None, None, [], None, None
+            MapCall(
+                alight_station., None, None, None, None, None, [], None, None
             )
         )
         base_leg_data.append(calls)
@@ -469,135 +466,63 @@ def get_leg_map_page_from_leg_data(
     return html
 
 
-@dataclass
-class ShortLegCallWithGeometry:
-    station: TrainStationIdentifiers
-    platform: Optional[str]
-    plan_arr: Optional[datetime]
-    plan_dep: Optional[datetime]
-    act_arr: Optional[datetime]
-    act_dep: Optional[datetime]
-    associated_service: Optional[list[ShortAssociatedService]]
-    leg_stock: Optional[list[StockReport]]
-    mileage: Optional[Decimal]
-    point: Optional[tuple[Decimal, Decimal]]
-
-
-def short_leg_call_to_short_leg_call_with_geometry(
-    leg_call: ShortLegCall,
-) -> ShortLegCallWithGeometry:
-    return ShortLegCallWithGeometry(
-        leg_call.station,
-        leg_call.platform,
-        leg_call.plan_arr,
-        leg_call.plan_dep,
-        leg_call.act_arr,
-        leg_call.act_dep,
-        leg_call.associated_service,
-        leg_call.leg_stock,
-        leg_call.mileage,
-        None,
-    )
-
-
-@dataclass
-class ShortLegWithGeometry:
-    id: int
-    user_id: int
-    leg_start: datetime
-    services: dict[str, ShortTrainService]
-    calls: list[ShortLegCallWithGeometry]
-    stocks: list[ShortLegSegment]
-    distance: Optional[Decimal]
-    duration: Optional[timedelta]
-    geometry: Optional[list[tuple[Decimal, Decimal]]]
-
-
-def short_leg_to_short_leg_with_geometry(leg: ShortLeg) -> ShortLegWithGeometry:
-    return ShortLegWithGeometry(
-        leg.id,
-        leg.user_id,
-        leg.leg_start,
-        leg.services,
-        [
-            short_leg_call_to_short_leg_call_with_geometry(leg_call)
-            for leg_call in leg.calls
-        ],
-        leg.stocks,
-        leg.distance,
-        leg.duration,
-        None,
-    )
-
-
-def short_legs_to_short_legs_with_geometries(
-    legs: list[ShortLeg],
-) -> list[ShortLegWithGeometry]:
-    return [short_leg_to_short_leg_with_geometry(leg) for leg in legs]
-
-
 def get_short_leg_with_geometry(
     network: MultiDiGraph[int],
-    leg: ShortLeg,
+    leg: DbTrainLegOutData,
     station_points: dict[str, dict[str | None, StationPoint]],
-) -> ShortLegWithGeometry:
+) -> TrainLegGeometry:
     result = get_linestring_for_leg(network, leg.calls, station_points)
-    calls_with_geometry: list[ShortLegCallWithGeometry] = []
+    calls_with_geometry: list[TrainLegCallGeometry] = []
     if result is None:
-        coords = None
-        calls_with_geometry = [
-            short_leg_call_to_short_leg_call_with_geometry(leg_call)
-            for leg_call in leg.calls
-        ]
-    else:
-        (points, line_string) = result
-        coords = [
-            (Decimal(coord[0]), Decimal(coord[1]))
-            for coord in line_string.coords
-        ]
-        for i, leg_call in enumerate(leg.calls):
-            station_point = points[i]
-            station_point_id = get_node_id_from_station_point(station_point)
-            station_node = network.nodes[station_point_id]
-            calls_with_geometry.append(
-                ShortLegCallWithGeometry(
-                    leg_call.station,
-                    leg_call.platform,
-                    leg_call.plan_arr,
-                    leg_call.plan_dep,
-                    leg_call.act_arr,
-                    leg_call.act_dep,
-                    leg_call.associated_service,
-                    leg_call.leg_stock,
-                    leg_call.mileage,
-                    (
-                        Decimal(station_node["x"]),
-                        Decimal(station_node["y"]),
-                    ),
+        return TrainLegGeometry(
+            leg.train_leg_id,
+            [
+                TrainLegCallGeometry(
+                    call.station.station_id,
+                    call.station.crs,
+                    call.station.name,
+                    call.platform,
+                    None,
+                    None,
                 )
+                for call in leg.calls
+            ],
+            None,
+        )
+    (points, line_string) = result
+    coords = [
+        (Decimal(coord[0]), Decimal(coord[1])) for coord in line_string.coords
+    ]
+    for i, leg_call in enumerate(leg.calls):
+        station_point = points[i]
+        station_point_id = get_node_id_from_station_point(station_point)
+        station_node = network.nodes[station_point_id]
+        calls_with_geometry.append(
+            TrainLegCallGeometry(
+                leg_call.station.station_id,
+                leg_call.station.crs,
+                leg_call.station.name,
+                leg_call.platform,
+                Decimal(station_node["x"]),
+                Decimal(station_node["y"]),
             )
-    return ShortLegWithGeometry(
-        leg.id,
-        leg.user_id,
-        leg.leg_start,
-        leg.services,
+        )
+    return TrainLegGeometry(
+        leg.train_leg_id,
         calls_with_geometry,
-        leg.stocks,
-        leg.distance,
-        leg.duration,
         coords,
     )
 
 
-def get_short_legs_with_geometries(
-    conn: Connection, network: MultiDiGraph[int], legs: list[ShortLeg]
-) -> list[ShortLegWithGeometry]:
+def get_leg_geometries(
+    conn: Connection, network: MultiDiGraph[int], legs: list[DbTrainLegOutData]
+) -> list[TrainLegGeometry]:
     stations: set[tuple[str, Optional[str]]] = set()
     for leg in legs:
         for call in leg.calls:
             stations.add((call.station.crs, call.platform))
     station_points = get_station_points_from_crses(conn, list(stations))
-    legs_with_geometries: list[ShortLegWithGeometry] = []
+    legs_with_geometries: list[TrainLegGeometry] = []
     for leg in legs:
         legs_with_geometries.append(
             get_short_leg_with_geometry(network, leg, station_points)

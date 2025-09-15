@@ -14,6 +14,13 @@ class MapPoint:
 
 
 @dataclass
+class MapCall:
+    station_id: int
+    crs: str
+    name: str
+
+
+@dataclass
 class LegLine:
     board_station: str
     alight_station: str
