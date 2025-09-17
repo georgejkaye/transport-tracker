@@ -212,3 +212,38 @@ def register_train_leg_out_data(conn: Connection) -> None:
         conn, "train_leg_stock_segment_out_data", DbTrainLegStockSegmentOutData
     )
     register_type(conn, "train_leg_out_data", DbTrainLegOutData)
+
+
+@dataclass
+class DbTrainLegCallPointOutData:
+    latitude: Decimal
+    longitude: Decimal
+
+
+@dataclass
+class DbTrainLegCallPointsOutData:
+    station_id: int
+    station_crs: str
+    station_name: str
+    platform: str
+    plan_arr: datetime
+    act_arr: datetime
+    plan_dep: datetime
+    act_dep: datetime
+    points: list[DbTrainLegCallPointOutData]
+
+
+@dataclass
+class DbTrainLegPointsOutData:
+    train_leg_id: int
+    call_points: list[DbTrainLegCallPointsOutData]
+
+
+def register_train_leg_points_out_data(conn: Connection) -> None:
+    register_type(
+        conn, "train_leg_call_point_out_data", DbTrainLegCallPointOutData
+    )
+    register_type(
+        conn, "train_leg_call_points_out_data", DbTrainLegCallPointsOutData
+    )
+    register_type(conn, "train_leg_points_out_data", DbTrainLegPointsOutData)
