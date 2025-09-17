@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 
 from api.api.network import network
 from api.classes.network.geometry import TrainLegGeometry
-from api.classes.train.leg import DbTrainLegOutData
+from api.classes.train.legs import DbTrainLegOutData
 from api.db.train.legs import select_train_leg_by_id, select_train_legs_by_ids
 from api.network.map import get_leg_geometries
 from api.utils.database import connect_with_env

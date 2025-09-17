@@ -7,7 +7,7 @@ from typing import Any, Optional, Tuple
 from psycopg import Connection
 
 from api.classes.train.association import AssociationType
-from api.classes.train.leg import (
+from api.classes.train.legs import (
     TrainLegCallCallInData,
     TrainLegCallInData,
     TrainLegInData,

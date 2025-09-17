@@ -7,7 +7,9 @@ import networkx as nx
 from networkx import MultiDiGraph
 from shapely import LineString, Point
 
-from api.classes.train.leg import ShortLegCall
+from api.classes.train.legs import (
+    DbTrainLegCallPointsOutData,
+)
 from api.classes.train.station import PointTimes, StationPoint
 from api.db.train.points import get_relevant_station_points
 from api.library.shapely import get_length
