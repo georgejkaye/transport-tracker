@@ -1,19 +1,22 @@
+from datetime import datetime
 from typing import Optional
 
 from psycopg import Connection
 from psycopg.rows import class_row
 
 from api.classes.train.association import int_of_association_type
-from api.classes.train.leg import (
+from api.classes.train.legs import (
     DbTrainLegCallInData,
     DbTrainLegInData,
     DbTrainLegOutData,
+    DbTrainLegPointsOutData,
     DbTrainStockSegmentInData,
     InsertTrainLegResult,
     TrainLegCallInData,
     TrainLegInData,
     TrainStockReportInData,
     register_train_leg_out_data,
+    register_train_leg_points_out_data,
 )
 from api.classes.train.service import (
     DbTrainAssociatedServiceInData,
@@ -218,3 +221,36 @@ def select_train_legs_by_ids(
             "SELECT * FROM select_train_legs_by_ids(%s)", [train_leg_ids]
         )
         return result.fetchall()
+
+
+def select_train_leg_points_by_leg_id(
+    conn: Connection, train_leg_id: int
+) -> list[DbTrainLegPointsOutData]:
+    register_train_leg_points_out_data(conn)
+    with conn.cursor(row_factory=class_row(DbTrainLegPointsOutData)) as cur:
+        return cur.execute(
+            "SELECT * FROM select_train_leg_points_by_leg_id(%s)",
+            [train_leg_id],
+        ).fetchall()
+
+
+def select_train_leg_points_by_leg_ids(
+    conn: Connection, train_leg_ids: list[int]
+) -> list[DbTrainLegPointsOutData]:
+    register_train_leg_points_out_data(conn)
+    with conn.cursor(row_factory=class_row(DbTrainLegPointsOutData)) as cur:
+        return cur.execute(
+            "SELECT * FROM select_train_leg_points_by_leg_ids(%s)",
+            [train_leg_ids],
+        ).fetchall()
+
+
+def select_train_leg_points_by_user_id(
+    conn: Connection, user_id: int, search_start: datetime, search_end: datetime
+) -> list[DbTrainLegPointsOutData]:
+    register_train_leg_points_out_data(conn)
+    with conn.cursor(row_factory=class_row(DbTrainLegPointsOutData)) as cur:
+        return cur.execute(
+            "SELECT * FROM select_train_leg_points_by_user_id(%s, %s, %s)",
+            [user_id, search_start, search_end],
+        ).fetchall()
