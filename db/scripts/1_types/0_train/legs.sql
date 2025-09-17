@@ -10,6 +10,10 @@ DROP TYPE train_leg_stock_report_out_data CASCADE;
 DROP TYPE train_leg_stock_segment_out_data CASCADE;
 DROP TYPE train_leg_out_data CASCADE;
 
+DROP TYPE train_leg_call_point_out_data CASCADE;
+DROP TYPE train_leg_call_points_out_data CASCADE;
+DROP TYPE train_leg_points_out_data CASCADE;
+
 CREATE TYPE train_leg_call_in_data AS (
     station_crs TEXT,
     arr_call_service_uid TEXT,
@@ -98,4 +102,28 @@ CREATE TYPE train_leg_out_data AS (
     services train_leg_service_out_data[],
     calls train_leg_call_out_data[],
     stock train_leg_stock_segment_out_data[]
+);
+
+CREATE TYPE train_leg_call_point_out_data AS (
+    latitude NUMERIC,
+    longitude NUMERIC
+);
+
+CREATE TYPE train_leg_call_points_out_data AS (
+    station_id INTEGER,
+    station_crs TEXT,
+    station_name TEXT,
+    platform TEXT,
+    plan_arr TIMESTAMP WITH TIME ZONE,
+    act_arr TIMESTAMP WITH TIME ZONE,
+    plan_dep TIMESTAMP WITH TIME ZONE,
+    act_dep TIMESTAMP WITH TIME ZONE,
+    points train_leg_call_point_out_data[]
+);
+
+CREATE TYPE train_leg_points_out_data AS (
+    train_leg_id INTEGER,
+    operator_id INTEGER,
+    brand_id INTEGER,
+    call_points train_leg_call_points_out_data[]
 );

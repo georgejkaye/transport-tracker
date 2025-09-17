@@ -1,7 +1,12 @@
 DROP VIEW train_leg_view;
+DROP VIEW train_leg_points_view;
 
 DROP FUNCTION select_train_leg_by_id;
 DROP FUNCTION select_train_legs_by_ids;
+
+DROP FUNCTION select_train_leg_points_by_leg_id;
+DROP FUNCTION select_train_leg_points_by_leg_ids;
+DROP FUNCTION select_train_leg_points_by_user_id;
 
 CREATE OR REPLACE VIEW train_leg_view AS
 SELECT
@@ -387,4 +392,199 @@ SELECT
     train_leg_view.stock
 FROM train_leg_view
 WHERE train_leg_view.train_leg_id = ANY(p_train_leg_ids);
+$$;
+
+CREATE VIEW train_leg_points_view AS
+SELECT
+    train_leg_call.train_leg_id,
+    train_service.train_operator_id,
+    train_service.train_brand_id,
+    train_service_call.first_call_time,
+    ARRAY_AGG(
+        (
+            train_station.train_station_id,
+            train_station.station_crs,
+            train_station.station_name,
+            train_call.platform,
+            train_call.plan_arr,
+            train_call.act_arr,
+            train_call.plan_dep,
+            train_call.act_dep,
+            train_station_platform_point_array.platform_points
+        )::train_leg_call_points_out_data
+        ORDER BY COALESCE(
+            train_call.plan_arr,
+            train_call.plan_dep,
+            train_call.act_arr,
+            train_call.act_dep
+        )
+    ) AS call_points
+FROM train_leg_call
+INNER JOIN train_call
+ON train_leg_call.arr_call_id = train_call.train_call_id
+OR train_leg_call.dep_call_id = train_call.train_call_id
+INNER JOIN train_station
+ON train_call.train_station_id = train_station.train_station_id
+INNER JOIN train_service
+ON train_call.train_service_id = train_service.train_service_id
+INNER JOIN (
+    SELECT
+        train_call.train_service_id,
+        MIN(
+            COALESCE(
+                train_call.plan_dep,
+                train_call.act_dep,
+                train_call.plan_arr,
+                train_call.act_arr
+            )
+        ) AS first_call_time
+    FROM train_call
+    GROUP BY train_call.train_service_id
+) train_service_call
+ON train_service.train_service_id = train_service_call.train_service_id
+INNER JOIN (
+    SELECT
+        train_station_filtered_platform_point.train_station_id,
+        train_station_filtered_platform_point.platform,
+        ARRAY_AGG(
+            (
+                train_station_filtered_platform_point.latitude,
+                train_station_filtered_platform_point.longitude
+            )::train_leg_call_point_out_data
+            ORDER BY train_station_filtered_platform_point.point_platform
+        ) AS platform_points
+    FROM (
+        WITH train_platform_point AS (
+            SELECT
+                train_call_platform.train_station_id,
+                train_call_platform.platform,
+                train_station_point.platform AS point_platform,
+                train_station_point.latitude,
+                train_station_point.longitude
+            FROM (
+                SELECT DISTINCT
+                    train_call.train_station_id,
+                    train_call.platform
+                FROM train_call
+            ) train_call_platform
+            INNER JOIN train_station_point
+            ON train_call_platform.train_station_id
+                = train_station_point.station_id
+        )
+        SELECT
+            train_station.train_station_id,
+            train_station_platform_point.platform,
+            train_station_platform_point.point_platform,
+            train_station_platform_point.latitude,
+            train_station_platform_point.longitude
+        FROM (
+            SELECT
+                train_station_id,
+                platform,
+                point_platform,
+                latitude,
+                longitude
+            FROM train_platform_point
+            WHERE platform = point_platform
+            UNION (
+                SELECT
+                    train_station_id,
+                    platform,
+                    point_platform,
+                    latitude,
+                    longitude
+                FROM train_platform_point
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM train_platform_point train_platform_point_all
+                    WHERE train_platform_point.train_station_id
+                        = train_platform_point_all.train_station_id
+                    AND train_platform_point.platform
+                        = train_platform_point_all.point_platform
+                )
+            )
+        ) train_station_platform_point
+        INNER JOIN train_station
+        ON train_station.train_station_id
+            = train_station_platform_point.train_station_id
+    ) train_station_filtered_platform_point
+    GROUP BY
+        train_station_filtered_platform_point.train_station_id,
+        train_station_filtered_platform_point.platform
+) train_station_platform_point_array
+ON train_call.train_station_id
+    = train_station_platform_point_array.train_station_id
+AND (
+    train_call.platform
+        = train_station_platform_point_array.platform
+    OR (
+        train_call.platform IS NULL
+            AND train_station_platform_point_array.platform IS NULL
+    )
+)
+GROUP BY
+    train_leg_call.train_leg_id,
+    train_service.train_operator_id,
+    train_service.train_brand_id,
+    train_service_call.first_call_time
+ORDER BY train_leg_call.train_leg_id;
+
+CREATE OR REPLACE FUNCTION select_train_leg_points_by_leg_id (
+    p_train_leg_id INTEGER
+)
+RETURNS SETOF train_leg_points_out_data
+LANGUAGE sql
+AS
+$$
+SELECT
+    train_leg_points_view.train_leg_id,
+    train_leg_points_view.train_operator_id,
+    train_leg_points_view.train_brand_id,
+    train_leg_points_view.call_points
+FROM train_leg_points_view
+WHERE train_leg_id = p_train_leg_id;
+$$;
+
+CREATE OR REPLACE FUNCTION select_train_leg_points_by_leg_ids (
+    p_train_leg_ids INTEGER[]
+)
+RETURNS SETOF train_leg_points_out_data
+LANGUAGE sql
+AS
+$$
+SELECT
+    train_leg_points_view.train_leg_id,
+    train_leg_points_view.train_operator_id,
+    train_leg_points_view.train_brand_id,
+    train_leg_points_view.call_points
+FROM train_leg_points_view
+WHERE train_leg_id = ANY(p_train_leg_ids);
+$$;
+
+CREATE OR REPLACE FUNCTION select_train_leg_points_by_user_id (
+    p_user_id INTEGER,
+    p_search_start TIMESTAMP WITH TIME ZONE,
+    p_search_end TIMESTAMP WITH TIME ZONE
+)
+RETURNS SETOF train_leg_points_out_data
+LANGUAGE sql
+AS
+$$
+SELECT
+    train_leg_points_view.train_leg_id,
+    train_leg_points_view.train_operator_id,
+    train_leg_points_view.train_brand_id,
+    train_leg_points_view.call_points
+FROM train_leg_points_view
+INNER JOIN transport_user_train_leg
+ON transport_user_train_leg.train_leg_id = train_leg_points_view.train_leg_id
+WHERE transport_user_train_leg.user_id = p_user_id
+AND (
+    p_search_start IS NULL
+    OR train_leg_points_view.first_call_time >= p_search_start
+)
+AND (
+    p_search_end IS NULL
+    OR train_leg_points_view.first_call_time <= p_search_end
+)
 $$;
