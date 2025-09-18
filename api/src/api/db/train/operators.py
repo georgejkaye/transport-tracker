@@ -6,6 +6,8 @@ from psycopg.rows import class_row
 
 from api.classes.train.operators import (
     BrandData,
+    DbOperatorDetails,
+    OperatorBrandLookup,
     OperatorData,
     OperatorDbData,
     operator_db_data_to_operator_data,
@@ -51,3 +53,16 @@ def get_operator_by_operator_by_operator_code(
 
 def register_train_operator_out_data(conn: Connection) -> None:
     register_type(conn, "train_brand_out_data", BrandData)
+
+
+def select_operator_details(conn: Connection) -> OperatorBrandLookup:
+    with conn.cursor(row_factory=class_row(DbOperatorDetails)) as cur:
+        rows = cur.execute("SELECT * FROM select_operator_details()").fetchall()
+        operators: dict[int, DbOperatorDetails] = {}
+        brands: dict[int, DbOperatorDetails] = {}
+        for row in rows:
+            if row.is_brand:
+                brands[row.operator_id] = row
+            else:
+                operators[row.operator_id] = row
+        return OperatorBrandLookup(operators, brands)

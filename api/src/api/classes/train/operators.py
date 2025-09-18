@@ -48,3 +48,19 @@ def operator_db_data_to_operator_data(db_data: OperatorDbData) -> OperatorData:
         db_data.operation_range.upper,
         db_data.operator_brands,
     )
+
+
+@dataclass
+class DbOperatorDetails:
+    operator_id: int
+    is_brand: bool
+    operator_code: str
+    operator_name: str
+    bg_colour: str
+    fg_colour: str
+
+
+@dataclass
+class OperatorBrandLookup:
+    operators: dict[int, DbOperatorDetails]
+    brands: dict[int, DbOperatorDetails]
