@@ -7,29 +7,32 @@ import networkx as nx
 from networkx import MultiDiGraph
 from shapely import LineString, Point
 
-from api.classes.train.legs import (
-    DbTrainLegCallPointsOutData,
+from api.classes.network.map import (
+    LegLineCall,
+    LegLineGeometry,
+    NetworkNode,
+    NetworkNodePath,
 )
-from api.classes.train.station import PointTimes, StationPoint
-from api.db.train.points import get_relevant_station_points
+from api.classes.train.legs import (
+    DbTrainLegPointsOutData,
+)
 from api.library.shapely import get_length
 from api.network.network import (
     EdgeDetails,
     get_edge_from_endpoints,
-    get_node_id_from_station_point,
-    insert_node_to_network,
+    get_node_id_from_network_node,
     merge_linestrings,
 )
 
 
-def get_shortest_linestring(
-    linestrings: list[tuple[StationPoint, StationPoint, LineString]],
-) -> Optional[tuple[StationPoint, StationPoint, LineString]]:
+def get_shortest_network_node_path(
+    linestrings: list[NetworkNodePath],
+) -> Optional[NetworkNodePath]:
     if len(linestrings) == 0:
         return None
     return min(
         linestrings,
-        key=lambda linestring: get_length(linestring[2]),
+        key=lambda linestring: get_length(linestring.line),
     )
 
 
@@ -48,7 +51,7 @@ def get_edge_weight(edge: EdgeDetails) -> float:
     return edge.tags["length"] / max_speed
 
 
-def find_path_betwen_network_nodes(
+def find_path_betwen_node_ids(
     network: MultiDiGraph[int], source_id: int, target_id: int
 ) -> Optional[LineString]:
     path = nx.shortest_path(
@@ -85,134 +88,95 @@ def find_path_betwen_network_nodes(
         return None
 
 
-def find_path_between_station_points(
-    network: MultiDiGraph[int], source: StationPoint, target: StationPoint
+def find_path_between_network_nodes(
+    network: MultiDiGraph[int], source: NetworkNode, target: NetworkNode
 ) -> Optional[LineString]:
-    source_id = get_node_id_from_station_point(source)
-    target_id = get_node_id_from_station_point(target)
-    if not network.has_node(source_id):
-        insert_node_to_network(
-            network, source.point, source_id, project_network=False
-        )
-    if not network.has_node(target_id):
-        insert_node_to_network(
-            network, target.point, target_id, project_network=False
-        )
-    return find_path_betwen_network_nodes(network, source_id, target_id)
+    source_id = get_node_id_from_network_node(source)
+    target_id = get_node_id_from_network_node(target)
+    return find_path_betwen_node_ids(network, source_id, target_id)
 
 
-def find_paths_between_nodes(
+def find_paths_between_network_nodes(
     network: MultiDiGraph[int],
-    sources: list[StationPoint],
-    targets: list[StationPoint],
-) -> list[tuple[StationPoint, StationPoint, LineString]]:
-    paths: list[tuple[StationPoint, StationPoint, LineString]] = []
+    sources: list[NetworkNode],
+    targets: list[NetworkNode],
+) -> list[NetworkNodePath]:
+    paths: list[NetworkNodePath] = []
     for source in sources:
         for target in targets:
-            path = find_path_between_station_points(network, source, target)
+            path = find_path_between_network_nodes(network, source, target)
             if path is not None:
-                paths.append((source, target, path))
+                paths.append(NetworkNodePath(source, target, path))
     return paths
 
 
-def find_shortest_path_between_multiple_nodes(
+def find_shortest_path_between_network_nodes(
     network: MultiDiGraph[int],
-    sources: list[StationPoint],
-    targets: list[StationPoint],
-) -> Optional[tuple[StationPoint, StationPoint, LineString]]:
-    paths = find_paths_between_nodes(network, sources, targets)
-    if len(paths) == 0:
-        return None
-    return get_shortest_linestring(paths)
-
-
-def find_shortest_path_between_nodes(
-    network: MultiDiGraph[int],
-    sources: StationPoint,
-    targets: StationPoint,
-) -> Optional[tuple[StationPoint, StationPoint, LineString]]:
-    return find_shortest_path_between_multiple_nodes(
-        network, [sources], [targets]
-    )
-
-
-def find_paths_between_stations(
-    network: MultiDiGraph[int],
-    origin_crs: str,
-    origin_platform: Optional[str],
-    destination_crs: str,
-    destination_platform: Optional[str],
-    station_points: dict[str, dict[Optional[str], StationPoint]],
-) -> list[tuple[StationPoint, StationPoint, LineString]]:
-    origin_points = get_relevant_station_points(
-        origin_crs, origin_platform, station_points
-    )
-    destination_points = get_relevant_station_points(
-        destination_crs, destination_platform, station_points
-    )
-    paths = find_paths_between_nodes(network, origin_points, destination_points)
-    return paths
-
-
-def find_shortest_path_between_stations(
-    network: MultiDiGraph[int],
-    origin_crs: str,
-    origin_platform: Optional[str],
-    destination_crs: str,
-    destination_platform: Optional[str],
-    station_points: dict[str, dict[Optional[str], StationPoint]],
-) -> Optional[tuple[StationPoint, StationPoint, LineString]]:
-    paths = find_paths_between_stations(
+    origins: list[NetworkNode],
+    destinations: list[NetworkNode],
+) -> Optional[NetworkNodePath]:
+    paths = find_paths_between_network_nodes(
         network,
-        origin_crs,
-        origin_platform,
-        destination_crs,
-        destination_platform,
-        station_points,
+        origins,
+        destinations,
     )
-    shortest_path = get_shortest_linestring(paths)
+    shortest_path = get_shortest_network_node_path(paths)
     return shortest_path
 
 
-def short_leg_call_to_point_times(leg_call: ShortLegCall) -> PointTimes:
-    return PointTimes(
-        leg_call.plan_arr, leg_call.plan_dep, leg_call.act_arr, leg_call.act_dep
-    )
-
-
 def get_linestring_for_leg(
-    network: MultiDiGraph[int],
-    leg_calls: list[ShortLegCall],
-    station_points: dict[str, dict[Optional[str], StationPoint]],
-) -> Optional[tuple[list[StationPoint], LineString]]:
-    complete_paths: list[tuple[list[StationPoint], Optional[LineString]]] = []
-    for platform_key in station_points[leg_calls[0].station.crs].keys():
-        first_point = station_points[leg_calls[0].station.crs][platform_key]
+    network: MultiDiGraph[int], leg: DbTrainLegPointsOutData
+) -> Optional[LegLineGeometry]:
+    complete_paths: list[tuple[list[LegLineCall], Optional[LineString]]] = []
+    first_call = leg.call_points[0]
+    for platform_point in first_call.points:
         complete_paths.append(
             (
                 [
-                    StationPoint(
-                        first_point.crs,
-                        first_point.name,
-                        first_point.platform,
-                        first_point.point,
-                        short_leg_call_to_point_times(leg_calls[0]),
+                    LegLineCall(
+                        first_call.station_id,
+                        first_call.station_crs,
+                        first_call.station_name,
+                        first_call.platform,
+                        platform_point.longitude,
+                        platform_point.latitude,
+                        first_call.plan_dep,
+                        first_call.plan_arr,
+                        first_call.act_dep,
+                        first_call.act_arr,
                     )
                 ],
                 None,
             )
         )
-    for call in leg_calls[1:]:
-        call_paths: list[tuple[list[StationPoint], Optional[LineString]]] = []
-        points_to_test = station_points[call.station.crs]
-        for platform_key in points_to_test.keys():
+    for call in leg.call_points[1:]:
+        call_paths: list[tuple[list[LegLineCall], Optional[LineString]]] = []
+        for platform_point in call.points:
+            leg_line_call = LegLineCall(
+                call.station_id,
+                call.station_crs,
+                call.station_name,
+                call.platform,
+                platform_point.longitude,
+                platform_point.latitude,
+                call.plan_dep,
+                call.plan_arr,
+                call.act_dep,
+                call.act_arr,
+            )
             platform_paths: list[
-                tuple[list[StationPoint], Optional[LineString]]
+                tuple[list[LegLineCall], Optional[LineString]]
             ] = []
-            point_to_test = points_to_test[platform_key]
-            for stations, complete_path in complete_paths:
-                path = find_path_between_station_points(
-                    network, stations[-1], point_to_test
+            for station_chain, complete_path in complete_paths:
+                path = find_path_between_network_nodes(
+                    network,
+                    NetworkNode(
+                        station_chain[-1].station_crs,
+                        station_chain[-1].platform,
+                    ),
+                    NetworkNode(
+                        leg_line_call.station_crs, leg_line_call.platform
+                    ),
                 )
                 if path is None:
                     continue
@@ -220,15 +184,7 @@ def get_linestring_for_leg(
                     new_path = path
                 else:
                     new_path = merge_linestrings([complete_path, path])
-                new_stations = stations + [
-                    StationPoint(
-                        point_to_test.crs,
-                        point_to_test.name,
-                        point_to_test.platform,
-                        point_to_test.point,
-                        short_leg_call_to_point_times(call),
-                    )
-                ]
+                new_stations = station_chain + [leg_line_call]
                 platform_paths.append((new_stations, new_path))
             call_paths = call_paths + platform_paths
         complete_paths = call_paths
@@ -243,4 +199,4 @@ def get_linestring_for_leg(
     (station_path, line_path) = shortest_path
     if line_path is None:
         return None
-    return (station_path, line_path)
+    return LegLineGeometry(station_path, line_path)
