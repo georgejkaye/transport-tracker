@@ -12,6 +12,7 @@ from networkx import MultiDiGraph
 from osmnx import settings as oxsettings
 from shapely import LineString, Point, geometry, ops
 
+from api.classes.network.map import NetworkNode
 from api.classes.train.station import StationPoint
 from api.db.train.points import string_of_station_point
 from api.library.networkx import (
@@ -194,8 +195,8 @@ def get_node_id_from_crs_and_platform(crs: str, platform: Optional[str]) -> int:
     return node_id
 
 
-def get_node_id_from_station_point(point: StationPoint) -> int:
-    return get_node_id_from_crs_and_platform(point.crs, point.platform)
+def get_node_id_from_network_node(point: NetworkNode) -> int:
+    return get_node_id_from_crs_and_platform(point.station_crs, point.platform)
 
 
 def get_nearest_point_on_linestring(point: Point, line: LineString) -> Point:
@@ -339,7 +340,9 @@ def insert_nodes_to_network(
         network = insert_node_to_network(
             network,
             station.point,
-            get_node_id_from_station_point(station),
+            get_node_id_from_network_node(
+                NetworkNode(station.crs, station.platform)
+            ),
             project_network=project_network,
         )
     return network
