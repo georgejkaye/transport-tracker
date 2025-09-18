@@ -7,6 +7,7 @@ from psycopg.rows import class_row
 from api.classes.train.operators import BrandData, OperatorData
 from api.classes.train.station import (
     DbTrainStationPointOutData,
+    DbTrainStationPointsOutData,
     LegAtStation,
     StationData,
     TrainStationIdentifiers,
@@ -358,3 +359,23 @@ def select_station(conn: Connection, station_crs: str) -> Optional[StationData]:
     if len(result) != 1:
         return None
     return result[0]
+
+
+def select_train_station_points_by_name(
+    conn: Connection, station_name: str
+) -> Optional[DbTrainStationPointsOutData]:
+    with conn.cursor(row_factory=class_row(DbTrainStationPointsOutData)) as cur:
+        return cur.execute(
+            "SELECT * FROM select_train_station_points_by_name(%s)",
+            [station_name],
+        ).fetchone()
+
+
+def select_train_station_points_by_names(
+    conn: Connection, station_names: list[str]
+) -> list[DbTrainStationPointsOutData]:
+    with conn.cursor(row_factory=class_row(DbTrainStationPointsOutData)) as cur:
+        return cur.execute(
+            "SELECT * FROM select_train_station_points_by_names(%s)",
+            [station_names],
+        ).fetchall()

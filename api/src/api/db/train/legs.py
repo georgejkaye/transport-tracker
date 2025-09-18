@@ -225,13 +225,13 @@ def select_train_legs_by_ids(
 
 def select_train_leg_points_by_leg_id(
     conn: Connection, train_leg_id: int
-) -> list[DbTrainLegPointsOutData]:
+) -> Optional[DbTrainLegPointsOutData]:
     register_train_leg_points_out_data(conn)
     with conn.cursor(row_factory=class_row(DbTrainLegPointsOutData)) as cur:
         return cur.execute(
             "SELECT * FROM select_train_leg_points_by_leg_id(%s)",
             [train_leg_id],
-        ).fetchall()
+        ).fetchone()
 
 
 def select_train_leg_points_by_leg_ids(

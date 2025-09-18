@@ -3,9 +3,11 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
+from psycopg import Connection
 from shapely import Point
 
 from api.classes.train.operators import BrandData, OperatorData
+from api.utils.database import register_type
 from api.utils.times import get_hourmin_string
 
 
@@ -134,9 +136,24 @@ class TrainStationOutData:
 
 @dataclass
 class DbTrainStationPointOutData:
-    station_id: int
-    station_crs: str
-    station_name: str
     platform: Optional[str]
     latitude: Decimal
     longitude: Decimal
+
+
+@dataclass
+class DbTrainStationPointsOutData:
+    station_id: int
+    station_name: str
+    station_crs: str
+    search_name: str
+    platform_points: list[DbTrainStationPointOutData]
+
+
+def register_db_train_station_points_out_data(conn: Connection):
+    register_type(
+        conn, "train_station_point_out_data", DbTrainStationPointOutData
+    )
+    register_type(
+        conn, "train_station_points_out_data", DbTrainStationPointsOutData
+    )
