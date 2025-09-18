@@ -1,8 +1,9 @@
 from dataclasses import dataclass
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional
 
 from shapely import LineString, Point
-
-from api.classes.train.station import StationPoint
 
 
 @dataclass
@@ -14,17 +15,43 @@ class MapPoint:
 
 
 @dataclass
-class MapCall:
+class NetworkNode:
+    station_crs: str
+    platform: Optional[str]
+
+
+@dataclass
+class NetworkNodePath:
+    source: NetworkNode
+    target: NetworkNode
+    line: LineString
+
+
+@dataclass
+class LegLineCall:
     station_id: int
-    crs: str
-    name: str
+    station_crs: str
+    station_name: str
+    platform: Optional[str]
+    latitude: Decimal
+    longitude: Decimal
+    plan_arr: Optional[datetime]
+    act_arr: Optional[datetime]
+    plan_dep: Optional[datetime]
+    act_dep: Optional[datetime]
+
+
+@dataclass
+class LegLineGeometry:
+    calls: list[LegLineCall]
+    line: LineString
 
 
 @dataclass
 class LegLine:
     board_station: str
     alight_station: str
-    calls: list[StationPoint]
+    calls: list[LegLineCall]
     points: LineString
     colour: str
     count_lr: int
@@ -68,4 +95,4 @@ class AlightCount:
 
 type CountType = BoardCount | CallCount | AlightCount
 
-type StationCountDict = dict[str, tuple[StationPoint, StationCount]]
+type StationCountDict = dict[str, tuple[LegLineCall, StationCount]]
