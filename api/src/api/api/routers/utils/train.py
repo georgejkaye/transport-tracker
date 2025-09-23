@@ -3,17 +3,21 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
-from api.api.network import network
-from api.classes.network.map import LegLine, StationInfo
-from api.db.train.points import get_station_points_from_crses
-from api.db.train.stations import select_station_by_crs
+from api.api.lifespan import get_db_connection, get_network
+from api.classes.network.map import (
+    LegLine,
+    MarkerTextParams,
+)
+from api.classes.train.station import DbTrainStationPointPointsOutData
+from api.db.train.stations import (
+    select_train_station_points_by_crses,
+)
 from api.network.map import (
     LegData,
     get_leg_map,
     get_leg_map_page_from_leg_data,
 )
-from api.network.pathfinding import find_shortest_path_between_stations
-from api.utils.database import connect_with_env
+from api.network.pathfinding import find_shortest_path_between_network_nodes
 
 router = APIRouter(prefix="/train", tags=["utils/train"])
 
@@ -29,51 +33,45 @@ async def get_route_between_stations(
     from_platform: Optional[str] = None,
     to_platform: Optional[str] = None,
 ) -> str:
-    with connect_with_env() as conn:
-        from_station = select_station_by_crs(conn, from_crs)
-        if from_station is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Could not find station for code {from_crs}",
-            )
-        to_station = select_station_by_crs(conn, to_crs)
-        if to_station is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Could not find station for code {to_crs}",
-            )
-        station_points = get_station_points_from_crses(
-            conn, [(from_crs, from_platform), (to_crs, to_platform)]
+    station_points = select_train_station_points_by_crses(
+        get_db_connection(), [from_crs, to_crs]
+    )
+    if len(station_points) != 2:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Could not find station for code {from_crs} or {to_crs}",
         )
-        path = find_shortest_path_between_stations(
-            network,
-            from_crs,
-            from_platform,
-            to_crs,
-            to_platform,
-            station_points,
+    from_points = [
+        DbTrainStationPointPointsOutData(station_points[0], platform_point)
+        for platform_point in station_points[0].platform_points
+    ]
+    to_points = [
+        DbTrainStationPointPointsOutData(station_points[-1], platform_point)
+        for platform_point in station_points[-1].platform_points
+    ]
+    path = find_shortest_path_between_network_nodes(
+        get_network(), from_points, to_points
+    )
+    if path is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Could not find a route between these stations",
         )
-        if path is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Could not find a route between these stations",
+    return get_leg_map(
+        [],
+        [
+            LegLine(
+                path.source.station.station_name,
+                path.target.station.station_name,
+                [path.source, path.target],
+                path.line,
+                "#000000",
+                0,
+                0,
             )
-        (source_point, target_point, linestring) = path
-        return get_leg_map(
-            [],
-            [
-                LegLine(
-                    from_station.station_name,
-                    to_station.station_name,
-                    [source_point, target_point],
-                    linestring,
-                    "#000000",
-                    0,
-                    0,
-                )
-            ],
-            StationInfo(False),
-        )
+        ],
+        MarkerTextParams(False),
+    )
 
 
 @router.post(
@@ -82,4 +80,6 @@ async def get_route_between_stations(
     response_class=HTMLResponse,
 )
 async def get_train_map_from_data(legs: list[LegData]) -> str:
-    return get_leg_map_page_from_leg_data(network, legs)
+    return get_leg_map_page_from_leg_data(
+        get_db_connection(), get_network(), legs
+    )
