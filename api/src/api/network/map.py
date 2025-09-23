@@ -478,9 +478,7 @@ def get_leg_map_page_by_leg_ids(
     leg_lines = get_leg_lines_for_leg_ids(
         conn, network, leg_ids, get_train_operator_brand_colour
     )
-    return get_leg_map_page_by_leg_geometries(
-        [], leg_lines, MarkerTextParams(False)
-    )
+    return get_leg_map_page_by_leg_geometries([], leg_lines, MarkerTextParams())
 
 
 def get_leg_map_page_by_leg_id(
@@ -493,7 +491,7 @@ def get_leg_map_page_by_leg_id(
         conn, network, [leg_id], get_train_operator_brand_colour
     )
     return get_leg_map_page_by_leg_geometries(
-        [], leg_lines, MarkerTextParams(False)
+        [], leg_lines, MarkerTextParams(include_times=True)
     )
 
 
@@ -530,5 +528,5 @@ def get_leg_map_page_from_leg_data(
 ) -> str:
     leg_geometries = get_leg_lines_for_leg_data(conn, network, legs)
     return get_leg_map_page_by_leg_geometries(
-        [], leg_geometries, MarkerTextParams(True)
+        [], leg_geometries, MarkerTextParams(include_counts=True)
     )
