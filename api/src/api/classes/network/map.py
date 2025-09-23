@@ -45,7 +45,8 @@ class LegLineGeometry[T]:
 
 @dataclass
 class MarkerTextParams:
-    include_counts: bool
+    include_times: bool = False
+    include_counts: bool = False
 
 
 @dataclass

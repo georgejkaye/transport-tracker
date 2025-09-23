@@ -300,13 +300,16 @@ class DbTrainLegCallPointPointsOutData(LegLineCall):
                 return "--"
             return f"{call_time.strftime('%H%M')}"
 
-        plan_arr_str = get_call_info_time_string(self.call.plan_arr)
-        plan_dep_str = get_call_info_time_string(self.call.plan_dep)
-        act_arr_str = get_call_info_time_string(self.call.act_arr)
-        act_dep_str = get_call_info_time_string(self.call.act_dep)
-        arr_string = f"<b>arr</b> plan {plan_arr_str} act {act_arr_str}"
-        dep_string = f"<b>dep</b> plan {plan_dep_str} act {act_dep_str}"
-        time_string = f"{arr_string}<br/>{dep_string}"
+        if params.include_times:
+            plan_arr_str = get_call_info_time_string(self.call.plan_arr)
+            plan_dep_str = get_call_info_time_string(self.call.plan_dep)
+            act_arr_str = get_call_info_time_string(self.call.act_arr)
+            act_dep_str = get_call_info_time_string(self.call.act_dep)
+            arr_string = f"<b>arr</b> plan {plan_arr_str} act {act_arr_str}"
+            dep_string = f"<b>dep</b> plan {plan_dep_str} act {act_dep_str}"
+            time_string = f"{arr_string}<br/>{dep_string}"
+        else:
+            time_string = ""
         return f"<h1>{self.call.station_name} ({self.call.station_crs})</h1>{time_string}"
 
     def get_call_identifier(self) -> str:
