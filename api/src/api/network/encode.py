@@ -1,7 +1,7 @@
 import sys
 from typing import Optional
 
-from api.network.network import get_node_id_from_crs_and_platform
+from api.classes.train.legs import get_node_id_from_crs_and_platform
 
 crs = sys.argv[1]
 

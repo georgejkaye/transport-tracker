@@ -12,7 +12,6 @@ from networkx import MultiDiGraph
 from osmnx import settings as oxsettings
 from shapely import LineString, Point, geometry, ops
 
-from api.classes.network.map import NetworkNode
 from api.classes.train.station import StationPoint
 from api.db.train.points import string_of_station_point
 from api.library.networkx import (
@@ -121,19 +120,19 @@ class EdgeTags(TypedDict):
 
 
 def instantiate_edge_tags(data: dict[str, Any]) -> EdgeTags:
-    edge_tags: EdgeTags = EdgeTags(
-        data["osmid"],
-        data.get("maxspeed"),
-        data.get("name"),
-        data.get("ref"),
-        data.get("oneway"),
-        data.get("reversed"),
-        data.get("length"),
-        data.get("tunnel"),
-        data.get("bridge"),
-        data.get("geometry"),
-        data.get("electrified"),
-    )  # type:ignore
+    edge_tags: EdgeTags = {
+        "osmid": data.get("osmid") or [],
+        "maxspeed": data.get("maxspeed"),
+        "name": data.get("name"),
+        "ref": data.get("ref"),
+        "oneway": data.get("oneway"),
+        "reversed": data.get("reversed"),
+        "length": data.get("length"),
+        "tunnel": data.get("tunnel"),
+        "bridge": data.get("bridge"),
+        "geometry": data.get("geometry"),
+        "electrified": data.get("electrified"),
+    }
     return edge_tags
 
 
@@ -147,7 +146,7 @@ class EdgeDetails:
 def get_edge_from_endpoints[T](
     network: MultiDiGraph[int], source: int, target: int
 ) -> EdgeDetails:
-    edge = network[source][target]
+    edge = network[source][target][0]  # type: ignore
     edge_tags = instantiate_edge_tags(edge)
     return EdgeDetails(source, target, edge_tags)
 
@@ -162,41 +161,6 @@ def get_closest_edge_on_network_to_point(
 ) -> EdgeDetails:
     edge = get_nearest_edge(network, point)
     return edge
-
-
-def get_node_id_from_crs_and_platform(crs: str, platform: Optional[str]) -> int:
-    """
-    Node ids are encoded as 1xxxxxxabbccdd where
-
-    xxx: crs of the station encoded as zero-padded two digit numbers
-    (a = 01, b = 02 etc)
-    a: 0 if the platform is a number, 1 if the platform is a letter
-    bb: the platform number padded to two digits if a number, the numeric
-    encoding of the platform letter if a number (a = 01, b = 02 etc)
-    cc: the letter suffix of the platform encoded as a number if one is present,
-    00 if there is no suffix
-    """
-    if platform is None:
-        platform_string = "000000"
-    else:
-        if platform.isnumeric():
-            platform_string = f"10{int(platform):02d}00"
-        elif platform[0:-1].isnumeric():
-            platform_letter = ord(platform[-1]) - 64
-            platform_string = f"10{platform[0:-1]}{platform_letter:02d}"
-        else:
-            platform_string = f"11{ord(platform) - 64}00"
-    first_num = ord(crs[0]) - 64
-    second_num = ord(crs[1]) - 64
-    third_num = ord(crs[2]) - 64
-    node_id = int(
-        f"1{first_num:02d}{second_num:02d}{third_num:02d}{platform_string}"
-    )
-    return node_id
-
-
-def get_node_id_from_network_node(point: NetworkNode) -> int:
-    return get_node_id_from_crs_and_platform(point.station_crs, point.platform)
 
 
 def get_nearest_point_on_linestring(point: Point, line: LineString) -> Point:
@@ -340,9 +304,7 @@ def insert_nodes_to_network(
         network = insert_node_to_network(
             network,
             station.point,
-            get_node_id_from_network_node(
-                NetworkNode(station.crs, station.platform)
-            ),
+            station.get_id(),
             project_network=project_network,
         )
     return network

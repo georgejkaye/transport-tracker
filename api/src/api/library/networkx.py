@@ -5,8 +5,9 @@ Wrapper file to hide away the mean type errors
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Iterator, Optional
+from typing import Any, Callable, Iterator, Optional
 
+import networkx as nx
 import osmnx as ox
 from networkx import MultiDiGraph
 
@@ -58,3 +59,17 @@ def nearest_edges(
     network: MultiDiGraph[int], x: float, y: float
 ) -> tuple[int, int, int]:
     return ox.nearest_edges(network, x, y)  # type: ignore[no-untyped-call]
+
+
+def shortest_path[T](
+    network: MultiDiGraph[T],
+    source: T,
+    target: T,
+    weight: Callable[[T, T, dict[str, Any]], Optional[float]],
+) -> list[T]:
+    def weight_function(
+        source: T, target: T, edge_dict: dict[int, dict[str, Any]]
+    ) -> Optional[float]:
+        return weight(source, target, edge_dict[0])
+
+    return nx.shortest_path(network, source, target, weight=weight_function)  # type: ignore

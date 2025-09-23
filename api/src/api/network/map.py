@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 import folium
 from bs4 import BeautifulSoup, Tag
@@ -13,53 +13,47 @@ from psycopg import Connection
 from pydantic import Field
 from shapely import LineString, Point
 
-from api.classes.network.geometry import (
-    TrainLegCallGeometry,
-    TrainLegGeometry,
-)
+from api.classes.network.geometry import TrainLegCallGeometry, TrainLegGeometry
 from api.classes.network.map import (
     AlightCount,
     BoardCount,
     CallCount,
-    CallInfo,
     CountType,
     LegLine,
-    MapCall,
+    LegLineCall,
+    LegLineGeometry,
     MapPoint,
-    MarkerTextType,
+    MarkerTextParams,
+    MarkerTextValues,
     StationCount,
     StationCountDict,
-    StationInfo,
 )
-from api.classes.train.leg import (
-    DbTrainLegCallOutData,
-    DbTrainLegOutData,
+from api.classes.train.legs import (
+    DbTrainLegCallPointPointsOutData,
+    DbTrainLegPointsOutData,
 )
-from api.classes.train.station import StationPoint
-from api.db.train.points import (
-    get_station_points_from_crses,
-    get_station_points_from_names,
+from api.classes.train.station import DbTrainStationPointPointsOutData
+from api.db.train.legs import (
+    select_train_leg_points_by_leg_id,
+    select_train_leg_points_by_leg_ids,
+    select_train_leg_points_by_user_id,
+)
+from api.db.train.stations import (
+    select_train_station_leg_points_by_names,
 )
 from api.library.folium import create_polyline, render_map
-from api.network.network import (
-    get_node_id_from_station_point,
-    merge_linestrings,
-)
-from api.network.pathfinding import (
-    find_shortest_path_between_stations,
-    get_linestring_for_leg,
-)
-from api.utils.database import connect_with_env
+from api.network.pathfinding import get_leg_line_geometry_for_leg
 
 
 def add_call_marker(
-    call: StationPoint,
+    call: LegLineCall,
     colour: str,
     text: str,
     group: Optional[folium.FeatureGroup] = None,
 ) -> None:
+    point = call.get_point()
     marker = folium.Marker(
-        location=[call.point.y, call.point.x],
+        location=[point.x, point.y],
         tooltip=text,
         icon=folium.Icon(color=colour, icon="train", prefix="fa"),
     )
@@ -67,16 +61,18 @@ def add_call_marker(
         group.add_child(marker)
 
 
-def update_station_count_dict(
-    station_count_dict: StationCountDict,
-    station_point: StationPoint,
+def update_call_marker_dict[T: LegLineCall](
+    call_marker_dict: StationCountDict[T],
+    call: T,
     update_type: CountType,
-) -> StationCountDict:
-    current_station = station_count_dict.get(station_point.crs)
+) -> StationCountDict[T]:
+    current_station = call_marker_dict.get(call.get_call_identifier())
     if current_station is None:
         current_station_count = StationCount(0, 0, 0)
     else:
-        (_, current_station_count) = station_count_dict[station_point.crs]
+        (_, current_station_count) = call_marker_dict[
+            call.get_call_identifier()
+        ]
     current_board = current_station_count.board
     current_call = current_station_count.call
     current_alight = current_station_count.alight
@@ -93,52 +89,17 @@ def update_station_count_dict(
             new_station_count = StationCount(
                 current_board, current_call, current_alight + 1
             )
-    station_count_dict[station_point.crs] = (station_point, new_station_count)
-    return station_count_dict
+    call_marker_dict[call.get_call_identifier()] = (
+        call,
+        new_station_count,
+    )
+    return call_marker_dict
 
 
-def get_call_info_time_string(call_time: Optional[datetime]) -> str:
-    if call_time is None:
-        return "--"
-    return f"{call_time.strftime('%H%M')}"
-
-
-def get_call_info_text(station_point: StationPoint) -> str:
-    if station_point.call is None:
-        time_string = ""
-    else:
-        plan_arr_str = get_call_info_time_string(station_point.call.plan_arr)
-        plan_dep_str = get_call_info_time_string(station_point.call.plan_dep)
-        act_arr_str = get_call_info_time_string(station_point.call.act_arr)
-        act_dep_str = get_call_info_time_string(station_point.call.act_dep)
-        arr_string = f"<b>arr</b> plan {plan_arr_str} act {act_arr_str}"
-        dep_string = f"<b>dep</b> plan {plan_dep_str} act {act_dep_str}"
-        time_string = f"{arr_string}<br/>{dep_string}"
-    return f"<h1>{station_point.name} ({station_point.crs})</h1>{time_string}"
-
-
-def get_station_info_text(
-    station_point: StationPoint,
-    include_counts: bool,
-    boards: int,
-    calls: int,
-    alights: int,
-) -> str:
-    if include_counts:
-        count_string = f"""
-                <b>Boards:</b> {boards}<br/>
-                <b>Alights:</b> {alights}<br/>
-                <b>Calls:</b> {calls}
-            """
-    else:
-        count_string = ""
-    return f"<h1>{station_point.name} ({station_point.crs})</h1>{count_string}"
-
-
-def get_leg_map(
+def get_leg_map[T: LegLineCall](
     map_points: list[MapPoint],
-    leg_lines: list[LegLine],
-    text_type: MarkerTextType,
+    leg_lines: list[LegLine[T]],
+    marker_text_params: MarkerTextParams,
 ) -> str:
     m = folium.Map(
         tiles=None,
@@ -150,11 +111,11 @@ def get_leg_map(
         attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         name="Map",
     ).add_to(m)
-    station_count_dict: StationCountDict = {}
+    call_marker_dict: StationCountDict[T] = {}
     line_group = folium.FeatureGroup(name="Legs")
     for map_point in map_points:
         folium.Circle(
-            location=[map_point.point.y, map_point.point.x],
+            location=[map_point.point.x, map_point.point.y],
             radius=map_point.size,
             color=map_point.colour,
             fill=True,
@@ -172,36 +133,32 @@ def get_leg_map(
             weight=4,
         )
         line_group.add_child(line)
-        station_count_dict = update_station_count_dict(
-            station_count_dict, leg_line.calls[0], BoardCount()
+        call_marker_dict = update_call_marker_dict(
+            call_marker_dict, leg_line.calls[0], BoardCount()
         )
-        for call in leg_line.calls[1:-2]:
-            station_count_dict = update_station_count_dict(
-                station_count_dict, call, CallCount()
+        for call in leg_line.calls[1:-1]:
+            call_marker_dict = update_call_marker_dict(
+                call_marker_dict, call, CallCount()
             )
-        station_count_dict = update_station_count_dict(
-            station_count_dict, leg_line.calls[-1], AlightCount()
+        call_marker_dict = update_call_marker_dict(
+            call_marker_dict, leg_line.calls[-1], AlightCount()
         )
     line_group.add_to(m)
     endpoint_group = folium.FeatureGroup(name="Endpoints")
     call_group = folium.FeatureGroup(name="Calls")
-    for station_count_key in station_count_dict.keys():
-        (station_point, station_count) = station_count_dict[station_count_key]
-        boards = station_count.board
-        calls = station_count.call
-        alights = station_count.alight
-        match text_type:
-            case StationInfo(include_counts):
-                text = get_station_info_text(
-                    station_point, include_counts, boards, calls, alights
-                )
-            case CallInfo():
-                text = get_call_info_text(station_point)
-        if station_count.call > 0:
-            add_call_marker(station_point, "green", text, call_group)
+    for station_count_key in call_marker_dict.keys():
+        (call_marker, call_count) = call_marker_dict[station_count_key]
+        boards = call_count.board
+        calls = call_count.call
+        alights = call_count.alight
+        marker_text_values = MarkerTextValues(boards, calls, alights)
+        text = call_marker.get_call_info_text(
+            marker_text_params, marker_text_values
+        )
+        if call_count.call > 0:
+            add_call_marker(call_marker, "green", text, call_group)
         if boards > 0 or alights > 0:
-            add_call_marker(station_point, "blue", text, endpoint_group)
-
+            add_call_marker(call_marker, "blue", text, endpoint_group)
     call_group.add_to(m)
     endpoint_group.add_to(m)
     folium.LayerControl().add_to(m)
@@ -250,7 +207,7 @@ def get_leg_map_from_gml(gml_data: BeautifulSoup) -> Optional[str]:
 
     edges = gml_data.find_all("edge")
 
-    leg_lines: list[LegLine] = []
+    leg_lines: list[LegLine[LegLineCall]] = []
 
     for edge in edges:
         if not isinstance(edge, Tag):
@@ -283,17 +240,19 @@ def get_leg_map_from_gml(gml_data: BeautifulSoup) -> Optional[str]:
                 )
         edge_nodes.append(Point(float(target_lon), float(target_lat)))
 
+        calls: list[LegLineCall] = []
+
         leg_line = LegLine(
             "",
             "",
-            [],
+            calls,
             LineString(edge_nodes),
             "#000000",
             0,
             0,
         )
         leg_lines.append(leg_line)
-    return get_leg_map([], leg_lines, StationInfo(False))
+    return get_leg_map([], leg_lines, MarkerTextParams(False))
 
 
 def get_leg_map_from_gml_file(leg_file: str | Path) -> Optional[str]:
@@ -303,115 +262,256 @@ def get_leg_map_from_gml_file(leg_file: str | Path) -> Optional[str]:
     return get_leg_map_from_gml(xml_data)
 
 
-def get_operator_colour_from_leg(leg: ShortLeg) -> str:
-    service_key = list(leg.services.keys())[0]
-    service = leg.services[service_key]
-    if service.brand is not None and service.brand.brand_bg is not None:
-        return service.brand.brand_bg
-    if service.operator.operator_bg is None:
-        return "#000000"
-    return service.operator.operator_bg
-
-
-def get_leg_line_for_leg(
+def get_leg_line_geometry_for_leg_id(
+    conn: Connection,
     network: MultiDiGraph[int],
-    leg: ShortLeg,
-    station_points: dict[str, dict[Optional[str], StationPoint]],
-) -> Optional[LegLine]:
-    result = get_linestring_for_leg(network, leg.calls, station_points)
-    if result is None:
+    leg_id: int,
+) -> Optional[LegLineGeometry[DbTrainLegCallPointPointsOutData]]:
+    leg = select_train_leg_points_by_leg_id(conn, leg_id)
+    if leg is None:
         return None
-    (station_list, path_list) = result
-    return LegLine(
-        leg.calls[0].station.name,
-        leg.calls[-1].station.name,
-        station_list,
-        path_list,
-        get_operator_colour_from_leg(leg),
-        0,
-        0,
+    return get_leg_line_geometry_for_leg(
+        network,
+        [
+            [
+                DbTrainLegCallPointPointsOutData(call, point)
+                for point in call.points
+            ]
+            for call in leg.call_points
+        ],
     )
 
 
-def get_leg_line_for_leg_calls(
+def get_leg_lines_for_leg_points(
     network: MultiDiGraph[int],
-    leg_data: list[MapCall],
-    station_points: dict[str, dict[Optional[str], StationPoint]],
-) -> Optional[LegLine]:
-    previous_call = leg_data[0]
-    paths: list[tuple[StationPoint, StationPoint, LineString]] = []
-    for call in leg_data[1:]:
-        result = find_shortest_path_between_stations(
-            network,
-            previous_call.station.crs,
-            None,
-            call.station.crs,
-            None,
-            station_points,
+    leg_points: list[DbTrainLegPointsOutData],
+    get_train_operator_brand_colour: Callable[[int, Optional[int]], str],
+) -> list[LegLine[DbTrainLegCallPointPointsOutData]]:
+    return [
+        LegLine(
+            leg.call_points[0].station_name,
+            leg.call_points[-1].station_name,
+            leg_line_geometry.calls,
+            leg_line_geometry.line,
+            f"#{get_train_operator_brand_colour(leg.operator_id, leg.brand_id)}",
+            1,
+            0,
         )
-        if result is None:
-            return None
-        paths.append(result)
-        previous_call = call
+        for leg in leg_points
+        if (
+            leg_line_geometry := get_leg_line_geometry_for_leg(
+                network,
+                [
+                    [
+                        DbTrainLegCallPointPointsOutData(call, point)
+                        for point in call.points
+                    ]
+                    for call in leg.call_points
+                ],
+            )
+        )
+        is not None
+    ]
 
-    line_strings = [path for (_, _, path) in paths]
-    complete_line = merge_linestrings(line_strings)
-    leg_line = LegLine(
-        leg_data[0].station.name,
-        leg_data[-1].station.name,
-        [paths[0][0], paths[-1][1]],
-        complete_line,
-        "#000000",
-        0,
-        0,
+
+def get_train_leg_geometries_for_leg_points(
+    network: MultiDiGraph[int],
+    leg_points: list[DbTrainLegPointsOutData],
+) -> list[TrainLegGeometry]:
+    train_leg_geometries: list[TrainLegGeometry] = []
+    for leg in leg_points:
+        leg_line_geometry = get_leg_line_geometry_for_leg(
+            network,
+            [
+                [
+                    DbTrainLegCallPointPointsOutData(call, point)
+                    for point in call.points
+                ]
+                for call in leg.call_points
+            ],
+        )
+        if leg_line_geometry is None:
+            continue
+        train_leg_geometry = TrainLegGeometry(
+            leg.leg_id,
+            leg.operator_id,
+            leg.brand_id,
+            [
+                TrainLegCallGeometry(
+                    call.call.station_id,
+                    call.call.station_crs,
+                    call.call.station_name,
+                    call.call.platform,
+                    call.point.longitude,
+                    call.point.latitude,
+                )
+                for call in leg_line_geometry.calls
+            ],
+            [
+                (Decimal(coord[0]), Decimal(coord[1]))
+                for coord in leg_line_geometry.line.coords
+            ],
+        )
+        train_leg_geometries.append(train_leg_geometry)
+    return train_leg_geometries
+
+
+def get_train_leg_geometry_for_leg_points(
+    network: MultiDiGraph[int], leg_points: DbTrainLegPointsOutData
+) -> Optional[TrainLegGeometry]:
+    legs = get_train_leg_geometries_for_leg_points(network, [leg_points])
+    if len(legs) == 0:
+        return None
+    return legs[0]
+
+
+def get_leg_lines_for_leg_ids(
+    conn: Connection,
+    network: MultiDiGraph[int],
+    leg_ids: list[int],
+    get_train_operator_brand_colour: Callable[[int, Optional[int]], str],
+) -> list[LegLine[DbTrainLegCallPointPointsOutData]]:
+    leg_points = select_train_leg_points_by_leg_ids(conn, leg_ids)
+    return get_leg_lines_for_leg_points(
+        network, leg_points, get_train_operator_brand_colour
     )
-    return leg_line
+
+
+def get_leg_line_geometries_for_leg_ids(
+    conn: Connection,
+    network: MultiDiGraph[int],
+    leg_ids: list[int],
+) -> list[TrainLegGeometry]:
+    leg_points = select_train_leg_points_by_leg_ids(conn, leg_ids)
+    return get_train_leg_geometries_for_leg_points(network, leg_points)
+
+
+def get_leg_lines_for_user_id(
+    conn: Connection,
+    network: MultiDiGraph[int],
+    user_id: int,
+    get_train_operator_brand_colour: Callable[[int, Optional[int]], str],
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+) -> list[LegLine[DbTrainLegCallPointPointsOutData]]:
+    leg_points = select_train_leg_points_by_user_id(
+        conn, user_id, start_date, end_date
+    )
+    return get_leg_lines_for_leg_points(
+        network, leg_points, get_train_operator_brand_colour
+    )
+
+
+def get_leg_line_geometries_for_user_id(
+    conn: Connection,
+    network: MultiDiGraph[int],
+    user_id: int,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+) -> list[TrainLegGeometry]:
+    leg_points = select_train_leg_points_by_user_id(
+        conn, user_id, start_date, end_date
+    )
+    return get_train_leg_geometries_for_leg_points(network, leg_points)
 
 
 def get_leg_lines_for_leg_data(
-    network: MultiDiGraph[int],
-    legs: list[list[MapCall]],
-    station_points: dict[str, dict[Optional[str], StationPoint]],
-) -> list[LegLine]:
-    leg_lines: list[LegLine] = []
+    conn: Connection, network: MultiDiGraph[int], legs: list[LegData]
+) -> list[LegLine[DbTrainStationPointPointsOutData]]:
+    station_leg_names: list[list[str]] = []
     for leg in legs:
-        leg_line = get_leg_line_for_leg_calls(network, leg, station_points)
-        if leg_line is not None:
-            leg_lines.append(leg_line)
-    return leg_lines
+        station_names: list[str] = []
+        station_names.append(leg.board_station)
+        if leg.via is not None:
+            for via_station in leg.via:
+                station_names.append(via_station)
+        station_names.append(leg.alight_station)
+        station_leg_names.append(station_names)
+    leg_station_points = select_train_station_leg_points_by_names(
+        conn, station_leg_names
+    )
+    return [
+        LegLine(
+            leg_line.leg_stations[0].station_name,
+            leg_line.leg_stations[-1].station_name,
+            linestring.calls,
+            linestring.line,
+            "#000000",
+            1,
+            0,
+        )
+        for leg_line in leg_station_points
+        if (
+            linestring := get_leg_line_geometry_for_leg(
+                network,
+                [
+                    [
+                        DbTrainStationPointPointsOutData(station, platform)
+                        for platform in station.platform_points
+                    ]
+                    for station in leg_line.leg_stations
+                ],
+            )
+        )
+        is not None
+    ]
 
 
-def get_leg_lines_for_legs(
+def get_leg_map_page_by_leg_geometries[T: LegLineCall](
+    map_points: list[MapPoint],
+    leg_lines: list[LegLine[T]],
+    marker_text_params: MarkerTextParams,
+) -> str:
+    return get_leg_map(map_points, leg_lines, marker_text_params)
+
+
+def get_leg_map_page_by_leg_ids(
+    conn: Connection,
     network: MultiDiGraph[int],
-    legs: list[ShortLeg],
-    station_points: dict[str, dict[Optional[str], StationPoint]],
-) -> list[LegLine]:
-    leg_strings: list[LegLine] = []
-    for leg in legs:
-        leg_string = get_leg_line_for_leg(network, leg, station_points)
-        if leg_string is not None:
-            leg_strings.append(leg_string)
-    return leg_strings
+    leg_ids: list[int],
+    get_train_operator_brand_colour: Callable[[int, Optional[int]], str],
+):
+    leg_lines = get_leg_lines_for_leg_ids(
+        conn, network, leg_ids, get_train_operator_brand_colour
+    )
+    return get_leg_map_page_by_leg_geometries(
+        [], leg_lines, MarkerTextParams(False)
+    )
 
 
-def get_leg_map_page(
+def get_leg_map_page_by_leg_id(
+    conn: Connection,
+    network: MultiDiGraph[int],
+    leg_id: int,
+    get_train_operator_brand_colour: Callable[[int, Optional[int]], str],
+):
+    leg_lines = get_leg_lines_for_leg_ids(
+        conn, network, [leg_id], get_train_operator_brand_colour
+    )
+    return get_leg_map_page_by_leg_geometries(
+        [], leg_lines, MarkerTextParams(False)
+    )
+
+
+def get_leg_map_page_by_user_id(
     network: MultiDiGraph[int],
     conn: Connection,
     user_id: int,
-    text_type: MarkerTextType,
-    search_start: Optional[datetime] = None,
-    search_end: Optional[datetime] = None,
-    search_leg_id: Optional[int] = None,
+    get_train_operator_brand_colour: Callable[[int, Optional[int]], str],
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
 ) -> str:
-    legs = select_legs(conn, user_id, search_start, search_end, search_leg_id)
-    stations: list[tuple[str, Optional[str]]] = []
-    for leg in legs:
-        for call in leg.calls:
-            stations.append((call.station.crs, call.platform))
-    station_points = get_station_points_from_crses(conn, stations)
-    leg_lines = get_leg_lines_for_legs(network, legs, station_points)
-    html = get_leg_map([], leg_lines, text_type)
-    return html
+    leg_geometries = get_leg_lines_for_user_id(
+        conn,
+        network,
+        user_id,
+        get_train_operator_brand_colour,
+        start_date,
+        end_date,
+    )
+    return get_leg_map_page_by_leg_geometries(
+        [], leg_geometries, MarkerTextParams(False)
+    )
 
 
 @dataclass
@@ -422,109 +522,9 @@ class LegData:
 
 
 def get_leg_map_page_from_leg_data(
-    network: MultiDiGraph[int], legs: list[LegData]
+    conn: Connection, network: MultiDiGraph[int], legs: list[LegData]
 ) -> str:
-    stations: set[tuple[str, Optional[str]]] = set()
-    for leg in legs:
-        stations.add((leg.board_station, None))
-        stations.add((leg.alight_station, None))
-        if leg.via is not None:
-            for via_station in leg.via:
-                stations.add((via_station, None))
-    with connect_with_env() as conn:
-        (name_to_station_dict, station_points) = get_station_points_from_names(
-            conn, list(stations)
-        )
-    base_leg_data: list[list[MapCall]] = []
-    for leg in legs:
-        board_station = name_to_station_dict[leg.board_station]
-        alight_station = name_to_station_dict[leg.alight_station]
-        calls = [
-            MapCall(
-                board_station, None, None, None, None, None, None
-            )
-        ]
-        if leg.via is not None:
-            for via_station in leg.via:
-                call_station = name_to_station_dict[via_station]
-                calls.append(
-                    DbTrainLegCallOutData(
-                        call_station, None, None, None, None, None, None
-                    )
-                )
-        calls.append(
-            MapCall(
-                alight_station., None, None, None, None, None, [], None, None
-            )
-        )
-        base_leg_data.append(calls)
-
-    leg_lines = get_leg_lines_for_leg_data(
-        network, base_leg_data, station_points
+    leg_geometries = get_leg_lines_for_leg_data(conn, network, legs)
+    return get_leg_map_page_by_leg_geometries(
+        [], leg_geometries, MarkerTextParams(True)
     )
-    html = get_leg_map([], leg_lines, StationInfo(True))
-    return html
-
-
-def get_short_leg_with_geometry(
-    network: MultiDiGraph[int],
-    leg: DbTrainLegOutData,
-    station_points: dict[str, dict[str | None, StationPoint]],
-) -> TrainLegGeometry:
-    result = get_linestring_for_leg(network, leg.calls, station_points)
-    calls_with_geometry: list[TrainLegCallGeometry] = []
-    if result is None:
-        return TrainLegGeometry(
-            leg.train_leg_id,
-            [
-                TrainLegCallGeometry(
-                    call.station.station_id,
-                    call.station.crs,
-                    call.station.name,
-                    call.platform,
-                    None,
-                    None,
-                )
-                for call in leg.calls
-            ],
-            None,
-        )
-    (points, line_string) = result
-    coords = [
-        (Decimal(coord[0]), Decimal(coord[1])) for coord in line_string.coords
-    ]
-    for i, leg_call in enumerate(leg.calls):
-        station_point = points[i]
-        station_point_id = get_node_id_from_station_point(station_point)
-        station_node = network.nodes[station_point_id]
-        calls_with_geometry.append(
-            TrainLegCallGeometry(
-                leg_call.station.station_id,
-                leg_call.station.crs,
-                leg_call.station.name,
-                leg_call.platform,
-                Decimal(station_node["x"]),
-                Decimal(station_node["y"]),
-            )
-        )
-    return TrainLegGeometry(
-        leg.train_leg_id,
-        calls_with_geometry,
-        coords,
-    )
-
-
-def get_leg_geometries(
-    conn: Connection, network: MultiDiGraph[int], legs: list[DbTrainLegOutData]
-) -> list[TrainLegGeometry]:
-    stations: set[tuple[str, Optional[str]]] = set()
-    for leg in legs:
-        for call in leg.calls:
-            stations.add((call.station.crs, call.platform))
-    station_points = get_station_points_from_crses(conn, list(stations))
-    legs_with_geometries: list[TrainLegGeometry] = []
-    for leg in legs:
-        legs_with_geometries.append(
-            get_short_leg_with_geometry(network, leg, station_points)
-        )
-    return legs_with_geometries
