@@ -6,6 +6,13 @@ from typing import Optional
 from psycopg import Connection
 from shapely import Point
 
+from api.classes.network.map import (
+    LegLineCall,
+    MarkerTextParams,
+    MarkerTextValues,
+    NetworkNode,
+)
+from api.classes.train.network import get_node_id_from_crs_and_platform
 from api.classes.train.operators import BrandData, OperatorData
 from api.utils.database import register_type
 from api.utils.times import get_hourmin_string
@@ -21,7 +28,6 @@ class TrainStation:
 
 @dataclass
 class TrainStationIdentifiers:
-    station_id: int
     crs: str
     name: str
 
@@ -68,12 +74,13 @@ class PointTimes:
 
 
 @dataclass
-class StationPoint:
+class StationPoint(NetworkNode):
     crs: str
-    name: str
     platform: Optional[str]
     point: Point
-    call: Optional[PointTimes] = None
+
+    def get_id(self) -> int:
+        return get_node_id_from_crs_and_platform(self.crs, self.platform)
 
 
 @dataclass
@@ -86,6 +93,9 @@ class StationLocation:
 class StationAndPlatform:
     crs: str
     platform: Optional[str]
+
+    def get_id(self) -> int:
+        return get_node_id_from_crs_and_platform(self.crs, self.platform)
 
 
 @dataclass
@@ -126,7 +136,7 @@ class StationData:
 
 
 @dataclass
-class TrainStationOutData:
+class DbTrainStationOutData:
     station_id: int
     station_name: str
     station_crs: str
@@ -150,10 +160,59 @@ class DbTrainStationPointsOutData:
     platform_points: list[DbTrainStationPointOutData]
 
 
-def register_db_train_station_points_out_data(conn: Connection):
+def register_train_station_points_out_data(conn: Connection):
     register_type(
         conn, "train_station_point_out_data", DbTrainStationPointOutData
     )
     register_type(
         conn, "train_station_points_out_data", DbTrainStationPointsOutData
     )
+
+
+@dataclass
+class DbTrainStationLegPointsOutData:
+    leg_stations: list[DbTrainStationPointsOutData]
+
+
+def register_train_station_leg_points_out_data(conn: Connection):
+    register_type(
+        conn, "train_station_point_out_data", DbTrainStationPointOutData
+    )
+    register_type(
+        conn, "train_station_points_out_data", DbTrainStationPointsOutData
+    )
+    register_type(
+        conn,
+        "train_station_leg_points_out_data",
+        DbTrainStationLegPointsOutData,
+    )
+
+
+@dataclass
+class DbTrainStationPointPointsOutData(LegLineCall):
+    station: DbTrainStationPointsOutData
+    point: DbTrainStationPointOutData
+
+    def get_id(self) -> int:
+        return get_node_id_from_crs_and_platform(
+            self.station.station_crs, self.point.platform
+        )
+
+    def get_call_info_text(
+        self, params: MarkerTextParams, values: MarkerTextValues
+    ) -> str:
+        if params.include_counts:
+            count_string = f"""
+                    <b>Boards:</b> {values.boards}<br/>
+                    <b>Alights:</b> {values.alights}<br/>
+                    <b>Calls:</b> {values.calls}
+                """
+        else:
+            count_string = ""
+        return f"<h1>{self.station.station_name} ({self.station.station_crs})</h1>{count_string}"
+
+    def get_call_identifier(self) -> str:
+        return self.station.station_crs
+
+    def get_point(self) -> Point:
+        return Point(float(self.point.latitude), float(self.point.longitude))

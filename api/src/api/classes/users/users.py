@@ -17,7 +17,7 @@ def register_user(
 
 @dataclass
 class UserPublic:
-    id: int
+    user_id: int
     user_name: str
     display_name: str
 

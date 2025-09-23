@@ -2,7 +2,10 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Optional
 
+from psycopg import Connection
 from psycopg.types.range import Range
+
+from api.utils.database import register_type
 
 
 @dataclass
@@ -27,7 +30,7 @@ class OperatorData:
 
 
 @dataclass
-class OperatorDbData:
+class DbTrainOperatorOutData:
     operator_id: int
     operator_code: str
     operator_name: str
@@ -37,7 +40,13 @@ class OperatorDbData:
     operator_brands: list[BrandData]
 
 
-def operator_db_data_to_operator_data(db_data: OperatorDbData) -> OperatorData:
+def register_train_operator_out_data(conn: Connection):
+    register_type(conn, "train_operator_out_data", DbTrainOperatorOutData)
+
+
+def operator_db_data_to_operator_data(
+    db_data: DbTrainOperatorOutData,
+) -> OperatorData:
     return OperatorData(
         db_data.operator_id,
         db_data.operator_code,
@@ -51,7 +60,7 @@ def operator_db_data_to_operator_data(db_data: OperatorDbData) -> OperatorData:
 
 
 @dataclass
-class DbOperatorDetails:
+class DbTrainOperatorDetailsOutData:
     operator_id: int
     is_brand: bool
     operator_code: str
@@ -60,7 +69,13 @@ class DbOperatorDetails:
     fg_colour: str
 
 
+def register_train_operator_details_out_data(conn: Connection) -> None:
+    register_type(
+        conn, "train_operator_details_out_data", DbTrainOperatorDetailsOutData
+    )
+
+
 @dataclass
 class OperatorBrandLookup:
-    operators: dict[int, DbOperatorDetails]
-    brands: dict[int, DbOperatorDetails]
+    operators: dict[int, DbTrainOperatorDetailsOutData]
+    brands: dict[int, DbTrainOperatorDetailsOutData]

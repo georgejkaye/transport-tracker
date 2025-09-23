@@ -1,7 +1,5 @@
+from abc import abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
-from decimal import Decimal
-from typing import Optional
 
 from shapely import LineString, Point
 
@@ -14,61 +12,75 @@ class MapPoint:
     tooltip: str
 
 
-@dataclass
 class NetworkNode:
-    station_crs: str
-    platform: Optional[str]
+    @abstractmethod
+    def get_id(self) -> int:
+        pass
+
+
+class LegNode:
+    @abstractmethod
+    def get_platform_points(self) -> list[Point]:
+        pass
 
 
 @dataclass
-class NetworkNodePath:
-    source: NetworkNode
-    target: NetworkNode
+class NetworkNodePath[T: NetworkNode]:
+    source: T
+    target: T
+    line: LineString
+
+
+class NetworkPathPoints:
+    @abstractmethod
+    def get_path_points(self) -> list[list[NetworkNode]]:
+        pass
+
+
+@dataclass
+class LegLineGeometry[T]:
+    calls: list[T]
     line: LineString
 
 
 @dataclass
-class LegLineCall:
-    station_id: int
-    station_crs: str
-    station_name: str
-    platform: Optional[str]
-    latitude: Decimal
-    longitude: Decimal
-    plan_arr: Optional[datetime]
-    act_arr: Optional[datetime]
-    plan_dep: Optional[datetime]
-    act_dep: Optional[datetime]
+class MarkerTextParams:
+    include_counts: bool
 
 
 @dataclass
-class LegLineGeometry:
-    calls: list[LegLineCall]
-    line: LineString
+class MarkerTextValues:
+    boards: int
+    alights: int
+    calls: int
 
 
 @dataclass
-class LegLine:
+class LegLineCall(NetworkNode):
+    @abstractmethod
+    def get_call_info_text(
+        self, params: MarkerTextParams, values: MarkerTextValues
+    ) -> str:
+        pass
+
+    @abstractmethod
+    def get_call_identifier(self) -> str:
+        pass
+
+    @abstractmethod
+    def get_point(self) -> Point:
+        pass
+
+
+@dataclass
+class LegLine[T: LegLineCall]:
     board_station: str
     alight_station: str
-    calls: list[LegLineCall]
+    calls: list[T]
     points: LineString
     colour: str
     count_lr: int
     count_rl: int
-
-
-@dataclass
-class CallInfo:
-    pass
-
-
-@dataclass
-class StationInfo:
-    include_counts: bool
-
-
-type MarkerTextType = CallInfo | StationInfo
 
 
 @dataclass
@@ -95,4 +107,4 @@ class AlightCount:
 
 type CountType = BoardCount | CallCount | AlightCount
 
-type StationCountDict = dict[str, tuple[LegLineCall, StationCount]]
+type StationCountDict[T] = dict[str, tuple[T, StationCount]]

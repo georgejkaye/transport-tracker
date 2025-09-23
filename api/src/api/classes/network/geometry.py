@@ -15,6 +15,8 @@ class TrainLegCallGeometry:
 
 @dataclass
 class TrainLegGeometry:
-    id: int
+    leg_id: int
+    operator_id: int
+    brand_id: Optional[int]
     calls: list[TrainLegCallGeometry]
     geometry: Optional[list[tuple[Decimal, Decimal]]]
