@@ -34,7 +34,7 @@ services:
       - internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
-      interval: 10s
+      interval: 1s
       timeout: 1s
       retries: 500
       start_period: 0s
@@ -82,11 +82,9 @@ services:
     networks:
       - internal
     healthcheck:
-      test: [
-        "CMD-SHELL",
-        "curl --fail http://localhost:$$API_PORT/hc || exit 1"
-      ]
-      interval: 10s
+      test:
+        ["CMD-SHELL", "curl --fail http://localhost:$$API_PORT/hc || exit 1"]
+      interval: 1s
       timeout: 1s
       retries: 100
       start_period: 0s
