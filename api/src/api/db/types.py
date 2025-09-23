@@ -18,6 +18,7 @@ from api.classes.train.operators import (
 )
 from api.classes.train.station import (
     register_train_station_leg_points_out_data,
+    register_train_station_point_out_data,
     register_train_station_points_out_data,
 )
 from api.classes.users.train.legs import (
@@ -40,6 +41,7 @@ def register_types(conn: Connection):
     register_train_leg_call_point_out_data(conn)
     register_train_leg_call_points_out_data(conn)
     register_train_leg_points_out_data(conn)
+    register_train_station_point_out_data(conn)
     register_train_station_points_out_data(conn)
     register_train_station_leg_points_out_data(conn)
     register_transport_user_train_leg_station_out_data(conn)

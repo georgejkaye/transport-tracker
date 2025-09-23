@@ -395,10 +395,13 @@ def select_train_station_points_by_names(
 def select_train_station_leg_points_by_names(
     conn: Connection, station_legs: list[list[str]]
 ) -> list[DbTrainStationLegPointsOutData]:
+    station_leg_tuples = [(leg_calls,) for leg_calls in station_legs]
     with conn.cursor(
         row_factory=class_row(DbTrainStationLegPointsOutData)
     ) as cur:
-        return cur.execute(
+        rows = cur.execute(
             "SELECT * FROM select_train_station_leg_points_by_name_lists(%s)",
-            [station_legs],
+            [station_leg_tuples],
         ).fetchall()
+        conn.commit()
+        return rows
