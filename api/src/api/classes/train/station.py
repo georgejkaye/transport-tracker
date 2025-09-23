@@ -151,19 +151,22 @@ class DbTrainStationPointOutData:
     longitude: Decimal
 
 
+def register_train_station_point_out_data(conn: Connection):
+    register_type(
+        conn, "train_station_point_out_data", DbTrainStationPointOutData
+    )
+
+
 @dataclass
 class DbTrainStationPointsOutData:
     station_id: int
-    station_name: str
     station_crs: str
+    station_name: str
     search_name: str
     platform_points: list[DbTrainStationPointOutData]
 
 
 def register_train_station_points_out_data(conn: Connection):
-    register_type(
-        conn, "train_station_point_out_data", DbTrainStationPointOutData
-    )
     register_type(
         conn, "train_station_points_out_data", DbTrainStationPointsOutData
     )
@@ -175,12 +178,6 @@ class DbTrainStationLegPointsOutData:
 
 
 def register_train_station_leg_points_out_data(conn: Connection):
-    register_type(
-        conn, "train_station_point_out_data", DbTrainStationPointOutData
-    )
-    register_type(
-        conn, "train_station_points_out_data", DbTrainStationPointsOutData
-    )
     register_type(
         conn,
         "train_station_leg_points_out_data",
