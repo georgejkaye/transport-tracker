@@ -17,8 +17,8 @@ from api.classes.train.legs import (
 )
 from api.classes.train.service import TrainServiceCallInData, TrainServiceInData
 from api.classes.train.station import (
+    DbTrainStationOutData,
     TrainServiceAtStation,
-    TrainStationOutData,
     short_string_of_service_at_station,
 )
 from api.classes.train.stock import (
@@ -75,8 +75,8 @@ def timedelta_from_string(string: str) -> timedelta:
 
 
 def get_station_from_input(
-    conn: Connection, prompt: str, stn: TrainStationOutData | None = None
-) -> Optional[TrainStationOutData]:
+    conn: Connection, prompt: str, stn: DbTrainStationOutData | None = None
+) -> Optional[DbTrainStationOutData]:
     """
     Get a string specifying a station from a user.
     Can either be a three letter code (in which case confirmation will be asked for)
@@ -127,9 +127,9 @@ def get_station_from_input(
 
 def get_service_at_station(
     conn: Connection,
-    origin: TrainStationOutData,
+    origin: DbTrainStationOutData,
     search_datetime: datetime,
-    destination: TrainStationOutData,
+    destination: DbTrainStationOutData,
 ) -> Optional[TrainServiceAtStationToDestination]:
     """
     Record a new journey in the logfile
@@ -549,8 +549,8 @@ def get_leg_calls_between_calls(
 def filter_services_by_time_and_stop(
     earliest: datetime,
     latest: datetime,
-    origin: TrainStationOutData,
-    destination: TrainStationOutData,
+    origin: DbTrainStationOutData,
+    destination: DbTrainStationOutData,
     services: list[TrainServiceAtStation],
 ) -> list[TrainServiceAtStationToDestination]:
     services_filtered_by_time = filter_services_by_time(
@@ -651,7 +651,7 @@ def string_of_departure(call: TrainServiceCallInData) -> str:
 def record_new_leg(
     conn: Connection,
     start: datetime | None = None,
-    default_station: TrainStationOutData | None = None,
+    default_station: DbTrainStationOutData | None = None,
 ) -> TrainLegInData | None:
     origin_station = get_station_from_input(conn, "Origin", default_station)
     if origin_station is None:

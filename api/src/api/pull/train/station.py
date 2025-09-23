@@ -4,9 +4,9 @@ from typing import Any, Optional
 from psycopg import Connection
 
 from api.classes.train.station import (
+    DbTrainStationOutData,
     TrainServiceAtStation,
     TrainStationIdentifiers,
-    TrainStationOutData,
 )
 from api.db.train.stations import select_station_by_name
 from api.utils.credentials import get_api_credentials
@@ -17,7 +17,7 @@ station_endpoint = "https://api.rtt.io/api/v1/json/search"
 
 
 def get_services_at_station(
-    conn: Connection, station: TrainStationOutData, dt: datetime
+    conn: Connection, station: DbTrainStationOutData, dt: datetime
 ) -> list[TrainServiceAtStation]:
     endpoint = f"{station_endpoint}/{station.station_crs}/{get_datetime_route(dt, True)}"
     rtt_credentials = get_api_credentials("RTT")
