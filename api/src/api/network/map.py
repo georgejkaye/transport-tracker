@@ -342,6 +342,10 @@ def get_train_leg_geometries_for_leg_points(
                     call.call.station_crs,
                     call.call.station_name,
                     call.call.platform,
+                    call.call.plan_arr,
+                    call.call.act_arr,
+                    call.call.plan_dep,
+                    call.call.act_dep,
                     call.point.longitude,
                     call.point.latitude,
                 )

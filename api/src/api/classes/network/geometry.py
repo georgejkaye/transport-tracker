@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
@@ -9,6 +10,10 @@ class TrainLegCallGeometry:
     station_crs: str
     station_name: str
     platform: Optional[str]
+    plan_arr: datetime
+    act_arr: datetime
+    plan_dep: datetime
+    act_dep: datetime
     x: Optional[Decimal]
     y: Optional[Decimal]
 
