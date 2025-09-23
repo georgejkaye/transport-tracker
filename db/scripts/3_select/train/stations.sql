@@ -200,4 +200,4 @@ OR train_station_name.alternate_station_name
     = train_station_search_name.search_name
 GROUP BY leg_ordinality
 ORDER BY leg_ordinality;
-$;
+$$;
