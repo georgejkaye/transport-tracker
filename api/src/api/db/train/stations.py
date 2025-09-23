@@ -6,12 +6,13 @@ from psycopg.rows import class_row
 
 from api.classes.train.operators import BrandData, OperatorData
 from api.classes.train.station import (
+    DbTrainStationLegPointsOutData,
+    DbTrainStationOutData,
     DbTrainStationPointOutData,
     DbTrainStationPointsOutData,
     LegAtStation,
     StationData,
     TrainStationIdentifiers,
-    TrainStationOutData,
 )
 from api.utils.database import (
     str_or_null_to_datetime,
@@ -20,11 +21,11 @@ from api.utils.database import (
 
 def select_station_by_crs(
     conn: Connection, crs: str
-) -> Optional[TrainStationOutData]:
+) -> Optional[DbTrainStationOutData]:
     query = """
         SELECT * FROM select_station_by_crs(%s);
     """
-    with conn.cursor(row_factory=class_row(TrainStationOutData)) as cur:
+    with conn.cursor(row_factory=class_row(DbTrainStationOutData)) as cur:
         rows = cur.execute(query, [crs]).fetchall()
         if len(rows) == 0 or len(rows) > 1:
             return None
@@ -33,11 +34,11 @@ def select_station_by_crs(
 
 def select_station_by_name(
     conn: Connection, name: str
-) -> Optional[TrainStationOutData]:
+) -> Optional[DbTrainStationOutData]:
     query = """
         SELECT * FROM select_station_by_name(%s);
     """
-    with conn.cursor(row_factory=class_row(TrainStationOutData)) as cur:
+    with conn.cursor(row_factory=class_row(DbTrainStationOutData)) as cur:
         rows = cur.execute(query, [name]).fetchall()
         if len(rows) == 0 or len(rows) > 1:
             return None
@@ -46,11 +47,11 @@ def select_station_by_name(
 
 def select_stations_by_name_substring(
     conn: Connection, substring: str
-) -> list[TrainStationOutData]:
+) -> list[DbTrainStationOutData]:
     query = """
         SELECT * FROM select_stations_by_name_substring(%s);
     """
-    with conn.cursor(row_factory=class_row(TrainStationOutData)) as cur:
+    with conn.cursor(row_factory=class_row(DbTrainStationOutData)) as cur:
         rows = cur.execute(query, [substring]).fetchall()
         return rows
 
@@ -361,6 +362,16 @@ def select_station(conn: Connection, station_crs: str) -> Optional[StationData]:
     return result[0]
 
 
+def select_train_station_points_by_crses(
+    conn: Connection, station_crses: list[str]
+) -> list[DbTrainStationPointsOutData]:
+    with conn.cursor(row_factory=class_row(DbTrainStationPointsOutData)) as cur:
+        return cur.execute(
+            "SELECT * FROM select_train_station_points_by_crses(%s)",
+            [station_crses],
+        ).fetchall()
+
+
 def select_train_station_points_by_name(
     conn: Connection, station_name: str
 ) -> Optional[DbTrainStationPointsOutData]:
@@ -378,4 +389,16 @@ def select_train_station_points_by_names(
         return cur.execute(
             "SELECT * FROM select_train_station_points_by_names(%s)",
             [station_names],
+        ).fetchall()
+
+
+def select_train_station_leg_points_by_names(
+    conn: Connection, station_legs: list[list[str]]
+) -> list[DbTrainStationLegPointsOutData]:
+    with conn.cursor(
+        row_factory=class_row(DbTrainStationLegPointsOutData)
+    ) as cur:
+        return cur.execute(
+            "SELECT * FROM select_train_station_leg_points_by_name_lists(%s)",
+            [station_legs],
         ).fetchall()

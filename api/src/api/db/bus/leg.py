@@ -1,12 +1,12 @@
 from datetime import datetime
 from typing import Optional
 
-from api.classes.users.users import User
 from psycopg import Connection
 from psycopg.rows import class_row
 
 from api.classes.bus.journey import DbBusCallInData
 from api.classes.bus.leg import BusLegIn, BusLegUserDetails, register_leg_types
+from api.classes.users.users import User
 
 
 def insert_leg(conn: Connection, users: list[User], leg: BusLegIn) -> None:
@@ -49,34 +49,34 @@ def select_bus_legs(conn: Connection, user_id: int) -> list[BusLegUserDetails]:
 
 
 def select_bus_legs_by_datetime(
-    conn: Connection, user_id: int, search_start: datetime, search_end: datetime
+    conn: Connection, user_id: int, start_date: datetime, end_date: datetime
 ) -> list[BusLegUserDetails]:
     register_leg_types(conn)
     rows = conn.execute(
         "SELECT GetUserDetailsForBusLegsByDatetime(%s, %s, %s)",
-        [user_id, search_start, search_end],
+        [user_id, start_date, end_date],
     ).fetchall()
     return [row[0] for row in rows]
 
 
 def select_bus_legs_by_start_datetime(
-    conn: Connection, user_id: int, search_start: datetime
+    conn: Connection, user_id: int, start_date: datetime
 ) -> list[BusLegUserDetails]:
     register_leg_types(conn)
     rows = conn.execute(
         "SELECT GetUserDetailsForBusLegByStartDatetime(%s, %s)",
-        [user_id, search_start],
+        [user_id, start_date],
     ).fetchall()
     return [row[0] for row in rows]
 
 
 def select_bus_legs_by_end_datetime(
-    conn: Connection, user_id: int, search_end: datetime
+    conn: Connection, user_id: int, end_date: datetime
 ) -> list[BusLegUserDetails]:
     register_leg_types(conn)
     rows = conn.execute(
         "SELECT GetUserDetailsForBusLegByEngDatetime(%s, %s)",
-        [user_id, search_end],
+        [user_id, end_date],
     ).fetchall()
     return [row[0] for row in rows]
 

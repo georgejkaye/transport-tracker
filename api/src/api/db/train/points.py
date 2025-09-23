@@ -29,7 +29,7 @@ def string_of_station_point(station_point: StationPoint) -> str:
         platform_string = ""
     else:
         platform_string = f": platform {station_point.platform}"
-    return f"{station_point.name}{platform_string}"
+    return f"{station_point.crs}{platform_string}"
 
 
 def register_station_and_points(
@@ -69,7 +69,7 @@ def get_station_point_dict(
         station_point_dict[row.crs] = {}
         for point in row.station_points:
             station_point_dict[row.crs][point.platform] = StationPoint(
-                row.crs, row.name, point.platform, point.point
+                row.crs, point.platform, point.point
             )
     return station_point_dict
 

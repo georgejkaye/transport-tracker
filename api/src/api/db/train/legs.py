@@ -15,8 +15,6 @@ from api.classes.train.legs import (
     TrainLegCallInData,
     TrainLegInData,
     TrainStockReportInData,
-    register_train_leg_out_data,
-    register_train_leg_points_out_data,
 )
 from api.classes.train.service import (
     DbTrainAssociatedServiceInData,
@@ -204,53 +202,58 @@ def insert_train_leg(
 def select_train_leg_by_id(
     conn: Connection, train_leg_id: int
 ) -> Optional[DbTrainLegOutData]:
-    register_train_leg_out_data(conn)
     with conn.cursor(row_factory=class_row(DbTrainLegOutData)) as cur:
-        result = cur.execute(
+        row = cur.execute(
             "SELECT * FROM select_train_leg_by_id(%s)", [train_leg_id]
-        )
-        return result.fetchone()
+        ).fetchone()
+        conn.commit()
+        return row
 
 
 def select_train_legs_by_ids(
     conn: Connection, train_leg_ids: list[int]
 ) -> list[DbTrainLegOutData]:
-    register_train_leg_out_data(conn)
     with conn.cursor(row_factory=class_row(DbTrainLegOutData)) as cur:
-        result = cur.execute(
+        rows = cur.execute(
             "SELECT * FROM select_train_legs_by_ids(%s)", [train_leg_ids]
-        )
-        return result.fetchall()
+        ).fetchall()
+        return rows
 
 
 def select_train_leg_points_by_leg_id(
     conn: Connection, train_leg_id: int
 ) -> Optional[DbTrainLegPointsOutData]:
-    register_train_leg_points_out_data(conn)
     with conn.cursor(row_factory=class_row(DbTrainLegPointsOutData)) as cur:
-        return cur.execute(
+        row = cur.execute(
             "SELECT * FROM select_train_leg_points_by_leg_id(%s)",
             [train_leg_id],
         ).fetchone()
+        conn.commit()
+        return row
 
 
 def select_train_leg_points_by_leg_ids(
     conn: Connection, train_leg_ids: list[int]
 ) -> list[DbTrainLegPointsOutData]:
-    register_train_leg_points_out_data(conn)
     with conn.cursor(row_factory=class_row(DbTrainLegPointsOutData)) as cur:
-        return cur.execute(
+        rows = cur.execute(
             "SELECT * FROM select_train_leg_points_by_leg_ids(%s)",
             [train_leg_ids],
         ).fetchall()
+        conn.commit()
+        return rows
 
 
 def select_train_leg_points_by_user_id(
-    conn: Connection, user_id: int, search_start: datetime, search_end: datetime
+    conn: Connection,
+    user_id: int,
+    start_date: Optional[datetime],
+    end_date: Optional[datetime],
 ) -> list[DbTrainLegPointsOutData]:
-    register_train_leg_points_out_data(conn)
     with conn.cursor(row_factory=class_row(DbTrainLegPointsOutData)) as cur:
-        return cur.execute(
+        rows = cur.execute(
             "SELECT * FROM select_train_leg_points_by_user_id(%s, %s, %s)",
-            [user_id, search_start, search_end],
+            [user_id, start_date, end_date],
         ).fetchall()
+        conn.commit()
+        return rows

@@ -20,17 +20,16 @@ def insert_user(
 
 def get_user(conn: Connection, user_name: str) -> Optional[User]:
     with conn.cursor(row_factory=class_row(User)) as cur:
-        result = cur.execute(
+        row = cur.execute(
             "SELECT * FROM select_user_by_username(%s)", [user_name]
         ).fetchone()
-        if result is None:
-            return None
-        return result
+        return row if row is not None else None
 
 
 def get_users(conn: Connection) -> list[User]:
     with conn.cursor(row_factory=class_row(User)) as cur:
         rows = cur.execute("SELECT * FROM select_users()").fetchall()
+        conn.commit()
         return rows
 
 

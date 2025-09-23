@@ -200,13 +200,13 @@ def register_stats_types(conn: Connection) -> None:
 def get_train_stats(
     conn: Connection,
     user_id: int,
-    search_start: Optional[datetime] = None,
-    search_end: Optional[datetime] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
 ) -> Stats:
     register_stats_types(conn)
     with conn.cursor(row_factory=class_row(Stats)) as cur:
         row = cur.execute(
-            "SELECT GetStats(%s, %s, %s)", [user_id, search_start, search_end]
+            "SELECT GetStats(%s, %s, %s)", [user_id, start_date, end_date]
         ).fetchone()
         if row is None:
             raise RuntimeError("Could not get stats")
