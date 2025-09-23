@@ -25,6 +25,6 @@ CREATE TYPE train_operator_details_out_data AS (
     is_brand BOOLEAN,
     operator_code TEXT,
     operator_name TEXT,
-    operator_bg TEXT,
-    operator_fg TEXT
+    bg_colour TEXT,
+    fg_colour TEXT
 );

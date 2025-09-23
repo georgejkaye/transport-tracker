@@ -9,28 +9,25 @@ SELECT
         train_leg_start_station.train_station_id,
         train_leg_start_station.station_crs,
         train_leg_start_station.station_name
-    )::transport_user_train_leg_station AS origin,
+    )::transport_user_train_leg_station_out_data AS origin,
     (
         train_leg_end_station.train_station_id,
         train_leg_end_station.station_crs,
         train_leg_end_station.station_name
-    )::transport_user_train_leg_station AS destination,
+    )::transport_user_train_leg_station_out_data AS destination,
     train_leg_boundary_time.leg_start_time AS start_datetime,
     (
         train_operator.train_operator_id,
         train_operator.operator_code,
-        train_operator.operator_name,
-        train_operator.bg_colour,
-        train_operator.fg_colour
+        train_operator.operator_name
     )::train_leg_operator_out_data AS operator,
     CASE
-        WHEN train_brand.train_brand_id IS NULL THEN NULL
+        WHEN train_brand.train_brand_id IS NULL
+        THEN NULL
         ELSE (
             train_brand.train_brand_id,
             train_brand.brand_code,
-            train_brand.brand_name,
-            train_brand.bg_colour,
-            train_brand.fg_colour
+            train_brand.brand_name
         )::train_leg_operator_out_data
     END AS brand,
     train_leg.distance,
@@ -123,4 +120,5 @@ FROM transport_user_train_leg_view
 WHERE user_id = p_user_id
 AND (p_search_start IS NULL OR start_datetime >= p_search_start)
 AND (p_search_end IS NULL OR start_datetime <= p_search_end)
+ORDER BY start_datetime ASC;
 $$;

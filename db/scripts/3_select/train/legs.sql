@@ -30,8 +30,6 @@ INNER JOIN (
                 train_operator.train_operator_id,
                 train_operator.operator_code,
                 train_operator.operator_name,
-                train_operator.bg_colour,
-                train_operator.fg_colour
             )::train_leg_operator_out_data,
             CASE WHEN train_brand.train_brand_id IS NULL
             THEN
@@ -41,8 +39,6 @@ INNER JOIN (
                     train_brand.train_brand_id,
                     train_brand.brand_code,
                     train_brand.brand_name,
-                    train_brand.bg_colour,
-                    train_brand.fg_colour
                 )::train_leg_operator_out_data
             END
         )::train_leg_service_out_data) AS services
@@ -448,6 +444,7 @@ INNER JOIN (
         train_station_filtered_platform_point.platform,
         ARRAY_AGG(
             (
+                train_station_filtered_platform_point.point_platform,
                 train_station_filtered_platform_point.latitude,
                 train_station_filtered_platform_point.longitude
             )::train_leg_call_point_out_data
