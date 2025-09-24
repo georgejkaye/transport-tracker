@@ -6,7 +6,6 @@ from psycopg.rows import class_row
 from api.classes.bus.operators import BusOperatorDetails
 from api.classes.bus.service import (
     BusServiceDetails,
-    register_bus_service_details_types,
     short_string_of_bus_service,
 )
 from api.utils.interactive import (
@@ -47,10 +46,9 @@ def get_service_from_line_and_operator_national_code(
 def get_service_from_line_and_operator(
     conn: Connection, service_line: str, service_operator: BusOperatorDetails
 ) -> Optional[BusServiceDetails]:
-    register_bus_service_details_types(conn)
     with conn.cursor(row_factory=class_row(BusServiceDetails)) as cur:
         rows = cur.execute(
-            "SELECT GetBusServicesByOperatorId(%s, %s)",
+            "SELECT * FROM GetBusServicesByOperatorId(%s, %s)",
             [service_operator.id, service_line],
         ).fetchall()
         if len(rows) == 0:
@@ -64,10 +62,9 @@ def get_service_from_line_and_operator(
 def get_service_from_line_and_operator_name(
     conn: Connection, service_line: str, service_operator: str
 ) -> Optional[BusServiceDetails]:
-    register_bus_service_details_types(conn)
     with conn.cursor(row_factory=class_row(BusServiceDetails)) as cur:
         rows = cur.execute(
-            "SELECT GetBusServicesByOperatorName(%s, %s)",
+            "SELECT * FROM GetBusServicesByOperatorName(%s, %s)",
             [service_operator, service_line],
         ).fetchall()
         if len(rows) == 0:

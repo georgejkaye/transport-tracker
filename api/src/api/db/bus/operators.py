@@ -5,7 +5,6 @@ from psycopg.rows import class_row
 
 from api.classes.bus.operators import (
     BusOperatorDetails,
-    register_bus_operator_details_types,
 )
 
 
@@ -17,11 +16,12 @@ def get_bus_operators(conn: Connection) -> list[BusOperatorDetails]:
 def get_bus_operators_from_name(
     conn: Connection, search_string: str
 ) -> list[BusOperatorDetails]:
-    register_bus_operator_details_types(conn)
-    rows = conn.execute(
-        "SELECT GetBusOperatorsByName(%s)", [search_string]
-    ).fetchall()
-    return [row[0] for row in rows]
+    with conn.cursor(row_factory=class_row(BusOperatorDetails)) as cur:
+        rows = cur.execute(
+            "SELECT GetBusOperatorsByName(%s)", [search_string]
+        ).fetchall()
+        conn.commit()
+        return rows
 
 
 def get_bus_operator_from_name(
@@ -36,11 +36,10 @@ def get_bus_operator_from_name(
 def get_bus_operator_from_national_operator_code(
     conn: Connection, search_string: str
 ) -> Optional[BusOperatorDetails]:
-    register_bus_operator_details_types(conn)
     with conn.cursor(row_factory=class_row(BusOperatorDetails)) as cur:
         rows = cur.execute(
-            "SELECT GetBusOperatorsByNationalOperatorCode(%s)", [search_string]
-        ).fetchall()
-        if len(rows) != 1:
-            return None
-        return [row for row in rows][0]
+            "SELECT * FROM GetBusOperatorsByNationalOperatorCode(%s)",
+            [search_string],
+        ).fetchone()
+        conn.commit()
+        return rows

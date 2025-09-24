@@ -5,7 +5,6 @@ from psycopg import Connection
 
 from api.classes.bus.operators import (
     BusOperatorDetails,
-    register_bus_operator_details_types,
 )
 from api.utils.database import register_type
 
@@ -60,28 +59,5 @@ class BusVehicleDetails:
     name: Optional[str]
 
 
-def register_bus_vehicle_details(
-    bus_vehicle_id: int,
-    bus_operator: BusOperatorDetails,
-    vehicle_number: str,
-    bustimes_id: str,
-    vehicle_numberplate: str,
-    vehicle_model: str,
-    vehicle_livery_style: Optional[str],
-    vehicle_name: Optional[str],
-) -> BusVehicleDetails:
-    return BusVehicleDetails(
-        bus_vehicle_id,
-        bus_operator,
-        vehicle_number,
-        bustimes_id,
-        vehicle_numberplate,
-        vehicle_model,
-        vehicle_livery_style,
-        vehicle_name,
-    )
-
-
-def register_bus_vehicle_details_types(conn: Connection) -> None:
-    register_bus_operator_details_types(conn)
-    register_type(conn, "BusVehicleDetails", register_bus_vehicle_details)
+def register_bus_vehicle_details(conn: Connection) -> None:
+    register_type(conn, "BusVehicleDetails", BusVehicleDetails)

@@ -6,12 +6,10 @@ from psycopg import Connection
 
 from api.classes.bus.operators import (
     BusOperatorDetails,
-    register_bus_operator_details_types,
 )
 from api.classes.bus.service import BusServiceDetails
 from api.classes.bus.vehicle import (
     BusVehicleDetails,
-    register_bus_vehicle_details_types,
 )
 from api.utils.database import register_type
 
@@ -83,26 +81,8 @@ class BusCallStopDetails:
     indicator: Optional[str]
 
 
-def register_bus_call_stop_details(
-    bus_stop_id: int,
-    stop_atco: str,
-    stop_name: str,
-    stop_locality: str,
-    stop_street: Optional[str],
-    stop_indicator: Optional[str],
-) -> BusCallStopDetails:
-    return BusCallStopDetails(
-        bus_stop_id,
-        stop_atco,
-        stop_name,
-        stop_locality,
-        stop_street,
-        stop_indicator,
-    )
-
-
-def register_bus_call_stop_details_types(conn: Connection) -> None:
-    register_type(conn, "BusCallStopDetails", register_bus_call_stop_details)
+def register_bus_call_stop_details(conn: Connection) -> None:
+    register_type(conn, "BusCallStopDetails", BusCallStopDetails)
 
 
 @dataclass
@@ -116,23 +96,8 @@ class BusCallDetails:
     act_dep: Optional[datetime]
 
 
-def register_bus_call_details(
-    bus_call_id: int,
-    call_index: int,
-    bus_stop: BusCallStopDetails,
-    plan_arr: Optional[datetime],
-    act_arr: Optional[datetime],
-    plan_dep: Optional[datetime],
-    act_dep: Optional[datetime],
-) -> BusCallDetails:
-    return BusCallDetails(
-        bus_call_id, call_index, bus_stop, plan_arr, act_arr, plan_dep, act_dep
-    )
-
-
-def register_bus_call_details_types(conn: Connection) -> None:
-    register_bus_call_stop_details_types(conn)
-    register_type(conn, "BusCallDetails", register_bus_call_details)
+def register_bus_call_details(conn: Connection) -> None:
+    register_type(conn, "BusCallDetails", BusCallDetails)
 
 
 @dataclass
@@ -146,23 +111,8 @@ class BusJourneyCallDetails:
     act_dep: Optional[datetime]
 
 
-def register_bus_journey_call_details(
-    call_id: int,
-    call_index: int,
-    bus_stop: BusCallStopDetails,
-    plan_arr: Optional[datetime],
-    act_arr: Optional[datetime],
-    plan_dep: Optional[datetime],
-    act_dep: Optional[datetime],
-) -> BusJourneyCallDetails:
-    return BusJourneyCallDetails(
-        call_id, call_index, bus_stop, plan_arr, act_arr, plan_dep, act_dep
-    )
-
-
-def register_bus_journey_call_details_types(conn: Connection) -> None:
-    register_bus_call_stop_details_types(conn)
-    register_type(conn, "BusJourneyCallDetails", register_bus_journey_call_details)
+def register_bus_journey_call_details(conn: Connection) -> None:
+    register_type(conn, "BusJourneyCallDetails", BusJourneyCallDetails)
 
 
 @dataclass
@@ -174,27 +124,8 @@ class BusJourneyServiceDetails:
     fg_colour: str
 
 
-def register_bus_journey_service_details(
-    bus_service_id: int,
-    bus_operator: BusOperatorDetails,
-    service_line: str,
-    bg_colour: Optional[str],
-    fg_colour: Optional[str],
-) -> BusJourneyServiceDetails:
-    return BusJourneyServiceDetails(
-        bus_service_id,
-        bus_operator,
-        service_line,
-        bg_colour or "#ffffff",
-        fg_colour or "#000000",
-    )
-
-
-def register_bus_journey_service_details_types(conn: Connection) -> None:
-    register_bus_operator_details_types(conn)
-    register_type(
-        conn, "BusJourneyServiceDetails", register_bus_journey_service_details
-    )
+def register_bus_journey_service_details(conn: Connection) -> None:
+    register_type(conn, "BusJourneyServiceDetails", BusJourneyServiceDetails)
 
 
 @dataclass
@@ -205,19 +136,5 @@ class BusJourneyDetails:
     vehicle: Optional[BusVehicleDetails]
 
 
-def register_bus_journey_details(
-    journey_id: int,
-    journey_service: BusJourneyServiceDetails,
-    journey_calls: list[BusJourneyCallDetails],
-    journey_vehicle: Optional[BusVehicleDetails],
-) -> BusJourneyDetails:
-    return BusJourneyDetails(
-        journey_id, journey_service, journey_calls, journey_vehicle
-    )
-
-
-def register_bus_journey_details_types(conn: Connection) -> None:
-    register_bus_journey_service_details_types(conn)
-    register_bus_journey_call_details_types(conn)
-    register_bus_vehicle_details_types(conn)
-    register_type(conn, "BusJourneyDetails", register_bus_journey_details)
+def register_bus_journey_details(conn: Connection) -> None:
+    register_type(conn, "BusJourneyDetails", BusJourneyDetails)

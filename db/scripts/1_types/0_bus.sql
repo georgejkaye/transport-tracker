@@ -1,3 +1,29 @@
+DROP TYPE BusStopInData CASCADE;
+DROP TYPE BusOperatorInData CASCADE;
+DROP TYPE BusServiceInData CASCADE;
+DROP TYPE BusServiceViaInData CASCADE;
+DROP TYPE BusModelInData CASCADE;
+DROP TYPE BusVehicleInData CASCADE;
+DROP TYPE BusCallInData CASCADE;
+DROP TYPE BusJourneyInData CASCADE;
+DROP TYPE BusLegInData CASCADE;
+
+DROP TYPE BusStopDetails CASCADE;
+DROP TYPE BusOperatorDetails CASCADE;
+DROP TYPE BusServiceDetails CASCADE;
+DROP TYPE BusVehicleDetails CASCADE;
+DROP TYPE BusJourneyDetails CASCADE;
+DROP TYPE BusJourneyServiceDetails CASCADE;
+DROP TYPE BusCallDetails CASCADE;
+DROP TYPE BusCallStopDetails CASCADE;
+DROP TYPE BusJourneyCallDetails CASCADE;
+DROP TYPE BusLegServiceDetails CASCADE;
+DROP TYPE BusLegUserDetails CASCADE;
+DROP TYPE BusVehicleLegDetails CASCADE;
+DROP TYPE BusVehicleUserDetails CASCADE;
+DROP TYPE BusStopLegDetails CASCADE;
+DROP TYPE BusStopUserDetails CASCADE;
+
 CREATE TYPE BusStopInData AS (
     atco_code TEXT,
     naptan_code TEXT,
@@ -178,10 +204,10 @@ CREATE TYPE BusCallDetails AS (
 
 CREATE TYPE BusLegUserDetails AS (
     leg_id INT,
-    bus_service BusLegServiceDetails,
-    bus_vehicle BusVehicleDetails,
+    service BusLegServiceDetails,
+    vehicle BusVehicleDetails,
     calls BusCallDetails[],
-    leg_duration INTERVAL
+    duration INTERVAL
 );
 
 CREATE TYPE BusVehicleLegDetails AS (
@@ -189,17 +215,17 @@ CREATE TYPE BusVehicleLegDetails AS (
     bus_service BusLegServiceDetails,
     board_call BusCallDetails,
     alight_call BusCallDetails,
-    leg_duration INTERVAL
+    duration INTERVAL
 );
 
 CREATE TYPE BusVehicleUserDetails AS (
     vehicle_id INT,
-    vehicle_operator_id TEXT,
-    vehicle_name TEXT,
-    vehicle_numberplate TEXT,
-    vehicle_operator BusOperatorDetails,
-    vehicle_legs BusVehicleLegDetails[],
-    vehicle_duration INTERVAL
+    identifier TEXT,
+    name TEXT,
+    numberplate TEXT,
+    operator BusOperatorDetails,
+    legs BusVehicleLegDetails[],
+    duration INTERVAL
 );
 
 CREATE TYPE BusStopLegDetails AS (
@@ -213,7 +239,7 @@ CREATE TYPE BusStopLegDetails AS (
 );
 
 CREATE TYPE BusStopUserDetails AS (
-    bus_stop_id INT,
+    stop_id INT,
     atco_code TEXT,
     naptan_code TEXT,
     stop_name TEXT,

@@ -864,8 +864,8 @@ ON BusLeg.alight_call_index = AlightCall.call_index
 AND BusJourney.bus_journey_id = AlightCall.bus_journey_id
 INNER JOIN BusStop AlightStop
 ON AlightCall.bus_stop_id = AlightStop.bus_stop_id
-INNER JOIN Traveller
-ON BusLeg.user_id = Traveller.user_id
+INNER JOIN transport_user
+ON BusLeg.user_id = transport_user.user_id
 WHERE BusCall.call_index >= BoardCall.call_index
 AND BusCall.call_index <= AlightCall.call_index
 GROUP BY BusStop.bus_stop_id, BusLeg.user_id;

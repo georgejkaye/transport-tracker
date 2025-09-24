@@ -5,7 +5,7 @@ from psycopg import Connection
 from psycopg.rows import class_row
 
 from api.classes.bus.journey import DbBusCallInData
-from api.classes.bus.leg import BusLegIn, BusLegUserDetails, register_leg_types
+from api.classes.bus.leg import BusLegIn, BusLegUserDetails
 from api.classes.users.users import User
 
 
@@ -41,54 +41,59 @@ def insert_leg(conn: Connection, users: list[User], leg: BusLegIn) -> None:
 
 
 def select_bus_legs(conn: Connection, user_id: int) -> list[BusLegUserDetails]:
-    register_leg_types(conn)
-    rows = conn.execute(
-        "SELECT GetUserDetailsForBusLeg(%s)", [user_id]
-    ).fetchall()
-    return [row[0] for row in rows]
+    with conn.cursor(row_factory=class_row(BusLegUserDetails)) as cur:
+        rows = cur.execute(
+            "SELECT * FROM GetUserDetailsForBusLeg(%s)", [user_id]
+        ).fetchall()
+        conn.commit()
+        return rows
 
 
 def select_bus_legs_by_datetime(
     conn: Connection, user_id: int, start_date: datetime, end_date: datetime
 ) -> list[BusLegUserDetails]:
-    register_leg_types(conn)
-    rows = conn.execute(
-        "SELECT GetUserDetailsForBusLegsByDatetime(%s, %s, %s)",
-        [user_id, start_date, end_date],
-    ).fetchall()
-    return [row[0] for row in rows]
+    with conn.cursor(row_factory=class_row(BusLegUserDetails)) as cur:
+        rows = cur.execute(
+            "SELECT * FROM GetUserDetailsForBusLegsByDatetime(%s, %s, %s)",
+            [user_id, start_date, end_date],
+        ).fetchall()
+        conn.commit()
+        return rows
 
 
 def select_bus_legs_by_start_datetime(
     conn: Connection, user_id: int, start_date: datetime
 ) -> list[BusLegUserDetails]:
-    register_leg_types(conn)
-    rows = conn.execute(
-        "SELECT GetUserDetailsForBusLegByStartDatetime(%s, %s)",
-        [user_id, start_date],
-    ).fetchall()
-    return [row[0] for row in rows]
+    with conn.cursor(row_factory=class_row(BusLegUserDetails)) as cur:
+        rows = cur.execute(
+            "SELECT * FROM GetUserDetailsForBusLegByStartDatetime(%s, %s)",
+            [user_id, start_date],
+        ).fetchall()
+        conn.commit()
+        return rows
 
 
 def select_bus_legs_by_end_datetime(
     conn: Connection, user_id: int, end_date: datetime
 ) -> list[BusLegUserDetails]:
-    register_leg_types(conn)
-    rows = conn.execute(
-        "SELECT GetUserDetailsForBusLegByEngDatetime(%s, %s)",
-        [user_id, end_date],
-    ).fetchall()
-    return [row[0] for row in rows]
+    with conn.cursor(row_factory=class_row(BusLegUserDetails)) as cur:
+        rows = cur.execute(
+            "SELECT * FROM GetUserDetailsForBusLegByEngDatetime(%s, %s)",
+            [user_id, end_date],
+        ).fetchall()
+        conn.commit()
+        return rows
 
 
 def select_bus_leg_by_id(
     conn: Connection, user_id: int, leg_id: int
 ) -> Optional[BusLegUserDetails]:
-    register_leg_types(conn)
     with conn.cursor(row_factory=class_row(BusLegUserDetails)) as cur:
         rows = cur.execute(
-            "SELECT GetUserDetailsForBusLegsByIds(%s, %s)", [user_id, [leg_id]]
+            "SELECT * FROM GetUserDetailsForBusLegsByIds(%s, %s)",
+            [user_id, [leg_id]],
         ).fetchall()
+        conn.commit()
         if len(rows) == 0:
             return None
         return rows[0]
@@ -97,9 +102,10 @@ def select_bus_leg_by_id(
 def select_bus_legs_by_id(
     conn: Connection, user_id: int, leg_ids: list[int]
 ) -> list[BusLegUserDetails]:
-    register_leg_types(conn)
     with conn.cursor(row_factory=class_row(BusLegUserDetails)) as cur:
         rows = cur.execute(
-            "SELECT GetUserDetailsForBusLegByIds(%s, %s)", [user_id, leg_ids]
+            "SELECT * FROM GetUserDetailsForBusLegsByIds(%s, %s)",
+            [user_id, leg_ids],
         ).fetchall()
+        conn.commit()
         return rows

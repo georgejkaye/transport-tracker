@@ -1,4 +1,5 @@
 from psycopg import Connection
+from psycopg.rows import class_row
 
 from api.classes.bus.operators import BusOperatorDetails
 from api.classes.bus.vehicle import (
@@ -6,7 +7,6 @@ from api.classes.bus.vehicle import (
     BusVehicleIn,
     DbBusModelInData,
     DbBusVehicleInData,
-    register_bus_vehicle_details_types,
 )
 
 
@@ -46,18 +46,21 @@ def string_of_bus_vehicle_out(vehicle: BusVehicleDetails) -> str:
 def get_bus_vehicles_by_operator_and_id(
     conn: Connection, bus_operator: BusOperatorDetails, vehicle_number: str
 ) -> list[BusVehicleDetails]:
-    register_bus_vehicle_details_types(conn)
-    rows = conn.execute(
-        "SELECT GetBusVehicles(%s, %s)", [bus_operator.id, vehicle_number]
-    ).fetchall()
-    return [row[0] for row in rows]
+    with conn.cursor(row_factory=class_row(BusVehicleDetails)) as cur:
+        rows = cur.execute(
+            "SELECT * FROM GetBusVehicles(%s, %s)",
+            [bus_operator.id, vehicle_number],
+        ).fetchall()
+        conn.commit()
+        return rows
 
 
 def get_bus_vehicles_by_id(
     conn: Connection, vehicle_number: str
 ) -> list[BusVehicleDetails]:
-    register_bus_vehicle_details_types(conn)
-    rows = conn.execute(
-        "SELECT GetBusVehicles(NULL, %s)", [vehicle_number]
-    ).fetchall()
-    return [row[0] for row in rows]
+    with conn.cursor(row_factory=class_row(BusVehicleDetails)) as cur:
+        rows = cur.execute(
+            "SELECT * FROM GetBusVehicles(NULL, %s)", [vehicle_number]
+        ).fetchall()
+        conn.commit()
+        return rows
