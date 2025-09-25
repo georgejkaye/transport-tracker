@@ -1,5 +1,5 @@
-DROP FUNCTION select_transport_user_train_leg_by_user_id;
-DROP VIEW transport_user_train_leg_view;
+DROP FUNCTION IF EXISTS select_transport_user_train_leg_by_user_id;
+DROP VIEW IF EXISTS transport_user_train_leg_view;
 
 CREATE VIEW transport_user_train_leg_view AS
 SELECT

@@ -418,7 +418,7 @@ DROP CONSTRAINT valid_brand;
 ALTER TABLE train_operator_stock
 DROP CONSTRAINT valid_brand;
 
-DROP FUNCTION isvalidbrand;
+DROP FUNCTION IF EXISTS isvalidbrand;
 
 CREATE OR REPLACE FUNCTION is_valid_brand(
     p_brand_id INTEGER,
@@ -449,7 +449,7 @@ CHECK (is_valid_brand(train_brand_id, train_operator_id));
 ALTER TABLE train_stock_report
 DROP CONSTRAINT valid_stock;
 
-DROP FUNCTION isvalidstockformation;
+DROP FUNCTION IF EXISTS isvalidstockformation;
 
 CREATE OR REPLACE FUNCTION is_valid_stock_formation (
     p_stock_class INTEGER,
@@ -507,5 +507,5 @@ ADD CONSTRAINT train_call_unique_service_station_arr_dep
 
 -- drop old user data types
 
-DROP TYPE useroutdata CASCADE;
-DROP TYPE useroutpublicdata CASCADE;
+DROP TYPE IF EXISTS useroutdata CASCADE;
+DROP TYPE IF EXISTS useroutpublicdata CASCADE;

@@ -1,9 +1,9 @@
-DROP TYPE train_service_in_data CASCADE;
-DROP TYPE train_service_endpoint_in_data CASCADE;
-DROP TYPE train_call_in_data CASCADE;
-DROP TYPE train_associated_service_in_data CASCADE;
-DROP TYPE train_service_call_associated_service_in_data CASCADE;
-DROP TYPE train_service_call_in_data CASCADE;
+DROP TYPE IF EXISTS train_service_in_data CASCADE;
+DROP TYPE IF EXISTS train_service_endpoint_in_data CASCADE;
+DROP TYPE IF EXISTS train_call_in_data CASCADE;
+DROP TYPE IF EXISTS train_associated_service_in_data CASCADE;
+DROP TYPE IF EXISTS train_service_call_associated_service_in_data CASCADE;
+DROP TYPE IF EXISTS train_service_call_in_data CASCADE;
 
 CREATE TYPE train_service_in_data AS (
     unique_identifier TEXT,

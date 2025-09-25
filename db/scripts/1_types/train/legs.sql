@@ -1,18 +1,18 @@
-DROP TYPE train_leg_call_in_data CASCADE;
-DROP TYPE train_leg_in_data CASCADE;
+DROP TYPE IF EXISTS train_leg_call_in_data CASCADE;
+DROP TYPE IF EXISTS train_leg_in_data CASCADE;
 
-DROP TYPE train_leg_station_out_data CASCADE;
-DROP TYPE train_leg_operator_out_data CASCADE;
-DROP TYPE train_leg_associated_service_out_data CASCADE;
-DROP TYPE train_leg_call_out_data CASCADE;
-DROP TYPE train_leg_service_out_data CASCADE;
-DROP TYPE train_leg_stock_report_out_data CASCADE;
-DROP TYPE train_leg_stock_segment_out_data CASCADE;
-DROP TYPE train_leg_out_data CASCADE;
+DROP TYPE IF EXISTS train_leg_station_out_data CASCADE;
+DROP TYPE IF EXISTS train_leg_operator_out_data CASCADE;
+DROP TYPE IF EXISTS train_leg_associated_service_out_data CASCADE;
+DROP TYPE IF EXISTS train_leg_call_out_data CASCADE;
+DROP TYPE IF EXISTS train_leg_service_out_data CASCADE;
+DROP TYPE IF EXISTS train_leg_stock_report_out_data CASCADE;
+DROP TYPE IF EXISTS train_leg_stock_segment_out_data CASCADE;
+DROP TYPE IF EXISTS train_leg_out_data CASCADE;
 
-DROP TYPE train_leg_call_point_out_data CASCADE;
-DROP TYPE train_leg_call_points_out_data CASCADE;
-DROP TYPE train_leg_points_out_data CASCADE;
+DROP TYPE IF EXISTS train_leg_call_point_out_data CASCADE;
+DROP TYPE IF EXISTS train_leg_call_points_out_data CASCADE;
+DROP TYPE IF EXISTS train_leg_points_out_data CASCADE;
 
 CREATE TYPE train_leg_call_in_data AS (
     station_crs TEXT,

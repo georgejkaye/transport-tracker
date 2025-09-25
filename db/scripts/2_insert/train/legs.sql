@@ -1,4 +1,4 @@
-DROP FUNCTION insert_train_leg;
+DROP FUNCTION IF EXISTS insert_train_leg;
 
 CREATE OR REPLACE FUNCTION insert_train_leg (
     p_users INTEGER[],

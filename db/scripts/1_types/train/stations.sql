@@ -1,9 +1,9 @@
-DROP TYPE train_station_name_point_in_data CASCADE;
-DROP TYPE train_station_out_data CASCADE;
-DROP TYPE train_station_leg_names_in_data CASCADE;
-DROP TYPE train_station_point_out_data CASCADE;
-DROP TYPE train_station_points_out_data CASCADE;
-DROP TYPE train_station_leg_points_out_data CASCADE;
+DROP TYPE IF EXISTS train_station_name_point_in_data CASCADE;
+DROP TYPE IF EXISTS train_station_out_data CASCADE;
+DROP TYPE IF EXISTS train_station_leg_names_in_data CASCADE;
+DROP TYPE IF EXISTS train_station_point_out_data CASCADE;
+DROP TYPE IF EXISTS train_station_points_out_data CASCADE;
+DROP TYPE IF EXISTS train_station_leg_points_out_data CASCADE;
 
 CREATE TYPE train_station_name_point_in_data AS (
     station_name TEXT,

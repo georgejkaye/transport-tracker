@@ -1,7 +1,7 @@
-DROP FUNCTION select_operator_id_by_name;
-DROP FUNCTION select_brands_by_operator_code;
-DROP FUNCTION select_operator_by_operator_code;
-DROP FUNCTION select_operator_details;
+DROP FUNCTION IF EXISTS select_operator_id_by_name;
+DROP FUNCTION IF EXISTS select_brands_by_operator_code;
+DROP FUNCTION IF EXISTS select_operator_by_operator_code;
+DROP FUNCTION IF EXISTS select_operator_details;
 
 CREATE OR REPLACE FUNCTION select_operator_id_by_name (
     p_operator_name TEXT

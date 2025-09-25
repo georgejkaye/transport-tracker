@@ -1,6 +1,6 @@
-DROP TYPE train_brand_out_data CASCADE;
-DROP TYPE train_operator_out_data CASCADE;
-DROP TYPE train_operator_details_out_data CASCADE;
+DROP TYPE IF EXISTS train_brand_out_data CASCADE;
+DROP TYPE IF EXISTS train_operator_out_data CASCADE;
+DROP TYPE IF EXISTS train_operator_details_out_data CASCADE;
 
 CREATE TYPE train_brand_out_data AS (
     brand_id INTEGER,

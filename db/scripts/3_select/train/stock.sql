@@ -1,4 +1,4 @@
-DROP FUNCTION select_operator_stock;
+DROP FUNCTION IF EXISTS select_operator_stock;
 
 CREATE OR REPLACE FUNCTION select_operator_stock (
     p_operator_id INTEGER,

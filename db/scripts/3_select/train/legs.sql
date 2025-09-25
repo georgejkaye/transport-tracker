@@ -1,12 +1,12 @@
-DROP VIEW train_leg_view;
-DROP VIEW train_leg_points_view;
+DROP VIEW IF EXISTS train_leg_view;
+DROP VIEW IF EXISTS train_leg_points_view;
 
-DROP FUNCTION select_train_leg_by_id;
-DROP FUNCTION select_train_legs_by_ids;
+DROP FUNCTION IF EXISTS select_train_leg_by_id;
+DROP FUNCTION IF EXISTS select_train_legs_by_ids;
 
-DROP FUNCTION select_train_leg_points_by_leg_id;
-DROP FUNCTION select_train_leg_points_by_leg_ids;
-DROP FUNCTION select_train_leg_points_by_user_id;
+DROP FUNCTION IF EXISTS select_train_leg_points_by_leg_id;
+DROP FUNCTION IF EXISTS select_train_leg_points_by_leg_ids;
+DROP FUNCTION IF EXISTS select_train_leg_points_by_user_id;
 
 CREATE OR REPLACE VIEW train_leg_view AS
 SELECT
@@ -29,7 +29,7 @@ INNER JOIN (
             (
                 train_operator.train_operator_id,
                 train_operator.operator_code,
-                train_operator.operator_name,
+                train_operator.operator_name
             )::train_leg_operator_out_data,
             CASE WHEN train_brand.train_brand_id IS NULL
             THEN
@@ -38,7 +38,7 @@ INNER JOIN (
                 (
                     train_brand.train_brand_id,
                     train_brand.brand_code,
-                    train_brand.brand_name,
+                    train_brand.brand_name
                 )::train_leg_operator_out_data
             END
         )::train_leg_service_out_data) AS services

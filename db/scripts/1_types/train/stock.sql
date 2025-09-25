@@ -1,6 +1,6 @@
-DROP TYPE train_stock_subclass_out_data CASCADE;
-DROP TYPE train_stock_out_data CASCADE;
-DROP TYPE train_stock_segment_in_data CASCADE;
+DROP TYPE IF EXISTS train_stock_subclass_out_data CASCADE;
+DROP TYPE IF EXISTS train_stock_out_data CASCADE;
+DROP TYPE IF EXISTS train_stock_segment_in_data CASCADE;
 
 CREATE TYPE train_stock_subclass_out_data AS (
     stock_subclass INTEGER,

@@ -6,7 +6,7 @@ CREATE OR REPLACE FUNCTION insert_user (
 LANGUAGE sql
 AS
 $$
-INSERT INTO traveller (user_name, display_name, hashed_password)
+INSERT INTO transport_user (user_name, display_name, hashed_password)
 VALUES (p_username, p_display_name, p_hashed_password)
 RETURNING user_id;
 $$;

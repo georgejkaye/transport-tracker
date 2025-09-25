@@ -1,12 +1,12 @@
-DROP FUNCTION select_station_by_crs;
-DROP FUNCTION select_station_by_name;
-DROP FUNCTION select_stations_by_name_substring;
+DROP FUNCTION IF EXISTS select_station_by_crs;
+DROP FUNCTION IF EXISTS select_station_by_name;
+DROP FUNCTION IF EXISTS select_stations_by_name_substring;
 
-DROP VIEW train_station_points_view;
-DROP FUNCTION select_train_station_points_by_crses;
-DROP FUNCTION select_train_station_points_by_name;
-DROP FUNCTION select_train_station_points_by_names;
-DROP FUNCTION select_train_station_leg_points_by_name_lists;
+DROP VIEW IF EXISTS train_station_points_view;
+DROP FUNCTION IF EXISTS select_train_station_points_by_crses;
+DROP FUNCTION IF EXISTS select_train_station_points_by_name;
+DROP FUNCTION IF EXISTS select_train_station_points_by_names;
+DROP FUNCTION IF EXISTS select_train_station_leg_points_by_name_lists;
 
 CREATE OR REPLACE FUNCTION select_station_by_crs (
     p_station_crs TEXT
