@@ -29,7 +29,7 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./db/scripts/:/docker-entrypoint-initdb.d/
+      - ./db/populate/:/docker-entrypoint-initdb.d/
     networks:
       - internal
     healthcheck:
@@ -82,10 +82,8 @@ services:
     networks:
       - internal
     healthcheck:
-      test: [
-        "CMD-SHELL",
-        "curl --fail http://localhost:$$API_PORT/hc || exit 1"
-      ]
+      test:
+        ["CMD-SHELL", "curl --fail http://localhost:$$API_PORT/hc || exit 1"]
       interval: 10s
       timeout: 1s
       retries: 100

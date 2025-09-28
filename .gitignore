@@ -159,3 +159,4 @@ dmypy.json
 db/scripts/dump.pgdata
 cache
 *.gml
+.populate
