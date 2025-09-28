@@ -114,8 +114,4 @@ CREATE TABLE BusLeg (
     alight_call_index INT NOT NULL,
     FOREIGN KEY(user_id) REFERENCES Traveller(user_id),
     FOREIGN KEY(bus_journey_id) REFERENCES BusJourney(bus_journey_id),
-    CONSTRAINT board_call_within_journey CHECK (
-        CallIndexIsWithinJourney(bus_journey_id, board_call_index)),
-    CONSTRAINT alight_call_within_journey CHECK (
-        CallIndexIsWithinJourney(bus_journey_id, alight_call_index))
 );
