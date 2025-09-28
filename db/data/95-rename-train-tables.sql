@@ -76,7 +76,7 @@ RENAME COLUMN service_id TO unique_identifier;
 ALTER TABLE train_service_endpoint ADD train_service_id INT;
 
 UPDATE train_service_endpoint SET train_service_id = (
-    SELECT train_service.service_id
+    SELECT train_service.train_service_id
     FROM train_service
     WHERE train_service.run_date = train_service_endpoint.run_date
     AND train_service.unique_identifier
@@ -117,6 +117,10 @@ ALTER TABLE train_call DROP COLUMN run_date;
 
 ALTER TABLE train_associated_service
 RENAME COLUMN associated_id TO associated_unique_identifier;
+
+ALTER TABLE train_associated_service
+RENAME COLUMN call_id TO train_call_id;
+
 ALTER TABLE train_associated_service ADD train_service_id INT;
 
 UPDATE train_associated_service SET train_service_id = (
@@ -133,7 +137,7 @@ ALTER COLUMN train_service_id SET NOT NULL;
 
 ALTER TABLE train_associated_service
 ADD CONSTRAINT train_associated_service_associated_service_id_fkey
-FOREIGN KEY(associated_service_id) REFERENCES train_service(train_service_id);
+FOREIGN KEY(train_service_id) REFERENCES train_service(train_service_id);
 
 ALTER TABLE train_associated_service DROP COLUMN associated_unique_identifier;
 ALTER TABLE train_associated_service DROP COLUMN associated_run_date;
@@ -246,12 +250,6 @@ ALTER TABLE train_service_endpoint
 ADD CONSTRAINT train_service_endpoint_unique_service_station_origin
 UNIQUE (train_service_id, train_station_id, origin);
 
--- Readd uniqueness constraint to train_associated_service
-
-ALTER TABLE train_associated_service
-ADD CONSTRAINT train_associated_service_unique_call_service_type
-UNIQUE (call_id, associated_service_id, associated_type);
-
 -- Make associated type have ids
 
 ALTER TABLE train_associated_service_type
@@ -335,27 +333,11 @@ UPDATE train_associated_service_type
 SET type_name = 'OTHER_DIVIDES'
 WHERE type_name = 'DIVIDES_FROM';
 
--- split train sequence and train leg
+-- Readd uniqueness constraint to train_associated_service
 
-ALTER TABLE traveller
-RENAME TO transport_user;
-
-CREATE TABLE transport_user_train_leg (
-    transport_user_train_leg_id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    train_leg_id INTEGER NOT NULL,
-    FOREIGN KEY (user_id)
-        REFERENCES transport_user(user_id),
-    FOREIGN KEY (train_leg_id)
-        REFERENCES train_leg(train_leg_id),
-    UNIQUE (user_id, train_leg_id)
-);
-
-INSERT INTO transport_user_train_leg (user_id, train_leg_id)
-SELECT user_id, train_leg_id FROM train_leg;
-
-ALTER TABLE train_leg
-DROP COLUMN user_id;
+ALTER TABLE train_associated_service
+ADD CONSTRAINT train_associated_service_unique_call_service_type
+UNIQUE (train_call_id, train_service_id, train_associated_service_type_id);
 
 -- put train in front of primary ids
 
@@ -386,9 +368,6 @@ RENAME operator_id TO train_operator_id;
 ALTER TABLE train_service
 RENAME brand_id TO train_brand_id;
 
-ALTER TABLE train_brand
-RENAME brand_id TO train_brand_id;
-
 ALTER TABLE train_call
 RENAME call_id TO train_call_id;
 
@@ -410,88 +389,27 @@ RENAME stock_segment_id TO train_stock_segment_id;
 ALTER TABLE train_stock_segment_report
 RENAME stock_report_id TO train_stock_report_id;
 
--- fix brand constraint
+-- split train sequence and train leg
 
-ALTER TABLE train_service
-DROP CONSTRAINT valid_brand;
+ALTER TABLE traveller
+RENAME TO transport_user;
 
-ALTER TABLE train_operator_stock
-DROP CONSTRAINT valid_brand;
+CREATE TABLE transport_user_train_leg (
+    transport_user_train_leg_id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    train_leg_id INTEGER NOT NULL,
+    FOREIGN KEY (user_id)
+        REFERENCES transport_user(user_id),
+    FOREIGN KEY (train_leg_id)
+        REFERENCES train_leg(train_leg_id),
+    UNIQUE (user_id, train_leg_id)
+);
 
-DROP FUNCTION IF EXISTS isvalidbrand;
+INSERT INTO transport_user_train_leg (user_id, train_leg_id)
+SELECT user_id, train_leg_id FROM train_leg;
 
-CREATE OR REPLACE FUNCTION is_valid_brand(
-    p_brand_id INTEGER,
-    p_operator_id INTEGER
-) RETURNS BOOLEAN
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    RETURN p_brand_id IS NULL
-        OR (
-            SELECT train_operator_id FROM train_brand
-            WHERE train_brand_id = p_brand_id
-        ) = p_operator_id;
-END;
-$$;
-
-ALTER TABLE train_service
-ADD CONSTRAINT train_service_check_is_valid_brand
-CHECK (is_valid_brand(train_brand_id, train_operator_id));
-
-ALTER TABLE train_operator_stock
-ADD CONSTRAINT train_operator_stock_check_is_valid_brand
-CHECK (is_valid_brand(train_brand_id, train_operator_id));
-
--- isvalidstockformation constraint
-
-ALTER TABLE train_stock_report
-DROP CONSTRAINT valid_stock;
-
-DROP FUNCTION IF EXISTS isvalidstockformation;
-
-CREATE OR REPLACE FUNCTION is_valid_stock_formation (
-    p_stock_class INTEGER,
-    p_stock_subclass INTEGER,
-    p_stock_cars INT
-) RETURNS BOOLEAN
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    IF p_stock_class IS NULL
-    THEN
-        RETURN TRUE;
-    END IF;
-    IF p_stock_subclass IS NULL
-    THEN
-        IF p_stock_cars IS NULL
-        THEN
-            RETURN EXISTS(
-                SELECT * FROM public.train_stock_formation
-                WHERE stock_class = p_stock_class
-            );
-        ELSE
-            RETURN EXISTS(
-                SELECT * FROM public.train_stock_formation
-                WHERE stock_class = p_stock_class
-                AND cars = p_stock_cars
-            );
-        END IF;
-    END IF;
-    RETURN EXISTS (
-        SELECT * FROM public.train_stock_formation
-        WHERE stock_class = p_stock_class
-        AND stock_subclass = p_stock_subclass
-        AND cars = p_stock_cars
-    );
-END;
-$$;
-
-ALTER TABLE train_stock_report
-ADD CONSTRAINT train_stock_report_check_valid_stock_formation
-CHECK (is_valid_stock_formation(stock_class, stock_subclass, stock_cars));
+ALTER TABLE train_leg
+DROP COLUMN user_id;
 
 -- add call constraint
 

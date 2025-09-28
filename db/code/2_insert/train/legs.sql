@@ -111,7 +111,7 @@ BEGIN
 
     INSERT INTO train_associated_service (
         call_id,
-        train_associated_type_id,
+        train_associated_service_type_id,
         train_associated_service_id
     ) SELECT
         (
@@ -150,7 +150,7 @@ BEGIN
         arr_call_id,
         dep_call_id,
         mileage,
-        train_associated_type_id
+        train_associated_service_type_id
     )
     SELECT
         v_train_leg_id,

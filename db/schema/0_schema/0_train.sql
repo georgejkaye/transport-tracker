@@ -207,7 +207,7 @@ VALUES (4, 'OTHER_DIVIDES');
 
 CREATE TABLE train_associated_service (
     train_call_id INTEGER NOT NULL,
-    train_associated_service_id INT NOT NULL,
+    train_service_id INT NOT NULL,
     train_associated_service_type_id INT NOT NULL,
     FOREIGN KEY (train_associated_service_type_id)
         REFERENCES
@@ -215,7 +215,7 @@ CREATE TABLE train_associated_service (
     FOREIGN KEY (train_call_id)
         REFERENCES train_call(train_call_id)
         ON DELETE CASCADE,
-    FOREIGN KEY (train_associated_service_id)
+    FOREIGN KEY (train_service_id)
         REFERENCES train_service(train_service_id)
         ON DELETE CASCADE,
     CONSTRAINT train_associated_service_unique_call_service_type
