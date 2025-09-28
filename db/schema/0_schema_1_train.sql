@@ -113,7 +113,6 @@ CREATE TABLE Service (
     PRIMARY KEY (service_id, run_date),
     FOREIGN KEY (operator_id) REFERENCES Operator(operator_id),
     FOREIGN KEY (brand_id) REFERENCES Brand(brand_id),
-    CONSTRAINT valid_brand CHECK (IsValidBrand(brand_id, operator_id))
 );
 
 CREATE TABLE ServiceEndpoint (
@@ -197,41 +196,6 @@ CREATE TABLE StockSegment (
     CONSTRAINT stock_segment_unique UNIQUE (start_call, end_call)
 );
 
-CREATE OR REPLACE FUNCTION IsValidStockFormation (
-    stockclass INTEGER,
-    stocksubclass INTEGER,
-    stockcars INT
-) RETURNS BOOLEAN
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    IF stockclass IS NULL
-    THEN
-        RETURN TRUE;
-    END IF;
-    IF stocksubclass IS NULL
-    THEN
-        IF stockcars IS NULL
-        THEN
-            RETURN EXISTS(
-                SELECT * FROM public.StockFormation
-                WHERE stock_class = stockclass
-            );
-        ELSE
-            RETURN EXISTS(
-                SELECT * FROM public.StockFormation
-                WHERE stock_class = stockclass AND cars = stockcars
-            );
-        END IF;
-    END IF;
-    RETURN EXISTS (
-        SELECT * FROM public.StockFormation
-        WHERE stock_class = stockclass AND stock_subclass = stocksubclass AND cars = stockcars
-    );
-END;
-$$;
-
 CREATE TABLE StockReport (
     stock_report_id SERIAL PRIMARY KEY,
     stock_class INTEGER,
@@ -240,7 +204,6 @@ CREATE TABLE StockReport (
     stock_cars INTEGER,
     FOREIGN KEY (stock_class) REFERENCES Stock(stock_class),
     FOREIGN KEY (stock_class, stock_subclass) REFERENCES StockSubclass(stock_class, stock_subclass),
-    CONSTRAINT valid_stock CHECK (IsValidStockFormation(stock_class, stock_subclass, stock_cars))
 );
 
 CREATE TABLE StockSegmentReport (
