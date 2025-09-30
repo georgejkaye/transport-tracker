@@ -26,11 +26,10 @@ def get_db_scripts_files(code_dir: str) -> list[str]:
 
 
 def run_in_script_file(script_file: str):
-    print(f"Running in {script_file}...", flush=True)
     env = dict(os.environ)
     env["PGPASSWORD"] = db_password
     try:
-        output_bytes = subprocess.check_output(
+        subprocess.check_output(
             [
                 "psql",
                 "-h",
@@ -51,20 +50,7 @@ def run_in_script_file(script_file: str):
         error_output = e.output.decode("utf-8")
         print(error_output, flush=True)
     else:
-        output = output_bytes.decode("utf-8").rstrip()
-        if len(output) == 0:
-            print("Success!", flush=True)
-        else:
-            lines = output.split("\n")
-            in_detail = False
-            for line in lines:
-                if "ERROR" in line:
-                    in_detail = False
-                if "DETAIL" in line:
-                    in_detail = True
-                if in_detail:
-                    continue
-                print(line, flush=True)
+        pass
     print()
 
 
