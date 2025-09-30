@@ -17,8 +17,9 @@ services:
     secrets:
       - db_secret
   db:
-    image: postgres
-    restart: always
+    build:
+      context: db/server
+      dockerfile: Dockerfile
     depends_on:
       data:
         condition: service_completed_successfully
@@ -35,7 +36,7 @@ services:
       - internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
-      interval: 10s
+      interval: 1s
       timeout: 1s
       retries: 500
       start_period: 0s
@@ -49,6 +50,24 @@ services:
       - 8085:8080
     networks:
       - internal
+  watcher:
+    depends_on:
+      db:
+        condition: service_healthy
+    build:
+      context: db/watcher
+      dockerfile: Dockerfile
+      args:
+        POETRY_VERSION: 2.1.1
+    environment:
+      DB_HOST: db
+      DB_USER: transport
+      DB_NAME: transport
+      DB_PASSWORD: /run/secrets/db_secret
+    volumes:
+      - ./db/code:/app/code
+    networks:
+      - internal
   api:
     depends_on:
       db:
@@ -57,7 +76,7 @@ services:
       context: api
       dockerfile: Dockerfile.dev
       args:
-        POETRY_VERSION: ${POETRY_VERSION}
+        POETRY_VERSION: 2.1.1
     ports:
       - "${API_PORT}:${API_PORT}"
     environment:
@@ -85,7 +104,7 @@ services:
     healthcheck:
       test:
         ["CMD-SHELL", "curl --fail http://localhost:$$API_PORT/hc || exit 1"]
-      interval: 10s
+      interval: 1s
       timeout: 1s
       retries: 100
       start_period: 0s
