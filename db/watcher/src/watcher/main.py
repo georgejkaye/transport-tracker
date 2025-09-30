@@ -72,10 +72,10 @@ def run_in_scripts(code_dir: str):
     global last_trigger_time
     current_time = datetime.now()
     if (current_time - last_trigger_time) > timedelta(seconds=1):
-        last_trigger_time = current_time
         files = get_db_scripts_files(code_dir)
         for file in files:
             run_in_script_file(file)
+        last_trigger_time = datetime.now()
 
 
 class MyEventHandler(FileSystemEventHandler):
