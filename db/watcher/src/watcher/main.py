@@ -1,10 +1,18 @@
 import os
+import subprocess
 import sys
 import time
 from datetime import datetime, timedelta
 
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
+
+db_host = os.environ["DB_HOST"]
+db_name = os.environ["DB_NAME"]
+db_user = os.environ["DB_USER"]
+
+with open(os.environ["DB_PASSWORD"]) as f:
+    db_password = f.read()
 
 last_trigger_time = datetime.now()
 
@@ -17,15 +25,57 @@ def get_db_scripts_files(code_dir: str) -> list[str]:
     return code_files
 
 
+def run_in_script_file(script_file: str):
+    print(f"Running in {script_file}")
+    env = dict(os.environ)
+    env["PGPASSWORD"] = db_password
+    try:
+        output_bytes = subprocess.check_output(
+            [
+                "psql",
+                "-h",
+                db_host,
+                "-d",
+                db_name,
+                "-U",
+                db_user,
+                "-f",
+                script_file,
+                "-q",
+            ],
+            stderr=subprocess.STDOUT,
+            env=env,
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Error while running in {script_file}")
+        error_output = e.output.decode("utf-8")
+        print(error_output)
+    else:
+        output = output_bytes.decode("utf-8").rstrip()
+        if len(output) == 0:
+            print("Success!")
+        else:
+            lines = output.split("\n")
+            in_detail = False
+            for line in lines:
+                if "ERROR" in line:
+                    in_detail = False
+                if "DETAIL" in line:
+                    in_detail = True
+                if in_detail:
+                    continue
+                print(line)
+    print()
+
+
 def run_in_scripts(code_dir: str):
     global last_trigger_time
     current_time = datetime.now()
     if (current_time - last_trigger_time) > timedelta(seconds=1):
-        print("ex")
         last_trigger_time = current_time
         files = get_db_scripts_files(code_dir)
         for file in files:
-            print(file)
+            run_in_script_file(file)
 
 
 class MyEventHandler(FileSystemEventHandler):
