@@ -12,7 +12,7 @@ db_name = os.environ["DB_NAME"]
 db_user = os.environ["DB_USER"]
 
 with open(os.environ["DB_PASSWORD"]) as f:
-    db_password = f.read()
+    db_password = f.read().rstrip()
 
 last_trigger_time = datetime.now()
 
@@ -26,7 +26,7 @@ def get_db_scripts_files(code_dir: str) -> list[str]:
 
 
 def run_in_script_file(script_file: str):
-    print(f"Running in {script_file}")
+    print(f"Running in {script_file}...", flush=True)
     env = dict(os.environ)
     env["PGPASSWORD"] = db_password
     try:
@@ -47,13 +47,13 @@ def run_in_script_file(script_file: str):
             env=env,
         )
     except subprocess.CalledProcessError as e:
-        print(f"Error while running in {script_file}")
+        print(f"Error while running in {script_file}", flush=True)
         error_output = e.output.decode("utf-8")
-        print(error_output)
+        print(error_output, flush=True)
     else:
         output = output_bytes.decode("utf-8").rstrip()
         if len(output) == 0:
-            print("Success!")
+            print("Success!", flush=True)
         else:
             lines = output.split("\n")
             in_detail = False
@@ -64,7 +64,7 @@ def run_in_script_file(script_file: str):
                     in_detail = True
                 if in_detail:
                     continue
-                print(line)
+                print(line, flush=True)
     print()
 
 
@@ -97,9 +97,9 @@ def main(path: str):
     observer = Observer()
     observer.schedule(event_handler, path, recursive=True)
 
-    # Start the observer
+    # Start the observe
     observer.start()
-    print(f"Monitoring directory: {path}")
+    print(f"Watching script files in: {path}", flush=True)
 
     try:
         while True:
