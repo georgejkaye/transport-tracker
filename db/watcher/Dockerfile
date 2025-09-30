@@ -1,13 +1,14 @@
 # Build image
 FROM python:3.13-bookworm AS builder
 
-RUN apt install postgresql-client
+RUN apt update
+RUN apt install postgresql-client -y
 
 ARG POETRY_VERSION
 RUN pip install poetry==${POETRY_VERSION}
 
 WORKDIR /app
-COPY pyproject.toml poetry.lock mypy.ini ./
+COPY pyproject.toml poetry.lock ./
 # Poetry complains without a readme
 RUN touch README.md
 RUN poetry install --no-root
@@ -18,4 +19,4 @@ RUN poetry install
 RUN mkdir /run/secrets
 RUN echo "transport" > /run/secrets/db_secret
 
-ENTRYPOINT ["poetry", "run", "python", "src/api/api/main.py"]
+ENTRYPOINT ["poetry", "run", "python", "-u", "src/watcher/main.py", "/app/code"]

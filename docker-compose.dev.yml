@@ -56,9 +56,17 @@ services:
     build:
       context: db/watcher
       dockerfile: Dockerfile
-
+      args:
+        POETRY_VERSION: 2.1.1
+    environment:
+      DB_HOST: db
+      DB_USER: transport
+      DB_NAME: transport
+      DB_PASSWORD: /run/secrets/db_secret
     volumes:
       - ./db/code:/app/code
+    networks:
+      - internal
   api:
     depends_on:
       db:
@@ -67,7 +75,7 @@ services:
       context: api
       dockerfile: Dockerfile.dev
       args:
-        POETRY_VERSION: ${POETRY_VERSION}
+        POETRY_VERSION: 2.1.1
     ports:
       - "${API_PORT}:${API_PORT}"
     environment:
