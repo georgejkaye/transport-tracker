@@ -1,5 +1,5 @@
 # Build image
-FROM python:3.12-bookworm AS builder
+FROM python:3.13-bookworm AS builder
 
 ARG POETRY_VERSION
 RUN pip install poetry==${POETRY_VERSION}
