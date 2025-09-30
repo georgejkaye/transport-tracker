@@ -49,6 +49,16 @@ services:
       - 8085:8080
     networks:
       - internal
+  watcher:
+    depends_on:
+      db:
+        condition: service_healthy
+    build:
+      context: db/watcher
+      dockerfile: Dockerfile
+
+    volumes:
+      - ./db/code:/app/code
   api:
     depends_on:
       db:
