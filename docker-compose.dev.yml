@@ -65,7 +65,8 @@ services:
       DB_NAME: transport
       DB_PASSWORD: /run/secrets/db_secret
     volumes:
-      - ./db/code:/app/code
+      - ./db/code:/app/user
+      - ./db/watcher/scripts:/app/internal
     networks:
       - internal
   api:

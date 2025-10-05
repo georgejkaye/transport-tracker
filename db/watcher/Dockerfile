@@ -19,4 +19,4 @@ RUN poetry install
 RUN mkdir /run/secrets
 RUN echo "transport" > /run/secrets/db_secret
 
-ENTRYPOINT ["poetry", "run", "python", "-u", "src/watcher/main.py", "/app/code"]
+ENTRYPOINT ["poetry", "run", "python", "-u", "src/watcher/main.py", "/app/internal", "/app/user"]
