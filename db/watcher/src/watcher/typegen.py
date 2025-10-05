@@ -1,68 +1,20 @@
 from pathlib import Path
 
 from watcher.classes import PostgresType, PostgresTypeField
+from watcher.utils import (
+    get_python_type_for_postgres_type,
+    get_python_type_name_for_postgres_type_name,
+    get_statements_from_postgres_file,
+)
 
 tab = "    "
 
-postgres_to_python_type_dict = {
-    "TEXT": "str",
-    "INT": "int",
-    "INTEGER": "int",
-    "DECIMAL": "Decimal",
-    "TIMESTAMP WITH TIME ZONE": "datetime",
-    "TIMESTAMP WITHOUT TIME ZONE": "datetime",
-    "INTERVAL": "timedelta",
-    "DATERANGE": "Range",
-}
 
-
-def get_python_type_name_for_postgres_type_name(type_name: str) -> str:
-    return "".join(x.capitalize() for x in type_name.lower().split("_"))
-
-
-def get_python_type_for_base_postgres_type(base_type_string: str) -> str:
-    if (
-        base_python_type := postgres_to_python_type_dict.get(base_type_string)
-    ) is not None:
-        return base_python_type
-    return get_python_type_name_for_postgres_type_name(base_type_string)
-
-
-def get_python_type_for_postgres_type(type_string: str) -> str:
-    is_array_type = type_string[-2:] == "[]"
-    if is_array_type:
-        base_type_string = type_string[:-2]
-    else:
-        base_type_string = type_string
-    base_python_type = get_python_type_for_base_postgres_type(base_type_string)
-    if is_array_type:
-        return f"list[{base_python_type}]"
-    return base_python_type
-
-
-def get_python_for_postgres_type(postgres_type: PostgresType) -> str:
-    python_type_name = get_python_type_name_for_postgres_type_name(
-        postgres_type.type_name
-    )
-    python_type_declaration = f"class {python_type_name}:"
-    python_lines = ["@dataclass", python_type_declaration]
-    for type_field in postgres_type.type_fields:
-        python_type = get_python_type_for_postgres_type(type_field.field_type)
-        python_type_field_str = f"{tab}{type_field.field_name}: {python_type}"
-        python_lines.append(python_type_field_str)
-    return "\n".join(python_lines)
-
-
-def get_postgres_type_for_postgres_type_string(
-    postgres_type_str: str,
+def get_postgres_type_for_statement(
+    statement: str,
 ) -> PostgresType:
-    one_line_string = " ".join(
-        postgres_type_str.replace("\n", " ")
-        .replace(")", "")
-        .replace(";", "")
-        .split()
-    )
-    string_split_at_bracket = one_line_string.split("(", 1)
+    bracket_removed = statement.replace(")", "")
+    string_split_at_bracket = bracket_removed.split("(", 1)
     postgres_create_type_clause = string_split_at_bracket[0]
     postgres_type_name = postgres_create_type_clause.split(" ")[2]
     postgres_type_field_clause = string_split_at_bracket[1]
@@ -78,17 +30,17 @@ def get_postgres_type_for_postgres_type_string(
     return PostgresType(postgres_type_name, postgres_type_fields)
 
 
-def get_postgres_types_for_postgres_type_file_str(
-    postgres_type_file_str: str,
-) -> list[PostgresType]:
-    postgres_statement_strs = (
-        postgres_type_file_str.replace("\n", " ").strip().split(";")
+def get_python_for_postgres_type(postgres_type: PostgresType) -> str:
+    python_type_name = get_python_type_name_for_postgres_type_name(
+        postgres_type.type_name
     )
-    postgres_types = [
-        get_postgres_type_for_postgres_type_string(postgres_statement_str)
-        for postgres_statement_str in postgres_statement_strs[:-1]
-    ]
-    return postgres_types
+    python_type_declaration = f"class {python_type_name}:"
+    python_lines = ["@dataclass", python_type_declaration]
+    for type_field in postgres_type.type_fields:
+        python_type = get_python_type_for_postgres_type(type_field.field_type)
+        python_type_field_str = f"{tab}{type_field.field_name}: {python_type}"
+        python_lines.append(python_type_field_str)
+    return "\n".join(python_lines)
 
 
 def get_imports_for_python_code_str(python_code_str: str) -> list[str]:
@@ -117,14 +69,9 @@ def get_python_code_for_postgres_types(
     return f"{python_import_str}\n\n{python_code_str}"
 
 
-def get_postgres_types_for_postgres_type_file(
-    file_path: str | Path,
-) -> list[PostgresType]:
-    with open(file_path, "r") as f:
-        file_contents = f.read()
-    return get_postgres_types_for_postgres_type_file_str(file_contents)
-
-
 def get_python_code_for_postgres_type_file(file_path: str | Path) -> str:
-    postgres_types = get_postgres_types_for_postgres_type_file(file_path)
+    statements = get_statements_from_postgres_file(file_path)
+    postgres_types = [
+        get_postgres_type_for_statement(statement) for statement in statements
+    ]
     return get_python_code_for_postgres_types(postgres_types)
