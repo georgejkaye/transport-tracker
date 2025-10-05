@@ -1,20 +1,8 @@
-from dataclasses import dataclass
 from pathlib import Path
 
+from watcher.classes import PostgresType, PostgresTypeField
+
 tab = "    "
-
-
-@dataclass
-class PostgresTypeField:
-    field_name: str
-    field_type: str
-
-
-@dataclass
-class PostgresType:
-    type_name: str
-    type_fields: list[PostgresTypeField]
-
 
 postgres_to_python_type_dict = {
     "TEXT": "str",
@@ -69,7 +57,7 @@ def get_postgres_type_for_postgres_type_string(
     postgres_type_str: str,
 ) -> PostgresType:
     one_line_string = " ".join(
-        postgres_type_str.replace("\n", "")
+        postgres_type_str.replace("\n", " ")
         .replace(")", "")
         .replace(";", "")
         .split()
@@ -94,7 +82,7 @@ def get_postgres_types_for_postgres_type_file_str(
     postgres_type_file_str: str,
 ) -> list[PostgresType]:
     postgres_statement_strs = (
-        postgres_type_file_str.replace("\n", "").strip().split(";")
+        postgres_type_file_str.replace("\n", " ").strip().split(";")
     )
     postgres_types = [
         get_postgres_type_for_postgres_type_string(postgres_statement_str)
