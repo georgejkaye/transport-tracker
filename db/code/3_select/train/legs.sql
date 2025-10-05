@@ -159,7 +159,7 @@ INNER JOIN (
     LEFT JOIN train_station train_station_dep
     ON train_call_dep.train_station_id = train_station_dep.train_station_id
     LEFT JOIN train_associated_service_type
-    ON train_leg_call.train_associated_type_id
+    ON train_leg_call.train_associated_service_type_id
         = train_associated_service_type.train_associated_service_type_id
     GROUP BY train_leg_id
 ) train_leg_call
@@ -466,7 +466,7 @@ INNER JOIN (
             ) train_call_platform
             INNER JOIN train_station_point
             ON train_call_platform.train_station_id
-                = train_station_point.station_id
+                = train_station_point.train_station_id
         )
         SELECT
             train_station.train_station_id,

@@ -12,6 +12,7 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-5432}
       DATA_PASSWORD: /run/secrets/db_secret
     secrets:
       - db_secret
@@ -29,7 +30,7 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./db/scripts/:/docker-entrypoint-initdb.d/
+      - ./db/.populate/:/docker-entrypoint-initdb.d/
     networks:
       - internal
     healthcheck:

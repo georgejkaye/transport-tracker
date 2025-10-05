@@ -1,0 +1,637 @@
+-- CREATE OR REPLACE FUNCTION GetLegIdsInRange(
+--     p_user_id INTEGER,
+--     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+--     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+-- )
+-- RETURNS TABLE(leg_id INTEGER, start_time TIMESTAMP WITH TIME ZONE)
+-- LANGUAGE plpgsql
+-- AS
+-- $$
+-- BEGIN
+--     RETURN QUERY
+--     SELECT
+--         TrainLeg.leg_id,
+--         LegEnds.start_time
+--     FROM TrainLeg
+--     INNER JOIN (
+--         SELECT
+--             TrainLegCall.leg_id,
+--             MIN(
+--                 COALESCE(TrainCall.act_dep, TrainCall.act_arr, TrainCall.plan_dep, TrainCall.plan_arr)
+--             ) AS start_time
+--         FROM TrainLegCall
+--         INNER JOIN TrainCall
+--         ON COALESCE(TrainLegCall.dep_call_id, TrainLegCall.arr_call_id) = TrainCall.call_id
+--         GROUP BY TrainLegCall.leg_id
+--     ) LegEnds
+--     ON TrainLeg.leg_id = LegEnds.leg_id
+--     WHERE (p_start_date IS NULL OR LegEnds.start_time >= p_start_date)
+--     AND (p_end_date IS NULL OR LegEnds.start_time <= p_end_date)
+--     AND TrainLeg.user_id = p_user_id
+--     ORDER BY LegEnds.start_time;
+-- END;
+-- $$;
+
+-- CREATE OR REPLACE FUNCTION GetStationCalls(
+--     p_user_id INTEGER,
+--     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+--     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+-- )
+-- RETURNS TABLE (
+--     station_crs CHARACTER(3),
+--     calls BIGINT
+-- )
+-- LANGUAGE plpgsql
+-- AS
+-- $$
+-- BEGIN
+--     RETURN QUERY
+--     SELECT StationCall.station_crs, StationCall.count FROM (
+--         SELECT TrainCall.station_crs, COUNT(*) AS count
+--         FROM (SELECT * FROM GetLegIdsInRange(p_user_id, p_start_date, p_end_date)) LegId
+--         INNER JOIN TrainLegCall
+--         ON LegId.leg_id = TrainLegCall.leg_id
+--         INNER JOIN TrainCall
+--         ON TrainCall.call_id = COALESCE(TrainLegCall.arr_call_id, TrainLegCall.dep_call_id)
+--         GROUP BY TrainCall.station_crs
+--     ) StationCall
+--     ORDER BY StationCall.count DESC;
+-- END;
+-- $$;
+
+-- CREATE OR REPLACE FUNCTION GetStationStats (
+--     p_user_id INTEGER,
+--     p_start_time TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+--     p_end_time TIMESTAMP WITH TIME ZONE DEFAULT NULL
+-- )
+-- RETURNS SETOF TrainStationTrainStats
+-- LANGUAGE plpgsql
+-- AS
+-- $$
+-- BEGIN
+--     RETURN QUERY
+--     SELECT
+--         StationCount.station_crs::CHARACTER(3),
+--         StationCount.station_name,
+--         COALESCE(
+--             StationCount.brand_name,
+--             StationCount.operator_name
+--         ) AS operator_name,
+--         COALESCE(
+--             StationCount.brand_id,
+--             StationCount.operator_id
+--         ) AS operator_id,
+--         (CASE
+--             WHEN StationCount.brand_id IS NOT NULL THEN true
+--             ELSE false
+--         END) AS is_brand,
+--         StationCount.boards,
+--         StationCount.alights,
+--         StationCount.intermediates
+--     FROM (
+--         SELECT
+--             StationCount.station_crs,
+--             TrainStation.station_name,
+--             TrainStation.operator_id,
+--             TrainStation.brand_id,
+--             TrainOperator.operator_name,
+--             TrainBrand.brand_name,
+--             StationCount.boards,
+--             StationCount.alights,
+--             (
+--                 StationCount.calls -
+--                 StationCount.boards -
+--                 StationCount.alights
+--             ) AS intermediates
+--         FROM (
+--             WITH LegEndpoint AS (
+--                 SELECT * FROM GetLegCallOverview(p_user_id, p_start_time, p_end_time)
+--             )
+--             SELECT
+--                 LegCallCount.station_crs AS station_crs,
+--                 COALESCE(StationBoardAlight.boards, 0) AS boards,
+--                 COALESCE(StationBoardAlight.alights, 0) AS alights,
+--                 COALESCE(LegCallCount.calls, 0) AS calls
+--             FROM (
+--                 SELECT
+--                     COALESCE(
+--                         LegBoardCount.board_station_crs,
+--                         LegAlightCount.alight_station_crs
+--                     ) AS station_crs,
+--                     COALESCE(LegBoardCount.boards, 0) AS boards,
+--                     COALESCE(LegAlightCount.alights, 0) AS alights
+--                 FROM (
+--                     SELECT LegEndpoint.board_station_crs, COUNT(*) AS boards
+--                     FROM LegEndpoint
+--                     GROUP BY LegEndpoint.board_station_crs
+--                 ) LegBoardCount
+--                 FULL OUTER JOIN (
+--                     SELECT LegEndpoint.alight_station_crs, COUNT(*) AS alights
+--                     FROM LegEndpoint
+--                     GROUP BY LegEndpoint.alight_station_crs
+--                 ) LegAlightCount
+--                 ON
+--                     LegBoardCount.board_station_crs =
+--                     LegAlightCount.alight_station_crs
+--             ) StationBoardAlight
+--             FULL OUTER JOIN (
+--                 SELECT * FROM GetStationCalls(p_user_id, p_start_time, p_end_time)
+--             ) LegCallCount
+--             ON LegCallCount.station_crs = StationBoardAlight.station_crs
+--         ) StationCount
+--         INNER JOIN TrainStation
+--         ON StationCount.station_crs = TrainStation.station_crs
+--         INNER JOIN TrainOperator
+--         ON TrainStation.operator_id = TrainOperator.operator_id
+--         LEFT JOIN TrainBrand
+--         ON TrainStation.brand_id = TrainBrand.brand_id
+--     ) StationCount
+--     ORDER BY
+--         (StationCount.boards + StationCount.alights) DESC,
+--         StationCount.boards DESC,
+--         StationCount.alights DESC,
+--         StationCount.intermediates DESC;
+-- END;
+-- $$;
+
+-- CREATE OR REPLACE FUNCTION GetLegCallOverview (
+--     p_user_id INTEGER,
+--     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+--     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+-- )
+-- RETURNS TABLE (
+--     leg_id INTEGER,
+--     user_id INTEGER,
+--     board_call_id INTEGER,
+--     board_station_crs CHARACTER(3),
+--     alight_call_id INTEGER,
+--     alight_station_crs CHARACTER(3),
+--     intermediate_calls BIGINT
+-- )
+-- LANGUAGE plpgsql
+-- AS
+-- $$
+-- BEGIN
+--     RETURN QUERY
+--     SELECT
+--         LegStopOverview.leg_id,
+--         LegStopOverview.user_id,
+--         LegStopOverview.board_call_id,
+--         LegStopOverview.board_station_crs,
+--         LegStopOverview.alight_call_id,
+--         LegStopOverview.alight_station_crs,
+--         LegStopOverview.intermediate_calls
+--     FROM (
+--         WITH LegStop AS (
+--             SELECT
+--                 LegRange.leg_id,
+--                 TrainCall.call_id,
+--                 TrainCall.station_crs,
+--                 COALESCE(plan_arr, plan_dep, act_arr, act_dep) AS stop_time
+--             FROM (
+--                 SELECT * FROM GetLegIdsInRange(p_user_id, p_start_date, p_end_date)
+--             ) LegRange
+--             INNER JOIN TrainLegCall
+--             ON LegRange.leg_id = TrainLegCall.leg_id
+--             INNER JOIN TrainCall
+--             ON COALESCE(TrainLegCall.arr_call_id, TrainLegCall.dep_call_id) = TrainCall.call_id
+--         )
+--         SELECT
+--             LegStopBoard.leg_id,
+--             TrainLeg.user_id,
+--             LegStopBoardStation.call_id AS board_call_id,
+--             LegStopBoardStation.station_crs AS board_station_crs,
+--             LegStopAlightStation.call_id AS alight_call_id,
+--             LegStopAlightStation.station_crs AS alight_station_crs,
+--             LegStopIntermediate.intermediate_calls AS intermediate_calls
+--         FROM (
+--             SELECT LegStop.leg_id, MIN(stop_time) AS board_time
+--             FROM LegStop
+--             GROUP BY LegStop.leg_id
+--         ) LegStopBoard
+--         INNER JOIN (
+--             SELECT LegStop.leg_id, MAX(stop_time) AS alight_time
+--             FROM LegStop
+--             GROUP BY LegStop.leg_id
+--         ) LegStopAlight
+--         ON LegStopBoard.leg_id = LegStopAlight.leg_id
+--         INNER JOIN (
+--             SELECT LegStop.call_id, LegStop.stop_time, LegStop.station_crs
+--             FROM LegStop
+--         ) LegStopBoardStation
+--         ON LegStopBoardStation.stop_time = LegStopBoard.board_time
+--         INNER JOIN (
+--             SELECT LegStop.call_id, LegStop.stop_time, LegStop.station_crs
+--             FROM LegStop
+--         ) LegStopAlightStation
+--         ON LegStopAlightStation.stop_time = LegStopAlight.alight_time
+--         INNER JOIN (
+--             SELECT LegStop.leg_id, COUNT(*) - 2 AS intermediate_calls
+--             FROM LegStop
+--             GROUP BY LegStop.leg_id
+--         ) LegStopIntermediate
+--         ON LegStopIntermediate.leg_id = LegStopBoard.leg_id
+--         INNER JOIN TrainLeg
+--         ON LegStopBoard.leg_id = TrainLeg.leg_id
+--         WHERE TrainLeg.user_id = p_user_id
+--     ) LegStopOverview;
+-- END;
+-- $$;
+
+-- CREATE OR REPLACE FUNCTION GetLegStats (
+--     p_user_id INTEGER,
+--     p_start_time TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+--     p_end_time TIMESTAMP WITH TIME ZONE DEFAULT NULL
+-- )
+-- RETURNS SETOF TrainLegStats
+-- LANGUAGE plpgsql
+-- AS
+-- $$
+-- BEGIN
+--     RETURN QUERY
+--     SELECT
+--         LegStat.leg_id,
+--         LegStat.user_id,
+--         LegStat.leg_start,
+--         LegStat.board_station_crs::CHARACTER(3),
+--         LegStat.board_station_name,
+--         LegStat.leg_end,
+--         LegStat.alight_station_crs::CHARACTER(3),
+--         LegStat.alight_station_name,
+--         LegStat.distance,
+--         LegStat.duration,
+--         LegStat.delay,
+--         LegStat.operator_id,
+--         LegStat.operator_code,
+--         LegStat.operator_name,
+--         LegStat.is_brand
+--     FROM (
+--         SELECT
+--             LegCallOverview.leg_id,
+--             LegCallOverview.user_id,
+--             COALESCE(
+--                 BoardCall.act_dep,
+--                 BoardCall.act_arr,
+--                 BoardCall.plan_dep,
+--                 BoardCall.plan_arr
+--             ) AS leg_start,
+--             LegCallOverview.board_station_crs,
+--             BoardStation.station_name AS board_station_name,
+--             COALESCE(
+--                 AlightCall.act_dep,
+--                 AlightCall.act_arr,
+--                 AlightCall.plan_dep,
+--                 AlightCall.plan_arr
+--             ) AS leg_end,
+--             LegCallOverview.alight_station_crs,
+--             AlightStation.station_name AS alight_station_name,
+--             COALESCE(
+--                 AlightCall.mileage - BoardCall.mileage,
+--                 TrainLeg.distance
+--             ) AS distance,
+--             COALESCE(AlightCall.act_arr, AlightCall.plan_arr)
+--             -
+--             COALESCE(BoardCall.act_dep, BoardCall.plan_dep) AS duration,
+--             (EXTRACT(
+--                 EPOCH FROM (
+--                     COALESCE(AlightCall.act_arr, AlightCall.act_dep)
+--                     -
+--                     COALESCE(AlightCall.plan_arr, AlightCall.plan_dep)
+--                 )
+--             ) / 60)::INTEGER AS delay,
+--             COALESCE(TrainBrand.brand_id, TrainOperator.operator_id) AS operator_id,
+--             COALESCE(TrainBrand.brand_code, TrainOperator.operator_code) AS operator_code,
+--             COALESCE(TrainBrand.brand_name, TrainOperator.operator_name) AS operator_name,
+--             (
+--                 CASE
+--                     WHEN TrainBrand.brand_id IS NOT NULL THEN true
+--                     ELSE false
+--                 END
+--             ) AS is_brand
+--         FROM (
+--             SELECT *
+--             FROM GetLegCallOverview(p_user_id, p_start_time, p_end_time)
+--         ) LegCallOverview
+--         INNER JOIN TrainStation BoardStation
+--         ON LegCallOverview.board_station_crs = BoardStation.station_crs
+--         INNER JOIN TrainStation AlightStation
+--         ON LegCallOverview.alight_station_crs = AlightStation.station_crs
+--         INNER JOIN TrainCall BoardCall
+--         ON LegCallOverview.board_call_id = BoardCall.call_id
+--         INNER JOIN TrainCall AlightCall
+--         ON LegCallOverview.alight_call_id = AlightCall.call_id
+--         INNER JOIN TrainLeg
+--         ON LegCallOverview.leg_id = TrainLeg.leg_id
+--         INNER JOIN TrainService
+--         ON BoardCall.service_id = TrainService.service_id
+--         AND BoardCall.run_date = TrainService.run_date
+--         INNER JOIN TrainOperator
+--         ON TrainService.operator_id = TrainOperator.operator_id
+--         LEFT JOIN TrainBrand
+--         ON TrainService.brand_id = TrainBrand.brand_id
+--         WHERE TrainLeg.user_id = p_user_id
+--     ) LegStat
+--     ORDER BY LegStat.leg_start;
+-- END;
+-- $$;
+
+-- CREATE OR REPLACE FUNCTION GetStockUsed(
+--     p_user_id INTEGER,
+--     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+--     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+-- )
+-- RETURNS TABLE (
+--     leg_id INTEGER,
+--     stock_class INTEGER,
+--     stock_subclass INTEGER,
+--     stock_number INTEGER
+-- )
+-- LANGUAGE plpgsql
+-- AS
+-- $$
+-- BEGIN
+--     RETURN QUERY
+--     SELECT DISTINCT
+--         TrainLeg.leg_id,
+--         TrainStockReport.stock_class,
+--         TrainStockReport.stock_subclass,
+--         TrainStockReport.stock_number
+--     FROM TrainLeg
+--     INNER JOIN TrainLegCall
+--     ON TrainLeg.leg_id = TrainLegCall.leg_id
+--     INNER JOIN TrainCall
+--     ON TrainLegCall.arr_call_id = TrainCall.call_id
+--     OR TrainLegCall.dep_call_id = TrainCall.call_id
+--     INNER JOIN TrainStockSegment
+--     ON TrainCall.call_id = TrainStockSegment.start_call
+--     INNER JOIN TrainStockSegmentReport
+--     ON TrainStockSegment.stock_segment_id = TrainStockSegmentReport.stock_segment_id
+--     INNER JOIN TrainStockReport
+--     ON TrainStockSegmentReport.stock_report_id = TrainStockReport.stock_report_id
+--     INNER JOIN GetLegIdsInRange(p_user_id, p_start_date, p_end_date) LegId
+--     ON TrainLeg.leg_id = LegId.leg_id;
+-- END;
+-- $$;
+
+-- CREATE OR REPLACE FUNCTION GetClassStats(
+--     p_user_id INTEGER,
+--     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+--     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+-- )
+-- RETURNS SETOF TrainClassOutStat
+-- LANGUAGE plpgsql
+-- AS
+-- $$
+-- BEGIN
+--     RETURN QUERY
+--     SELECT
+--         LegClass.stock_class,
+--         COUNT(*),
+--         SUM(LegStat.distance),
+--         SUM(LegStat.duration)
+--     FROM (
+--         SELECT DISTINCT LegStock.leg_id, LegStock.stock_class
+--         FROM GetStockUsed(p_user_id, p_start_date, p_end_date) LegStock
+--     ) LegClass
+--     INNER JOIN GetLegStats(p_user_id, p_start_date, p_end_date) LegStat
+--     ON LegClass.leg_id = LegStat.leg_id
+--     GROUP BY LegClass.stock_class
+--     ORDER BY count DESC;
+-- END;
+-- $$;
+
+-- CREATE OR REPLACE FUNCTION GetUnitStats (
+--     p_user_id INTEGER,
+--     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+--     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+-- )
+-- RETURNS SETOF TrainUnitOutStat
+-- LANGUAGE plpgsql
+-- AS
+-- $$
+-- BEGIN
+--     RETURN QUERY
+--     SELECT
+--         LegStock.stock_number,
+--         COUNT(*),
+--         SUM(LegStat.distance),
+--         SUM(LegStat.duration)
+--     FROM GetStockUsed(p_user_id, p_start_date, p_end_date) LegStock
+--     INNER JOIN GetLegStats(p_user_id, p_start_date, p_end_date) LegStat
+--     ON LegStock.leg_id = LegStat.leg_id
+--     WHERE LegStock.stock_number IS NOT NULL
+--     GROUP BY LegStock.stock_number
+--     ORDER BY count DESC;
+-- END;
+-- $$;
+
+-- CREATE OR REPLACE FUNCTION GetOperatorStats (
+--     p_user_id INTEGER,
+--     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+--     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+-- )
+-- RETURNS SETOF TrainOperatorTrainStats
+-- LANGUAGE plpgsql
+-- AS
+-- $$
+-- BEGIN
+--     RETURN QUERY
+--     SELECT
+--         LegStat.operator_id,
+--         LegStat.operator_name,
+--         LegStat.is_brand,
+--         COUNT(*),
+--         SUM(LegStat.distance),
+--         SUM(LegStat.duration),
+--         SUM(LegStat.delay)
+--     FROM (SELECT * FROM GetLegStats(p_user_id, p_start_date, p_end_date)) LegStat
+--     GROUP BY (LegStat.operator_id, LegStat.operator_name, LegStat.is_brand)
+--     ORDER BY count DESC;
+-- END;
+-- $$;
+
+-- CREATE OR REPLACE FUNCTION GetLegDelayRanking (
+--     p_user_id INTEGER,
+--     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+--     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+-- )
+-- RETURNS TABLE (
+--     run_date TIMESTAMP WITH TIME ZONE,
+--     board_name TEXT,
+--     alight_name TEXT,
+--     delay INTEGER
+-- )
+-- LANGUAGE plpgsql
+-- AS
+-- $$
+-- BEGIN
+--     RETURN QUERY
+--     SELECT
+--         LegStat.run_date,
+--         LegStat.board_name,
+--         LegStat.alight_name,
+--         LegStat.delay
+--     FROM (SELECT * FROM GetLegStats(p_user_id, p_start_date, p_end_date)) LegStat
+--     WHERE LegStat.delay IS NOT NULL
+--     ORDER BY LegStat.delay DESC;
+-- END;
+-- $$;
+
+-- CREATE OR REPLACE FUNCTION GetLegDistanceRanking (
+--     p_user_id INTEGER,
+--     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+--     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+-- )
+-- RETURNS TABLE (
+--     run_date TIMESTAMP WITH TIME ZONE,
+--     board_name TEXT,
+--     alight_name TEXT,
+--     distance DECIMAL
+-- )
+-- LANGUAGE plpgsql
+-- AS
+-- $$
+-- BEGIN
+--     RETURN QUERY
+--     SELECT
+--         LegStat.run_date,
+--         LegStat.board_name,
+--         LegStat.alight_name,
+--         LegStat.distance
+--     FROM (SELECT * FROM GetLegStats(p_user_id, p_start_date, p_end_date)) LegStat
+--     WHERE LegStat.distance IS NOT NULL
+--     ORDER BY LegStat.distance DESC;
+-- END;
+-- $$;
+
+-- CREATE OR REPLACE FUNCTION GetLegDurationRanking (
+--     p_user_id INTEGER,
+--     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+--     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+-- )
+-- RETURNS TABLE (
+--     run_date TIMESTAMP WITH TIME ZONE,
+--     board_name TEXT,
+--     alight_name TEXT,
+--     duration INTERVAL
+-- )
+-- LANGUAGE plpgsql
+-- AS
+-- $$
+-- BEGIN
+--     RETURN QUERY
+--     SELECT
+--         LegStat.run_date,
+--         LegStat.board_name,
+--         LegStat.alight_name,
+--         LegStat.duration
+--     FROM (SELECT * FROM GetLegStats(p_user_id, p_start_date, p_end_date)) LegStat
+--     WHERE LegStat.duration IS NOT NULL
+--     ORDER BY LegStat.duration DESC;
+-- END;
+-- $$;
+
+-- CREATE OR REPLACE FUNCTION GetStats (
+--     p_user_id INTEGER,
+--     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+--     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+-- ) RETURNS TrainStats
+-- LANGUAGE plpgsql
+-- AS
+-- $$
+-- BEGIN
+--     RETURN (
+--     SELECT (
+--         COUNT(LegStat.*),
+--         COALESCE(SUM(LegStat.distance), 0),
+--         COALESCE(SUM(LegStat.duration), INTERVAL '0 days'),
+--         COALESCE(SUM(LegStat.delay), 0),
+--         (
+--             SELECT ARRAY_AGG(leg_stats)
+--             FROM (
+--                 SELECT GetLegStats(p_user_id, p_start_date, p_end_date)
+--                 AS leg_stats
+--             )
+--         ),
+--         (
+--             SELECT ARRAY_AGG(station_stats)
+--             FROM (
+--                 SELECT GetStationStats(p_user_id, p_start_date, p_end_date)
+--                 AS station_stats
+--             )
+--         ),
+--         (
+--             SELECT ARRAY_AGG(operator_stats)
+--             FROM (
+--                 SELECT GetOperatorStats(p_user_id, p_start_date, p_end_date)
+--                 AS operator_stats
+--             )
+--         ),
+--         (
+--             SELECT ARRAY_AGG(class_stats)
+--             FROM (
+--                 SELECT GetClassStats(p_user_id, p_start_date, p_end_date)
+--                 AS class_stats
+--             )
+--         ),
+--         (
+--             SELECT ARRAY_AGG(unit_stats)
+--             FROM (
+--                 SELECT GetUnitStats(p_user_id, p_start_date, p_end_date)
+--                 AS unit_stats
+--             )
+--         ))::TrainStats
+--     )
+--     FROM (
+--         SELECT *
+--         FROM GetLegStats(p_user_id, p_start_date, p_end_date) AS stats
+--     ) LegStat;
+-- END;
+-- $$;
+
+-- CREATE OR REPLACE FUNCTION GetLegLines(
+--     p_user_id INTEGER,
+--     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+--     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
+-- ) RETURNS TABLE (
+--     board_crs CHARACTER(3),
+--     board_name TEXT,
+--     board_latitude DECIMAL,
+--     board_longitude DECIMAL,
+--     alight_crs CHARACTER(3),
+--     alight_name TEXT,
+--     alight_latitude DECIMAL,
+--     alight_longitude DECIMAL,
+--     colour TEXT
+-- )
+-- LANGUAGE plpgsql
+-- AS
+-- $$
+-- BEGIN
+--     RETURN QUERY
+--     SELECT
+--         LegStat.board_crs,
+--         LegStat.board_name,
+--         BoardStation.latitude AS board_latitude,
+--         BoardStation.longitude AS board_longitude,
+--         LegStat.alight_crs,
+--         LegStat.alight_name,
+--         AlightStation.latitude AS alight_longitude,
+--         AlightStation.longitude AS alight_longitude,
+--         (
+--             CASE WHEN LegStat.is_brand
+--                 THEN TrainBrand.bg_colour
+--                 ELSE TrainOperator.bg_colour
+--             END
+--         ) AS colour
+--     FROM GetLegStats(p_user_id, p_start_date, p_end_date) LegStat
+--     INNER JOIN TrainStation BoardStation
+--     ON BoardStation.station_crs = LegStat.board_crs
+--     INNER JOIN TrainStation AlightStation
+--     ON AlightStation.station_crs = LegStat.alight_crs
+--     LEFT JOIN TrainOperator
+--     ON LegStat.operator_id = TrainOperator.operator_id
+--     LEFT JOIN TrainBrand
+--     ON LegStat.operator_id = TrainBrand.brand_id;
+-- END;
+-- $$;

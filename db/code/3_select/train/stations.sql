@@ -78,7 +78,7 @@ SELECT
     ) AS platform_points
 FROM train_station
 INNER JOIN train_station_point
-ON train_station.train_station_id = train_station_point.station_id
+ON train_station.train_station_id = train_station_point.train_station_id
 GROUP BY
     train_station.train_station_id,
     train_station.station_crs,
