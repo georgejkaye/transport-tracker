@@ -1,11 +1,15 @@
 import re
 from pathlib import Path
 from typing import Optional
-from xmlrpc.client import boolean
 
-from click import argument
-
-from watcher.classes import PostgresFunction, PostgresFunctionArgument
+from watcher.classes import (
+    PostgresFunction,
+    PostgresFunctionArgument,
+    PythonPostgresTypeModuleDict,
+)
+from watcher.typegen import (
+    get_python_postgres_type_modules_for_postgres_type_files,
+)
 from watcher.utils import (
     get_python_type_for_postgres_type,
     get_statements_from_postgres_file,
@@ -70,7 +74,8 @@ def get_python_function_declaration_for_postgres_function(
         get_python_function_argument_for_postgres_function_argument(argument)
         for argument in postgres_function.function_args
     ]
-    argument_string = ", ".join(arguments)
+    arguments = ["conn: Connection"] + arguments
+    argument_string = f",\n{tab}".join(arguments)
     return_type_string = get_python_type_for_postgres_type(
         postgres_function.function_return
     )
@@ -78,7 +83,7 @@ def get_python_function_declaration_for_postgres_function(
         return_type_string = f"list[{return_type_string}]"
     else:
         return_type_string = f"Optional[{return_type_string}]"
-    declaration = f"def {postgres_function.function_name}(conn: Connection, {argument_string}) -> {return_type_string}:"
+    declaration = f"def {postgres_function.function_name}(\n{tab}{argument_string}\n) -> {return_type_string}:"
     return declaration
 
 
@@ -97,7 +102,7 @@ def get_python_cursor_execution_for_postgres_function(
     argument_placeholder_string = ", ".join(
         ["%s"] * len(postgres_function.function_args)
     )
-    return f'{tab}{tab}rows = cur.execute("SELECT * FROM {postgres_function.function_name}({argument_placeholder_string}))'
+    return f'{tab}{tab}rows = cur.execute("SELECT * FROM {postgres_function.function_name}({argument_placeholder_string})")'
 
 
 def get_python_fetchone() -> str:
@@ -109,7 +114,7 @@ def get_python_fetchall() -> str:
 
 
 def get_python_for_postgres_function(
-    postgres_function: PostgresFunction, fetchall: boolean
+    postgres_function: PostgresFunction, fetchall: bool
 ) -> str:
     python_function_declaration = (
         get_python_function_declaration_for_postgres_function(
@@ -131,7 +136,32 @@ def get_python_for_postgres_function(
     return f"{python_function_declaration}\n{python_cursor_initialisation}\n{python_cursor_execution}\n{python_result_fetching}"
 
 
-def get_python_for_postgres_function_file(file_path: str | Path) -> str:
+def get_imports_for_postgres_function_file(
+    python_postgres_type_module_dict: PythonPostgresTypeModuleDict,
+    postgres_functions: list[PostgresFunction],
+) -> str:
+    psycopg_imports = [
+        "from psycopg import Connection",
+        "from psycopg.rows import class_row",
+    ]
+    types_used: list[str] = []
+    for postgres_function in postgres_functions:
+        type_module = python_postgres_type_module_dict.get(
+            postgres_function.function_return
+        )
+        if type_module is not None and type_module not in types_used:
+            types_used.append(postgres_function.function_return)
+    type_imports = [
+        f"from {python_postgres_type_module_dict[type_used]} import {get_python_type_for_postgres_type(type_used)}"
+        for type_used in types_used
+    ]
+    return f"{'\n'.join(psycopg_imports)}\n\n{'\n'.join(type_imports)}"
+
+
+def get_python_for_postgres_function_file(
+    python_postgres_type_module_dict: PythonPostgresTypeModuleDict,
+    file_path: str | Path,
+) -> str:
     statements = get_statements_from_postgres_file(file_path, delimiter="$$;")
     postgres_functions = [
         postgres_function
@@ -141,6 +171,12 @@ def get_python_for_postgres_function_file(file_path: str | Path) -> str:
         )
         is not None
     ]
+    print(
+        get_imports_for_postgres_function_file(
+            python_postgres_type_module_dict, postgres_functions
+        )
+    )
+    print()
     for postgres_function in postgres_functions:
         print(
             get_python_for_postgres_function(postgres_function, fetchall=True)
@@ -150,6 +186,20 @@ def get_python_for_postgres_function_file(file_path: str | Path) -> str:
 
 
 if __name__ == "__main__":
+    type_dict, modules = (
+        get_python_postgres_type_modules_for_postgres_type_files(
+            {},
+            Path("/home/george/docs/repos/train-tracker/db/code/"),
+            [
+                Path(
+                    "/home/george/docs/repos/train-tracker/db/code/1_types_2_bus.sql"
+                )
+            ],
+            Path("/home/george/docs/repos/train-tracker/api/src"),
+            "api.db",
+        )
+    )
     get_python_for_postgres_function_file(
-        "/home/george/docs/repos/train-tracker/db/code/4_select_bus.sql"
+        type_dict,
+        "/home/george/docs/repos/train-tracker/db/code/4_select_bus.sql",
     )
