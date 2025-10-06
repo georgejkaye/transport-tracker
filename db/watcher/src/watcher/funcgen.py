@@ -54,17 +54,27 @@ def get_postgres_function_from_statement(
     )
 
 
+def get_python_function_argument_name_for_postgres_function_argument_name(
+    postgres_function_argument_name: str,
+) -> str:
+    if postgres_function_argument_name.startswith("p_"):
+        return postgres_function_argument_name[2:]
+    else:
+        return postgres_function_argument_name
+
+
 def get_python_function_argument_for_postgres_function_argument(
     postgres_function_argument: PostgresFunctionArgument,
 ) -> str:
     python_type = get_python_type_for_postgres_type(
         postgres_function_argument.argument_type
     )
-    if postgres_function_argument.argument_name.startswith("p_"):
-        python_argument = postgres_function_argument.argument_name[2:]
-    else:
-        python_argument = postgres_function_argument.argument_name
-    return f"{python_argument} : {python_type}"
+    python_argument_name = (
+        get_python_function_argument_name_for_postgres_function_argument_name(
+            postgres_function_argument.argument_name
+        )
+    )
+    return f"{python_argument_name} : {python_type}"
 
 
 def get_python_function_declaration_for_postgres_function(
@@ -102,7 +112,8 @@ def get_python_cursor_execution_for_postgres_function(
     argument_placeholder_string = ", ".join(
         ["%s"] * len(postgres_function.function_args)
     )
-    return f'{tab}{tab}rows = cur.execute("SELECT * FROM {postgres_function.function_name}({argument_placeholder_string})")'
+    argument_list = f"[{', '.join([get_python_function_argument_name_for_postgres_function_argument_name(function_arg.argument_name) for function_arg in postgres_function.function_args])}]"
+    return f'{tab}{tab}rows = cur.execute(\n{tab}{tab}{tab}"SELECT * FROM {postgres_function.function_name}({argument_placeholder_string})",\n{tab}{tab}{tab}{argument_list}\n{tab}{tab})'
 
 
 def get_python_fetchone() -> str:
@@ -141,6 +152,7 @@ def get_imports_for_postgres_function_file(
     postgres_functions: list[PostgresFunction],
 ) -> str:
     psycopg_imports = [
+        "from typing import Optional",
         "from psycopg import Connection",
         "from psycopg.rows import class_row",
     ]
