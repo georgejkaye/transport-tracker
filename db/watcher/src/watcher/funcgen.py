@@ -145,11 +145,15 @@ def get_imports_for_postgres_function_file(
         "from psycopg.rows import class_row",
     ]
     types_used: list[str] = []
+    # TODO Combine and alphabetise imports
     for postgres_function in postgres_functions:
         type_module = python_postgres_type_module_dict.get(
             postgres_function.function_return
         )
-        if type_module is not None and type_module not in types_used:
+        if (
+            type_module is not None
+            and postgres_function.function_return not in types_used
+        ):
             types_used.append(postgres_function.function_return)
     type_imports = [
         f"from {python_postgres_type_module_dict[type_used]} import {get_python_type_for_postgres_type(type_used)}"
