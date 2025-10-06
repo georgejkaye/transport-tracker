@@ -57,6 +57,8 @@ def check_if_type_in_code(python_code_str: str, type_to_check: str) -> bool:
 
 def get_imports_for_python_code_str(python_code_str: str) -> list[str]:
     python_imports: list[str] = ["from dataclasses import dataclass"]
+    if "Optional[" in python_code_str:
+        python_imports.append("from typing import Optional")
     if check_if_type_in_code(python_code_str, "datetime"):
         python_imports.append("from datetime import datetime")
     if check_if_type_in_code(python_code_str, "timedelta"):
