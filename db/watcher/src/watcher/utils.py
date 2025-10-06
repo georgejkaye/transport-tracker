@@ -12,7 +12,7 @@ def get_statements_from_postgres_file_contents(
 ) -> list[str]:
     normalised_file_contents = normalise_postgres_file_contents(file_contents)
     statements = normalised_file_contents.split(delimiter)
-    return [statement.strip() for statement in statements]
+    return [statement.strip() for statement in statements if len(statement) > 0]
 
 
 def get_statements_from_postgres_file(
@@ -24,14 +24,22 @@ def get_statements_from_postgres_file(
 
 
 postgres_to_python_type_dict = {
-    "TEXT": "str",
-    "INT": "int",
-    "INTEGER": "int",
-    "DECIMAL": "Decimal",
-    "TIMESTAMP WITH TIME ZONE": "datetime",
-    "TIMESTAMP WITHOUT TIME ZONE": "datetime",
-    "INTERVAL": "timedelta",
-    "DATERANGE": "Range",
+    "TEXT": "Optional[str]",
+    "TEXT_NOTNULL": "str",
+    "INT": "Optional[int]",
+    "INTEGER": "Optional[int]",
+    "INTEGER_NOTNULL": "int",
+    "BIGINT": "Optional[int]",
+    "BIGINT_NOTNULL": "int",
+    "DECIMAL": "Optional[Decimal]",
+    "DECIMAL_NOTNULL": "Decimal",
+    "TIMESTAMP WITH TIME ZONE": "Optional[datetime]",
+    "TIMESTAMP WITHOUT TIME ZONE": "Optional[datetime]",
+    "TIMESTAMP_NOTNULL": "datetime",
+    "INTERVAL": "Optional[timedelta]",
+    "INTERVAL_NOTNULL": "timedelta",
+    "DATERANGE": "Optional[Range]",
+    "DATERANGE_NOTNULL": "Range",
 }
 
 
