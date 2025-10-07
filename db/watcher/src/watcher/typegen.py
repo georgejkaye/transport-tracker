@@ -140,7 +140,10 @@ def get_python_postgres_type_module_for_postgres_type_file(
         output_root_path, module_name
     )
     for postgres_type in postgres_types:
-        python_postgres_type_module_dict[postgres_type.type_name] = module_name
+        python_type_name = get_python_type_name_for_postgres_type_name(
+            postgres_type.type_name
+        )
+        python_postgres_type_module_dict[python_type_name] = module_name
     python_postgres_type_module = PythonPostgresTypeModule(
         module_path,
         module_name,

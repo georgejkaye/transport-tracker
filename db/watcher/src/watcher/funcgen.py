@@ -112,8 +112,19 @@ def get_python_cursor_execution_for_postgres_function(
     argument_placeholder_string = ", ".join(
         ["%s"] * len(postgres_function.function_args)
     )
-    argument_list = f"[{', '.join([get_python_function_argument_name_for_postgres_function_argument_name(function_arg.argument_name) for function_arg in postgres_function.function_args])}]"
-    return f'{tab}{tab}rows = cur.execute(\n{tab}{tab}{tab}"SELECT * FROM {postgres_function.function_name}({argument_placeholder_string})",\n{tab}{tab}{tab}{argument_list}\n{tab}{tab})'
+    argument_names = [
+        get_python_function_argument_name_for_postgres_function_argument_name(
+            function_arg.argument_name
+        )
+        for function_arg in postgres_function.function_args
+    ]
+    argument_list_string = f"[{', '.join(argument_names)}]"
+    execute_line = f"{tab}{tab}rows = cur.execute("
+    select_line = f'{tab}{tab}{tab}"SELECT * FROM {postgres_function.function_name}({argument_placeholder_string})",'
+    argument_line = f"{tab}{tab}{tab}{argument_list_string}"
+    closing_bracket_lines = f"{tab}{tab})"
+    lines = [execute_line, select_line, argument_line, closing_bracket_lines]
+    return "\n".join(lines)
 
 
 def get_python_fetchone() -> str:
@@ -156,22 +167,30 @@ def get_imports_for_postgres_function_file(
         "from psycopg import Connection",
         "from psycopg.rows import class_row",
     ]
-    types_used: list[str] = []
-    # TODO Combine and alphabetise imports
+    import_dict: dict[str, list[str]] = {}
     for postgres_function in postgres_functions:
-        type_module = python_postgres_type_module_dict.get(
+        return_type = get_python_type_for_postgres_type(
             postgres_function.function_return
         )
-        if (
-            type_module is not None
-            and postgres_function.function_return not in types_used
-        ):
-            types_used.append(postgres_function.function_return)
-    type_imports = [
-        f"from {python_postgres_type_module_dict[type_used]} import {get_python_type_for_postgres_type(type_used)}"
-        for type_used in types_used
-    ]
-    return f"{'\n'.join(psycopg_imports)}\n\n{'\n'.join(type_imports)}"
+        type_module = python_postgres_type_module_dict.get(return_type)
+        if type_module is not None:
+            type_module_types_used = import_dict.get(type_module)
+            if type_module_types_used is None:
+                import_dict[type_module] = [return_type]
+            if return_type not in import_dict[type_module]:
+                import_dict[type_module].append(return_type)
+    import_statements: list[str] = []
+    for import_module in import_dict.keys():
+        imported_types = import_dict[import_module]
+        imported_types_alphabetised = sorted(imported_types)
+        import_types_string = f"from {import_module} import (\n"
+        for imported_type in imported_types_alphabetised:
+            import_types_string = (
+                f"{import_types_string}{tab}{imported_type},\n"
+            )
+        import_types_string = f"{import_types_string})"
+        import_statements.append(import_types_string)
+    return f"{'\n'.join(psycopg_imports)}\n\n{'\n'.join(import_statements)}"
 
 
 def get_python_for_postgres_function_file(
