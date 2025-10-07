@@ -1,5 +1,5 @@
 CREATE OR REPLACE FUNCTION GetOperatorId(
-    p_operator_code CHARACTER(2),
+    p_operator_code TEXT,
     p_run_date TIMESTAMP WITH TIME ZONE
 )
 RETURNS INT
@@ -17,7 +17,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetBrandId(
-    p_brand_code CHARACTER(2),
+    p_brand_code TEXT,
     p_run_date TIMESTAMP WITH TIME ZONE
 )
 RETURNS INT
@@ -40,7 +40,7 @@ $$;
 CREATE OR REPLACE FUNCTION GetCallFromLegCall (
     p_service_id TEXT,
     p_run_date TIMESTAMP WITH TIME ZONE,
-    p_station_crs CHARACTER(3),
+    p_station_crs TEXT,
     p_plan_arr TIMESTAMP WITH TIME ZONE,
     p_plan_dep TIMESTAMP WITH TIME ZONE,
     p_act_arr TIMESTAMP WITH TIME ZONE,

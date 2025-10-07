@@ -495,7 +495,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION GetStationPoints(
-    p_station_crs CHARACTER(3),
+    p_station_crs TEXT,
     p_platform TEXT
 )
 RETURNS SETOF StationLatLon
@@ -722,8 +722,8 @@ $$;
 CREATE OR REPLACE FUNCTION GetStockCars(
     p_stock_class INT,
     p_stock_subclass INT,
-    p_operator_code CHARACTER(2),
-    p_brand_code CHARACTER(2),
+    p_operator_code TEXT,
+    p_brand_code TEXT,
     p_run_date TIMESTAMP WITH TIME ZONE
 )
 RETURNS SETOF INT

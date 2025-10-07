@@ -38,7 +38,7 @@ CREATE OR REPLACE FUNCTION GetStationCalls(
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 )
 RETURNS TABLE (
-    station_crs CHARACTER(3),
+    station_crs TEXT,
     calls BIGINT
 )
 LANGUAGE plpgsql
@@ -71,7 +71,7 @@ $$
 BEGIN
     RETURN QUERY
     SELECT
-        StationCount.station_crs::CHARACTER(3),
+        StationCount.station_crs::TEXT,
         StationCount.station_name,
         COALESCE(
             StationCount.brand_name,
@@ -163,9 +163,9 @@ RETURNS TABLE (
     leg_id INTEGER,
     user_id INTEGER,
     board_call_id INTEGER,
-    board_station_crs CHARACTER(3),
+    board_station_crs TEXT,
     alight_call_id INTEGER,
-    alight_station_crs CHARACTER(3),
+    alight_station_crs TEXT,
     intermediate_calls BIGINT
 )
 LANGUAGE plpgsql
@@ -253,10 +253,10 @@ BEGIN
         LegStat.leg_id,
         LegStat.user_id,
         LegStat.leg_start,
-        LegStat.board_station_crs::CHARACTER(3),
+        LegStat.board_station_crs::TEXT,
         LegStat.board_station_name,
         LegStat.leg_end,
-        LegStat.alight_station_crs::CHARACTER(3),
+        LegStat.alight_station_crs::TEXT,
         LegStat.alight_station_name,
         LegStat.distance,
         LegStat.duration,
@@ -594,11 +594,11 @@ CREATE OR REPLACE FUNCTION GetLegLines(
     p_start_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_end_date TIMESTAMP WITH TIME ZONE DEFAULT NULL
 ) RETURNS TABLE (
-    board_crs CHARACTER(3),
+    board_crs TEXT,
     board_name TEXT,
     board_latitude DECIMAL,
     board_longitude DECIMAL,
-    alight_crs CHARACTER(3),
+    alight_crs TEXT,
     alight_name TEXT,
     alight_latitude DECIMAL,
     alight_longitude DECIMAL,
