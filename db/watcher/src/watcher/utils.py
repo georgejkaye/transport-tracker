@@ -40,6 +40,8 @@ postgres_to_python_type_dict = {
     "INTERVAL_NOTNULL": "timedelta",
     "DATERANGE": "Optional[Range]",
     "DATERANGE_NOTNULL": "Range",
+    "BOOLEAN": "Optional[bool]",
+    "BOOLEAN_NOTNULL": "bool",
 }
 
 

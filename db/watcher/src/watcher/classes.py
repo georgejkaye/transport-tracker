@@ -1,5 +1,16 @@
+from abc import abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
+
+
+class PostgresObject:
+    @abstractmethod
+    def get_name(self) -> str:
+        pass
+
+    @abstractmethod
+    def get_python_name(self) -> str:
+        pass
 
 
 @dataclass
@@ -9,20 +20,25 @@ class PostgresTypeField:
 
 
 @dataclass
-class PostgresType:
+class PostgresType(PostgresObject):
     type_name: str
     type_fields: list[PostgresTypeField]
 
+    def get_name(self) -> str:
+        return self.type_name
+
+    def get_python_name(self) -> str:
+        return "".join(
+            x.capitalize() for x in self.type_name.lower().split("_")
+        )
+
 
 @dataclass
-class PythonPostgresTypeModule:
+class PythonPostgresModule[T: PostgresObject]:
     module_path: Path
     module_name: str
-    module_types: list[str]
+    module_objects: list[T]
     python_code: str
-
-
-type PythonPostgresTypeModuleDict = dict[str, str]
 
 
 @dataclass
@@ -32,7 +48,30 @@ class PostgresFunctionArgument:
 
 
 @dataclass
-class PostgresFunction:
+class PostgresFunction(PostgresObject):
     function_name: str
     function_return: str
     function_args: list[PostgresFunctionArgument]
+
+    def get_name(self) -> str:
+        return self.function_name
+
+    def get_python_name(self) -> str:
+        return self.function_name
+
+
+@dataclass
+class PostgresFileResult:
+    type_files: list[Path]
+    view_files: list[Path]
+    function_files: list[Path]
+
+
+type PythonPostgresModuleLookup = dict[str, str]
+
+
+@dataclass
+class WatcherFilePaths:
+    postgres_scripts_root_path: Path
+    python_source_root_path: Path
+    python_output_module: str

@@ -3,9 +3,11 @@ from pathlib import Path
 from watcher.classes import (
     PostgresType,
     PostgresTypeField,
-    PythonPostgresTypeModule,
-    PythonPostgresTypeModuleDict,
+    PythonPostgresModule,
+    PythonPostgresModuleLookup,
+    WatcherFilePaths,
 )
+from watcher.generator import get_postgres_module_for_postgres_file
 from watcher.utils import (
     get_python_type_for_postgres_type,
     get_python_type_name_for_postgres_type_name,
@@ -71,6 +73,7 @@ def get_imports_for_python_code_str(python_code_str: str) -> list[str]:
 
 
 def get_python_code_for_postgres_types(
+    python_postgres_module_lookup: PythonPostgresModuleLookup,
     postgres_types: list[PostgresType],
 ) -> str:
     python_type_codes = [
@@ -83,35 +86,6 @@ def get_python_code_for_postgres_types(
     return f"{python_import_str}\n\n{python_code_str}"
 
 
-def get_python_module_name_for_postgres_type_file(
-    source_base_path: Path,
-    source_file_path: Path,
-    output_root_module_name: str,
-) -> str:
-    source_relative_path = source_file_path.relative_to(source_base_path)
-    module_name = source_relative_path.stem
-    module_parent_names = list(source_relative_path.parts)[:-1]
-    module_parts = [output_root_module_name]
-    module_parts.extend(module_parent_names)
-    module_parts.append(module_name)
-    return ".".join(module_parts)
-
-
-def get_python_module_path_for_python_module_name(
-    root_path: Path, module_name: str
-) -> Path:
-    module_path = Path(module_name.replace(".", "/") + ".py")
-    return root_path / module_path
-
-
-def get_python_code_for_postgres_type_file(file_path: str | Path) -> str:
-    statements = get_statements_from_postgres_file(file_path)
-    postgres_types = [
-        get_postgres_type_for_statement(statement) for statement in statements
-    ]
-    return get_python_code_for_postgres_types(postgres_types)
-
-
 def get_postgres_types_for_postgres_type_file(
     file_path: Path,
 ) -> list[PostgresType]:
@@ -122,57 +96,15 @@ def get_postgres_types_for_postgres_type_file(
     return postgres_types
 
 
-def get_python_postgres_type_module_for_postgres_type_file(
-    python_postgres_type_module_dict: PythonPostgresTypeModuleDict,
-    source_root_path: Path,
-    source_file_path: Path,
-    output_root_path: Path,
-    output_root_module_name: str,
-) -> tuple[PythonPostgresTypeModuleDict, PythonPostgresTypeModule]:
-    postgres_types = get_postgres_types_for_postgres_type_file(source_file_path)
-    python_code = get_python_code_for_postgres_types(postgres_types)
-    module_name = get_python_module_name_for_postgres_type_file(
-        source_root_path,
-        source_file_path,
-        output_root_module_name,
+def get_python_postgres_module_for_postgres_type_file(
+    file_paths: WatcherFilePaths,
+    python_postgres_module_lookup: PythonPostgresModuleLookup,
+    postgres_type_file: Path,
+) -> tuple[PythonPostgresModuleLookup, PythonPostgresModule[PostgresType]]:
+    return get_postgres_module_for_postgres_file(
+        get_postgres_types_for_postgres_type_file,
+        get_python_code_for_postgres_types,
+        file_paths,
+        python_postgres_module_lookup,
+        postgres_type_file,
     )
-    module_path = get_python_module_path_for_python_module_name(
-        output_root_path, module_name
-    )
-    for postgres_type in postgres_types:
-        python_type_name = get_python_type_name_for_postgres_type_name(
-            postgres_type.type_name
-        )
-        python_postgres_type_module_dict[python_type_name] = module_name
-    python_postgres_type_module = PythonPostgresTypeModule(
-        module_path,
-        module_name,
-        [
-            get_python_type_for_postgres_type(postgres_type.type_name)
-            for postgres_type in postgres_types
-        ],
-        python_code,
-    )
-    return (python_postgres_type_module_dict, python_postgres_type_module)
-
-
-def get_python_postgres_type_modules_for_postgres_type_files(
-    python_postgres_type_module_dict: PythonPostgresTypeModuleDict,
-    source_root_path: Path,
-    source_file_paths: list[Path],
-    output_root_path: Path,
-    output_root_module_name: str,
-) -> tuple[PythonPostgresTypeModuleDict, list[PythonPostgresTypeModule]]:
-    python_modules: list[PythonPostgresTypeModule] = []
-    for source_file_path in source_file_paths:
-        python_postgres_type_module_dict, python_module = (
-            get_python_postgres_type_module_for_postgres_type_file(
-                python_postgres_type_module_dict,
-                source_root_path,
-                source_file_path,
-                output_root_path,
-                output_root_module_name,
-            )
-        )
-        python_modules.append(python_module)
-    return (python_postgres_type_module_dict, python_modules)
