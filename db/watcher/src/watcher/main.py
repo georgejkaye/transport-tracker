@@ -1,3 +1,4 @@
+import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -7,34 +8,53 @@ from watchdog.observers import Observer
 
 from watcher.processor import process_all_script_files
 
-last_trigger_time = datetime.now()
-
-
-def run_in_scripts(internal_scripts_path: Path, user_scripts_path: Path):
-    global last_trigger_time
-    current_time = datetime.now()
-    if (current_time - last_trigger_time) > timedelta(seconds=1):
-        process_all_script_files(internal_scripts_path, user_scripts_path)
-        last_trigger_time = datetime.now()
-
 
 class MyEventHandler(FileSystemEventHandler):
-    def __init__(self, internal_scripts_path: Path, user_scripts_path: Path):
+    def __init__(
+        self,
+        internal_scripts_path: Path,
+        user_scripts_path: Path,
+        python_source_root: Path,
+        python_output_module: str,
+    ):
+        self.last_trigger_time = datetime.now()
         self.internal_scripts_path = internal_scripts_path
         self.user_scripts_path = user_scripts_path
+        self.python_source_root = python_source_root
+        self.python_output_module = python_output_module
+
+    def process_script_files_if_appropriate(self):
+        current_time = datetime.now()
+        if (current_time - self.last_trigger_time) > timedelta(seconds=1):
+            process_all_script_files(
+                self.python_source_root,
+                self.python_output_module,
+                self.internal_scripts_path,
+                self.user_scripts_path,
+            )
 
     def on_created(self, event: FileSystemEvent):
-        run_in_scripts(self.internal_scripts_path, self.user_scripts_path)
+        self.process_script_files_if_appropriate()
 
     def on_modified(self, event: FileSystemEvent):
-        run_in_scripts(self.internal_scripts_path, self.user_scripts_path)
+        self.process_script_files_if_appropriate()
 
     def on_moved(self, event: FileSystemEvent):
-        run_in_scripts(self.internal_scripts_path, self.user_scripts_path)
+        self.process_script_files_if_appropriate()
 
 
-def main(internal_scripts_path: Path, user_scripts_path: Path):
-    event_handler = MyEventHandler(internal_scripts_path, user_scripts_path)
+def main(
+    internal_scripts_path: Path,
+    user_scripts_path: Path,
+    python_source_root: Path,
+    output_code_module: str,
+):
+    event_handler = MyEventHandler(
+        internal_scripts_path,
+        user_scripts_path,
+        python_source_root,
+        output_code_module,
+    )
     observer = Observer()
     observer.schedule(event_handler, str(user_scripts_path), recursive=True)
 
@@ -51,10 +71,13 @@ def main(internal_scripts_path: Path, user_scripts_path: Path):
 
 
 if __name__ == "__main__":
-    code_dir = Path("/home/george/docs/repos/train-tracker/db/code")
-    dest_path = Path("/home/george/docs/repos/train-tracker/api/src")
-    output_module = "api.dbgen"
-    internal_path = Path(
-        "/home/george/docs/repos/train-tracker/db/watcher/scripts"
+    internal_scripts_path = Path(sys.argv[1])
+    user_scripts_path = Path(sys.argv[2])
+    python_source_root = Path(sys.argv[3])
+    output_code_module = sys.argv[4]
+    main(
+        internal_scripts_path,
+        user_scripts_path,
+        python_source_root,
+        output_code_module,
     )
-    process_all_script_files(dest_path, output_module, internal_path, code_dir)

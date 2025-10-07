@@ -64,9 +64,11 @@ services:
       DB_USER: transport
       DB_NAME: transport
       DB_PASSWORD: /run/secrets/db_secret
+      GENERATED_CODE_MODULE: api.dbgen
     volumes:
       - ./db/code:/app/user
       - ./db/watcher/scripts:/app/internal
+      - ./api/src:/app/output
     networks:
       - internal
   api:

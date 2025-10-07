@@ -160,3 +160,5 @@ db/scripts/dump.pgdata
 cache
 *.gml
 .populate
+
+dbgen
