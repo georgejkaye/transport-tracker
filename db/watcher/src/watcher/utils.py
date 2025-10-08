@@ -24,6 +24,7 @@ def get_statements_from_postgres_file(
 
 
 postgres_to_python_type_dict = {
+    "VOID": "None",
     "TEXT": "Optional[str]",
     "TEXT_NOTNULL": "str",
     "INT": "Optional[int]",

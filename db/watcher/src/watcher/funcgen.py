@@ -100,16 +100,16 @@ def get_python_function_declaration_for_postgres_function(
 
 
 def get_python_cursor_initialisation_for_postgres_function(
-    postgres_function: PostgresFunction,
+    postgres_function: PostgresFunction, base_indent: int
 ) -> str:
     python_return_type = get_python_type_for_postgres_type(
         postgres_function.function_return
     )
-    return f"{tab}with conn.cursor(row_factory=class_row({python_return_type})) as cur:"
+    return f"{base_indent * tab}with conn.cursor(row_factory=class_row({python_return_type})) as cur:"
 
 
-def get_python_cursor_execution_for_postgres_function(
-    postgres_function: PostgresFunction,
+def get_python_execution_for_postgres_function(
+    postgres_function: PostgresFunction, is_cursor: bool, base_indent: int
 ) -> str:
     argument_placeholder_string = ", ".join(
         ["%s"] * len(postgres_function.function_args)
@@ -120,21 +120,40 @@ def get_python_cursor_execution_for_postgres_function(
         )
         for function_arg in postgres_function.function_args
     ]
+    variable_assignment = "rows = " if is_cursor else ""
+    executing_object = "cur" if is_cursor else "conn"
     argument_list_string = f"[{', '.join(argument_names)}]"
-    execute_line = f"{tab}{tab}rows = cur.execute("
-    select_line = f'{tab}{tab}{tab}"SELECT * FROM {postgres_function.function_name}({argument_placeholder_string})",'
-    argument_line = f"{tab}{tab}{tab}{argument_list_string}"
-    closing_bracket_lines = f"{tab}{tab})"
+    execute_line = (
+        f"{base_indent * tab}{variable_assignment}{executing_object}.execute("
+    )
+    select_line = f'{(base_indent + 1) * tab}"SELECT * FROM {postgres_function.function_name}({argument_placeholder_string})",'
+    argument_line = f"{(base_indent + 1) * tab}{argument_list_string}"
+    closing_bracket_lines = f"{base_indent * tab})"
     lines = [execute_line, select_line, argument_line, closing_bracket_lines]
     return "\n".join(lines)
 
 
-def get_python_fetchone() -> str:
-    return f"{tab}{tab}return rows.fetchone()"
+def get_python_fetchone(base_indent: int) -> str:
+    return f"{base_indent * tab}return rows.fetchone()"
 
 
-def get_python_fetchall() -> str:
-    return f"{tab}{tab}return rows.fetchall()"
+def get_python_fetchall(base_indent: int) -> str:
+    return f"{base_indent * tab}return rows.fetchall()"
+
+
+def get_python_try(base_indent: int) -> str:
+    return f"{base_indent * tab}try:"
+
+
+def get_python_except(base_indent: int) -> str:
+    except_line = f"{base_indent * tab}except:"
+    rollback_line = f"{(base_indent + 1) * tab}conn.rollback()"
+    raise_line = f"{(base_indent + 1) * tab}raise"
+    return f"{except_line}\n{rollback_line}\n{raise_line}"
+
+
+def get_python_commit(base_indent: int) -> str:
+    return f"{base_indent * tab}conn.commit()"
 
 
 def get_python_code_for_postgres_function(
@@ -145,19 +164,44 @@ def get_python_code_for_postgres_function(
             postgres_function, fetchall
         )
     )
-    python_cursor_initialisation = (
-        get_python_cursor_initialisation_for_postgres_function(
-            postgres_function
+    python_try = get_python_try(base_indent=1)
+    if postgres_function.function_return == "VOID":
+        python_conn_execution = get_python_execution_for_postgres_function(
+            postgres_function, is_cursor=False, base_indent=2
         )
-    )
-    python_cursor_execution = get_python_cursor_execution_for_postgres_function(
-        postgres_function
-    )
-    if fetchall:
-        python_result_fetching = get_python_fetchall()
+        python_commit = get_python_commit(base_indent=2)
+        python_execution = "\n".join([python_conn_execution, python_commit])
     else:
-        python_result_fetching = get_python_fetchone()
-    return f"{python_function_declaration}\n{python_cursor_initialisation}\n{python_cursor_execution}\n{python_result_fetching}"
+        python_cursor_initialisation = (
+            get_python_cursor_initialisation_for_postgres_function(
+                postgres_function, base_indent=2
+            )
+        )
+        python_cursor_execution = get_python_execution_for_postgres_function(
+            postgres_function, is_cursor=True, base_indent=3
+        )
+        if fetchall:
+            python_result_fetching = get_python_fetchall(base_indent=3)
+        else:
+            python_result_fetching = get_python_fetchone(base_indent=3)
+        python_commit = get_python_commit(base_indent=3)
+        python_execution = "\n".join(
+            [
+                python_cursor_initialisation,
+                python_cursor_execution,
+                python_commit,
+                python_result_fetching,
+            ]
+        )
+    python_except = get_python_except(base_indent=1)
+    return "\n".join(
+        [
+            python_function_declaration,
+            python_try,
+            python_execution,
+            python_except,
+        ]
+    )
 
 
 def get_imports_for_postgres_function_file(
