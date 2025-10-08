@@ -58,6 +58,13 @@ def main(
     observer = Observer()
     observer.schedule(event_handler, str(user_scripts_path), recursive=True)
 
+    process_all_script_files(
+        internal_scripts_path,
+        user_scripts_path,
+        python_source_root,
+        output_code_module,
+    )
+
     # Start the observe
     observer.start()
     print(f"Watching script files in: {user_scripts_path}", flush=True)

@@ -204,6 +204,24 @@ def get_python_code_for_postgres_function(
     )
 
 
+def get_import_for_postgres_type(
+    python_postgres_module_lookup: PythonPostgresModuleLookup,
+    import_dict: dict[str, list[str]],
+    postgres_type_name: str,
+) -> dict[str, list[str]]:
+    python_type_name = get_python_type_for_postgres_type(postgres_type_name)
+    if "list[" in python_type_name:
+        python_type_name = python_type_name[5:-1]
+    type_module = python_postgres_module_lookup.get(python_type_name)
+    if type_module is not None:
+        type_module_types_used = import_dict.get(type_module)
+        if type_module_types_used is None:
+            import_dict[type_module] = [python_type_name]
+        if python_type_name not in import_dict[type_module]:
+            import_dict[type_module].append(python_type_name)
+    return import_dict
+
+
 def get_imports_for_postgres_function_file(
     python_postgres_module_lookup: PythonPostgresModuleLookup,
     postgres_functions: list[PostgresFunction],
@@ -215,16 +233,17 @@ def get_imports_for_postgres_function_file(
     ]
     import_dict: dict[str, list[str]] = {}
     for postgres_function in postgres_functions:
-        return_type = get_python_type_for_postgres_type(
-            postgres_function.function_return
+        import_dict = get_import_for_postgres_type(
+            python_postgres_module_lookup,
+            import_dict,
+            postgres_function.function_return,
         )
-        type_module = python_postgres_module_lookup.get(return_type)
-        if type_module is not None:
-            type_module_types_used = import_dict.get(type_module)
-            if type_module_types_used is None:
-                import_dict[type_module] = [return_type]
-            if return_type not in import_dict[type_module]:
-                import_dict[type_module].append(return_type)
+        for function_arg in postgres_function.function_args:
+            import_dict = get_import_for_postgres_type(
+                python_postgres_module_lookup,
+                import_dict,
+                function_arg.argument_type,
+            )
     import_statements: list[str] = []
     for import_module in import_dict.keys():
         imported_types = import_dict[import_module]
