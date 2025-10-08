@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 from typing import Callable
 
@@ -100,13 +101,26 @@ def process_user_script_files(
 
 
 def process_all_script_files(
-    python_source_root: Path,
-    output_code_module: str,
     internal_scripts_path: Path,
     user_scripts_path: Path,
+    python_source_root: Path,
+    output_code_module: str,
 ):
     clean_output_directory(python_source_root, output_code_module)
     process_internal_script_files(internal_scripts_path)
     process_user_script_files(
         python_source_root, output_code_module, user_scripts_path
+    )
+
+
+if __name__ == "__main__":
+    internal_scripts_path = Path(sys.argv[1])
+    user_scripts_path = Path(sys.argv[2])
+    python_source_root = Path(sys.argv[3])
+    output_code_module = sys.argv[4]
+    process_all_script_files(
+        internal_scripts_path,
+        user_scripts_path,
+        python_source_root,
+        output_code_module,
     )

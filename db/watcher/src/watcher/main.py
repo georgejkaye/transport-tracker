@@ -27,10 +27,10 @@ class MyEventHandler(FileSystemEventHandler):
         current_time = datetime.now()
         if (current_time - self.last_trigger_time) > timedelta(seconds=1):
             process_all_script_files(
-                self.python_source_root,
-                self.python_output_module,
                 self.internal_scripts_path,
                 self.user_scripts_path,
+                self.python_source_root,
+                self.python_output_module,
             )
 
     def on_created(self, event: FileSystemEvent):
