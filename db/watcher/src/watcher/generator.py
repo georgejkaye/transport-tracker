@@ -32,7 +32,7 @@ def get_postgres_module_for_postgres_file[T: PostgresObject](
         file_paths.python_output_module,
     )
     python_module_path = get_path_for_module(
-        file_paths.python_source_root_path, python_module_name
+        file_paths.python_source_root_path, python_module_name, is_leaf=True
     )
     for postgres_object in postgres_objects:
         python_name = postgres_object.get_python_name()

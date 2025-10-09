@@ -89,7 +89,10 @@ def get_python_function_declaration_for_postgres_function(
     return_type_string = get_python_type_for_postgres_type(
         postgres_function.function_return
     )
-    if fetchall:
+    if return_type_string == "None":
+        return_type_string = "None"
+        function_name = postgres_function.function_name
+    elif fetchall:
         return_type_string = f"list[{return_type_string}]"
         function_name = f"{postgres_function.function_name}_fetchall"
     else:
@@ -268,13 +271,14 @@ def get_python_code_for_postgres_functions(
         )
     ]
     for postgres_function in postgres_functions:
-        fetchall_function = get_python_code_for_postgres_function(
-            postgres_function, fetchall=True
-        )
+        if postgres_function.function_return != "VOID":
+            fetchall_function = get_python_code_for_postgres_function(
+                postgres_function, fetchall=True
+            )
+            python_sections.append(fetchall_function)
         fetchone_function = get_python_code_for_postgres_function(
             postgres_function, fetchall=False
         )
-        python_sections.append(fetchall_function)
         python_sections.append(fetchone_function)
     return "\n\n".join(python_sections)
 

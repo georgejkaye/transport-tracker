@@ -5,9 +5,12 @@ from pathlib import Path
 from watcher.classes import PostgresFileResult
 
 
-def get_path_for_module(python_project_root: Path, python_module: str) -> Path:
+def get_path_for_module(
+    python_project_root: Path, python_module: str, is_leaf: bool
+) -> Path:
     python_module_relative_path = Path(python_module.replace(".", "/"))
-    return python_project_root / f"{python_module_relative_path}.py"
+    python_module_path = python_project_root / f"{python_module_relative_path}"
+    return Path(f"{python_module_path}.py") if is_leaf else python_module_path
 
 
 def get_db_script_files(source_dir: Path) -> list[Path]:
@@ -30,7 +33,9 @@ def get_postgres_files_in_directory(code_dir: Path) -> PostgresFileResult:
 
 
 def clean_output_directory(python_project_root: Path, output_module: str):
-    dest_module_path = get_path_for_module(python_project_root, output_module)
+    dest_module_path = get_path_for_module(
+        python_project_root, output_module, is_leaf=False
+    )
     shutil.rmtree(dest_module_path, ignore_errors=True)
 
 
@@ -41,6 +46,7 @@ def write_python_file(
     output_path = output_root_path / f"{relative_module_path}.py"
     parent_directory = output_path.parent
     parent_directory.mkdir(parents=True, exist_ok=True)
+    print(f"Writing {module_name} to {output_path}")
     with open(output_path, "w+") as f:
         f.write(file_contents)
 
