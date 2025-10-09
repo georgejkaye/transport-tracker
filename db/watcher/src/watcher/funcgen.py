@@ -11,6 +11,7 @@ from watcher.classes import (
 )
 from watcher.generator import get_postgres_module_for_postgres_file
 from watcher.utils import (
+    get_python_type_for_base_type_of_postgres_type,
     get_python_type_for_postgres_type,
     get_statements_from_postgres_file,
 )
@@ -102,6 +103,61 @@ def get_python_function_declaration_for_postgres_function(
     return declaration
 
 
+def get_python_list_of_tuples_for_list_of_dataclasses(
+    postgres_function_arg: PostgresFunctionArgument,
+) -> str:
+    function_argname = (
+        get_python_function_argument_name_for_postgres_function_argument_name(
+            postgres_function_arg.argument_name
+        )
+    )
+    return f"[astuple(x) for x in {function_argname}]"
+
+
+def get_python_tuple_for_dataclass(
+    postgres_function_arg: PostgresFunctionArgument,
+) -> str:
+    function_argname = (
+        get_python_function_argument_name_for_postgres_function_argument_name(
+            postgres_function_arg.argument_name
+        )
+    )
+    return f"astuple({function_argname})"
+
+
+def get_python_db_inputs(
+    postgres_function_args: list[PostgresFunctionArgument], base_indent: int
+) -> str:
+    lines: list[str] = []
+    for postgres_function_arg in postgres_function_args:
+        db_argument_name = postgres_function_arg.argument_name
+        python_argument_name = get_python_function_argument_name_for_postgres_function_argument_name(
+            postgres_function_arg.argument_name
+        )
+        postgres_argument_type = postgres_function_arg.argument_type
+        python_base_type = get_python_type_for_base_type_of_postgres_type(
+            postgres_argument_type
+        )
+        print(f"{postgres_argument_type} goes to {python_base_type}")
+        if python_base_type is not None:
+            tuple_expression = python_argument_name
+        elif "[]" in postgres_function_arg.argument_type:
+            tuple_expression = (
+                get_python_list_of_tuples_for_list_of_dataclasses(
+                    postgres_function_arg
+                )
+            )
+        else:
+            tuple_expression = get_python_tuple_for_dataclass(
+                postgres_function_arg
+            )
+        db_input_line = (
+            f"{base_indent * tab}{db_argument_name} = {tuple_expression}"
+        )
+        lines.append(db_input_line)
+    return "\n".join(lines)
+
+
 def get_python_cursor_initialisation_for_postgres_function(
     postgres_function: PostgresFunction, base_indent: int
 ) -> str:
@@ -118,9 +174,7 @@ def get_python_execution_for_postgres_function(
         ["%s"] * len(postgres_function.function_args)
     )
     argument_names = [
-        get_python_function_argument_name_for_postgres_function_argument_name(
-            function_arg.argument_name
-        )
+        function_arg.argument_name
         for function_arg in postgres_function.function_args
     ]
     variable_assignment = "rows = " if is_cursor else ""
@@ -167,6 +221,9 @@ def get_python_code_for_postgres_function(
             postgres_function, fetchall
         )
     )
+    python_db_inputs = get_python_db_inputs(
+        postgres_function.function_args, base_indent=1
+    )
     python_try = get_python_try(base_indent=1)
     if postgres_function.function_return == "VOID":
         python_conn_execution = get_python_execution_for_postgres_function(
@@ -199,10 +256,15 @@ def get_python_code_for_postgres_function(
     python_except = get_python_except(base_indent=1)
     return "\n".join(
         [
-            python_function_declaration,
-            python_try,
-            python_execution,
-            python_except,
+            line
+            for line in [
+                python_function_declaration,
+                python_db_inputs,
+                python_try,
+                python_execution,
+                python_except,
+            ]
+            if line != ""
         ]
     )
 
@@ -230,6 +292,7 @@ def get_imports_for_postgres_function_file(
     postgres_functions: list[PostgresFunction],
 ) -> str:
     psycopg_imports = [
+        "from dataclasses import astuple",
         "from typing import Optional",
         "from psycopg import Connection",
         "from psycopg.rows import class_row",
@@ -280,7 +343,7 @@ def get_python_code_for_postgres_functions(
             postgres_function, fetchall=False
         )
         python_sections.append(fetchone_function)
-    return "\n\n".join(python_sections)
+    return "\n\n\n".join(python_sections)
 
 
 def get_postgres_functions_for_postgres_function_file(

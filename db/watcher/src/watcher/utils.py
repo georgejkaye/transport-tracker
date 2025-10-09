@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 
 def normalise_postgres_file_contents(file_contents: str) -> str:
@@ -46,11 +47,19 @@ postgres_to_python_type_dict = {
 }
 
 
+def get_python_type_for_base_type_of_postgres_type(
+    postgres_type_name: str,
+) -> Optional[str]:
+    if postgres_type_name[-2:] == "[]":
+        postgres_type_name = postgres_type_name[:-2]
+    return postgres_to_python_type_dict.get(postgres_type_name)
+
+
 def get_python_type_name_for_postgres_type_name(type_name: str) -> str:
     return "".join(x.capitalize() for x in type_name.lower().split("_"))
 
 
-def get_python_type_for_base_postgres_type(base_type_string: str) -> str:
+def get_python_type_for_postgres_base_type(base_type_string: str) -> str:
     if (
         base_python_type := postgres_to_python_type_dict.get(base_type_string)
     ) is not None:
@@ -64,7 +73,7 @@ def get_python_type_for_postgres_type(type_string: str) -> str:
         base_type_string = type_string[:-2]
     else:
         base_type_string = type_string
-    base_python_type = get_python_type_for_base_postgres_type(base_type_string)
+    base_python_type = get_python_type_for_postgres_base_type(base_type_string)
     if is_array_type:
         return f"list[{base_python_type}]"
     return base_python_type
