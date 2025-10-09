@@ -138,7 +138,6 @@ def get_python_db_inputs(
         python_base_type = get_python_type_for_base_type_of_postgres_type(
             postgres_argument_type
         )
-        print(f"{postgres_argument_type} goes to {python_base_type}")
         if python_base_type is not None:
             tuple_expression = python_argument_name
         elif "[]" in postgres_function_arg.argument_type:
