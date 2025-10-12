@@ -9,7 +9,7 @@ from watchdog.observers import Observer
 from watcher.processor import process_all_script_files
 
 
-class MyEventHandler(FileSystemEventHandler):
+class WatcherHandler(FileSystemEventHandler):
     def __init__(
         self,
         internal_scripts_path: Path,
@@ -44,12 +44,12 @@ class MyEventHandler(FileSystemEventHandler):
 
 
 def main(
-    internal_scripts_path: Path,
     user_scripts_path: Path,
     python_source_root: Path,
     output_code_module: str,
 ):
-    event_handler = MyEventHandler(
+    internal_scripts_path = Path(__file__) / ".." / ".." / "scripts"
+    event_handler = WatcherHandler(
         internal_scripts_path,
         user_scripts_path,
         python_source_root,
@@ -78,12 +78,10 @@ def main(
 
 
 if __name__ == "__main__":
-    internal_scripts_path = Path(sys.argv[1])
-    user_scripts_path = Path(sys.argv[2])
-    python_source_root = Path(sys.argv[3])
-    output_code_module = sys.argv[4]
+    user_scripts_path = Path(sys.argv[1])
+    python_source_root = Path(sys.argv[2])
+    output_code_module = sys.argv[3]
     main(
-        internal_scripts_path,
         user_scripts_path,
         python_source_root,
         output_code_module,
