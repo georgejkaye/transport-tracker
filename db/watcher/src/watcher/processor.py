@@ -8,7 +8,6 @@ from watcher.classes import (
     PostgresType,
     PythonPostgresModule,
     PythonPostgresModuleLookup,
-    WatcherFilePaths,
 )
 from watcher.files import (
     clean_output_directory,
@@ -26,20 +25,25 @@ from watcher.typegen import (
 
 
 def process_script_file[T: PostgresObject](
-    file_paths: WatcherFilePaths,
+    postgres_input_root_path: Path,
+    python_output_root_module: str,
+    python_output_root_path: Path,
     python_postgres_module_lookup: PythonPostgresModuleLookup,
     get_script_file_module: Callable[
-        [WatcherFilePaths, PythonPostgresModuleLookup, Path],
+        [Path, str, PythonPostgresModuleLookup, Path],
         tuple[PythonPostgresModuleLookup, PythonPostgresModule[T]],
     ],
     script_file: Path,
 ) -> tuple[PythonPostgresModuleLookup, PythonPostgresModule[T]]:
     run_in_script_file(script_file)
     python_postgres_module_lookup, script_file_module = get_script_file_module(
-        file_paths, python_postgres_module_lookup, script_file
+        postgres_input_root_path,
+        python_output_root_module,
+        python_postgres_module_lookup,
+        script_file,
     )
     write_python_file(
-        file_paths.python_source_root_path,
+        python_output_root_path,
         script_file_module.module_name,
         script_file_module.python_code,
     )
@@ -47,12 +51,16 @@ def process_script_file[T: PostgresObject](
 
 
 def process_type_script_file(
-    file_paths: WatcherFilePaths,
+    postgres_input_root_path: Path,
+    python_output_root_module: str,
+    python_output_root_path: Path,
     python_postgres_module_lookup: PythonPostgresModuleLookup,
     script_file: Path,
 ) -> tuple[PythonPostgresModuleLookup, PythonPostgresModule[PostgresType]]:
     return process_script_file(
-        file_paths,
+        postgres_input_root_path,
+        python_output_root_module,
+        python_output_root_path,
         python_postgres_module_lookup,
         get_python_postgres_module_for_postgres_type_file,
         script_file,
@@ -60,12 +68,16 @@ def process_type_script_file(
 
 
 def process_function_script_file(
-    file_paths: WatcherFilePaths,
+    postgres_input_root_path: Path,
+    python_output_root_module: str,
+    python_output_root_path: Path,
     python_postgres_module_lookup: PythonPostgresModuleLookup,
     script_file: Path,
 ) -> tuple[PythonPostgresModuleLookup, PythonPostgresModule[PostgresFunction]]:
     return process_script_file(
-        file_paths,
+        postgres_input_root_path,
+        python_output_root_module,
+        python_output_root_path,
         python_postgres_module_lookup,
         get_python_postgres_module_for_postgres_function_file,
         script_file,
@@ -84,19 +96,22 @@ def process_user_script_files(
     user_scripts_path: Path,
 ):
     user_files = get_postgres_files_in_directory(user_scripts_path)
-    watcher_files = WatcherFilePaths(
-        user_scripts_path, python_source_root, output_code_module
-    )
     python_postgres_module_lookup: PythonPostgresModuleLookup = {}
     for file in user_files.type_files:
         python_postgres_module_lookup, _ = process_type_script_file(
-            watcher_files,
+            user_scripts_path,
+            output_code_module,
+            python_source_root,
             python_postgres_module_lookup,
             file,
         )
     for file in user_files.function_files:
         process_function_script_file(
-            watcher_files, python_postgres_module_lookup, file
+            user_scripts_path,
+            output_code_module,
+            python_source_root,
+            python_postgres_module_lookup,
+            file,
         )
 
 

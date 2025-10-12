@@ -5,7 +5,6 @@ from watcher.classes import (
     PostgresTypeField,
     PythonPostgresModule,
     PythonPostgresModuleLookup,
-    WatcherFilePaths,
 )
 from watcher.generator import get_postgres_module_for_postgres_file
 from watcher.utils import (
@@ -97,14 +96,16 @@ def get_postgres_types_for_postgres_type_file(
 
 
 def get_python_postgres_module_for_postgres_type_file(
-    file_paths: WatcherFilePaths,
+    postgres_input_root_path: Path,
+    python_output_root_module: str,
     python_postgres_module_lookup: PythonPostgresModuleLookup,
     postgres_type_file: Path,
 ) -> tuple[PythonPostgresModuleLookup, PythonPostgresModule[PostgresType]]:
     return get_postgres_module_for_postgres_file(
         get_postgres_types_for_postgres_type_file,
         get_python_code_for_postgres_types,
-        file_paths,
+        postgres_input_root_path,
+        python_output_root_module,
         python_postgres_module_lookup,
         postgres_type_file,
     )

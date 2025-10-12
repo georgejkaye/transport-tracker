@@ -35,7 +35,6 @@ class PostgresType(PostgresObject):
 
 @dataclass
 class PythonPostgresModule[T: PostgresObject]:
-    module_path: Path
     module_name: str
     module_objects: list[T]
     python_code: str
@@ -68,10 +67,3 @@ class PostgresFileResult:
 
 
 type PythonPostgresModuleLookup = dict[str, str]
-
-
-@dataclass
-class WatcherFilePaths:
-    postgres_scripts_root_path: Path
-    python_source_root_path: Path
-    python_output_module: str
