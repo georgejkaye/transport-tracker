@@ -18,7 +18,7 @@ from watcher.pytypes import (
 )
 
 tab = "    "
-postgres_function_regex = r"CREATE(?: OR REPLACE)? FUNCTION ([A-z_]*)(?: )?\((.*)\).*RETURNS(?: SETOF)? (.*?) "
+postgres_function_regex = r"CREATE(?: OR REPLACE)? FUNCTION ([A-z_]*)(?: )?\((.*)\).*RETURNS(?: SETOF)? (.*?) LANGUAGE"
 
 
 def get_postgres_function_args_from_argument_str(
@@ -32,8 +32,11 @@ def get_postgres_function_args_from_argument_str(
         function_arg_split = function_arg.strip().split(maxsplit=1)
         function_arg_name = function_arg_split[0]
         function_arg_type = function_arg_split[1]
+        function_arg_type_without_default = re.split(
+            " DEFAULT", function_arg_type, flags=re.IGNORECASE
+        )[0]
         postgres_function_arg = PostgresFunctionArgument(
-            function_arg_name, function_arg_type
+            function_arg_name, function_arg_type_without_default
         )
         postgres_function_args.append(postgres_function_arg)
     return postgres_function_args
