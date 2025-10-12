@@ -1,4 +1,5 @@
 import re
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -295,6 +296,7 @@ def get_imports_for_postgres_function_file(
         "from psycopg import Connection",
         "from psycopg.rows import class_row",
     ]
+    psycopg_imports_string = "\n".join(psycopg_imports)
     import_dict: dict[str, list[str]] = {}
     for postgres_function in postgres_functions:
         import_dict = get_import_for_postgres_type(
@@ -319,7 +321,10 @@ def get_imports_for_postgres_function_file(
             )
         import_types_string = f"{import_types_string})"
         import_statements.append(import_types_string)
-    return f"{'\n'.join(psycopg_imports)}\n\n{'\n'.join(import_statements)}"
+    import_statement_string = "\n".join(import_statements)
+    if import_statement_string == "":
+        return psycopg_imports_string
+    return "\n\n".join([psycopg_imports_string, import_statement_string])
 
 
 def get_python_code_for_postgres_functions(
@@ -372,3 +377,13 @@ def get_python_postgres_module_for_postgres_function_file(
         python_postgres_module_lookup,
         file_path,
     )
+
+
+if __name__ == "__main__":
+    postgres_root_path = Path(sys.argv[1])
+    python_output_module = sys.argv[2]
+    input_script_file = Path(sys.argv[3])
+    _, module = get_python_postgres_module_for_postgres_function_file(
+        postgres_root_path, python_output_module, {}, input_script_file
+    )
+    print(module.python_code)
