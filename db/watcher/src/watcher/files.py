@@ -65,3 +65,15 @@ def get_python_module_name_for_postgres_file(
     module_parts.extend(module_parent_names)
     module_parts.append(module_name)
     return ".".join(module_parts)
+
+
+def create_py_typed_files_in_directory(
+    python_source_root: Path, python_output_module: str
+):
+    python_output_module_path = get_path_for_module(
+        python_source_root, python_output_module, False
+    )
+    for root, _, _ in os.walk(python_output_module_path):
+        py_typed_file = Path(root) / "py.typed"
+        with open(py_typed_file, "w") as _:
+            pass

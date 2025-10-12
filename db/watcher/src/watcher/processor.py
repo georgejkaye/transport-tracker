@@ -11,6 +11,7 @@ from watcher.classes import (
 )
 from watcher.files import (
     clean_output_directory,
+    create_py_typed_files_in_directory,
     get_db_script_files,
     get_postgres_files_in_directory,
     write_python_file,
@@ -126,6 +127,7 @@ def process_all_script_files(
     process_user_script_files(
         python_source_root, output_code_module, user_scripts_path
     )
+    create_py_typed_files_in_directory(python_source_root, output_code_module)
 
 
 if __name__ == "__main__":
