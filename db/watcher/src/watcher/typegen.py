@@ -7,7 +7,7 @@ from watcher.classes import (
     PythonPostgresModuleLookup,
 )
 from watcher.generator import get_postgres_module_for_postgres_file
-from watcher.types import (
+from watcher.pytypes import (
     get_python_type_for_postgres_type,
 )
 

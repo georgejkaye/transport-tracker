@@ -2,7 +2,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
-from watcher.names import (
+from watcher.pynames import (
     get_python_name_for_postgres_function_name,
     get_python_name_for_postgres_type_name,
 )

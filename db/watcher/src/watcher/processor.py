@@ -66,6 +66,10 @@ def process_type_script_file(
     )
 
 
+def process_view_script_file(script_file: Path):
+    run_in_script_file(script_file)
+
+
 def process_function_script_file(
     postgres_input_root_path: Path,
     python_output_root_module: str,
@@ -104,6 +108,8 @@ def process_user_script_files(
             python_postgres_module_lookup,
             file,
         )
+    for file in user_files.view_files:
+        process_view_script_file(file)
     for file in user_files.function_files:
         process_function_script_file(
             user_scripts_path,

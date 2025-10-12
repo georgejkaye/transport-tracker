@@ -11,7 +11,7 @@ from watcher.classes import (
     PythonPostgresModuleLookup,
 )
 from watcher.generator import get_postgres_module_for_postgres_file
-from watcher.types import (
+from watcher.pytypes import (
     get_python_type_for_base_type_of_postgres_type,
     get_python_type_for_postgres_type,
     update_python_type_import_dict,
