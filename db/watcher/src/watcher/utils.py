@@ -77,3 +77,16 @@ def get_python_type_for_postgres_type(type_string: str) -> str:
     if is_array_type:
         return f"list[{base_python_type}]"
     return base_python_type
+
+
+def update_python_type_import_dict(
+    imports_dict: dict[str, list[str]], type_module: str, type_name: str
+) -> dict[str, list[str]]:
+    module_result = imports_dict.get(type_module)
+    if module_result is None:
+        imports_dict[type_module] = [type_name]
+        return imports_dict
+    if type_name in module_result:
+        return imports_dict
+    imports_dict[type_module].append(type_name)
+    return imports_dict

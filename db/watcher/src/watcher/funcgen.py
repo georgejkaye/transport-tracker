@@ -6,6 +6,7 @@ from typing import Optional
 from watcher.classes import (
     PostgresFunction,
     PostgresFunctionArgument,
+    PythonImportDict,
     PythonPostgresModule,
     PythonPostgresModuleLookup,
 )
@@ -14,6 +15,7 @@ from watcher.utils import (
     get_python_type_for_base_type_of_postgres_type,
     get_python_type_for_postgres_type,
     get_statements_from_postgres_file,
+    update_python_type_import_dict,
 )
 
 tab = "    "
@@ -28,7 +30,7 @@ def get_postgres_function_args_from_argument_str(
     function_arg_split = argument_str.split(",")
     postgres_function_args: list[PostgresFunctionArgument] = []
     for function_arg in function_arg_split:
-        function_arg_split = function_arg.split()
+        function_arg_split = function_arg.strip().split(maxsplit=1)
         function_arg_name = function_arg_split[0]
         function_arg_type = function_arg_split[1]
         postgres_function_arg = PostgresFunctionArgument(
@@ -270,46 +272,39 @@ def get_python_code_for_postgres_function(
 
 def get_import_for_postgres_type(
     python_postgres_module_lookup: PythonPostgresModuleLookup,
-    import_dict: dict[str, list[str]],
+    python_imports_dict: dict[str, list[str]],
+    user_imports_dict: dict[str, list[str]],
     postgres_type_name: str,
-) -> dict[str, list[str]]:
+    is_argument: bool,
+) -> tuple[PythonImportDict, PythonImportDict]:
     python_type_name = get_python_type_for_postgres_type(postgres_type_name)
+    if "Optional[" in python_type_name:
+        python_imports_dict = update_python_type_import_dict(
+            python_imports_dict, "typing", "Optional"
+        )
+    if "datetime" in python_type_name:
+        python_imports_dict = update_python_type_import_dict(
+            python_imports_dict, "datetime", "datetime"
+        )
     if "list[" in python_type_name:
         python_type_name = python_type_name[5:-1]
+    if (
+        get_python_type_for_base_type_of_postgres_type(postgres_type_name)
+        is None
+        and is_argument
+    ):
+        python_imports_dict = update_python_type_import_dict(
+            python_imports_dict, "dataclasses", "astuple"
+        )
     type_module = python_postgres_module_lookup.get(python_type_name)
     if type_module is not None:
-        type_module_types_used = import_dict.get(type_module)
-        if type_module_types_used is None:
-            import_dict[type_module] = [python_type_name]
-        if python_type_name not in import_dict[type_module]:
-            import_dict[type_module].append(python_type_name)
-    return import_dict
-
-
-def get_imports_for_postgres_function_file(
-    python_postgres_module_lookup: PythonPostgresModuleLookup,
-    postgres_functions: list[PostgresFunction],
-) -> str:
-    psycopg_imports = [
-        "from dataclasses import astuple",
-        "from typing import Optional",
-        "from psycopg import Connection",
-        "from psycopg.rows import class_row",
-    ]
-    psycopg_imports_string = "\n".join(psycopg_imports)
-    import_dict: dict[str, list[str]] = {}
-    for postgres_function in postgres_functions:
-        import_dict = get_import_for_postgres_type(
-            python_postgres_module_lookup,
-            import_dict,
-            postgres_function.function_return,
+        user_imports_dict = update_python_type_import_dict(
+            user_imports_dict, type_module, python_type_name
         )
-        for function_arg in postgres_function.function_args:
-            import_dict = get_import_for_postgres_type(
-                python_postgres_module_lookup,
-                import_dict,
-                function_arg.argument_type,
-            )
+    return python_imports_dict, user_imports_dict
+
+
+def get_import_lines_for_import_dict(import_dict: PythonImportDict) -> str:
     import_statements: list[str] = []
     for import_module in import_dict.keys():
         imported_types = import_dict[import_module]
@@ -321,10 +316,53 @@ def get_imports_for_postgres_function_file(
             )
         import_types_string = f"{import_types_string})"
         import_statements.append(import_types_string)
-    import_statement_string = "\n".join(import_statements)
-    if import_statement_string == "":
-        return psycopg_imports_string
-    return "\n\n".join([psycopg_imports_string, import_statement_string])
+    return "\n".join(import_statements)
+
+
+def get_imports_for_postgres_function_file(
+    python_postgres_module_lookup: PythonPostgresModuleLookup,
+    postgres_functions: list[PostgresFunction],
+) -> str:
+    psycopg_imports = [
+        "from psycopg import Connection",
+        "from psycopg.rows import class_row",
+    ]
+    psycopg_imports_string = "\n".join(psycopg_imports)
+    python_imports_dict: dict[str, list[str]] = {}
+    user_imports_dict: dict[str, list[str]] = {}
+    for postgres_function in postgres_functions:
+        python_imports_dict, user_imports_dict = get_import_for_postgres_type(
+            python_postgres_module_lookup,
+            python_imports_dict,
+            user_imports_dict,
+            postgres_function.function_return,
+            False,
+        )
+        for function_arg in postgres_function.function_args:
+            python_imports_dict, user_imports_dict = (
+                get_import_for_postgres_type(
+                    python_postgres_module_lookup,
+                    python_imports_dict,
+                    user_imports_dict,
+                    function_arg.argument_type,
+                    True,
+                )
+            )
+    python_imports_string = get_import_lines_for_import_dict(
+        python_imports_dict
+    )
+    user_imports_string = get_import_lines_for_import_dict(user_imports_dict)
+    return "\n\n".join(
+        [
+            import_string
+            for import_string in [
+                python_imports_string,
+                psycopg_imports_string,
+                user_imports_string,
+            ]
+            if import_string != ""
+        ]
+    )
 
 
 def get_python_code_for_postgres_functions(
