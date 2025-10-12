@@ -11,10 +11,9 @@ from watcher.classes import (
     PythonPostgresModuleLookup,
 )
 from watcher.generator import get_postgres_module_for_postgres_file
-from watcher.utils import (
+from watcher.types import (
     get_python_type_for_base_type_of_postgres_type,
     get_python_type_for_postgres_type,
-    get_statements_from_postgres_file,
     update_python_type_import_dict,
 )
 
@@ -387,20 +386,6 @@ def get_python_code_for_postgres_functions(
     return "\n\n\n".join(python_sections)
 
 
-def get_postgres_functions_for_postgres_function_file(
-    file_path: Path,
-) -> list[PostgresFunction]:
-    statements = get_statements_from_postgres_file(file_path, delimiter="$$;")
-    return [
-        postgres_function
-        for statement in statements
-        if (
-            postgres_function := get_postgres_function_from_statement(statement)
-        )
-        is not None
-    ]
-
-
 def get_python_postgres_module_for_postgres_function_file(
     postgres_input_root_path: Path,
     python_output_root_module: str,
@@ -408,7 +393,7 @@ def get_python_postgres_module_for_postgres_function_file(
     file_path: Path,
 ) -> tuple[PythonPostgresModuleLookup, PythonPostgresModule[PostgresFunction]]:
     return get_postgres_module_for_postgres_file(
-        get_postgres_functions_for_postgres_function_file,
+        get_postgres_function_from_statement,
         get_python_code_for_postgres_functions,
         postgres_input_root_path,
         python_output_root_module,

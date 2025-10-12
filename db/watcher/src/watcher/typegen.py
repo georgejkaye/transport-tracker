@@ -7,10 +7,8 @@ from watcher.classes import (
     PythonPostgresModuleLookup,
 )
 from watcher.generator import get_postgres_module_for_postgres_file
-from watcher.utils import (
+from watcher.types import (
     get_python_type_for_postgres_type,
-    get_python_type_name_for_postgres_type_name,
-    get_statements_from_postgres_file,
 )
 
 tab = "    "
@@ -37,9 +35,7 @@ def get_postgres_type_for_statement(
 
 
 def get_python_for_postgres_type(postgres_type: PostgresType) -> str:
-    python_type_name = get_python_type_name_for_postgres_type_name(
-        postgres_type.type_name
-    )
+    python_type_name = postgres_type.get_python_name()
     python_type_declaration = f"class {python_type_name}:"
     python_lines = ["@dataclass", python_type_declaration]
     for type_field in postgres_type.type_fields:
@@ -85,10 +81,9 @@ def get_python_code_for_postgres_types(
     return f"{python_import_str}\n\n{python_code_str}"
 
 
-def get_postgres_types_for_postgres_type_file(
-    file_path: Path,
+def get_postgres_types_for_postgres_statements(
+    statements: list[str],
 ) -> list[PostgresType]:
-    statements = get_statements_from_postgres_file(file_path)
     postgres_types = [
         get_postgres_type_for_statement(statement) for statement in statements
     ]
@@ -99,13 +94,13 @@ def get_python_postgres_module_for_postgres_type_file(
     postgres_input_root_path: Path,
     python_output_root_module: str,
     python_postgres_module_lookup: PythonPostgresModuleLookup,
-    postgres_type_file: Path,
+    file_path: Path,
 ) -> tuple[PythonPostgresModuleLookup, PythonPostgresModule[PostgresType]]:
     return get_postgres_module_for_postgres_file(
-        get_postgres_types_for_postgres_type_file,
+        get_postgres_type_for_statement,
         get_python_code_for_postgres_types,
         postgres_input_root_path,
         python_output_root_module,
         python_postgres_module_lookup,
-        postgres_type_file,
+        file_path,
     )

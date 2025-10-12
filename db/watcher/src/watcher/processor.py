@@ -20,9 +20,7 @@ from watcher.funcgen import (
     get_python_postgres_module_for_postgres_function_file,
 )
 from watcher.runner import run_in_script_file
-from watcher.typegen import (
-    get_python_postgres_module_for_postgres_type_file,
-)
+from watcher.typegen import get_python_postgres_module_for_postgres_type_file
 
 
 def process_script_file[T: PostgresObject](

@@ -1,6 +1,7 @@
 import os
 import subprocess
 from pathlib import Path
+from typing import Mapping
 
 db_host = os.environ["DB_HOST"]
 db_name = os.environ["DB_NAME"]
@@ -12,7 +13,7 @@ with open(os.environ["DB_PASSWORD"]) as f:
 
 def run_in_script_file(script_file: Path):
     print(f"Running in {script_file}")
-    env = dict(os.environ)
+    env: Mapping[str, str] = dict(os.environ)
     env["PGPASSWORD"] = db_password
     try:
         subprocess.check_output(
