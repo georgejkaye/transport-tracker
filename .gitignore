@@ -160,3 +160,7 @@ db/scripts/dump.pgdata
 cache
 *.gml
 .populate
+
+# Generated db code
+
+api/src/api/db
