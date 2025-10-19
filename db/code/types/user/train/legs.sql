@@ -21,7 +21,7 @@ CREATE TYPE transport_user_train_leg_out_data AS (
     start_datetime TIMESTAMP WITH TIME ZONE,
     operator train_leg_operator_out_data,
     brand train_leg_operator_out_data,
-    distance NUMERIC,
+    distance DECIMAL,
     duration INTERVAL,
     delay INTEGER
 );

@@ -24,8 +24,8 @@ CREATE TYPE train_station_leg_names_in_data AS (
 
 CREATE TYPE train_station_point_out_data AS (
     platform TEXT,
-    latitude NUMERIC,
-    longitude NUMERIC
+    latitude DECIMAL,
+    longitude DECIMAL
 );
 
 CREATE TYPE train_station_points_out_data AS (
