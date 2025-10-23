@@ -4,7 +4,7 @@ CREATE OR REPLACE FUNCTION insert_train_leg (
     p_users INTEGER[],
     p_leg train_leg_in_data
 )
-RETURNS INTEGER
+RETURNS INTEGER_NOTNULL
 LANGUAGE plpgsql
 AS
 $$

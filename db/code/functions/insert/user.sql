@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION insert_user (
     p_username TEXT,
     p_display_name TEXT,
     p_hashed_password TEXT
-) RETURNS INT
+) RETURNS INTEGER_NOTNULL
 LANGUAGE sql
 AS
 $$
