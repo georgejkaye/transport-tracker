@@ -39,16 +39,26 @@ services:
       timeout: 1s
       retries: 500
       start_period: 0s
-  adminer:
-    image: adminer
+  codegen:
+    image: georgejkaye/postgres-codegen:latest
     depends_on:
       db:
         condition: service_healthy
-    restart: always
-    ports:
-      - 8085:8080
+    environment:
+      OUTPUT_MODULE_NAME: api.db
+      WATCH_MODE: 1
+      ROLL_MODE: 1
+      DB_HOST: db
+      DB_USER: transport
+      DB_NAME: transport
+      DB_PASSWORD_FILE: /run/secrets/db_local_secret
+    volumes:
+      - ./db/code:/app/input
+      - ./api/src/api:/app/output
     networks:
       - internal
+    secrets:
+      - db_local_secret
   api:
     depends_on:
       db:
@@ -117,5 +127,7 @@ secrets:
     file: db.secret
   natrail_secret:
     file: natrail.secret
+  db_local_secret:
+    file: db_local.secret
 volumes:
   pgdata:
