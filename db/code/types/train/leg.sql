@@ -22,26 +22,26 @@ DROP TYPE IF EXISTS train_leg_call_points_out_data CASCADE;
 DROP TYPE IF EXISTS train_leg_points_out_data CASCADE;
 
 CREATE TYPE train_leg_service_in_data AS (
-    unique_identifier TEXT,
-    run_date TIMESTAMP WITH TIME ZONE,
-    headcode TEXT,
-    operator_id INTEGER,
+    unique_identifier TEXT_NOTNULL,
+    run_date TIMESTAMP_NOTNULL,
+    headcode TEXT_NOTNULL,
+    operator_id INTEGER_NOTNULL,
     brand_id INTEGER,
     power TEXT
 );
 
 CREATE TYPE train_leg_service_endpoint_in_data AS (
-    unique_identifier TEXT,
-    run_date TIMESTAMP WITH TIME ZONE,
-    station_name TEXT,
-    origin BOOLEAN
+    unique_identifier TEXT_NOTNULL,
+    run_date TIMESTAMP_NOTNULL,
+    station_name TEXT_NOTNULL,
+    origin BOOLEAN_NOTNULL
 );
 
 CREATE TYPE train_leg_service_call_in_data AS (
-    unique_identifier TEXT,
-    run_date TIMESTAMP WITH TIME ZONE,
-    station_crs TEXT,
-    platform TEXT,
+    unique_identifier TEXT_NOTNULL,
+    run_date TIMESTAMP_NOTNULL,
+    station_crs TEXT_NOTNULL,
+    platform TEXT_NOTNULL,
     plan_arr TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
@@ -50,34 +50,34 @@ CREATE TYPE train_leg_service_call_in_data AS (
 );
 
 CREATE TYPE train_leg_associated_service_in_data AS (
-    unique_identifier TEXT,
-    run_date TIMESTAMP WITH TIME ZONE,
-    station_crs TEXT,
+    unique_identifier TEXT_NOTNULL,
+    run_date TIMESTAMP_NOTNULL,
+    station_crs TEXT_NOTNULL,
     plan_arr TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE,
-    assoc_unique_identifier TEXT,
-    assoc_run_date TIMESTAMP WITH TIME ZONE,
-    assoc_type INTEGER
+    assoc_unique_identifier TEXT_NOTNULL,
+    assoc_run_date TIMESTAMP_NOTNULL,
+    assoc_type INTEGER_NOTNULL
 );
 
 CREATE TYPE train_leg_service_call_associated_service_in_data AS (
-    associated_unique_identifier TEXT,
-    associated_run_date TIMESTAMP WITH TIME ZONE,
-    associated_type TEXT
+    associated_unique_identifier TEXT_NOTNULL,
+    associated_run_date TIMESTAMP_NOTNULL,
+    associated_type TEXT_NOTNULL
 );
 
 CREATE TYPE train_leg_call_in_data AS (
-    station_crs TEXT,
-    arr_call_service_uid TEXT,
-    arr_call_service_run_date TIMESTAMP WITH TIME ZONE,
+    station_crs TEXT_NOTNULL,
+    arr_call_service_uid TEXT_NOTNULL,
+    arr_call_service_run_date TIMESTAMP_NOTNULL,
     arr_call_plan_arr TIMESTAMP WITH TIME ZONE,
     arr_call_act_arr TIMESTAMP WITH TIME ZONE,
     arr_call_plan_dep TIMESTAMP WITH TIME ZONE,
     arr_call_act_dep TIMESTAMP WITH TIME ZONE,
-    dep_call_service_uid TEXT,
-    dep_call_service_run_date TIMESTAMP WITH TIME ZONE,
+    dep_call_service_uid TEXT_NOTNULL,
+    dep_call_service_run_date TIMESTAMP_NOTNULL,
     dep_call_plan_arr TIMESTAMP WITH TIME ZONE,
     dep_call_act_arr TIMESTAMP WITH TIME ZONE,
     dep_call_plan_dep TIMESTAMP WITH TIME ZONE,
@@ -91,16 +91,16 @@ CREATE TYPE train_leg_stock_segment_in_data AS (
     stock_subclass INT,
     stock_number INT,
     stock_cars INT,
-    start_call_service_uid TEXT,
-    start_call_service_run_date TIMESTAMP WITH TIME ZONE,
-    start_call_station_crs TEXT,
-    start_call_plan_dep TIMESTAMP WITH TIME ZONE,
-    start_call_act_dep TIMESTAMP WITH TIME ZONE,
-    end_call_service_uid TEXT,
-    end_call_service_run_date TIMESTAMP WITH TIME ZONE,
-    end_call_station_crs TEXT,
-    end_call_plan_arr TIMESTAMP WITH TIME ZONE,
-    end_call_act_arr TIMESTAMP WITH TIME ZONE
+    start_call_service_uid TEXT_NOTNULL,
+    start_call_service_run_date TIMESTAMP_NOTNULL,
+    start_call_station_crs TEXT_NOTNULL,
+    start_call_plan_dep TIMESTAMP_NOTNULL,
+    start_call_act_dep TIMESTAMP_NOTNULL,
+    end_call_service_uid TEXT_NOTNULL,
+    end_call_service_run_date TIMESTAMP_NOTNULL,
+    end_call_station_crs TEXT_NOTNULL,
+    end_call_plan_arr TIMESTAMP_NOTNULL,
+    end_call_act_arr TIMESTAMP_NOTNULL
 );
 
 CREATE TYPE train_leg_in_data AS (
@@ -114,20 +114,20 @@ CREATE TYPE train_leg_in_data AS (
 );
 
 CREATE TYPE train_leg_station_out_data AS (
-    station_id INTEGER,
-    station_crs TEXT,
-    station_name TEXT
+    station_id INTEGER_NOTNULL,
+    station_crs TEXT_NOTNULL,
+    station_name TEXT_NOTNULL
 );
 
 CREATE TYPE train_leg_operator_out_data AS (
-    operator_id INTEGER,
-    operator_code TEXT,
-    operator_name TEXT
+    operator_id INTEGER_NOTNULL,
+    operator_code TEXT_NOTNULL,
+    operator_name TEXT_NOTNULL
 );
 
 CREATE TYPE train_leg_associated_service_out_data AS (
-    service_id INTEGER,
-    association_type INTEGER
+    service_id INTEGER_NOTNULL,
+    association_type INTEGER_NOTNULL
 );
 
 CREATE TYPE train_leg_call_out_data AS (
@@ -142,11 +142,11 @@ CREATE TYPE train_leg_call_out_data AS (
 );
 
 CREATE TYPE train_leg_service_out_data AS (
-    service_id INTEGER,
-    unique_identifier TEXT,
-    run_date TIMESTAMP WITH TIME ZONE,
-    headcode TEXT,
-    start_datetime TIMESTAMP WITH TIME ZONE,
+    service_id INTEGER_NOTNULL,
+    unique_identifier TEXT_NOTNULL,
+    run_date TIMESTAMP_NOTNULL,
+    headcode TEXT_NOTNULL,
+    start_datetime TIMESTAMP_NOTNULL,
     origins train_leg_station_out_data[],
     destinations train_leg_station_out_data[],
     operator train_leg_operator_out_data,
@@ -167,7 +167,7 @@ CREATE TYPE train_leg_stock_segment_out_data AS (
 );
 
 CREATE TYPE train_leg_out_data AS (
-    leg_id INTEGER,
+    leg_id INTEGER_NOTNULL,
     services train_leg_service_out_data[],
     calls train_leg_call_out_data[],
     stock train_leg_stock_segment_out_data[]
@@ -180,9 +180,9 @@ CREATE TYPE train_leg_call_point_out_data AS (
 );
 
 CREATE TYPE train_leg_call_points_out_data AS (
-    station_id INTEGER,
-    station_crs TEXT,
-    station_name TEXT,
+    station_id INTEGER_NOTNULL,
+    station_crs TEXT_NOTNULL,
+    station_name TEXT_NOTNULL,
     platform TEXT,
     plan_arr TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
@@ -192,8 +192,8 @@ CREATE TYPE train_leg_call_points_out_data AS (
 );
 
 CREATE TYPE train_leg_points_out_data AS (
-    leg_id INTEGER,
-    operator_id INTEGER,
+    leg_id INTEGER_NOTNULL,
+    operator_id INTEGER_NOTNULL,
     brand_id INTEGER,
     call_points train_leg_call_points_out_data[]
 );

@@ -3,18 +3,6 @@ DROP FUNCTION IF EXISTS select_brands_by_operator_code;
 DROP FUNCTION IF EXISTS select_operator_by_operator_code;
 DROP FUNCTION IF EXISTS select_operator_details;
 
-CREATE OR REPLACE FUNCTION select_operator_id_by_name (
-    p_operator_name TEXT
-)
-RETURNS INTEGER
-LANGUAGE sql
-AS
-$$
-SELECT train_operator_id
-FROM train_operator
-WHERE operator_name = p_operator_name;
-$$;
-
 CREATE OR REPLACE FUNCTION select_brands_by_operator_code (
     p_operator_code TEXT,
     p_run_date TIMESTAMP WITH TIME ZONE

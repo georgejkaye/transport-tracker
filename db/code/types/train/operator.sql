@@ -21,10 +21,10 @@ CREATE TYPE train_operator_out_data AS (
 );
 
 CREATE TYPE train_operator_details_out_data AS (
-    operator_id INTEGER,
-    is_brand BOOLEAN,
-    operator_code TEXT,
-    operator_name TEXT,
+    operator_id INTEGER_NOTNULL,
+    is_brand BOOLEAN_NOTNULL,
+    operator_code TEXT_NOTNULL,
+    operator_name TEXT_NOTNULL,
     bg_colour TEXT,
     fg_colour TEXT
 );

@@ -527,7 +527,7 @@ GROUP BY
 ORDER BY train_leg_call.train_leg_id;
 
 CREATE OR REPLACE FUNCTION select_train_leg_points_by_leg_id (
-    p_train_leg_id INTEGER
+    p_train_leg_id INTEGER_NOTNULL
 )
 RETURNS SETOF train_leg_points_out_data
 LANGUAGE sql
@@ -543,7 +543,7 @@ WHERE train_leg_id = p_train_leg_id;
 $$;
 
 CREATE OR REPLACE FUNCTION select_train_leg_points_by_leg_ids (
-    p_train_leg_ids INTEGER[]
+    p_train_leg_ids INTEGER_NOTNULL[]
 )
 RETURNS SETOF train_leg_points_out_data
 LANGUAGE sql
@@ -559,7 +559,7 @@ WHERE train_leg_id = ANY(p_train_leg_ids);
 $$;
 
 CREATE OR REPLACE FUNCTION select_train_leg_points_by_user_id (
-    p_user_id INTEGER,
+    p_user_id INTEGER_NOTNULL,
     p_search_start TIMESTAMP WITH TIME ZONE,
     p_search_end TIMESTAMP WITH TIME ZONE
 )
