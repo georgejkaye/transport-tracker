@@ -8,8 +8,7 @@ from networkx import MultiDiGraph
 from psycopg import Connection
 
 from api.classes.train.operators import OperatorBrandLookup
-from api.db.train.operators import select_operator_details
-from api.db.types import register_types
+from api.db.types.register import register_types
 from api.library.networkx import load_osmnx_graphml
 from api.utils.environment import get_env_variable, get_secret
 
