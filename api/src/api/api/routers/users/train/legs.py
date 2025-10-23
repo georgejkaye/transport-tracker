@@ -9,8 +9,6 @@ from api.api.lifespan import (
 )
 from api.classes.network.geometry import TrainLegGeometry
 from api.classes.users.train.legs import DbTransportUserTrainLegOutData
-from api.db.train.legs import select_train_leg_points_by_user_id
-from api.db.users.train.legs import select_transport_user_train_leg_by_user_id
 from api.network.map import (
     get_train_leg_geometries_for_leg_points,
 )

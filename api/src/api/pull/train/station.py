@@ -8,7 +8,6 @@ from api.classes.train.station import (
     TrainServiceAtStation,
     TrainStationIdentifiers,
 )
-from api.db.train.stations import select_station_by_name
 from api.utils.credentials import get_api_credentials
 from api.utils.request import make_get_request
 from api.utils.times import get_datetime_route, make_timezone_aware

@@ -5,6 +5,7 @@ from typing import Optional
 from psycopg import Connection
 from psycopg.types.range import Range
 
+from api.db.types.train.operator import TrainOperatorDetailsOutData
 from api.utils.database import register_type
 
 
@@ -77,5 +78,5 @@ def register_train_operator_details_out_data(conn: Connection) -> None:
 
 @dataclass
 class OperatorBrandLookup:
-    operators: dict[int, DbTrainOperatorDetailsOutData]
-    brands: dict[int, DbTrainOperatorDetailsOutData]
+    operators: dict[int, TrainOperatorDetailsOutData]
+    brands: dict[int, TrainOperatorDetailsOutData]

@@ -2,13 +2,12 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Optional
 
-from api.classes.train.operators import OperatorData
-from api.utils.soup import get_tag_by_class_name, get_tags_by_class_name
 from bs4 import BeautifulSoup, Tag
 from psycopg import Connection
 
 from api.classes.interactive import PickSingle
 from api.classes.train.association import AssociationType
+from api.classes.train.operators import OperatorData
 from api.classes.train.service import (
     RttLocationTag,
     TrainAssociatedServiceInData,
@@ -16,11 +15,11 @@ from api.classes.train.service import (
     TrainServiceCallInData,
     TrainServiceInData,
 )
-from api.db.train.operators import get_operator_by_operator_by_operator_code
 from api.utils.credentials import get_api_credentials
 from api.utils.interactive import input_select
 from api.utils.mileage import miles_and_chains_to_miles
 from api.utils.request import get_soup, make_get_request
+from api.utils.soup import get_tag_by_class_name, get_tags_by_class_name
 from api.utils.times import get_datetime_route, make_timezone_aware
 
 service_endpoint = "https://api.rtt.io/api/v1/json/service"

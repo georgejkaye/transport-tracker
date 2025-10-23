@@ -31,15 +31,6 @@ from api.classes.train.stock import (
     string_of_class_and_subclass,
     string_of_stock_report,
 )
-from api.db.train.legs import insert_train_leg
-from api.db.train.stations import (
-    select_station_by_crs,
-    select_stations_by_name_substring,
-)
-from api.db.train.stock import (
-    get_operator_stock,
-)
-from api.db.users.users import input_user
 from api.pull.train.service import get_service_from_id
 from api.pull.train.station import get_services_at_station
 from api.utils.database import connect, get_db_connection_data_from_args

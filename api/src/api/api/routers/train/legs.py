@@ -7,12 +7,12 @@ from api.api.lifespan import (
     get_train_operator_brand_colour,
 )
 from api.classes.network.geometry import TrainLegGeometry
-from api.classes.train.legs import DbTrainLegOutData
-from api.db.train.legs import (
-    select_train_leg_by_id,
-    select_train_leg_points_by_leg_id,
-    select_train_leg_points_by_leg_ids,
+from api.db.functions.select.train.leg import (
+    select_train_leg_by_id_fetchone,
+    select_train_leg_points_by_leg_id_fetchone,
+    select_train_leg_points_by_leg_ids_fetchall,
 )
+from api.db.types.train.leg import TrainLegOutData
 from api.network.map import (
     get_leg_map_page_by_leg_id,
     get_train_leg_geometries_for_leg_points,
@@ -23,8 +23,8 @@ router = APIRouter(prefix="/legs", tags=["train/legs"])
 
 
 @router.get("/{leg_id}", summary="Get train leg with id")
-async def get_leg(leg_id: int) -> DbTrainLegOutData:
-    leg = select_train_leg_by_id(get_db_connection(), leg_id)
+async def get_leg(leg_id: int) -> TrainLegOutData:
+    leg = select_train_leg_by_id_fetchone(get_db_connection(), leg_id)
     if leg is None:
         raise HTTPException(404, f"Could not find leg id {leg_id}")
     return leg
@@ -32,7 +32,9 @@ async def get_leg(leg_id: int) -> DbTrainLegOutData:
 
 @router.get("/geometries/{leg_id}", summary="Get geometries for leg")
 async def get_geometries_for_leg(leg_id: int) -> TrainLegGeometry:
-    leg_points = select_train_leg_points_by_leg_id(get_db_connection(), leg_id)
+    leg_points = select_train_leg_points_by_leg_id_fetchone(
+        get_db_connection(), leg_id
+    )
     if leg_points is None:
         raise HTTPException(404, f"Could not find train leg id {leg_id}")
     train_leg_geometry = get_train_leg_geometry_for_leg_points(
@@ -47,7 +49,7 @@ async def get_geometries_for_leg(leg_id: int) -> TrainLegGeometry:
 async def get_geometries_for_legs(
     train_leg_ids: list[int],
 ) -> list[TrainLegGeometry]:
-    legs = select_train_leg_points_by_leg_ids(
+    legs = select_train_leg_points_by_leg_ids_fetchall(
         get_db_connection(), train_leg_ids
     )
     return get_train_leg_geometries_for_leg_points(get_network(), legs)

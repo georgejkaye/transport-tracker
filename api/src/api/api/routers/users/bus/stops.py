@@ -1,24 +1,19 @@
+from api.db.types.bus import Busstopuserdetails
 from fastapi import APIRouter, HTTPException
 
 from api.api.lifespan import get_db_connection
-from api.db.bus.user.stop import (
-    BusStopUserDetails,
-    get_user_details_for_bus_stop,
-    get_user_details_for_bus_stop_by_atco,
-    get_user_details_for_bus_stops,
-)
 
 router = APIRouter(prefix="/stops", tags=["users/bus/stops"])
 
 
 @router.get("/", summary="Get details of all bus stops for a user")
-async def get_bus_stops(user_id: int) -> list[BusStopUserDetails]:
+async def get_bus_stops(user_id: int) -> list[Busstopuserdetails]:
     stops = get_user_details_for_bus_stops(get_db_connection(), user_id)
     return stops
 
 
 @router.get("/{stop_id}", summary="Get details of a bus stop for a user")
-async def get_bus_stop(user_id: int, stop_id: int) -> BusStopUserDetails:
+async def get_bus_stop(user_id: int, stop_id: int) -> Busstopuserdetails:
     stop = get_user_details_for_bus_stop(get_db_connection(), user_id, stop_id)
     if stop is None:
         raise HTTPException(404, "Could not find user or stop")
@@ -26,7 +21,7 @@ async def get_bus_stop(user_id: int, stop_id: int) -> BusStopUserDetails:
 
 
 @router.get("/atco/{atco}", summary="Get details of a bus stop for a user")
-async def get_bus_stop_by_atco(user_id: int, atco: str) -> BusStopUserDetails:
+async def get_bus_stop_by_atco(user_id: int, atco: str) -> Busstopuserdetails:
     stop = get_user_details_for_bus_stop_by_atco(
         get_db_connection(), user_id, atco
     )

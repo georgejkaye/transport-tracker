@@ -8,7 +8,11 @@ from networkx import MultiDiGraph
 from psycopg import Connection
 
 from api.classes.train.operators import OperatorBrandLookup
+from api.db.functions.select.train.operator import (
+    select_operator_details_fetchall,
+)
 from api.db.types.register import register_types
+from api.db.types.train.operator import TrainOperatorDetailsOutData
 from api.library.networkx import load_osmnx_graphml
 from api.utils.environment import get_env_variable, get_secret
 
@@ -36,7 +40,7 @@ async def lifespan(app: FastAPI):
     network = load_osmnx_graphml(network_path)  # type: ignore
     print("Initialised train network")
     global operator_brand_lookup
-    operator_brand_lookup = select_operator_details(conn)  # type: ignore
+    operator_brand_lookup = initialise_train_operator_brand_lookup(conn)
     print("Initialised train operator brand lookup")
     yield
     print("Shutting down db connectionn")
@@ -63,7 +67,7 @@ def get_operator_brand_lookup() -> OperatorBrandLookup:
 
 def get_train_operator_brand_colour(
     operator_id: int, brand_id: Optional[int]
-) -> str:
+) -> Optional[str]:
     operator_brand_lookup = get_operator_brand_lookup()
     if (
         brand_id is not None
@@ -75,3 +79,17 @@ def get_train_operator_brand_colour(
     ) is not None:
         return operator.bg_colour
     return "#000000"
+
+
+def initialise_train_operator_brand_lookup(
+    conn: Connection,
+) -> OperatorBrandLookup:
+    operator_details = select_operator_details_fetchall(conn)
+    operators: dict[int, TrainOperatorDetailsOutData] = {}
+    brands: dict[int, TrainOperatorDetailsOutData] = {}
+    for operator in operator_details:
+        if operator.is_brand:
+            brands[operator.operator_id] = operator
+        else:
+            operators[operator.operator_id] = operator
+    return OperatorBrandLookup(operators, brands)

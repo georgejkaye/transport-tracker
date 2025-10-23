@@ -13,7 +13,6 @@ from osmnx import settings as oxsettings
 from shapely import LineString, Point, geometry, ops
 
 from api.classes.train.station import StationPoint
-from api.db.train.points import string_of_station_point
 from api.library.networkx import (
     add_edge,
     add_node,

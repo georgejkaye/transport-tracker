@@ -1,8 +1,5 @@
 import sys
 
-from api.db.train.points import (
-    get_station_points,
-)
 from api.library.networkx import (
     get_nodes,
     load_osmnx_graphml,

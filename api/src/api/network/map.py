@@ -33,14 +33,11 @@ from api.classes.train.legs import (
     DbTrainLegPointsOutData,
 )
 from api.classes.train.station import DbTrainStationPointPointsOutData
-from api.db.train.legs import (
-    select_train_leg_points_by_leg_id,
-    select_train_leg_points_by_leg_ids,
-    select_train_leg_points_by_user_id,
+from api.db.functions.select.train.leg import (
+    select_train_leg_points_by_leg_id_fetchone,
+    select_train_leg_points_by_leg_ids_fetchall,
 )
-from api.db.train.stations import (
-    select_train_station_leg_points_by_names,
-)
+from api.db.types.train.leg import TrainLegPointsOutData
 from api.library.folium import create_polyline, render_map
 from api.network.pathfinding import get_leg_line_geometry_for_leg
 
@@ -267,7 +264,7 @@ def get_leg_line_geometry_for_leg_id(
     network: MultiDiGraph[int],
     leg_id: int,
 ) -> Optional[LegLineGeometry[DbTrainLegCallPointPointsOutData]]:
-    leg = select_train_leg_points_by_leg_id(conn, leg_id)
+    leg = select_train_leg_points_by_leg_id_fetchone(conn, leg_id)
     if leg is None:
         return None
     return get_leg_line_geometry_for_leg(
@@ -285,7 +282,9 @@ def get_leg_line_geometry_for_leg_id(
 def get_leg_lines_for_leg_points(
     network: MultiDiGraph[int],
     leg_points: list[DbTrainLegPointsOutData],
-    get_train_operator_brand_colour: Callable[[int, Optional[int]], str],
+    get_train_operator_brand_colour: Callable[
+        [int, Optional[int]], Optional[str]
+    ],
 ) -> list[LegLine[DbTrainLegCallPointPointsOutData]]:
     return [
         LegLine(
@@ -316,7 +315,7 @@ def get_leg_lines_for_leg_points(
 
 def get_train_leg_geometries_for_leg_points(
     network: MultiDiGraph[int],
-    leg_points: list[DbTrainLegPointsOutData],
+    leg_points: list[TrainLegPointsOutData],
 ) -> list[TrainLegGeometry]:
     train_leg_geometries: list[TrainLegGeometry] = []
     for leg in leg_points:
@@ -361,7 +360,7 @@ def get_train_leg_geometries_for_leg_points(
 
 
 def get_train_leg_geometry_for_leg_points(
-    network: MultiDiGraph[int], leg_points: DbTrainLegPointsOutData
+    network: MultiDiGraph[int], leg_points: TrainLegPointsOutData
 ) -> Optional[TrainLegGeometry]:
     legs = get_train_leg_geometries_for_leg_points(network, [leg_points])
     if len(legs) == 0:
@@ -373,9 +372,11 @@ def get_leg_lines_for_leg_ids(
     conn: Connection,
     network: MultiDiGraph[int],
     leg_ids: list[int],
-    get_train_operator_brand_colour: Callable[[int, Optional[int]], str],
+    get_train_operator_brand_colour: Callable[
+        [int, Optional[int]], Optional[str]
+    ],
 ) -> list[LegLine[DbTrainLegCallPointPointsOutData]]:
-    leg_points = select_train_leg_points_by_leg_ids(conn, leg_ids)
+    leg_points = select_train_leg_points_by_leg_ids_fetchall(conn, leg_ids)
     return get_leg_lines_for_leg_points(
         network, leg_points, get_train_operator_brand_colour
     )
@@ -485,7 +486,9 @@ def get_leg_map_page_by_leg_id(
     conn: Connection,
     network: MultiDiGraph[int],
     leg_id: int,
-    get_train_operator_brand_colour: Callable[[int, Optional[int]], str],
+    get_train_operator_brand_colour: Callable[
+        [int, Optional[int]], Optional[str]
+    ],
 ):
     leg_lines = get_leg_lines_for_leg_ids(
         conn, network, [leg_id], get_train_operator_brand_colour

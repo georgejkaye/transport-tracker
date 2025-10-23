@@ -5,13 +5,6 @@ from fastapi import APIRouter, HTTPException
 
 from api.api.lifespan import get_db_connection
 from api.classes.bus.leg import BusLegUserDetails
-from api.db.bus.leg import (
-    select_bus_leg_by_id,
-    select_bus_legs,
-    select_bus_legs_by_datetime,
-    select_bus_legs_by_end_datetime,
-    select_bus_legs_by_start_datetime,
-)
 
 router = APIRouter(prefix="/legs", tags=["users/bus/legs"])
 

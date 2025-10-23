@@ -2,10 +2,6 @@ from fastapi import APIRouter, HTTPException
 
 from api.api.lifespan import get_db_connection
 from api.classes.train.station import StationData
-from api.db.train.stations import (
-    select_station,
-    select_stations,
-)
 
 router = APIRouter(prefix="/stations", tags=["users/train/stations"])
 

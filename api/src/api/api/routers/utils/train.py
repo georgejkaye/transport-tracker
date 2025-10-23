@@ -9,9 +9,6 @@ from api.classes.network.map import (
     MarkerTextParams,
 )
 from api.classes.train.station import DbTrainStationPointPointsOutData
-from api.db.train.stations import (
-    select_train_station_points_by_crses,
-)
 from api.network.map import (
     LegData,
     get_leg_map,

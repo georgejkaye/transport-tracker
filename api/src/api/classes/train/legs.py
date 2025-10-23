@@ -3,6 +3,10 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
+from api.db.types.train.leg import (
+    TrainLegCallPointOutData,
+    TrainLegCallPointsOutData,
+)
 from psycopg import Connection
 from shapely import Point
 
@@ -275,7 +279,7 @@ class DbTrainLegPointsOutData:
     leg_id: int
     operator_id: int
     brand_id: Optional[int]
-    call_points: list[DbTrainLegCallPointsOutData]
+    call_points: list[TrainLegCallPointsOutData]
 
 
 def register_train_leg_points_out_data(conn: Connection) -> None:
@@ -284,8 +288,8 @@ def register_train_leg_points_out_data(conn: Connection) -> None:
 
 @dataclass
 class DbTrainLegCallPointPointsOutData(LegLineCall):
-    call: DbTrainLegCallPointsOutData
-    point: DbTrainLegCallPointOutData
+    call: TrainLegCallPointsOutData
+    point: TrainLegCallPointOutData
 
     def get_id(self) -> int:
         return get_node_id_from_crs_and_platform(

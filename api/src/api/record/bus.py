@@ -18,14 +18,6 @@ from api.classes.bus.stop import (
 )
 from api.classes.bus.vehicle import BusVehicleDetails
 from api.classes.users.users import User
-from api.db.bus.leg import insert_leg
-from api.db.bus.stop import get_bus_stops
-from api.db.bus.vehicle import (
-    get_bus_vehicles_by_id,
-    get_bus_vehicles_by_operator_and_id,
-    string_of_bus_vehicle_out,
-)
-from api.db.users.users import input_user
 from api.pull.bus.journey import get_bus_journey
 from api.pull.bus.stop import get_departures_from_bus_stop
 from api.utils.database import connect, get_db_connection_data_from_args
