@@ -31,6 +31,16 @@ from api.classes.train.stock import (
     string_of_class_and_subclass,
     string_of_stock_report,
 )
+from api.db.functions.select.train.station import (
+    select_train_station_by_crs_fetchall,
+    select_train_station_by_crs_fetchone,
+    select_train_stations_by_name_substring_fetchall,
+)
+from api.db.functions.select.train.stock import (
+    select_train_operator_stock_fetchall,
+)
+from api.db.types.train.station import TrainStationOutData
+from api.db.types.train.stock import TrainStockOutData
 from api.pull.train.service import get_service_from_id
 from api.pull.train.station import get_services_at_station
 from api.utils.database import connect, get_db_connection_data_from_args
@@ -67,7 +77,7 @@ def timedelta_from_string(string: str) -> timedelta:
 
 def get_station_from_input(
     conn: Connection, prompt: str, stn: DbTrainStationOutData | None = None
-) -> Optional[DbTrainStationOutData]:
+) -> Optional[TrainStationOutData]:
     """
     Get a string specifying a station from a user.
     Can either be a three letter code (in which case confirmation will be asked for)
@@ -88,13 +98,17 @@ def get_station_from_input(
         if len(input_string) == 0 and stn is not None:
             return stn
         if len(input_string) == 3:
-            crs_station = select_station_by_crs(conn, input_string)
+            crs_station = select_train_station_by_crs_fetchone(
+                conn, input_string
+            )
             if crs_station is not None:
                 resp = input_confirm(f"Did you mean {crs_station.station_name}")
                 if resp:
                     return crs_station
         # Otherwise search for substrings in the full names of stations
-        matches = select_stations_by_name_substring(conn, input_string)
+        matches = select_train_stations_by_name_substring_fetchall(
+            conn, input_string
+        )
         if len(matches) == 0:
             print("No matches found, try again")
         elif len(matches) == 1:
@@ -152,7 +166,7 @@ def get_service_at_station(
 
 
 def get_unit_class(
-    operator_stock: list[Stock],
+    operator_stock: list[TrainStockOutData],
 ) -> Optional[PickUnknown | PickSingle[Stock]]:
     chosen_class = input_select(
         "Class number",
@@ -264,7 +278,7 @@ def string_of_stock_change(change: StockChange) -> str:
 
 
 def get_unit_report(
-    stock_list: list[Stock],
+    stock_list: list[TrainStockOutData],
 ) -> Optional[StockReport]:
     stock_class_res = get_unit_class(stock_list)
     stock_class: Optional[Stock] = None
@@ -334,7 +348,7 @@ def get_stock(
     last_used_stock = previous
 
     # Currently getting this automatically isn't implemented
-    stock_list = get_operator_stock(
+    stock_list = select_train_operator_stock_fetchall(
         conn, service.operator_id, service.brand_id, service.run_date
     )
     current_call = calls[0]

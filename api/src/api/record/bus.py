@@ -14,7 +14,6 @@ from api.classes.bus.stop import (
 from api.db.functions.select.bus import (
     select_bus_stop_details_by_name_fetchall,
     select_bus_vehicle_details_fetchall,
-    select_bus_vehicle_details_fetchone,
 )
 from api.db.types.bus import (
     BusCallInData,

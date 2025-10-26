@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from api.db.types.train.stock import TrainStockOutData
+
 
 @dataclass
 class Class:
@@ -56,7 +58,7 @@ class Stock:
     stock_subclasses: list[StockSubclass]
 
 
-def string_of_class(stock_class: Stock) -> str:
+def string_of_class(stock_class: TrainStockOutData) -> str:
     string = f"Class {stock_class.stock_class}"
     if stock_class.stock_class_name is not None:
         string = f"{string} ({stock_class.stock_class_name})"
@@ -77,7 +79,7 @@ def string_of_class_and_subclass(
     return string
 
 
-def sort_by_classes(stock: list[Stock]) -> list[Stock]:
+def sort_by_classes(stock: list[TrainStockOutData]) -> list[TrainStockOutData]:
     return sorted(stock, key=lambda x: x.stock_class)
 
 
