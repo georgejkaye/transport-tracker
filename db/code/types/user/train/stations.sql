@@ -9,11 +9,17 @@ CREATE TYPE transport_user_train_station_operator_out_data AS (
     operator_name TEXT
 );
 
+CREATE DOMAIN transport_user_train_station_operator_out_data_notnull
+AS transport_user_train_station_operator_out_data NOT NULL;
+
 CREATE TYPE transport_user_train_station_leg_endpoint_out_data AS (
     station_id INTEGER,
     station_crs TEXT,
     station_name TEXT
 );
+
+CREATE DOMAIN transport_user_train_station_leg_endpoint_out_data_notnull
+AS transport_user_train_station_leg_endpoint_out_data NOT NULL;
 
 CREATE TYPE transport_user_train_station_leg_out_data AS (
     leg_id INTEGER,
@@ -30,6 +36,9 @@ CREATE TYPE transport_user_train_station_leg_out_data AS (
     calls_after INTEGER
 );
 
+CREATE DOMAIN transport_user_train_station_leg_out_data_notnull
+AS transport_user_train_station_leg_out_data NOT NULL;
+
 CREATE TYPE transport_user_train_station_out_data AS (
     station_id INTEGER,
     station_crs TEXT,
@@ -41,3 +50,6 @@ CREATE TYPE transport_user_train_station_out_data AS (
     station_brand transport_user_train_station_operator_out_data,
     station_legs transport_user_train_station_leg_out_data[]
 );
+
+CREATE DOMAIN transport_user_train_station_out_data_notnull
+AS transport_user_train_station_out_data NOT NULL;

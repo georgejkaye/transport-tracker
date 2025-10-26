@@ -1,39 +1,41 @@
-DROP TYPE IF EXISTS BusStopInData CASCADE;
-DROP TYPE IF EXISTS BusOperatorInData CASCADE;
-DROP TYPE IF EXISTS BusServiceInData CASCADE;
-DROP TYPE IF EXISTS BusServiceViaInData CASCADE;
-DROP TYPE IF EXISTS BusModelInData CASCADE;
-DROP TYPE IF EXISTS BusVehicleInData CASCADE;
-DROP TYPE IF EXISTS BusCallInData CASCADE;
-DROP TYPE IF EXISTS BusJourneyInData CASCADE;
-DROP TYPE IF EXISTS BusLegInData CASCADE;
+DROP DOMAIN IF EXISTS bus_stop_in_data_notnull CASCADE;
+DROP TYPE IF EXISTS bus_stop_in_data CASCADE;
+DROP DOMAIN IF EXISTS bus_operator_in_data_notnull CASCADE;
+DROP TYPE IF EXISTS bus_operator_in_data CASCADE;
+DROP TYPE IF EXISTS bus_service_in_data CASCADE;
+DROP TYPE IF EXISTS bus_service_via_in_data CASCADE;
+DROP TYPE IF EXISTS bus_model_in_data CASCADE;
+DROP TYPE IF EXISTS bus_vehicle_in_data CASCADE;
+DROP TYPE IF EXISTS bus_call_in_data CASCADE;
+DROP TYPE IF EXISTS bus_journey_in_data CASCADE;
+DROP TYPE IF EXISTS bus_leg_in_data CASCADE;
 
-DROP TYPE IF EXISTS BusStopDetails CASCADE;
-DROP TYPE IF EXISTS BusOperatorDetails CASCADE;
-DROP TYPE IF EXISTS BusServiceDetails CASCADE;
-DROP TYPE IF EXISTS BusVehicleDetails CASCADE;
-DROP TYPE IF EXISTS BusJourneyDetails CASCADE;
-DROP TYPE IF EXISTS BusJourneyServiceDetails CASCADE;
-DROP TYPE IF EXISTS BusCallDetails CASCADE;
-DROP TYPE IF EXISTS BusCallStopDetails CASCADE;
-DROP TYPE IF EXISTS BusJourneyCallDetails CASCADE;
-DROP TYPE IF EXISTS BusLegServiceDetails CASCADE;
-DROP TYPE IF EXISTS BusLegUserDetails CASCADE;
-DROP TYPE IF EXISTS BusVehicleLegDetails CASCADE;
-DROP TYPE IF EXISTS BusVehicleUserDetails CASCADE;
-DROP TYPE IF EXISTS BusStopLegDetails CASCADE;
-DROP TYPE IF EXISTS BusStopUserDetails CASCADE;
+DROP TYPE IF EXISTS bus_stop_details CASCADE;
+DROP TYPE IF EXISTS bus_operator_details CASCADE;
+DROP TYPE IF EXISTS bus_service_details CASCADE;
+DROP TYPE IF EXISTS bus_vehicle_details CASCADE;
+DROP TYPE IF EXISTS bus_journey_details CASCADE;
+DROP TYPE IF EXISTS bus_journey_service_details CASCADE;
+DROP TYPE IF EXISTS bus_call_details CASCADE;
+DROP TYPE IF EXISTS bus_call_stop_details CASCADE;
+DROP TYPE IF EXISTS bus_journey_call_details CASCADE;
+DROP TYPE IF EXISTS bus_leg_service_details CASCADE;
+DROP TYPE IF EXISTS bus_leg_user_details CASCADE;
+DROP TYPE IF EXISTS bus_vehicle_leg_details CASCADE;
+DROP TYPE IF EXISTS bus_vehicle_user_details CASCADE;
+DROP TYPE IF EXISTS bus_stop_leg_details CASCADE;
+DROP TYPE IF EXISTS bus_stop_user_details CASCADE;
 
-CREATE TYPE BusStopInData AS (
-    atco_code TEXT,
-    naptan_code TEXT,
-    stop_name TEXT,
+CREATE TYPE bus_stop_in_data AS (
+    atco_code TEXT_NOTNULL,
+    naptan_code TEXT_NOTNULL,
+    stop_name TEXT_NOTNULL,
     landmark_name TEXT,
-    street_name TEXT,
+    street_name TEXT_NOTNULL,
     crossing_name TEXT,
     indicator TEXT,
-    bearing TEXT,
-    locality_name TEXT,
+    bearing TEXT_NOTNULL,
+    locality_name TEXT_NOTNULL,
     parent_locality_name TEXT,
     grandparent_locality_name TEXT,
     town_name TEXT,
@@ -42,73 +44,92 @@ CREATE TYPE BusStopInData AS (
     longitude DECIMAL
 );
 
-CREATE TYPE BusOperatorInData AS (
-    operator_name TEXT,
-    national_operator_code TEXT
+CREATE DOMAIN bus_stop_in_data_notnull AS bus_stop_in_data NOT NULL;
+
+CREATE TYPE bus_operator_in_data AS (
+    operator_name TEXT_NOTNULL,
+    national_operator_code TEXT_NOTNULL
 );
 
-CREATE TYPE BusServiceInData AS (
-    service_line TEXT,
-    bods_line_id TEXT,
-    service_operator_national_code TEXT,
-    service_outbound_description TEXT,
-    service_inbound_description TEXT
+CREATE DOMAIN bus_operator_in_data_notnull AS bus_operator_in_data NOT NULL;
+
+CREATE TYPE bus_service_in_data AS (
+    service_line TEXT_NOTNULL,
+    bods_line_id TEXT_NOTNULL,
+    service_operator_national_code TEXT_NOTNULL,
+    service_outbound_description TEXT_NOTNULL,
+    service_inbound_description TEXT_NOTNULL
 );
 
-CREATE TYPE BusServiceViaInData AS (
-    bods_line_id TEXT,
-    is_outbound BOOLEAN,
-    via_name TEXT,
-    via_index INT
+CREATE DOMAIN bus_service_in_data_notnull AS bus_service_in_data NOT NULL;
+
+CREATE TYPE bus_service_via_in_data AS (
+    bods_line_id TEXT_NOTNULL,
+    is_outbound BOOLEAN_NOTNULL,
+    via_name TEXT_NOTNULL,
+    via_index INTEGER_NOTNULL
 );
 
-CREATE TYPE BusModelInData AS (
-    model_name TEXT
+CREATE DOMAIN bus_service_via_in_data_notnull AS bus_service_via_in_data NOT NULL;
+
+CREATE TYPE bus_model_in_data AS (
+    model_name TEXT_NOTNULL
 );
 
-CREATE TYPE BusVehicleInData AS (
-    operator_id INT,
+CREATE DOMAIN bus_model_in_data_notnull AS bus_model_in_data NOT NULL;
+
+CREATE TYPE bus_vehicle_in_data AS (
+    operator_id INTEGER_NOTNULL,
     vehicle_identifier TEXT,
     bustimes_id TEXT,
-    vehicle_numberplate TEXT,
+    vehicle_numberplate TEXT_NOTNULL,
     vehicle_model TEXT,
     vehicle_livery_style TEXT,
     vehicle_name TEXT
 );
 
-CREATE TYPE BusCallInData AS (
-    call_index INT,
-    stop_atco TEXT,
+CREATE DOMAIN bus_vehicle_in_data_notnull AS bus_vehicle_in_data NOT NULL;
+
+CREATE TYPE bus_call_in_data AS (
+    call_index INTEGER_NOTNULL,
+    stop_name TEXT_NOTNULL,
+    stop_atco TEXT_NOTNULL,
     plan_arr TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE
 );
 
-CREATE TYPE BusJourneyInData AS (
+CREATE DOMAIN bus_call_in_data_notnull AS bus_call_in_data NOT NULL;
+
+CREATE TYPE bus_journey_in_data AS (
     bustimes_id TEXT,
-    service_id INT,
-    journey_calls BusCallInData[],
-    vehicle_id INT
+    service_id INTEGER_NOTNULL,
+    journey_calls bus_call_in_data[],
+    vehicle_id INTEGER
 );
 
-CREATE TYPE BusLegInData AS (
-    journey BusJourneyInData,
-    board_index INT,
-    alight_index INT
+CREATE DOMAIN bus_journey_in_data_notnull AS bus_journey_in_data NOT NULL;
+
+CREATE TYPE bus_leg_in_data AS (
+    journey bus_journey_in_data,
+    board_index INTEGER_NOTNULL,
+    alight_index INTEGER_NOTNULL
 );
 
-CREATE TYPE BusStopDetails AS (
-    bus_stop_id INT,
-    atco_code TEXT,
-    naptan_code TEXT,
-    stop_name TEXT,
+CREATE DOMAIN bus_leg_in_data_notnull AS bus_leg_in_data NOT NULL;
+
+CREATE TYPE bus_stop_details AS (
+    bus_stop_id INTEGER_NOTNULL,
+    atco_code TEXT_NOTNULL,
+    naptan_code TEXT_NOTNULL,
+    stop_name TEXT_NOTNULL,
     landmark_name TEXT,
-    street_name TEXT,
+    street_name TEXT_NOTNULL,
     crossing_name TEXT,
     indicator TEXT,
-    bearing TEXT,
-    locality_name TEXT,
+    bearing TEXT_NOTNULL,
+    locality_name TEXT_NOTNULL,
     parent_locality_name TEXT,
     grandparent_locality_name TEXT,
     town_name TEXT,
@@ -117,46 +138,56 @@ CREATE TYPE BusStopDetails AS (
     longitude DECIMAL
 );
 
-CREATE TYPE BusOperatorDetails AS (
-    bus_operator_id INT,
-    operator_name TEXT,
-    national_operator_code TEXT,
+CREATE DOMAIN bus_stop_details_notnull AS bus_stop_details NOT NULL;
+
+CREATE TYPE bus_operator_details AS (
+    bus_operator_id INTEGER_NOTNULL,
+    operator_name TEXT_NOTNULL,
+    national_operator_code TEXT_NOTNULL,
     bg_colour TEXT,
     fg_colour TEXT
 );
 
-CREATE TYPE BusServiceDetails AS (
-    bus_service_id INT,
-    bus_operator BusOperatorDetails,
-    service_line TEXT,
+CREATE DOMAIN bus_operator_details_notnull AS bus_operator_details NOT NULL;
+
+CREATE TYPE bus_service_details AS (
+    bus_service_id INTEGER_NOTNULL,
+    bus_operator bus_operator_details_notnull,
+    service_line TEXT_NOTNULL,
     description_outbound TEXT,
-    service_outbound_vias TEXT[],
+    service_outbound_vias TEXT_NOTNULL[],
     description_inbound TEXT,
-    service_inbound_vias TEXT[],
+    service_inbound_vias TEXT_NOTNULL[],
     bg_colour TEXT,
     fg_colour TEXT
 );
 
-CREATE TYPE BusVehicleDetails AS (
-    bus_vehicle_id INT,
-    bus_operator BusOperatorDetails,
+CREATE DOMAIN bus_service_details_notnull AS bus_service_details NOT NULL;
+
+CREATE TYPE bus_vehicle_details AS (
+    bus_vehicle_id INTEGER_NOTNULL,
+    bus_operator bus_operator_details,
     vehicle_identifier TEXT,
     bustimes_id TEXT,
-    vehicle_numberplate TEXT,
+    vehicle_numberplate TEXT_NOTNULL,
     vehicle_model TEXT,
     vehicle_livery_style TEXT,
     vehicle_name TEXT
 );
 
-CREATE TYPE BusJourneyServiceDetails AS (
-    service_id INT,
-    service_operator BusOperatorDetails,
-    service_line TEXT,
+CREATE DOMAIN bus_vehicle_details_notnull AS bus_vehicle_details NOT NULL;
+
+CREATE TYPE bus_journey_service_details AS (
+    service_id INTEGER_NOTNULL,
+    service_operator bus_operator_details,
+    service_line TEXT_NOTNULL,
     bg_colour TEXT,
     fg_colour TEXT
 );
 
-CREATE TYPE BusCallStopDetails AS (
+CREATE DOMAIN bus_journey_service_details_notnull AS bus_journey_service_details NOT NULL;
+
+CREATE TYPE bus_call_stop_details AS (
     bus_stop_id BIGINT,
     stop_atco TEXT,
     stop_name TEXT,
@@ -165,81 +196,99 @@ CREATE TYPE BusCallStopDetails AS (
     stop_indicator TEXT
 );
 
-CREATE TYPE BusJourneyCallDetails AS (
-    call_id INT,
+CREATE DOMAIN bus_call_stop_details_notnull AS bus_call_stop_details NOT NULL;
+
+CREATE TYPE bus_journey_call_details AS (
+    call_id INTEGER_NOTNULL,
     call_index INT,
-    bus_stop BusCallStopDetails,
+    bus_stop bus_call_stop_details,
     plan_arr TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE
 );
 
-CREATE TYPE BusJourneyDetails AS (
-    journey_id INT,
-    journey_service BusJourneyServiceDetails,
-    journey_calls BusJourneyCallDetails[],
-    journey_vehicle BusVehicleDetails
+CREATE DOMAIN bus_journey_call_details_notnull AS bus_journey_call_details NOT NULL;
+
+CREATE TYPE bus_journey_details AS (
+    journey_id INTEGER_NOTNULL,
+    journey_service bus_journey_service_details,
+    journey_calls bus_journey_call_details[],
+    journey_vehicle bus_vehicle_details
 );
 
-CREATE TYPE BusLegServiceDetails AS (
-    service_id INT,
+CREATE DOMAIN bus_journey_details_notnull AS bus_journey_details NOT NULL;
+
+CREATE TYPE bus_leg_service_details AS (
+    service_id INTEGER_NOTNULL,
     service_line TEXT,
-    bus_operator BusOperatorDetails,
+    bus_operator bus_operator_details,
     outbound_description TEXT,
     inbound_description TEXT,
     bg_colour TEXT,
     fg_colour TEXT
 );
 
-CREATE TYPE BusCallDetails AS (
-    bus_call_id INT,
+CREATE DOMAIN bus_leg_service_details_notnull AS bus_leg_service_details NOT NULL;
+
+CREATE TYPE bus_call_details AS (
+    bus_call_id INTEGER_NOTNULL,
     call_index INT,
-    bus_stop BusCallStopDetails,
+    bus_stop bus_call_stop_details,
     plan_arr TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
     act_dep TIMESTAMP WITH TIME ZONE
 );
 
-CREATE TYPE BusLegUserDetails AS (
-    leg_id INT,
-    service BusLegServiceDetails,
-    vehicle BusVehicleDetails,
-    calls BusCallDetails[],
+CREATE DOMAIN bus_call_details_notnull AS bus_call_details NOT NULL;
+
+CREATE TYPE bus_leg_user_details AS (
+    leg_id INTEGER_NOTNULL,
+    service bus_leg_service_details,
+    vehicle bus_vehicle_details,
+    calls bus_call_details[],
     duration INTERVAL
 );
 
-CREATE TYPE BusVehicleLegDetails AS (
-    leg_id INT,
-    bus_service BusLegServiceDetails,
-    board_call BusCallDetails,
-    alight_call BusCallDetails,
+CREATE DOMAIN bus_leg_user_details_notnull AS bus_leg_user_details NOT NULL;
+
+CREATE TYPE bus_vehicle_leg_details AS (
+    leg_id INTEGER_NOTNULL,
+    bus_service bus_leg_service_details,
+    board_call bus_call_details,
+    alight_call bus_call_details,
     duration INTERVAL
 );
 
-CREATE TYPE BusVehicleUserDetails AS (
-    vehicle_id INT,
+CREATE DOMAIN bus_vehicle_leg_details_notnull AS bus_vehicle_leg_details NOT NULL;
+
+CREATE TYPE bus_vehicle_user_details AS (
+    vehicle_id INTEGER_NOTNULL,
     identifier TEXT,
     name TEXT,
     numberplate TEXT,
-    operator BusOperatorDetails,
-    legs BusVehicleLegDetails[],
+    operator bus_operator_details,
+    legs bus_vehicle_leg_details[],
     duration INTERVAL
 );
 
-CREATE TYPE BusStopLegDetails AS (
-    leg_id INT,
-    bus_service BusLegServiceDetails,
-    board_call BusCallDetails,
-    alight_call BusCallDetails,
-    this_call BusCallDetails,
+CREATE DOMAIN bus_vehicle_user_details_notnull AS bus_vehicle_user_details NOT NULL;
+
+CREATE TYPE bus_stop_leg_details AS (
+    leg_id INTEGER_NOTNULL,
+    bus_service bus_leg_service_details,
+    board_call bus_call_details,
+    alight_call bus_call_details,
+    this_call bus_call_details,
     stops_before INT,
     stops_after INT
 );
 
-CREATE TYPE BusStopUserDetails AS (
-    stop_id INT,
+CREATE DOMAIN bus_stop_leg_details_notnull AS bus_stop_leg_details NOT NULL;
+
+CREATE TYPE bus_stop_user_details AS (
+    stop_id INTEGER_NOTNULL,
     atco_code TEXT,
     naptan_code TEXT,
     stop_name TEXT,
@@ -255,5 +304,7 @@ CREATE TYPE BusStopUserDetails AS (
     suburb_name TEXT,
     latitude DECIMAL,
     longitude DECIMAL,
-    stop_legs BusStopLegDetails[]
+    stop_legs bus_stop_leg_details[]
 );
+
+CREATE DOMAIN bus_stop_user_details_notnull AS bus_stop_user_details NOT NULL;

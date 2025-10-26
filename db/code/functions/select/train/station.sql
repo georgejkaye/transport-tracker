@@ -1,15 +1,14 @@
-DROP FUNCTION IF EXISTS select_station_by_crs;
-DROP FUNCTION IF EXISTS select_station_by_name;
-DROP FUNCTION IF EXISTS select_stations_by_name_substring;
+DROP FUNCTION IF EXISTS select_train_station_by_crs;
+DROP FUNCTION IF EXISTS select_train_station_by_name;
+DROP FUNCTION IF EXISTS select_train_stations_by_name_substring;
 
-DROP VIEW IF EXISTS train_station_points_view;
 DROP FUNCTION IF EXISTS select_train_station_points_by_crses;
 DROP FUNCTION IF EXISTS select_train_station_points_by_name;
 DROP FUNCTION IF EXISTS select_train_station_points_by_names;
 DROP FUNCTION IF EXISTS select_train_station_leg_points_by_name_lists;
 
-CREATE OR REPLACE FUNCTION select_station_by_crs (
-    p_station_crs TEXT
+CREATE OR REPLACE FUNCTION select_train_station_by_crs (
+    p_station_crs TEXT_NOTNULL
 )
 RETURNS SETOF train_station_out_data
 LANGUAGE sql
@@ -25,8 +24,8 @@ FROM train_station
 WHERE LOWER(station_crs) = LOWER(p_station_crs)
 $$;
 
-CREATE OR REPLACE FUNCTION select_station_by_name (
-    p_station_name TEXT
+CREATE OR REPLACE FUNCTION select_train_station_by_name (
+    p_station_name TEXT_NOTNULL
 )
 RETURNS SETOF train_station_out_data
 LANGUAGE sql
@@ -45,8 +44,8 @@ WHERE LOWER(station_name) = LOWER(p_station_name)
 OR LOWER(alternate_station_name) = LOWER(p_station_name);
 $$;
 
-CREATE OR REPLACE FUNCTION select_stations_by_name_substring (
-    p_name_substring TEXT
+CREATE OR REPLACE FUNCTION select_train_stations_by_name_substring (
+    p_name_substring TEXT_NOTNULL
 )
 RETURNS SETOF train_station_out_data
 LANGUAGE sql
@@ -63,29 +62,25 @@ WHERE LOWER(station_name) LIKE '%' || LOWER(p_name_substring) || '%'
 ORDER BY station_name;
 $$;
 
-CREATE VIEW train_station_points_view AS
+CREATE OR REPLACE FUNCTION select_train_station_points ()
+RETURNS SETOF train_station_points_out_data
+LANGUAGE sql
+AS
+$$
 SELECT
-    train_station.train_station_id,
-    train_station.station_crs,
-    train_station.station_name,
-    ARRAY_AGG(
-        (
-            train_station_point.platform,
-            train_station_point.latitude,
-            train_station_point.longitude
-        )::train_station_point_out_data
-        ORDER BY train_station_point.platform
-    ) AS platform_points
-FROM train_station
-INNER JOIN train_station_point
-ON train_station.train_station_id = train_station_point.train_station_id
-GROUP BY
-    train_station.train_station_id,
-    train_station.station_crs,
-    train_station.station_name;
+    train_station_points_view.train_station_id,
+    train_station_points_view.station_crs,
+    train_station_points_view.station_name,
+    train_station_points_view.station_name,
+    train_station_points_view.platform_points
+FROM train_station_points_view
+LEFT JOIN train_station_name
+ON train_station_points_view.train_station_id
+    = train_station_name.train_station_id
+$$;
 
 CREATE OR REPLACE FUNCTION select_train_station_points_by_crses (
-    p_station_crses TEXT[]
+    p_station_crses TEXT_NOTNULL[]
 )
 RETURNS SETOF train_station_points_out_data
 LANGUAGE sql
@@ -111,7 +106,7 @@ ORDER BY train_station_search_crs.ordinality;
 $$;
 
 CREATE OR REPLACE FUNCTION select_train_station_points_by_name (
-    p_station_name TEXT
+    p_station_name TEXT_NOTNULL
 )
 RETURNS SETOF train_station_points_out_data
 LANGUAGE sql
@@ -132,7 +127,7 @@ OR train_station_name.alternate_station_name = p_station_name;
 $$;
 
 CREATE OR REPLACE FUNCTION select_train_station_points_by_names (
-    p_station_names TEXT[]
+    p_station_names TEXT_NOTNULL[]
 )
 RETURNS SETOF train_station_points_out_data
 LANGUAGE sql
@@ -160,7 +155,7 @@ ORDER BY train_station_search_name.ordinality;
 $$;
 
 CREATE OR REPLACE FUNCTION select_train_station_leg_points_by_name_lists (
-    p_station_names train_station_leg_names_in_data[]
+    p_station_names train_station_leg_names_in_data_notnull[]
 )
 RETURNS SETOF train_station_leg_points_out_data
 LANGUAGE sql

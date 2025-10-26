@@ -1,11 +1,11 @@
-DROP FUNCTION IF EXISTS select_operator_id_by_name;
+DROP FUNCTION IF EXISTS select_train_operator_id_by_name;
 DROP FUNCTION IF EXISTS select_brands_by_operator_code;
-DROP FUNCTION IF EXISTS select_operator_by_operator_code;
-DROP FUNCTION IF EXISTS select_operator_details;
+DROP FUNCTION IF EXISTS select_train_operator_by_operator_code;
+DROP FUNCTION IF EXISTS select_train_operator_details;
 
 CREATE OR REPLACE FUNCTION select_brands_by_operator_code (
-    p_operator_code TEXT,
-    p_run_date TIMESTAMP WITH TIME ZONE
+    p_operator_code TEXT_NOTNULL,
+    p_run_date TIMESTAMP_NOTNULL
 )
 RETURNS SETOF train_brand_out_data
 LANGUAGE sql
@@ -25,9 +25,9 @@ AND p_run_date::date <@ train_operator.operation_range
 ORDER BY train_brand.brand_name;
 $$;
 
-CREATE OR REPLACE FUNCTION select_operator_by_operator_code (
-    p_operator_code TEXT,
-    p_run_date TIMESTAMP WITH TIME ZONE
+CREATE OR REPLACE FUNCTION select_train_operator_by_operator_code (
+    p_operator_code TEXT_NOTNULL,
+    p_run_date TIMESTAMP_NOTNULL
 )
 RETURNS SETOF train_operator_out_data
 LANGUAGE sql
@@ -61,7 +61,7 @@ WHERE train_operator.operator_code = p_operator_code
 AND train_operator.operation_range @> p_run_date::date;
 $$;
 
-CREATE OR REPLACE FUNCTION select_operator_details ()
+CREATE OR REPLACE FUNCTION select_train_operator_details ()
 RETURNS SETOF train_operator_details_out_data
 LANGUAGE sql
 AS

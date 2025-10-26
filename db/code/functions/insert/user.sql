@@ -1,3 +1,5 @@
+DROP FUNCTION IF EXISTS insert_user CASCADE;
+
 CREATE OR REPLACE FUNCTION insert_user (
     p_username TEXT,
     p_display_name TEXT,

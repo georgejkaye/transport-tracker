@@ -1,8 +1,8 @@
 DROP FUNCTION IF EXISTS insert_train_leg;
 
 CREATE OR REPLACE FUNCTION insert_train_leg (
-    p_users INTEGER[],
-    p_leg train_leg_in_data
+    p_users INTEGER_NOTNULL[],
+    p_leg train_leg_in_data_notnull
 )
 RETURNS INTEGER_NOTNULL
 LANGUAGE plpgsql

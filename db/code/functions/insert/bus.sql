@@ -1,5 +1,5 @@
 CREATE OR REPLACE FUNCTION InsertBusStops (
-    p_stops BusStopInData[]
+    p_stops bus_stop_in_data_notnull[]
 ) RETURNS VOID
 LANGUAGE plpgsql
 AS
@@ -42,7 +42,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION InsertBusOperators (
-    p_operators BusOperatorInData[]
+    p_operators bus_operator_in_data_notnull[]
 ) RETURNS VOID
 LANGUAGE plpgsql
 AS
@@ -60,7 +60,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION InsertBusServices (
-    p_services BusServiceInData[]
+    p_services bus_service_in_data_notnull[]
 ) RETURNS VOID
 LANGUAGE plpgsql
 AS
@@ -89,7 +89,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION InsertBusServiceVias (
-    p_vias BusServiceViaInData[]
+    p_vias bus_service_via_in_data_notnull[]
 ) RETURNS VOID
 LANGUAGE plpgsql
 AS
@@ -113,8 +113,8 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION InsertTransXChangeBusData (
-    p_services BusServiceInData[],
-    p_vias BusServiceViaInData[]
+    p_services bus_service_in_data_notnull[],
+    p_vias bus_service_via_in_data_notnull[]
 ) RETURNS VOID
 LANGUAGE plpgsql
 AS
@@ -126,7 +126,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION InsertBusModels (
-    p_models BusModelInData[]
+    p_models bus_model_in_data_notnull[]
 ) RETURNS VOID
 LANGUAGE plpgsql
 AS
@@ -140,7 +140,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION InsertBusVehicles (
-    p_vehicles BusVehicleInData[]
+    p_vehicles bus_vehicle_in_data_notnull[]
 ) RETURNS VOID
 LANGUAGE plpgsql
 AS
@@ -171,8 +171,8 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION InsertBusModelsAndVehicles (
-    p_models BusModelInData[],
-    p_vehicles BusVehicleInData[]
+    p_models bus_model_in_data_notnull[],
+    p_vehicles bus_vehicle_in_data_notnull[]
 ) RETURNS VOID
 LANGUAGE plpgsql
 AS
@@ -184,8 +184,8 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION InsertBusCalls (
-    p_journey_id INT,
-    p_calls BusCallInData[]
+    p_journey_id INTEGER_NOTNULL,
+    p_calls bus_call_in_data_notnull[]
 ) RETURNS VOID
 LANGUAGE plpgsql
 AS
@@ -214,7 +214,7 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION InsertBusJourney (
-    p_journey BusJourneyInData
+    p_journey bus_journey_in_data_notnull
 ) RETURNS INT
 LANGUAGE plpgsql
 AS
@@ -233,8 +233,8 @@ END;
 $$;
 
 CREATE OR REPLACE FUNCTION InsertBusLeg (
-    p_users INT[],
-    p_leg BusLegInData
+    p_users INTEGER_NOTNULL[],
+    p_leg bus_leg_in_data_notnull
 ) RETURNS VOID
 LANGUAGE plpgsql
 AS
