@@ -5,8 +5,13 @@ from typing import Optional
 from bs4 import BeautifulSoup
 from psycopg import Connection
 
-from api.classes.bus.journey import BusCallIn, BusJourneyTimetable
+from api.classes.bus.journey import BusJourneyTimetable
 from api.classes.bus.stop import BusStopDeparture, BusStopDetails
+from api.db.functions.select.bus import (
+    select_bus_operator_details_by_national_operator_code_fetchone,
+    select_bus_service_details_by_operator_id_and_line_name_fetchone,
+)
+from api.db.types.bus import BusCallInData
 from api.utils.request import get_soup
 from api.utils.times import make_timezone_aware
 
@@ -58,7 +63,7 @@ def get_bus_journey(
     trip_script_dict = json.loads(trip_script.text)
     service_operator_noc = trip_script_dict["operator"]["noc"]
 
-    operator = get_bus_operator_from_national_operator_code(
+    operator = select_bus_operator_details_by_national_operator_code_fetchone(
         conn, service_operator_noc
     )
     if operator is None:
@@ -66,8 +71,10 @@ def get_bus_journey(
         return None
 
     service_line = trip_script_dict["service"]["line_name"]
-    bus_service = get_service_from_line_and_operator(
-        conn, service_line, operator
+    bus_service = (
+        select_bus_service_details_by_operator_id_and_line_name_fetchone(
+            conn, operator.bus_operator_id, service_line
+        )
     )
 
     if bus_service is None:
@@ -76,7 +83,7 @@ def get_bus_journey(
 
     service_calls = trip_script_dict["times"]
     is_after_ref = False
-    service_call_objects: list[BusCallIn] = []
+    service_call_objects: list[BusCallInData] = []
 
     ref_departure_time = ref_departure.dep_time
     board_call_index = None
@@ -129,11 +136,10 @@ def get_bus_journey(
                 else:
                     plan_dep_date = ref_departure_time.date()
             plan_dep = datetime.combine(plan_dep_date, plan_dep.time())
-        call_object = BusCallIn(
+        call_object = BusCallInData(
             i, call_id, call_name, plan_arr, None, plan_dep, None
         )
-
-        if call_id == ref_stop.atco and not is_after_ref:
+        if call_id == ref_stop.atco_code and not is_after_ref:
             is_after_ref = True
             board_call_index = i
         service_call_objects.append(call_object)

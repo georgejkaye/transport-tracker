@@ -9,7 +9,7 @@ from psycopg import Connection
 
 from api.classes.train.operators import OperatorBrandLookup
 from api.db.functions.select.train.operator import (
-    select_operator_details_fetchall,
+    select_train_operator_details_fetchall,
 )
 from api.db.types.register import register_types
 from api.db.types.train.operator import TrainOperatorDetailsOutData
@@ -84,7 +84,7 @@ def get_train_operator_brand_colour(
 def initialise_train_operator_brand_lookup(
     conn: Connection,
 ) -> OperatorBrandLookup:
-    operator_details = select_operator_details_fetchall(conn)
+    operator_details = select_train_operator_details_fetchall(conn)
     operators: dict[int, TrainOperatorDetailsOutData] = {}
     brands: dict[int, TrainOperatorDetailsOutData] = {}
     for operator in operator_details:

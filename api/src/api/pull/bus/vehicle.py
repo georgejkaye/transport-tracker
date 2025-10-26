@@ -2,13 +2,12 @@ from typing import Optional
 
 from bs4 import BeautifulSoup
 
-from api.classes.bus.operators import BusOperatorDetails
-from api.classes.bus.vehicle import BusVehicleIn
+from api.db.types.bus import BusOperatorDetails, BusVehicleInData
 from api.utils.request import get_soup
 
 
 def get_bus_operator_url(operator: BusOperatorDetails) -> str:
-    return f"https://bustimes.org/operators/{operator.national_code}"
+    return f"https://bustimes.org/operators/{operator.national_operator_code}"
 
 
 def get_bus_operator_page(
@@ -27,7 +26,7 @@ name_column_title = "Name"
 
 def get_bus_operator_vehicles(
     operator: BusOperatorDetails,
-) -> list[BusVehicleIn]:
+) -> list[BusVehicleInData]:
     operator_soup = get_bus_operator_page(operator)
     if operator_soup is None:
         return []
@@ -65,7 +64,7 @@ def get_bus_operator_vehicles(
         else:
             current_col = current_col + 1
     vehicle_rows = vehicles_soup.select("table.fleet tbody tr")
-    vehicles: list[BusVehicleIn] = []
+    vehicles: list[BusVehicleInData] = []
     for vehicle_row in vehicle_rows:
         bustimes_id = str(vehicle_row["id"]).strip()
         vehicle_cols = vehicle_row.select("td")
@@ -89,8 +88,8 @@ def get_bus_operator_vehicles(
                 vehicle_livery = None
             else:
                 vehicle_livery = None
-            vehicle_object = BusVehicleIn(
-                operator.id,
+            vehicle_object = BusVehicleInData(
+                operator.bus_operator_id,
                 vehicle_id,
                 bustimes_id,
                 vehicle_numberplate,

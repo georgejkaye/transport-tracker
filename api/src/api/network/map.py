@@ -30,14 +30,18 @@ from api.classes.network.map import (
 )
 from api.classes.train.legs import (
     DbTrainLegCallPointPointsOutData,
-    DbTrainLegPointsOutData,
 )
 from api.classes.train.station import DbTrainStationPointPointsOutData
 from api.db.functions.select.train.leg import (
     select_train_leg_points_by_leg_id_fetchone,
     select_train_leg_points_by_leg_ids_fetchall,
+    select_train_leg_points_by_user_id_fetchall,
+)
+from api.db.functions.select.train.station import (
+    select_train_station_leg_points_by_name_lists_fetchall,
 )
 from api.db.types.train.leg import TrainLegPointsOutData
+from api.db.types.train.station import TrainStationLegNamesInData
 from api.library.folium import create_polyline, render_map
 from api.network.pathfinding import get_leg_line_geometry_for_leg
 
@@ -281,7 +285,7 @@ def get_leg_line_geometry_for_leg_id(
 
 def get_leg_lines_for_leg_points(
     network: MultiDiGraph[int],
-    leg_points: list[DbTrainLegPointsOutData],
+    leg_points: list[TrainLegPointsOutData],
     get_train_operator_brand_colour: Callable[
         [int, Optional[int]], Optional[str]
     ],
@@ -387,7 +391,7 @@ def get_leg_line_geometries_for_leg_ids(
     network: MultiDiGraph[int],
     leg_ids: list[int],
 ) -> list[TrainLegGeometry]:
-    leg_points = select_train_leg_points_by_leg_ids(conn, leg_ids)
+    leg_points = select_train_leg_points_by_leg_ids_fetchall(conn, leg_ids)
     return get_train_leg_geometries_for_leg_points(network, leg_points)
 
 
@@ -395,11 +399,13 @@ def get_leg_lines_for_user_id(
     conn: Connection,
     network: MultiDiGraph[int],
     user_id: int,
-    get_train_operator_brand_colour: Callable[[int, Optional[int]], str],
+    get_train_operator_brand_colour: Callable[
+        [int, Optional[int]], Optional[str]
+    ],
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
 ) -> list[LegLine[DbTrainLegCallPointPointsOutData]]:
-    leg_points = select_train_leg_points_by_user_id(
+    leg_points = select_train_leg_points_by_user_id_fetchall(
         conn, user_id, start_date, end_date
     )
     return get_leg_lines_for_leg_points(
@@ -414,7 +420,7 @@ def get_leg_line_geometries_for_user_id(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
 ) -> list[TrainLegGeometry]:
-    leg_points = select_train_leg_points_by_user_id(
+    leg_points = select_train_leg_points_by_user_id_fetchall(
         conn, user_id, start_date, end_date
     )
     return get_train_leg_geometries_for_leg_points(network, leg_points)
@@ -432,8 +438,8 @@ def get_leg_lines_for_leg_data(
                 station_names.append(via_station)
         station_names.append(leg.alight_station)
         station_leg_names.append(station_names)
-    leg_station_points = select_train_station_leg_points_by_names(
-        conn, station_leg_names
+    leg_station_points = select_train_station_leg_points_by_name_lists_fetchall(
+        conn, [TrainStationLegNamesInData(names) for names in station_leg_names]
     )
     return [
         LegLine(
@@ -502,7 +508,9 @@ def get_leg_map_page_by_user_id(
     network: MultiDiGraph[int],
     conn: Connection,
     user_id: int,
-    get_train_operator_brand_colour: Callable[[int, Optional[int]], str],
+    get_train_operator_brand_colour: Callable[
+        [int, Optional[int]], Optional[str]
+    ],
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
 ) -> str:

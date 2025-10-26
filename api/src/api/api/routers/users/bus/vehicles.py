@@ -1,14 +1,20 @@
 from fastapi import APIRouter, HTTPException
 
 from api.api.lifespan import get_db_connection
-from api.classes.bus.overview import BusVehicleUserDetails
+from api.db.functions.select.bus import (
+    select_bus_vehicle_user_details_by_user_id_and_vehicle_id_fetchone,
+    select_bus_vehicle_user_details_by_user_id_fetchall,
+)
+from api.db.types.bus import BusVehicleUserDetails
 
 router = APIRouter(prefix="/vehicles", tags=["users/bus/vehicles"])
 
 
 @router.get("/", summary="Get bus vehicles for a user")
 async def get_vehicles_for_user(user_id: int) -> list[BusVehicleUserDetails]:
-    vehicles = get_bus_vehicle_overviews_for_user(get_db_connection(), user_id)
+    vehicles = select_bus_vehicle_user_details_by_user_id_fetchall(
+        get_db_connection(), user_id
+    )
     return vehicles
 
 
@@ -16,8 +22,10 @@ async def get_vehicles_for_user(user_id: int) -> list[BusVehicleUserDetails]:
 async def get_vehicle_for_user(
     user_id: int, vehicle_id: int
 ) -> BusVehicleUserDetails:
-    vehicle = get_bus_vehicle_overview_for_user(
-        get_db_connection(), user_id, vehicle_id
+    vehicle = (
+        select_bus_vehicle_user_details_by_user_id_and_vehicle_id_fetchone(
+            get_db_connection(), user_id, vehicle_id
+        )
     )
     if vehicle is None:
         raise HTTPException(404, "Could not find user or vehicle")

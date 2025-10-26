@@ -13,6 +13,9 @@ from osmnx import settings as oxsettings
 from shapely import LineString, Point, geometry, ops
 
 from api.classes.train.station import StationPoint
+from api.db.types.train.station import (
+    TrainStationPointsOutData,
+)
 from api.library.networkx import (
     add_edge,
     add_node,
@@ -299,7 +302,6 @@ def insert_nodes_to_network(
     project_network: bool = True,
 ) -> MultiDiGraph[int]:
     for station in stations:
-        print(f"Inserting {string_of_station_point(station)}")
         network = insert_node_to_network(
             network,
             station.point,
@@ -311,13 +313,19 @@ def insert_nodes_to_network(
 
 def insert_node_dict_to_network(
     network: MultiDiGraph[int],
-    stations: dict[str, dict[Optional[str], StationPoint]],
+    stations: list[TrainStationPointsOutData],
     project_network: bool = False,
 ) -> MultiDiGraph[int]:
     nodes: list[StationPoint] = []
-    for station_key in stations.keys():
-        for platform_key in stations[station_key].keys():
-            nodes.append(stations[station_key][platform_key])
+    for station in stations:
+        for platform in station.platform_points:
+            nodes.append(
+                StationPoint(
+                    station.station_crs,
+                    platform.platform,
+                    Point(float(platform.longitude), float(platform.latitude)),
+                )
+            )
     return insert_nodes_to_network(network, nodes, project_network)
 
 

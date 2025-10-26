@@ -4,10 +4,13 @@ from typing import Any, Optional
 from psycopg import Connection
 
 from api.classes.train.station import (
-    DbTrainStationOutData,
     TrainServiceAtStation,
     TrainStationIdentifiers,
 )
+from api.db.functions.select.train.station import (
+    select_train_station_by_name_fetchone,
+)
+from api.db.types.train.station import TrainStationOutData
 from api.utils.credentials import get_api_credentials
 from api.utils.request import make_get_request
 from api.utils.times import get_datetime_route, make_timezone_aware
@@ -16,7 +19,7 @@ station_endpoint = "https://api.rtt.io/api/v1/json/search"
 
 
 def get_services_at_station(
-    conn: Connection, station: DbTrainStationOutData, dt: datetime
+    conn: Connection, station: TrainStationOutData, dt: datetime
 ) -> list[TrainServiceAtStation]:
     endpoint = f"{station_endpoint}/{station.station_crs}/{get_datetime_route(dt, True)}"
     rtt_credentials = get_api_credentials("RTT")
@@ -37,11 +40,13 @@ def response_to_train_station_identifiers(
     conn: Connection, data: dict[str, Any]
 ) -> TrainStationIdentifiers:
     name = data["description"]
-    station = select_station_by_name(conn, name)
+    station = select_train_station_by_name_fetchone(conn, name)
     if station is None:
         print(f"No station with name {name} found. Please update the database.")
         exit(1)
-    return TrainStationIdentifiers(station.station_crs.upper(), name)
+    return TrainStationIdentifiers(
+        station.station_crs.upper(), station.station_name
+    )
 
 
 def response_to_datetime(

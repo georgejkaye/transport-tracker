@@ -1,5 +1,8 @@
 import sys
 
+from api.db.functions.select.train.station import (
+    select_train_station_points_fetchall,
+)
 from api.library.networkx import (
     get_nodes,
     load_osmnx_graphml,
@@ -25,7 +28,7 @@ else:
 projected_network = project_graph(network, to_crs=osgb36)
 
 with connect_with_env() as conn:
-    station_points = get_station_points(conn)
+    station_points = select_train_station_points_fetchall(conn)
 
 projected_network = insert_node_dict_to_network(
     projected_network, station_points, False

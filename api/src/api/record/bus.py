@@ -4,20 +4,27 @@ from typing import Optional
 from psycopg import Connection
 
 from api.classes.bus.journey import (
-    BusCallIn,
-    BusJourneyIn,
     string_of_bus_call_in,
 )
-from api.classes.bus.leg import BusLegIn
-from api.classes.bus.operators import BusOperatorDetails
 from api.classes.bus.stop import (
     BusStopDeparture,
-    BusStopDetails,
     short_string_of_bus_stop_departure,
     short_string_of_bus_stop_details,
 )
-from api.classes.bus.vehicle import BusVehicleDetails
-from api.classes.users.users import User
+from api.db.functions.select.bus import (
+    select_bus_stop_details_by_name_fetchall,
+    select_bus_vehicle_details_fetchall,
+    select_bus_vehicle_details_fetchone,
+)
+from api.db.types.bus import (
+    BusCallInData,
+    BusJourneyInData,
+    BusLegInData,
+    BusOperatorDetails,
+    BusStopDetails,
+    BusVehicleDetails,
+)
+from api.db.types.user.user import TransportUserOutData
 from api.pull.bus.journey import get_bus_journey
 from api.pull.bus.stop import get_departures_from_bus_stop
 from api.utils.database import connect, get_db_connection_data_from_args
@@ -40,7 +47,7 @@ def get_bus_stop_input(
     search_string = input_text("Bus stop name")
     if search_string is None:
         return None
-    bus_stops = get_bus_stops(conn, search_string)
+    bus_stops = select_bus_stop_details_by_name_fetchall(conn, search_string)
     bus_stop_choice = input_select_paginate(
         "Select bus stop", bus_stops, display=short_string_of_bus_stop_details
     )
@@ -67,8 +74,8 @@ def get_bus_stop_departure_input(
 
 
 def get_alight_stop_input(
-    calls: list[BusCallIn], board_call_index: int
-) -> Optional[tuple[BusCallIn, int]]:
+    calls: list[BusCallInData], board_call_index: int
+) -> Optional[tuple[BusCallInData, int]]:
     possible_alight_calls = calls[board_call_index + 1 :]
     alight_choice = input_select_paginate(
         "Alight call",
@@ -99,8 +106,8 @@ def get_bus_vehicle(
     vehicle_id = input_text("Vehicle id")
     if vehicle_id is None:
         return None
-    vehicles = get_bus_vehicles_by_operator_and_id(
-        conn, bus_operator, vehicle_id
+    vehicles = select_bus_vehicle_details_fetchall(
+        conn, bus_operator.bus_operator_id, vehicle_id
     )
     if len(vehicles) == 1:
         return vehicles[0]
@@ -109,9 +116,9 @@ def get_bus_vehicle(
         if vehicle is not None:
             return vehicle
     information(
-        f"Vehicle {vehicle_id} not found for operator {bus_operator.name}, falling back to all operators"
+        f"Vehicle {vehicle_id} not found for operator {bus_operator.operator_name}, falling back to all operators"
     )
-    vehicles = get_bus_vehicles_by_id(conn, vehicle_id)
+    vehicles = select_bus_vehicle_details_fetchall(conn, None, vehicle_id)
     if len(vehicles) == 0:
         information(f"No vehicles found with id {vehicle_id}")
         return None
@@ -119,8 +126,8 @@ def get_bus_vehicle(
 
 
 def get_bus_leg_input(
-    conn: Connection, users: list[User]
-) -> Optional[BusLegIn]:
+    conn: Connection, users: list[TransportUserOutData]
+) -> Optional[BusLegInData]:
     board_stop = get_bus_stop_input(conn, prompt="Board stop")
     if board_stop is None:
         print("Could not get board stop")
@@ -201,12 +208,11 @@ def get_bus_leg_input(
 
     vehicle = get_bus_vehicle(conn, journey_timetable.operator)
 
-    journey = BusJourneyIn(
+    journey = BusJourneyInData(
         journey_timetable.id,
-        journey_timetable.operator,
         journey_timetable.service,
         journey_timetable.calls,
-        vehicle,
+        vehicle.vehicle_id if vehicle is not None else None,
     )
     leg = BusLegIn(journey, board_call_index, alight_call_index)
     insert_leg(conn, users, leg)

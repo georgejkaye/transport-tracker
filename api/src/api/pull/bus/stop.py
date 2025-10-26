@@ -3,7 +3,8 @@ from typing import Optional
 
 from bs4 import BeautifulSoup, Tag
 
-from api.classes.bus.stop import BusStopDeparture, BusStopDetails
+from api.classes.bus.stop import BusStopDeparture
+from api.db.types.bus import BusStopDetails
 from api.utils.request import get_soup
 
 
@@ -11,9 +12,9 @@ def get_bus_stop_page_url(
     bus_stop: BusStopDetails, search_datetime: datetime = datetime.now()
 ) -> str:
     return (
-        f"https://bustimes.org/stops/{bus_stop.atco}"
-        + f"?date={search_datetime.strftime("%Y-%m-%d")}"
-        + f"&time={search_datetime.strftime("%H:%M")}"
+        f"https://bustimes.org/stops/{bus_stop.atco_code}"
+        + f"?date={search_datetime.strftime('%Y-%m-%d')}"
+        + f"&time={search_datetime.strftime('%H:%M')}"
     )
 
 

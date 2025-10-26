@@ -9,6 +9,9 @@ from api.classes.network.map import (
     MarkerTextParams,
 )
 from api.classes.train.station import DbTrainStationPointPointsOutData
+from api.db.functions.select.train.station import (
+    select_train_station_points_by_crses_fetchall,
+)
 from api.network.map import (
     LegData,
     get_leg_map,
@@ -30,7 +33,7 @@ async def get_route_between_stations(
     from_platform: Optional[str] = None,
     to_platform: Optional[str] = None,
 ) -> str:
-    station_points = select_train_station_points_by_crses(
+    station_points = select_train_station_points_by_crses_fetchall(
         get_db_connection(), [from_crs, to_crs]
     )
     if len(station_points) != 2:

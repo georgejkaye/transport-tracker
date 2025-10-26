@@ -10,10 +10,10 @@ class TrainLegCallGeometry:
     station_crs: str
     station_name: str
     platform: Optional[str]
-    plan_arr: datetime
-    act_arr: datetime
-    plan_dep: datetime
-    act_dep: datetime
+    plan_arr: Optional[datetime]
+    act_arr: Optional[datetime]
+    plan_dep: Optional[datetime]
+    act_dep: Optional[datetime]
     x: Optional[Decimal]
     y: Optional[Decimal]
 
