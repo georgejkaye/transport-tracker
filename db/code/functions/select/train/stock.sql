@@ -1,6 +1,6 @@
-DROP FUNCTION IF EXISTS select_operator_stock;
+DROP FUNCTION IF EXISTS select_train_operator_stock;
 
-CREATE OR REPLACE FUNCTION select_operator_stock (
+CREATE OR REPLACE FUNCTION select_train_operator_stock (
     p_operator_id INTEGER_NOTNULL,
     p_brand_id INTEGER,
     p_run_date TIMESTAMP_NOTNULL
