@@ -65,12 +65,19 @@ do
     cp $DATA_FILE "$DB_POPULATE_DIR/2_data_${DATA_FILE#$DB_DATA_DIR/}"
 done
 
-DB_CODE_DIR="/db/code"
+process_db_code_file () {
+    DB_CODE_DIR=$1
+    CODE_FILE_PREFIX=$2
 
-for CODE_FILE in `find $DB_CODE_DIR -name *sql`
-do
-    FILE_NAME="3_code_${CODE_FILE#$DB_CODE_DIR/}"
-    OUTPUT_FILE=$( echo $FILE_NAME | sed 's/\//_/g' )
-    cp $CODE_FILE "$DB_POPULATE_DIR/$OUTPUT_FILE"
-done
+    for CODE_FILE in `find $DB_CODE_DIR -name *sql`
+    do
+        FILE_NAME="${CODE_FILE_PREFIX}_${CODE_FILE#$DB_CODE_DIR/}"
+        OUTPUT_FILE=$( echo $FILE_NAME | sed 's/\//_/g' )
+        cp $CODE_FILE "$DB_POPULATE_DIR/$OUTPUT_FILE"
+    done
+}
 
+process_db_code_file "/db/code/domains" 3_domains
+process_db_code_file "/db/code/types" 4_types
+process_db_code_file "/db/code/views" 5_views
+process_db_code_file "/db/code/functions" 6_functions
