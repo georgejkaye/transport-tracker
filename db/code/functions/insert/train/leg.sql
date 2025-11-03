@@ -4,12 +4,12 @@ CREATE OR REPLACE FUNCTION insert_train_leg (
     p_users INTEGER_NOTNULL[],
     p_leg train_leg_in_data_notnull
 )
-RETURNS INTEGER_NOTNULL
+RETURNS SETOF insert_train_leg_result
 LANGUAGE plpgsql
 AS
 $$
 DECLARE
-    v_train_leg_id INT;
+    v_train_leg_id INTEGER_NOTNULL := 0;
     v_service_ids INT[];
     v_call_ids INT[];
 BEGIN
@@ -110,9 +110,9 @@ BEGIN
     RAISE LOG 'Inserted train_call_ids: %', v_call_ids;
 
     INSERT INTO train_associated_service (
-        call_id,
+        train_call_id,
         train_associated_service_type_id,
-        train_associated_service_id
+        train_service_id
     ) SELECT
         (
             SELECT train_call_id
@@ -164,21 +164,21 @@ BEGIN
             WHERE train_station.station_crs
                 = v_leg_call.station_crs
             AND train_service.unique_identifier
-                = v_leg_call.arr_call_service_uid
+                = (v_leg_call.arr_call).service_uid
             AND train_service.run_date
-                = v_leg_call.arr_call_service_run_date
+                = (v_leg_call.arr_call).service_run_date
             AND (
-                v_leg_call.arr_call_plan_arr IS NULL
-                OR train_call.plan_arr = v_leg_call.arr_call_plan_arr)
+                (v_leg_call.arr_call).plan_arr IS NULL
+                OR train_call.plan_arr = (v_leg_call.arr_call).plan_arr)
             AND (
-                v_leg_call.arr_call_act_arr IS NULL
-                OR train_call.act_arr = v_leg_call.arr_call_act_arr)
+                (v_leg_call.arr_call).act_arr IS NULL
+                OR train_call.act_arr = (v_leg_call.arr_call).act_arr)
             AND (
-                v_leg_call.arr_call_plan_dep IS NULL
-                OR train_call.plan_dep = v_leg_call.arr_call_plan_dep)
+                (v_leg_call.arr_call).plan_dep IS NULL
+                OR train_call.plan_dep = (v_leg_call.arr_call).plan_dep)
             AND (
-                v_leg_call.arr_call_act_dep IS NULL
-                OR train_call.act_dep = v_leg_call.arr_call_act_dep)
+                (v_leg_call.arr_call).act_dep IS NULL
+                OR train_call.act_dep = (v_leg_call.arr_call).act_dep)
         ),
         (
             SELECT train_call_id
@@ -189,21 +189,21 @@ BEGIN
             ON train_call.train_service_id = train_service.train_service_id
             WHERE train_station.station_crs = v_leg_call.station_crs
             AND train_service.unique_identifier
-                = v_leg_call.dep_call_service_uid
+                = (v_leg_call.dep_call).service_uid
             AND train_service.run_date
-                = v_leg_call.dep_call_service_run_date
+                = (v_leg_call.dep_call).service_run_date
             AND (
-                v_leg_call.dep_call_plan_arr IS NULL
-                OR train_call.plan_arr = v_leg_call.dep_call_plan_arr)
+                (v_leg_call.dep_call).plan_arr IS NULL
+                OR train_call.plan_arr = (v_leg_call.dep_call).plan_arr)
             AND (
-                v_leg_call.dep_call_act_arr IS NULL
-                OR train_call.act_arr = v_leg_call.dep_call_act_arr)
+                (v_leg_call.dep_call).act_arr IS NULL
+                OR train_call.act_arr = (v_leg_call.dep_call).act_arr)
             AND (
-                v_leg_call.dep_call_plan_dep IS NULL
-                OR train_call.plan_dep = v_leg_call.dep_call_plan_dep)
+                (v_leg_call.dep_call).plan_dep IS NULL
+                OR train_call.plan_dep = (v_leg_call.dep_call).plan_dep)
             AND (
-                v_leg_call.dep_call_act_dep IS NULL
-                OR train_call.act_dep = v_leg_call.dep_call_act_dep)
+                (v_leg_call.dep_call).act_dep IS NULL
+                OR train_call.act_dep = (v_leg_call.dep_call).act_dep)
         ),
         v_leg_call.mileage,
         v_leg_call.associated_type_id
@@ -341,6 +341,6 @@ BEGIN
     SELECT v_user, v_train_leg_id
     FROM UNNEST(p_users) AS v_user;
 
-    RETURN v_train_leg_id;
+    RETURN QUERY SELECT v_train_leg_id;
 END;
 $$;

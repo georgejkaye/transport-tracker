@@ -10,7 +10,7 @@ from api.classes.train.association import AssociationType
 from api.db.functions.select.train.operator import (
     select_train_operator_by_operator_code_fetchone,
 )
-from api.db.types.train.operator import TrainBrandOutData, TrainOperatorOutData
+from api.db.types.train.operator import TrainOperatorOutData
 from api.pull.train.types import (
     RttCallAssociatedService,
     RttLocationTag,

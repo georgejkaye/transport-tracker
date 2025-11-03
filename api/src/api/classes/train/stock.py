@@ -1,7 +1,11 @@
 from dataclasses import dataclass
+from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 
-from api.db.types.train.leg import TrainLegStockSegmentReportInData
+from api.db.types.train.leg import (
+    TrainLegCallInData,
+)
 from api.db.types.train.stock import (
     TrainStockOutData,
     TrainStockSubclassOutData,
@@ -61,11 +65,21 @@ class StockReport:
     cars: Optional[int]
 
 
-def string_of_stock_report(report: TrainLegStockSegmentReportInData) -> str:
-    if report.stock_class is None:
+@dataclass
+class StockSegment:
+    stock_reports: list[StockReport]
+    service_uid: str
+    run_date: datetime
+    start_call: TrainLegCallInData
+    end_call: TrainLegCallInData
+    mileage: Optional[Decimal]
+
+
+def string_of_stock_report(report: StockReport) -> str:
+    if report.class_no is None:
         return "Unknown"
-    if report.stock_number is not None:
-        return str(report.stock_number)
-    if report.stock_subclass is None:
-        return f"Class {report.stock_class}"
-    return f"Class {report.stock_class}/{report.stock_subclass}"
+    if report.subclass_no is not None:
+        return str(report.stock_no)
+    if report.subclass_no is None:
+        return f"Class {report.class_no}"
+    return f"Class {report.class_no}/{report.subclass_no}"

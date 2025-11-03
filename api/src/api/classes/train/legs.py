@@ -17,6 +17,14 @@ from api.db.types.train.leg import (
 
 
 @dataclass
+class StockReport:
+    stock_class: Optional[int]
+    stock_subclass: Optional[int]
+    stock_number: Optional[int]
+    stock_cars: Optional[int]
+
+
+@dataclass
 class DbTrainLegCallPointPointsOutData(LegLineCall):
     call: TrainLegCallPointsOutData
     point: TrainLegCallPointOutData

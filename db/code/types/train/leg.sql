@@ -23,6 +23,8 @@ DROP TYPE IF EXISTS train_leg_call_point_out_data CASCADE;
 DROP TYPE IF EXISTS train_leg_call_points_out_data CASCADE;
 DROP TYPE IF EXISTS train_leg_points_out_data CASCADE;
 
+DROP TYPE IF EXISTS insert_train_leg_result;
+
 CREATE TYPE train_leg_service_in_data AS (
     unique_identifier TEXT_NOTNULL,
     run_date TIMESTAMP_NOTNULL,
@@ -109,18 +111,11 @@ CREATE TYPE train_leg_call_in_data AS (
 CREATE DOMAIN train_leg_call_in_data_notnull
 AS train_leg_call_in_data NOT NULL;
 
-CREATE TYPE train_leg_stock_segment_report_in_data AS (
+CREATE TYPE train_leg_stock_segment_in_data AS (
     stock_class INT,
     stock_subclass INT,
     stock_number INT,
-    stock_cars INT
-);
-
-CREATE DOMAIN train_leg_stock_segment_report_in_data_notnull
-AS train_leg_stock_segment_report_in_data NOT NULL;
-
-CREATE TYPE train_leg_stock_segment_in_data AS (
-    stock_reports train_leg_stock_segment_report_in_data_notnull[],
+    stock_cars INT,
     start_call_service_uid TEXT_NOTNULL,
     start_call_service_run_date TIMESTAMP_NOTNULL,
     start_call_station_crs TEXT_NOTNULL,
@@ -267,3 +262,7 @@ CREATE TYPE train_leg_points_out_data AS (
 
 CREATE DOMAIN train_leg_points_out_data_notnull
 AS train_leg_points_out_data NOT NULL;
+
+CREATE TYPE insert_train_leg_result AS (
+    train_leg_id INTEGER_NOTNULL
+);

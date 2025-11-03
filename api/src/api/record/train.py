@@ -11,6 +11,8 @@ from api.classes.train.association import (
     int_of_association_type,
 )
 from api.classes.train.stock import (
+    StockReport,
+    StockSegment,
     sort_by_classes,
     sort_by_subclasses,
     string_of_class,
@@ -35,7 +37,6 @@ from api.db.types.train.leg import (
     TrainLegServiceEndpointInData,
     TrainLegServiceInData,
     TrainLegStockSegmentInData,
-    TrainLegStockSegmentReportInData,
 )
 from api.db.types.train.station import TrainStationOutData
 from api.db.types.train.stock import (
@@ -295,7 +296,7 @@ def string_of_stock_change(change: StockChange) -> str:
 
 def get_unit_report(
     stock_list: list[TrainStockOutData],
-) -> Optional[TrainLegStockSegmentReportInData]:
+) -> Optional[StockReport]:
     stock_class_res = get_unit_class(stock_list)
     stock_class: Optional[TrainStockOutData] = None
     stock_subclass: Optional[TrainStockSubclassOutData] = None
@@ -331,7 +332,7 @@ def get_unit_report(
     else:
         stock_unit_no = None
         stock_cars = None
-    return TrainLegStockSegmentReportInData(
+    return StockReport(
         stock_class.stock_class if stock_class is not None else None,
         stock_subclass.stock_subclass if stock_subclass is not None else None,
         stock_unit_no,
@@ -340,7 +341,7 @@ def get_unit_report(
 
 
 def get_stock_change_reason(
-    previous_stock_segment: Optional[TrainLegStockSegmentInData],
+    previous_stock_segment: Optional[StockSegment],
 ) -> StockChange:
     if previous_stock_segment is None:
         return StockChange.GAIN
@@ -357,8 +358,8 @@ def get_stock_change_reason(
 
 
 def get_stock_from_previous_stock_segment(
-    previous_stock_segment: Optional[TrainLegStockSegmentInData],
-) -> list[TrainLegStockSegmentReportInData]:
+    previous_stock_segment: Optional[StockSegment],
+) -> list[StockReport]:
     return (
         previous_stock_segment.stock_reports
         if previous_stock_segment is not None
@@ -371,10 +372,10 @@ def get_stock(
     calls: list[TrainLegCallInData],
     service: RttService,
     stock_number: int = 0,
-) -> list[TrainLegStockSegmentInData]:
+) -> list[StockSegment]:
     information("Recording stock formations")
-    stock_segments: list[TrainLegStockSegmentInData] = []
-    previous_stock_segment: Optional[TrainLegStockSegmentInData] = None
+    stock_segments: list[StockSegment] = []
+    previous_stock_segment: Optional[StockSegment] = None
     # Currently getting this automatically isn't implemented
     stock_list = select_train_operator_stock_fetchall(
         conn, service.operator_id, service.brand_id, service.run_date
@@ -403,7 +404,7 @@ def get_stock(
         previous_stock_segment_stock = get_stock_from_previous_stock_segment(
             previous_stock_segment
         )
-        current_segment_stock: list[TrainLegStockSegmentReportInData] = []
+        current_segment_stock: list[StockReport] = []
         match stock_change:
             case StockChange.GAIN:
                 number_of_units = input_number("Number of new units")
@@ -435,18 +436,12 @@ def get_stock(
             or segment_end_call.arr_call is None
         ):
             raise RuntimeError("Could not get segment endpoints")
-        segment = TrainLegStockSegmentInData(
+        segment = StockSegment(
             current_segment_stock,
-            segment_start_call.dep_call.service_uid,
-            segment_start_call.dep_call.service_run_date,
-            segment_start_call.station_crs,
-            segment_start_call.dep_call.plan_dep,
-            segment_start_call.dep_call.act_dep,
-            segment_end_call.arr_call.service_uid,
-            segment_end_call.arr_call.service_run_date,
-            segment_end_call.station_crs,
-            segment_end_call.arr_call.plan_arr,
-            segment_end_call.arr_call.act_arr,
+            service.service_uid,
+            service.run_date,
+            segment_start_call,
+            segment_end_call,
             stock_mileage,
         )
         stock_segments.append(segment)
@@ -824,6 +819,42 @@ def get_all_train_leg_service_in_data_from_root_rtt_service(
     )
 
 
+def get_train_stock_segment_in_data_from_stock_segments(
+    stock_segments: list[StockSegment],
+) -> list[TrainLegStockSegmentInData]:
+    train_stock_segments: list[TrainLegStockSegmentInData] = []
+    for stock_segment in stock_segments:
+        for stock_report in stock_segment.stock_reports:
+            train_stock_segments.append(
+                TrainLegStockSegmentInData(
+                    stock_report.class_no,
+                    stock_report.subclass_no,
+                    stock_report.stock_no,
+                    stock_report.cars,
+                    stock_segment.service_uid,
+                    stock_segment.run_date,
+                    stock_segment.start_call.station_crs,
+                    stock_segment.start_call.dep_call.plan_dep
+                    if stock_segment.start_call.dep_call is not None
+                    else None,
+                    stock_segment.start_call.dep_call.act_dep
+                    if stock_segment.start_call.dep_call is not None
+                    else None,
+                    stock_segment.service_uid,
+                    stock_segment.run_date,
+                    stock_segment.end_call.station_crs,
+                    stock_segment.end_call.arr_call.plan_arr
+                    if stock_segment.end_call.arr_call is not None
+                    else None,
+                    stock_segment.end_call.arr_call.act_arr
+                    if stock_segment.end_call.arr_call is not None
+                    else None,
+                    stock_segment.mileage,
+                )
+            )
+    return train_stock_segments
+
+
 def record_new_leg(
     conn: Connection,
     start: datetime | None = None,
@@ -897,13 +928,16 @@ def record_new_leg(
         train_leg_service_calls,
         train_leg_service_associations,
     ) = get_all_train_leg_service_in_data_from_root_rtt_service(service)
+    train_leg_stock_segments = (
+        get_train_stock_segment_in_data_from_stock_segments(stock_segments)
+    )
     leg = TrainLegInData(
         train_leg_services,
         train_leg_service_endpoints,
         train_leg_service_calls,
         train_leg_service_associations,
         leg_calls,
-        stock_segments,
+        train_leg_stock_segments,
         mileage,
     )
     return leg
@@ -917,13 +951,13 @@ def add_to_logfile(conn: Connection) -> None:
     if leg is None:
         print("Could not get leg")
         exit(1)
-    leg_id = insert_train_leg_fetchone(
+    result = insert_train_leg_fetchone(
         conn, [user.user_id for user in users], leg
     )
-    if leg_id is None:
+    if result is None:
         information(f"Could not insert leg")
     else:
-        information(f"Inserted leg id {leg_id}")
+        information(f"Inserted leg id {result.train_leg_id}")
 
 
 def read_logfile(log_file: str) -> dict[str, Any]:
