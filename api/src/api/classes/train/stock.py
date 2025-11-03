@@ -1,61 +1,20 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from api.db.types.train.stock import TrainStockOutData
+from api.db.types.train.leg import TrainLegStockSegmentReportInData
+from api.db.types.train.stock import (
+    TrainStockOutData,
+    TrainStockSubclassOutData,
+)
 
 
-@dataclass
-class Class:
-    class_no: int
-    class_name: Optional[str]
-
-    def __hash__(self) -> int:
-        return hash(self.class_no)
-
-
-@dataclass
-class ClassAndSubclass:
-    class_no: int
-    class_name: Optional[str]
-    subclass_no: Optional[int]
-    subclass_name: Optional[str]
-
-    def __hash__(self) -> int:
-        if self.subclass_no is None:
-            subclass_hash = 0
-        else:
-            subclass_hash = self.subclass_no
-        return hash(self.class_no * 10 + subclass_hash)
-
-
-@dataclass
-class StockUnit:
-    class_no: int
-    class_name: Optional[str]
-    subclass_no: int
-    subclass_name: Optional[str]
-    unit_no: int
-
-
-@dataclass
-class StockSubclass:
-    stock_subclass: Optional[int]
-    stock_subclass_name: Optional[str]
-    stock_cars: list[int]
-
-
-def sort_by_subclasses(stock: list[StockSubclass]) -> list[StockSubclass]:
+def sort_by_subclasses(
+    stock: list[TrainStockSubclassOutData],
+) -> list[TrainStockSubclassOutData]:
     return sorted(
         stock,
         key=lambda c: c.stock_subclass if c.stock_subclass is not None else -1,
     )
-
-
-@dataclass
-class Stock:
-    stock_class: int
-    stock_class_name: Optional[str]
-    stock_subclasses: list[StockSubclass]
 
 
 def string_of_class(stock_class: TrainStockOutData) -> str:
@@ -66,7 +25,9 @@ def string_of_class(stock_class: TrainStockOutData) -> str:
 
 
 def string_of_class_and_subclass(
-    stock: Stock, subclass: StockSubclass, name: bool = True
+    stock: TrainStockOutData,
+    subclass: TrainStockSubclassOutData,
+    name: bool = True,
 ) -> str:
     string = f"Class {stock.stock_class}"
     if subclass.stock_subclass is not None:
@@ -100,11 +61,11 @@ class StockReport:
     cars: Optional[int]
 
 
-def string_of_stock_report(report: StockReport) -> str:
-    if report.class_no is None:
+def string_of_stock_report(report: TrainLegStockSegmentReportInData) -> str:
+    if report.stock_class is None:
         return "Unknown"
-    if report.stock_no is not None:
-        return str(report.stock_no)
-    if report.subclass_no is None:
-        return f"Class {report.class_no}"
-    return f"Class {report.class_no}/{report.subclass_no}"
+    if report.stock_number is not None:
+        return str(report.stock_number)
+    if report.stock_subclass is None:
+        return f"Class {report.stock_class}"
+    return f"Class {report.stock_class}/{report.stock_subclass}"

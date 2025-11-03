@@ -7,17 +7,18 @@ from psycopg import Connection
 
 from api.classes.interactive import PickSingle
 from api.classes.train.association import AssociationType
-from api.classes.train.service import (
-    RttLocationTag,
-    TrainAssociatedServiceInData,
-    TrainServiceCallAssociatedServiceInData,
-    TrainServiceCallInData,
-    TrainServiceInData,
-)
 from api.db.functions.select.train.operator import (
     select_train_operator_by_operator_code_fetchone,
 )
-from api.db.types.train.operator import TrainOperatorOutData
+from api.db.types.register import register_type
+from api.db.types.train.operator import TrainBrandOutData, TrainOperatorOutData
+from api.pull.train.types import (
+    RttCallAssociatedService,
+    RttLocationTag,
+    RttService,
+    RttServiceAssociatedService,
+    RttServiceCall,
+)
 from api.utils.credentials import get_api_credentials
 from api.utils.interactive import input_select
 from api.utils.mileage import miles_and_chains_to_miles
@@ -57,7 +58,7 @@ def get_datetime_from_service_json(
     return make_timezone_aware(new_time)
 
 
-def get_associated_service_from_associated_service_json(
+def get_associated_service_from_call_associated_service_json(
     conn: Connection,
     associated_service_json: dict[str, Any],
     first: bool,
@@ -68,7 +69,7 @@ def get_associated_service_from_associated_service_json(
     parent_run_date: Optional[datetime],
     service_operator: TrainOperatorOutData,
     brand_id: Optional[int],
-) -> Optional[TrainServiceCallAssociatedServiceInData]:
+) -> Optional[RttCallAssociatedService]:
     assoc_uid = associated_service_json["associatedUid"]
     assoc_date = datetime.strptime(
         associated_service_json["associatedRunDate"], "%Y-%m-%d"
@@ -106,9 +107,7 @@ def get_associated_service_from_associated_service_json(
     else:
         return None
 
-    return TrainServiceCallAssociatedServiceInData(
-        associated_service, assoc_type
-    )
+    return RttCallAssociatedService(associated_service, assoc_type)
 
 
 def get_associated_services_from_call_json(
@@ -122,7 +121,7 @@ def get_associated_services_from_call_json(
     parent_service_run_date: Optional[datetime],
     service_operator: TrainOperatorOutData,
     brand_id: Optional[int],
-) -> list[TrainServiceCallAssociatedServiceInData]:
+) -> list[RttCallAssociatedService]:
     assocs_data = call_json.get("associations")
     if assocs_data is None:
         return []
@@ -130,7 +129,7 @@ def get_associated_services_from_call_json(
         assoc
         for assoc_data in assocs_data
         if (
-            assoc := get_associated_service_from_associated_service_json(
+            assoc := get_associated_service_from_call_associated_service_json(
                 conn,
                 assoc_data,
                 is_first_call,
@@ -179,7 +178,7 @@ def get_call_from_call_json(
     service_operator: TrainOperatorOutData,
     brand_id: Optional[int],
     rtt_location_tags: Optional[list[RttLocationTag]],
-) -> TrainServiceCallInData:
+) -> RttServiceCall:
     station_crs = call_json["crs"]
     station_name = call_json["description"]
     plan_arr = get_datetime_from_json_field(
@@ -214,7 +213,7 @@ def get_call_from_call_json(
         if rtt_location_tags is not None
         else None
     )
-    return TrainServiceCallInData(
+    return RttServiceCall(
         station_crs,
         station_name,
         platform,
@@ -237,9 +236,9 @@ def get_service_calls_from_service_json(
     parent_service_run_date: Optional[datetime],
     service_operator: TrainOperatorOutData,
     brand_id: Optional[int] = None,
-) -> tuple[list[TrainServiceCallInData], list[TrainAssociatedServiceInData]]:
-    calls: list[TrainServiceCallInData] = []
-    associated_services: list[TrainAssociatedServiceInData] = []
+) -> tuple[list[RttServiceCall], list[RttServiceAssociatedService]]:
+    calls: list[RttServiceCall] = []
+    associated_services: list[RttServiceAssociatedService] = []
     if service_soup is not None:
         rtt_location_tags = get_rtt_location_tags_from_service_page(
             service_soup
@@ -267,12 +266,9 @@ def get_service_calls_from_service_json(
         )
         calls.append(call)
         service_associated_services = [
-            TrainAssociatedServiceInData(
-                associated_service.associated_service,
-                call.plan_arr,
-                call.act_arr,
-                call.plan_dep,
-                call.act_dep,
+            RttServiceAssociatedService(
+                associated_service.service,
+                call,
                 associated_service.association,
             )
             for associated_service in call.associated_services
@@ -307,7 +303,7 @@ def get_service_from_service_json_and_html(
     service_operator: Optional[TrainOperatorOutData] = None,
     brand_id: Optional[int] = None,
     query_brand: bool = False,
-) -> Optional[TrainServiceInData]:
+) -> Optional[RttService]:
     if (
         not service_json.get("isPassenger")
         or not service_json.get("serviceType") == "train"
@@ -327,6 +323,7 @@ def get_service_from_service_json_and_html(
         service_operator is None
         or service_operator.operator_code != operator_code
     ):
+        register_type(conn, "train_brand_out_data", TrainBrandOutData)
         operator_data = select_train_operator_by_operator_code_fetchone(
             conn, operator_code, service_run_date
         )
@@ -349,7 +346,7 @@ def get_service_from_service_json_and_html(
         service_operator=operator_data,
         brand_id=brand_id,
     )
-    train_service = TrainServiceInData(
+    train_service = RttService(
         service_uid,
         service_run_date,
         headcode,
@@ -374,7 +371,7 @@ def get_service_from_id(
     service_operator: Optional[TrainOperatorOutData] = None,
     brand_id: Optional[int] = None,
     query_brand: bool = False,
-) -> Optional[TrainServiceInData]:
+) -> Optional[RttService]:
     service_json = get_service_json(service_uid, service_run_date)
     if scrape_html:
         service_html = get_train_service_soup(service_uid, service_run_date)

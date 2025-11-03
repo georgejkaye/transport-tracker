@@ -3,14 +3,11 @@ from typing import Any, Optional
 
 from psycopg import Connection
 
-from api.classes.train.station import (
-    TrainServiceAtStation,
-    TrainStationIdentifiers,
-)
 from api.db.functions.select.train.station import (
     select_train_station_by_name_fetchone,
 )
 from api.db.types.train.station import TrainStationOutData
+from api.pull.train.types import RttStationService, TrainStationIdentifiers
 from api.utils.credentials import get_api_credentials
 from api.utils.request import make_get_request
 from api.utils.times import get_datetime_route, make_timezone_aware
@@ -20,7 +17,7 @@ station_endpoint = "https://api.rtt.io/api/v1/json/search"
 
 def get_services_at_station(
     conn: Connection, station: TrainStationOutData, dt: datetime
-) -> list[TrainServiceAtStation]:
+) -> list[RttStationService]:
     endpoint = f"{station_endpoint}/{station.station_crs}/{get_datetime_route(dt, True)}"
     rtt_credentials = get_api_credentials("RTT")
     response = make_get_request(endpoint, rtt_credentials)
@@ -29,7 +26,7 @@ def get_services_at_station(
     data = response.json()
     if data.get("services") is None:
         return []
-    services: list[TrainServiceAtStation] = []
+    services: list[RttStationService] = []
     for service in data["services"]:
         if service["serviceType"] == "train":
             services.append(response_to_service_at_station(conn, service))
@@ -72,7 +69,7 @@ def response_to_datetime(
 
 def response_to_service_at_station(
     conn: Connection, data: dict[str, Any]
-) -> TrainServiceAtStation:
+) -> RttStationService:
     id: str = data["serviceUid"]
     headcode: str = data["trainIdentity"]
     operator_code: str = data["atocCode"]
@@ -92,7 +89,7 @@ def response_to_service_at_station(
     act_dep = response_to_datetime(
         data["locationDetail"], "realtimeDeparture", run_date
     )
-    return TrainServiceAtStation(
+    return RttStationService(
         id,
         headcode,
         run_date,

@@ -12,7 +12,9 @@ from api.db.functions.select.train.operator import (
     select_train_operator_details_fetchall,
 )
 from api.db.types.register import register_types
-from api.db.types.train.operator import TrainOperatorDetailsOutData
+from api.db.types.train.operator import (
+    TrainOperatorDetailsOutData,
+)
 from api.library.networkx import load_osmnx_graphml
 from api.utils.environment import get_env_variable, get_secret
 
