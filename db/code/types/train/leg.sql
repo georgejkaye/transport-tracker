@@ -4,7 +4,9 @@ DROP TYPE IF EXISTS train_leg_service_call_in_data CASCADE;
 DROP TYPE IF EXISTS train_leg_associated_service_in_data CASCADE;
 DROP TYPE IF EXISTS train_leg_service_call_associated_service_in_data CASCADE;
 DROP TYPE IF EXISTS train_leg_service_call_in_data CASCADE;
+DROP TYPE IF EXISTS train_leg_call_call_in_data CASCADE;
 DROP TYPE IF EXISTS train_leg_call_in_data CASCADE;
+DROP TYPE IF EXISTS train_leg_stock_segment_report_in_data CASCADE;
 DROP TYPE IF EXISTS train_leg_stock_segment_in_data CASCADE;
 DROP TYPE IF EXISTS train_leg_in_data CASCADE;
 
@@ -47,7 +49,7 @@ CREATE TYPE train_leg_service_call_in_data AS (
     unique_identifier TEXT_NOTNULL,
     run_date TIMESTAMP_NOTNULL,
     station_crs TEXT_NOTNULL,
-    platform TEXT_NOTNULL,
+    platform TEXT,
     plan_arr TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
@@ -83,20 +85,23 @@ CREATE TYPE train_leg_service_call_associated_service_in_data AS (
 CREATE DOMAIN train_leg_service_call_associated_service_in_data_notnull
 AS train_leg_service_call_associated_service_in_data NOT NULL;
 
+CREATE TYPE train_leg_call_call_in_data AS (
+    service_uid TEXT_NOTNULL,
+    service_run_date TIMESTAMP_NOTNULL,
+    plan_arr TIMESTAMP WITH TIME ZONE,
+    act_arr TIMESTAMP WITH TIME ZONE,
+    plan_dep TIMESTAMP WITH TIME ZONE,
+    act_dep TIMESTAMP WITH TIME ZONE
+);
+
+CREATE DOMAIN train_leg_call_call_in_data_notnull
+AS train_leg_call_call_in_data NOT NULL;
+
 CREATE TYPE train_leg_call_in_data AS (
     station_crs TEXT_NOTNULL,
-    arr_call_service_uid TEXT_NOTNULL,
-    arr_call_service_run_date TIMESTAMP_NOTNULL,
-    arr_call_plan_arr TIMESTAMP WITH TIME ZONE,
-    arr_call_act_arr TIMESTAMP WITH TIME ZONE,
-    arr_call_plan_dep TIMESTAMP WITH TIME ZONE,
-    arr_call_act_dep TIMESTAMP WITH TIME ZONE,
-    dep_call_service_uid TEXT_NOTNULL,
-    dep_call_service_run_date TIMESTAMP_NOTNULL,
-    dep_call_plan_arr TIMESTAMP WITH TIME ZONE,
-    dep_call_act_arr TIMESTAMP WITH TIME ZONE,
-    dep_call_plan_dep TIMESTAMP WITH TIME ZONE,
-    dep_call_act_dep TIMESTAMP WITH TIME ZONE,
+    station_name TEXT_NOTNULL,
+    arr_call train_leg_call_call_in_data,
+    dep_call train_leg_call_call_in_data,
     mileage DECIMAL,
     associated_type_id INTEGER
 );
@@ -104,21 +109,29 @@ CREATE TYPE train_leg_call_in_data AS (
 CREATE DOMAIN train_leg_call_in_data_notnull
 AS train_leg_call_in_data NOT NULL;
 
-CREATE TYPE train_leg_stock_segment_in_data AS (
+CREATE TYPE train_leg_stock_segment_report_in_data AS (
     stock_class INT,
     stock_subclass INT,
     stock_number INT,
-    stock_cars INT,
+    stock_cars INT
+);
+
+CREATE DOMAIN train_leg_stock_segment_report_in_data_notnull
+AS train_leg_stock_segment_report_in_data NOT NULL;
+
+CREATE TYPE train_leg_stock_segment_in_data AS (
+    stock_reports train_leg_stock_segment_report_in_data_notnull[],
     start_call_service_uid TEXT_NOTNULL,
     start_call_service_run_date TIMESTAMP_NOTNULL,
     start_call_station_crs TEXT_NOTNULL,
-    start_call_plan_dep TIMESTAMP_NOTNULL,
-    start_call_act_dep TIMESTAMP_NOTNULL,
+    start_call_plan_dep TIMESTAMP WITH TIME ZONE,
+    start_call_act_dep TIMESTAMP WITH TIME ZONE,
     end_call_service_uid TEXT_NOTNULL,
     end_call_service_run_date TIMESTAMP_NOTNULL,
     end_call_station_crs TEXT_NOTNULL,
-    end_call_plan_arr TIMESTAMP_NOTNULL,
-    end_call_act_arr TIMESTAMP_NOTNULL
+    end_call_plan_arr TIMESTAMP WITH TIME ZONE,
+    end_call_act_arr TIMESTAMP WITH TIME ZONE,
+    mileage DECIMAL
 );
 
 CREATE DOMAIN train_leg_stock_segment_in_data_notnull
