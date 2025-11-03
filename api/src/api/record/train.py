@@ -5,10 +5,7 @@ from enum import Enum
 from typing import Any, Optional, Tuple
 
 from psycopg import Connection
-from psycopg.types import TypeInfo
-from psycopg.types.composite import CompositeInfo, register_composite
 
-from api.api.lifespan import get_db_connection
 from api.classes.train.association import (
     AssociationType,
     int_of_association_type,
@@ -28,12 +25,7 @@ from api.db.functions.select.train.station import (
 from api.db.functions.select.train.stock import (
     select_train_operator_stock_fetchall,
 )
-from api.db.types.register import (
-    register_domain,
-    register_primitive_notnull_domain,
-    register_type,
-    register_types,
-)
+from api.db.types.register import register_types
 from api.db.types.train.leg import (
     TrainLegAssociatedServiceInData,
     TrainLegCallCallInData,
@@ -45,7 +37,6 @@ from api.db.types.train.leg import (
     TrainLegStockSegmentInData,
     TrainLegStockSegmentReportInData,
 )
-from api.db.types.train.operator import TrainBrandOutData, TrainOperatorOutData
 from api.db.types.train.station import TrainStationOutData
 from api.db.types.train.stock import (
     TrainStockOutData,
@@ -959,5 +950,4 @@ def int_factory(x: Any) -> list[int]:
 if __name__ == "__main__":
     with connect_with_env() as conn:
         register_types(conn)
-        register_primitive_notnull_domain(conn, "train_brand_out_data_notnull")
         add_to_logfile(conn)

@@ -10,7 +10,6 @@ from api.classes.train.association import AssociationType
 from api.db.functions.select.train.operator import (
     select_train_operator_by_operator_code_fetchone,
 )
-from api.db.types.register import register_type
 from api.db.types.train.operator import TrainBrandOutData, TrainOperatorOutData
 from api.pull.train.types import (
     RttCallAssociatedService,
@@ -323,7 +322,6 @@ def get_service_from_service_json_and_html(
         service_operator is None
         or service_operator.operator_code != operator_code
     ):
-        register_type(conn, "train_brand_out_data", TrainBrandOutData)
         operator_data = select_train_operator_by_operator_code_fetchone(
             conn, operator_code, service_run_date
         )
