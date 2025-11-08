@@ -556,11 +556,16 @@ def get_leg_calls_between_calls(
                 continue
             if boarded:
                 associated_leg_calls[0].arr_call = arr_call
+                if (
+                    call_association.association
+                    == AssociationType.OTHER_DIVIDES
+                ):
+                    association_type = AssociationType.THIS_DIVIDES
+                else:
+                    association_type = AssociationType.THIS_JOINS
                 associated_leg_calls[
                     0
-                ].associated_type_id = int_of_association_type(
-                    call_association.association
-                )
+                ].associated_type_id = int_of_association_type(association_type)
             leg_calls.extend(associated_leg_calls)
             return leg_calls
         if boarded:
