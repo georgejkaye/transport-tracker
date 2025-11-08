@@ -1,7 +1,6 @@
 from enum import Enum
 from typing import Optional
 
-
 AssociationType = Enum(
     "AssociationType",
     ["THIS_JOINS", "OTHER_JOINS", "THIS_DIVIDES", "OTHER_DIVIDES"],
@@ -22,13 +21,13 @@ def string_of_association_type(at: AssociationType) -> str:
 
 def int_of_association_type(at: AssociationType) -> int:
     match at:
-        case AssociationType.THIS_JOINS:
-            return 1
-        case AssociationType.OTHER_JOINS:
-            return 2
         case AssociationType.THIS_DIVIDES:
-            return 3
+            return 1
         case AssociationType.OTHER_DIVIDES:
+            return 2
+        case AssociationType.THIS_JOINS:
+            return 3
+        case AssociationType.OTHER_JOINS:
             return 4
 
 
