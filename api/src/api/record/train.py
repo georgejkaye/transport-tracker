@@ -825,30 +825,27 @@ def get_train_stock_segment_in_data_from_stock_segments(
     train_stock_segments: list[TrainLegStockSegmentInData] = []
     for stock_segment in stock_segments:
         for stock_report in stock_segment.stock_reports:
+            if (
+                stock_segment.start_call.dep_call is None
+                or stock_segment.end_call.arr_call is None
+            ):
+                continue
             train_stock_segments.append(
                 TrainLegStockSegmentInData(
                     stock_report.class_no,
                     stock_report.subclass_no,
                     stock_report.stock_no,
                     stock_report.cars,
-                    stock_segment.service_uid,
-                    stock_segment.run_date,
+                    stock_segment.start_call.dep_call.service_uid,
+                    stock_segment.start_call.dep_call.service_run_date,
                     stock_segment.start_call.station_crs,
-                    stock_segment.start_call.dep_call.plan_dep
-                    if stock_segment.start_call.dep_call is not None
-                    else None,
-                    stock_segment.start_call.dep_call.act_dep
-                    if stock_segment.start_call.dep_call is not None
-                    else None,
-                    stock_segment.service_uid,
-                    stock_segment.run_date,
+                    stock_segment.start_call.dep_call.plan_dep,
+                    stock_segment.start_call.dep_call.act_dep,
+                    stock_segment.end_call.arr_call.service_uid,
+                    stock_segment.end_call.arr_call.service_run_date,
                     stock_segment.end_call.station_crs,
-                    stock_segment.end_call.arr_call.plan_arr
-                    if stock_segment.end_call.arr_call is not None
-                    else None,
-                    stock_segment.end_call.arr_call.act_arr
-                    if stock_segment.end_call.arr_call is not None
-                    else None,
+                    stock_segment.end_call.arr_call.plan_arr,
+                    stock_segment.end_call.arr_call.act_arr,
                     stock_segment.mileage,
                 )
             )
@@ -951,6 +948,7 @@ def add_to_logfile(conn: Connection) -> None:
     if leg is None:
         print("Could not get leg")
         exit(1)
+        print(leg)
     result = insert_train_leg_fetchone(
         conn, [user.user_id for user in users], leg
     )
