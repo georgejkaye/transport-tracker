@@ -505,12 +505,11 @@ def get_leg_calls_between_calls(
     start_station_crs: str,
     start_dep_time: datetime,
     end_station_crs: str,
-    first_call_mileage: Decimal = Decimal(0),
+    mileage_at_board_call: Optional[Decimal] = None,
 ) -> Optional[list[TrainLegCallInData]]:
     start_dep_time = make_timezone_aware(start_dep_time)
     leg_calls: list[TrainLegCallInData] = []
     boarded = False
-    board_call_mileage: Optional[Decimal] = Decimal(0)
     for call in service.calls:
         if not boarded:
             if (
@@ -518,10 +517,8 @@ def get_leg_calls_between_calls(
                 and call.plan_dep == start_dep_time
             ):
                 boarded = True
-                board_call_mileage = (
-                    call.mileage + first_call_mileage
-                    if call.mileage is not None
-                    else None
+                mileage_at_board_call = (
+                    call.mileage if call.mileage is not None else None
                 )
         if boarded:
             arr_call = TrainLegCallCallInData(
@@ -541,16 +538,18 @@ def get_leg_calls_between_calls(
             ]:
                 continue
             associated_service = call_association.service
-            if associated_service.calls[0].plan_dep is None:
+            if (
+                associated_service is None
+                or associated_service.calls[0].plan_dep is None
+            ):
                 continue
-            associated_leg_calls = get_leg_calls_between_calls(
-                associated_service,
-                associated_service.calls[0].station_crs,
-                associated_service.calls[0].plan_dep,
-                end_station_crs,
-                board_call_mileage
-                if board_call_mileage is not None
-                else Decimal(0),
+            associated_leg_calls = (
+                get_leg_calls_from_service_association_to_other_call(
+                    associated_service,
+                    service,
+                    end_station_crs,
+                    mileage_at_board_call,
+                )
             )
             if associated_leg_calls is None:
                 continue
@@ -575,9 +574,9 @@ def get_leg_calls_between_calls(
                 arr_call,
                 arr_call,
                 (
-                    call.mileage - board_call_mileage
+                    call.mileage - mileage_at_board_call
                     if call.mileage is not None
-                    and board_call_mileage is not None
+                    and mileage_at_board_call is not None
                     else None
                 ),
                 None,
@@ -585,6 +584,32 @@ def get_leg_calls_between_calls(
             leg_calls.append(leg_call)
             if call.station_crs == end_station_crs:
                 return leg_calls
+    return None
+
+
+def get_leg_calls_from_service_association_to_other_call(
+    service: RttService,
+    associated_service: RttService,
+    destination_crs: str,
+    mileage_at_board_call: Optional[Decimal],
+) -> Optional[list[TrainLegCallInData]]:
+    for call in service.calls:
+        for call_associated_service in call.associated_services:
+            if (
+                call_associated_service.service_uid
+                == associated_service.service_uid
+                and call_associated_service.service_run_date
+                == associated_service.run_date
+            ):
+                if call.plan_dep is None:
+                    continue
+                return get_leg_calls_between_calls(
+                    service,
+                    call.station_crs,
+                    call.plan_dep,
+                    destination_crs,
+                    mileage_at_board_call,
+                )
     return None
 
 

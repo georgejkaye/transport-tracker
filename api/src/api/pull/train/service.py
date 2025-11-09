@@ -64,8 +64,8 @@ def get_associated_service_from_call_associated_service_json(
     last: bool,
     service_uid: str,
     service_run_date: datetime,
-    parent_uid: Optional[str],
-    parent_run_date: Optional[datetime],
+    parent_service_uid: Optional[str],
+    parent_service_run_date: Optional[datetime],
     service_operator: TrainOperatorOutData,
     brand_id: Optional[int],
 ) -> Optional[RttCallAssociatedService]:
@@ -73,26 +73,6 @@ def get_associated_service_from_call_associated_service_json(
     assoc_date = datetime.strptime(
         associated_service_json["associatedRunDate"], "%Y-%m-%d"
     )
-
-    if (
-        parent_uid is not None
-        and parent_run_date is not None
-        and (assoc_uid == parent_uid and assoc_date == parent_run_date)
-    ):
-        return None
-
-    associated_service = get_service_from_id(
-        conn,
-        assoc_uid,
-        assoc_date,
-        service_uid,
-        service_run_date,
-        service_operator=service_operator,
-        brand_id=brand_id,
-    )
-    if associated_service is None:
-        return None
-
     if associated_service_json["type"] == "divide":
         if first:
             assoc_type = AssociationType.THIS_DIVIDES
@@ -102,11 +82,32 @@ def get_associated_service_from_call_associated_service_json(
         if last:
             assoc_type = AssociationType.THIS_JOINS
         else:
-            assoc_type = AssociationType.OTHER_DIVIDES
+            assoc_type = AssociationType.OTHER_JOINS
     else:
         return None
 
-    return RttCallAssociatedService(associated_service, assoc_type)
+    if (
+        parent_service_uid is not None
+        and parent_service_run_date is not None
+        and assoc_uid == parent_service_uid
+        and assoc_date == parent_service_run_date
+    ):
+        associated_service = None
+    else:
+        associated_service = get_service_from_id(
+            conn,
+            assoc_uid,
+            assoc_date,
+            service_uid,
+            service_run_date,
+            service_operator=service_operator,
+            brand_id=brand_id,
+        )
+        if associated_service is None:
+            return None
+    return RttCallAssociatedService(
+        assoc_uid, assoc_date, assoc_type, associated_service
+    )
 
 
 def get_associated_services_from_call_json(
@@ -271,6 +272,7 @@ def get_service_calls_from_service_json(
                 associated_service.association,
             )
             for associated_service in call.associated_services
+            if associated_service.service is not None
         ]
         associated_services.extend(service_associated_services)
     return calls, associated_services

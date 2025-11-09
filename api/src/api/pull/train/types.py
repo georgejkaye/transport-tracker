@@ -77,8 +77,11 @@ class RttService:
 
 @dataclass
 class RttCallAssociatedService:
-    service: RttService
+    service_uid: str
+    service_run_date: datetime
     association: association.AssociationType
+    # None where necessary to avoid loops
+    service: Optional[RttService]
 
 
 @dataclass
