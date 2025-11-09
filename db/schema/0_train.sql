@@ -229,7 +229,7 @@ CREATE TABLE train_leg (
 );
 
 CREATE TABLE train_leg_call (
-    leg_call_id SERIAL PRIMARY KEY,
+    train_leg_call_id SERIAL PRIMARY KEY,
     train_leg_id INTEGER NOT NULL,
     arr_call_id INTEGER,
     dep_call_id INTEGER,

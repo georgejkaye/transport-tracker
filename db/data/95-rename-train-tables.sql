@@ -427,3 +427,8 @@ ADD CONSTRAINT train_call_unique_service_station_arr_dep
 
 DROP TYPE IF EXISTS useroutdata CASCADE;
 DROP TYPE IF EXISTS useroutpublicdata CASCADE;
+
+-- train leg call id
+
+ALTER TABLE train_leg_call
+RENAME leg_call_id TO train_leg_call_id;
