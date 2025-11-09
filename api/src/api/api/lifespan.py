@@ -67,10 +67,11 @@ def get_operator_brand_lookup() -> OperatorBrandLookup:
     return operator_brand_lookup
 
 
-def get_train_operator_brand_colour(
-    operator_id: int, brand_id: Optional[int]
+def get_train_operator_brand_colour_by_lookup(
+    operator_brand_lookup: OperatorBrandLookup,
+    operator_id: int,
+    brand_id: Optional[int],
 ) -> Optional[str]:
-    operator_brand_lookup = get_operator_brand_lookup()
     if (
         brand_id is not None
         and (brand := operator_brand_lookup.brands.get(brand_id)) is not None
@@ -81,6 +82,15 @@ def get_train_operator_brand_colour(
     ) is not None:
         return operator.bg_colour
     return "#000000"
+
+
+def get_train_operator_brand_colour(
+    operator_id: int, brand_id: Optional[int]
+) -> Optional[str]:
+    operator_brand_lookup = get_operator_brand_lookup()
+    return get_train_operator_brand_colour_by_lookup(
+        operator_brand_lookup, operator_id, brand_id
+    )
 
 
 def initialise_train_operator_brand_lookup(
