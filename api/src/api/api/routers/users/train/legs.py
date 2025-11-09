@@ -13,7 +13,7 @@ from api.db.functions.select.train.user import (
     select_transport_user_train_leg_by_user_id_fetchall,
 )
 from api.db.types.train.leg import TrainLegPointsOutData
-from api.db.types.user.train.legs import TransportUserTrainLegOutData
+from api.db.types.user.train.leg import TransportUserTrainLegOutData
 
 router = APIRouter(prefix="/legs", tags=["users/train/legs"])
 
