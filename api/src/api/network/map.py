@@ -296,7 +296,14 @@ def get_leg_lines_for_leg_points(
             leg.call_points[-1].station_name,
             leg_line_geometry.calls,
             leg_line_geometry.line,
-            f"#{get_train_operator_brand_colour(leg.operator_id, leg.brand_id)}",
+            colour
+            if (
+                colour := get_train_operator_brand_colour(
+                    leg.operator_id, leg.brand_id
+                )
+            )
+            is not None
+            else "#000000",
             1,
             0,
         )
