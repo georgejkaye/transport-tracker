@@ -235,109 +235,127 @@ SELECT
     END AS station_brand,
     transport_user_train_station_leg_count_view.boards,
     transport_user_train_station_leg_count_view.alights,
-    transport_user_train_station_leg_count_view.calls
-    -- train_station_leg_view.station_legs
+    transport_user_train_station_leg_count_view.calls,
+    COALESCE(
+        train_station_leg_view.station_legs,
+        ARRAY[]::transport_user_train_station_leg_out_data[]
+    ) AS station_legs
 FROM train_station
 INNER JOIN train_operator
 ON train_station.train_operator_id = train_operator.train_operator_id
 LEFT JOIN train_brand
 ON train_station.train_brand_id = train_brand.train_brand_id
-LEFT JOIN (
+INNER JOIN (
     SELECT
         transport_user.user_id,
         train_station.train_station_id,
-        COUNT(
-            CASE WHEN
-                sort_call_time = board_time
-            THEN 1
-            END
-        ) AS boards,
-        COUNT(
-            CASE WHEN
-                sort_call_time = alight_time
-            THEN 1
-            END
-        ) AS alights,
-        COUNT(
-            CASE WHEN
-                sort_call_time NOT IN (board_time, alight_time)
-            THEN 1
-            END
-        ) AS calls
+        COALESCE(train_station_leg_count.boards, 0) AS boards,
+        COALESCE(train_station_leg_count.alights, 0) AS alights,
+        COALESCE(train_station_leg_count.calls, 0) AS calls
     FROM transport_user
     CROSS JOIN train_station
-    LEFT JOIN transport_user_train_leg
-    ON transport_user.user_id = transport_user_train_leg.user_id
-    INNER JOIN train_station_leg_call_view
-    ON transport_user_train_leg.train_leg_id
-        = train_station_leg_call_view.train_leg_id
-    INNER JOIN train_leg_high_view
-    ON train_station_leg_call_view.train_leg_id
-        = train_leg_high_view.train_leg_id
-    GROUP BY transport_user.user_id, train_station.train_station_id
+    LEFT JOIN (
+        SELECT
+            transport_user_train_leg.user_id,
+            train_station_id,
+            COUNT(
+                CASE WHEN
+                    sort_call_time = board_time
+                THEN 1
+                END
+            ) AS boards,
+            COUNT(
+                CASE WHEN
+                    sort_call_time = alight_time
+                THEN 1
+                END
+            ) AS alights,
+            COUNT(
+                CASE WHEN
+                    sort_call_time NOT IN (board_time, alight_time)
+                THEN 1
+                END
+            ) AS calls
+        FROM transport_user_train_leg
+        INNER JOIN train_station_leg_call_view
+        ON transport_user_train_leg.train_leg_id
+            = train_station_leg_call_view.train_leg_id
+        INNER JOIN train_leg_high_view
+        ON train_station_leg_call_view.train_leg_id
+            = train_leg_high_view.train_leg_id
+        GROUP BY user_id, train_station_id
+    ) train_station_leg_count
+    ON transport_user.user_id = train_station_leg_count.user_id
+    AND train_station.train_station_id = train_station_leg_count.train_station_id
 ) transport_user_train_station_leg_count_view
 ON train_station.train_station_id
-    = transport_user_train_station_leg_count_view.train_station_id;
--- INNER JOIN (
---     SELECT
---         train_station_leg_call_view.train_station_id,
---         ARRAY_AGG((
---             train_station_leg_call_view.train_leg_id,
---             (
---                 board_train_station.train_station_id,
---                 board_train_station.station_crs,
---                 board_train_station.station_name
---             )::transport_user_train_station_leg_endpoint_out_data,
---             (
---                 alight_train_station.train_station_id,
---                 alight_train_station.station_crs,
---                 alight_train_station.station_name
---             )::transport_user_train_station_leg_endpoint_out_data,
---             train_station_leg_call_view.plan_arr,
---             train_station_leg_call_view.act_arr,
---             train_station_leg_call_view.plan_dep,
---             train_station_leg_call_view.act_dep,
---             train_leg_high_view.operator,
---             train_leg_high_view.brand,
---             train_station_leg_call_before.calls_before,
---             train_station_leg_call_before.calls_before,
---             train_leg_high_view.total_calls
---                 - (train_station_leg_call_before.calls_before + 1)
---         )::transport_user_train_station_leg_out_data) AS station_legs
---     FROM train_station_leg_call_view
---     LEFT JOIN train_leg_high_view
---     ON train_station_leg_call_view.train_leg_id
---         = train_leg_high_view.train_leg_id
---     INNER JOIN train_station board_train_station
---     ON train_leg_high_view.board_train_station_id
---         = board_train_station.train_station_id
---     INNER JOIN train_station alight_train_station
---     ON train_leg_high_view.alight_train_station_id
---         = alight_train_station.train_station_id
---     LEFT JOIN train_call arr_train_call
---     ON train_station_leg_call_view.arr_train_call_id = arr_train_call.train_call_id
---     LEFT JOIN train_call dep_train_call
---     ON train_station_leg_call_view.dep_train_call_id = dep_train_call.train_call_id
---     LEFT JOIN (
---         SELECT
---             train_station_leg_call_view.train_station_id,
---             train_station_leg_call_view.train_leg_id,
---             COUNT(before_train_station_leg_call_view.*) AS calls_before
---         FROM train_station_leg_call_view
---         INNER JOIN train_station_leg_call_view before_train_station_leg_call_view
---         ON train_station_leg_call_view.train_leg_id
---             = before_train_station_leg_call_view.train_leg_id
---         AND train_station_leg_call_view.sort_call_time
---             > before_train_station_leg_call_view.sort_call_time
---         GROUP BY
---             train_station_leg_call_view.train_station_id,
---             train_station_leg_call_view.train_leg_id
---     ) train_station_leg_call_before
---     ON train_station_leg_call_view.train_station_id
---         = train_station_leg_call_before.train_station_id
---     AND train_station_leg_call_view.train_leg_id
---         = train_station_leg_call_before.train_leg_id
---     GROUP BY
---         train_station_leg_call_view.train_station_id
--- ) train_station_leg_view
--- ON train_station.train_station_id = train_station_leg_view.train_station_id;
+    = transport_user_train_station_leg_count_view.train_station_id
+LEFT JOIN (
+    SELECT
+        train_station_leg_call_view.train_station_id,
+        transport_user_train_leg.user_id,
+        ARRAY_AGG((
+            train_station_leg_call_view.train_leg_id,
+            (
+                board_train_station.train_station_id,
+                board_train_station.station_crs,
+                board_train_station.station_name
+            )::transport_user_train_station_leg_endpoint_out_data,
+            (
+                alight_train_station.train_station_id,
+                alight_train_station.station_crs,
+                alight_train_station.station_name
+            )::transport_user_train_station_leg_endpoint_out_data,
+            train_station_leg_call_view.plan_arr,
+            train_station_leg_call_view.act_arr,
+            train_station_leg_call_view.plan_dep,
+            train_station_leg_call_view.act_dep,
+            train_leg_high_view.operator,
+            train_leg_high_view.brand,
+            train_station_leg_call_before.calls_before,
+            train_station_leg_call_before.calls_before,
+            train_leg_high_view.total_calls
+                - (train_station_leg_call_before.calls_before + 1)
+        )::transport_user_train_station_leg_out_data) AS station_legs
+    FROM train_station_leg_call_view
+    LEFT JOIN train_leg_high_view
+    ON train_station_leg_call_view.train_leg_id
+        = train_leg_high_view.train_leg_id
+    INNER JOIN train_station board_train_station
+    ON train_leg_high_view.board_train_station_id
+        = board_train_station.train_station_id
+    INNER JOIN train_station alight_train_station
+    ON train_leg_high_view.alight_train_station_id
+        = alight_train_station.train_station_id
+    LEFT JOIN train_call arr_train_call
+    ON train_station_leg_call_view.arr_train_call_id = arr_train_call.train_call_id
+    LEFT JOIN train_call dep_train_call
+    ON train_station_leg_call_view.dep_train_call_id = dep_train_call.train_call_id
+    LEFT JOIN (
+        SELECT
+            train_station_leg_call_view.train_station_id,
+            train_station_leg_call_view.train_leg_id,
+            COUNT(before_train_station_leg_call_view.*) - 1 AS calls_before
+        FROM train_station_leg_call_view
+        INNER JOIN train_station_leg_call_view before_train_station_leg_call_view
+        ON train_station_leg_call_view.train_leg_id
+            = before_train_station_leg_call_view.train_leg_id
+        AND train_station_leg_call_view.sort_call_time
+            >= before_train_station_leg_call_view.sort_call_time
+        GROUP BY
+            train_station_leg_call_view.train_station_id,
+            train_station_leg_call_view.train_leg_id
+    ) train_station_leg_call_before
+    ON train_station_leg_call_view.train_station_id
+        = train_station_leg_call_before.train_station_id
+    AND train_station_leg_call_view.train_leg_id
+        = train_station_leg_call_before.train_leg_id
+    INNER JOIN transport_user_train_leg
+    ON train_leg_high_view.train_leg_id = transport_user_train_leg.train_leg_id
+    GROUP BY
+        train_station_leg_call_view.train_station_id,
+        transport_user_train_leg.user_id
+) train_station_leg_view
+ON train_station.train_station_id = train_station_leg_view.train_station_id
+AND transport_user_train_station_leg_count_view.user_id
+    = train_station_leg_view.user_id;
