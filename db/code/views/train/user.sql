@@ -294,29 +294,32 @@ LEFT JOIN (
     SELECT
         train_station_leg_call_view.train_station_id,
         transport_user_train_leg.user_id,
-        ARRAY_AGG((
-            train_station_leg_call_view.train_leg_id,
+        ARRAY_AGG(
             (
-                board_train_station.train_station_id,
-                board_train_station.station_crs,
-                board_train_station.station_name
-            )::transport_user_train_station_leg_endpoint_out_data,
-            (
-                alight_train_station.train_station_id,
-                alight_train_station.station_crs,
-                alight_train_station.station_name
-            )::transport_user_train_station_leg_endpoint_out_data,
-            train_station_leg_call_view.plan_arr,
-            train_station_leg_call_view.act_arr,
-            train_station_leg_call_view.plan_dep,
-            train_station_leg_call_view.act_dep,
-            train_leg_high_view.operator,
-            train_leg_high_view.brand,
-            train_station_leg_call_before.calls_before,
-            train_station_leg_call_before.calls_before,
-            train_leg_high_view.total_calls
-                - (train_station_leg_call_before.calls_before + 1)
-        )::transport_user_train_station_leg_out_data) AS station_legs
+                train_station_leg_call_view.train_leg_id,
+                (
+                    board_train_station.train_station_id,
+                    board_train_station.station_crs,
+                    board_train_station.station_name
+                )::transport_user_train_station_leg_endpoint_out_data,
+                (
+                    alight_train_station.train_station_id,
+                    alight_train_station.station_crs,
+                    alight_train_station.station_name
+                )::transport_user_train_station_leg_endpoint_out_data,
+                train_station_leg_call_view.plan_arr,
+                train_station_leg_call_view.act_arr,
+                train_station_leg_call_view.plan_dep,
+                train_station_leg_call_view.act_dep,
+                train_leg_high_view.operator,
+                train_leg_high_view.brand,
+                train_station_leg_call_before.calls_before,
+                train_station_leg_call_before.calls_before,
+                train_leg_high_view.total_calls
+                    - (train_station_leg_call_before.calls_before + 1)
+            )::transport_user_train_station_leg_out_data
+            ORDER BY train_station_leg_call_view.sort_call_time DESC
+        ) AS station_legs
     FROM train_station_leg_call_view
     LEFT JOIN train_leg_high_view
     ON train_station_leg_call_view.train_leg_id

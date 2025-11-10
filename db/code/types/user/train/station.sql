@@ -43,11 +43,11 @@ CREATE TYPE transport_user_train_station_out_data AS (
     station_id INTEGER_NOTNULL,
     station_crs TEXT_NOTNULL,
     station_name TEXT_NOTNULL,
-    station_operator transport_user_train_station_operator_out_data,
+    station_operator transport_user_train_station_operator_out_data_notnull,
     station_brand transport_user_train_station_operator_out_data,
-    boards INTEGER_NOTNULL,
-    alights INTEGER_NOTNULL,
-    calls INTEGER_NOTNULL,
+    boards BIGINT_NOTNULL,
+    alights BIGINT_NOTNULL,
+    calls BIGINT_NOTNULL,
     station_legs transport_user_train_station_leg_out_data_notnull[]
 );
 
