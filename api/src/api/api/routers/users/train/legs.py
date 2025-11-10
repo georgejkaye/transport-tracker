@@ -10,7 +10,7 @@ from api.db.functions.select.train.leg import (
     select_train_leg_points_by_user_id_fetchall,
 )
 from api.db.functions.select.train.user import (
-    select_transport_user_train_leg_by_user_id_fetchall,
+    select_transport_user_train_legs_by_user_id_fetchall,
 )
 from api.db.types.train.leg import TrainLegPointsOutData
 from api.db.types.user.train.leg import TransportUserTrainLegOutData
@@ -24,7 +24,7 @@ async def get_user_legs_by_time_period(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
 ) -> list[TransportUserTrainLegOutData]:
-    return select_transport_user_train_leg_by_user_id_fetchall(
+    return select_transport_user_train_legs_by_user_id_fetchall(
         get_db_connection(),
         user_id,
         start_date,
@@ -36,7 +36,7 @@ async def get_user_legs_by_time_period(
 async def get_user_legs_by_year(
     user_id: int, year: int
 ) -> list[TransportUserTrainLegOutData]:
-    return select_transport_user_train_leg_by_user_id_fetchall(
+    return select_transport_user_train_legs_by_user_id_fetchall(
         get_db_connection(),
         user_id,
         datetime(year, 1, 1),
