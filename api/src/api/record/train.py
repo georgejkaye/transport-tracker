@@ -388,7 +388,6 @@ def get_stock(
         )
         segment_start = current_call
         next_remaining_calls: list[TrainLegCallInData] = []
-
         stock_end_opt = input_station_from_calls(segment_start, remaining_calls)
         if stock_end_opt is None:
             segment_end = remaining_calls[-1]
@@ -415,7 +414,7 @@ def get_stock(
                     stock_report = get_unit_report(stock_list)
                     if stock_report is None:
                         return []
-                    current_segment_stock = previous_stock_segment_stock
+                    current_segment_stock = previous_stock_segment_stock.copy()
                     current_segment_stock.append(stock_report)
             case StockChange.LOSE:
                 result = input_checkbox(
@@ -512,6 +511,7 @@ def get_leg_calls_between_calls(
     boarded = False
     for call in service.calls:
         if not boarded:
+            arr_call = None
             if (
                 call.station_crs == start_station_crs
                 and call.plan_dep == start_dep_time
@@ -520,7 +520,7 @@ def get_leg_calls_between_calls(
                 mileage_at_board_call = (
                     call.mileage if call.mileage is not None else None
                 )
-        if boarded:
+        else:
             arr_call = TrainLegCallCallInData(
                 service.service_uid,
                 service.run_date,
@@ -529,8 +529,6 @@ def get_leg_calls_between_calls(
                 call.plan_dep,
                 call.act_dep,
             )
-        else:
-            arr_call = None
         for call_association in call.associated_services:
             if call_association.association not in [
                 AssociationType.OTHER_DIVIDES,
@@ -568,11 +566,32 @@ def get_leg_calls_between_calls(
             leg_calls.extend(associated_leg_calls)
             return leg_calls
         if boarded:
+            if call.station_crs == end_station_crs:
+                arr_call = TrainLegCallCallInData(
+                    service.service_uid,
+                    service.run_date,
+                    call.plan_arr,
+                    call.act_arr,
+                    None,
+                    None,
+                )
+                dep_call = None
+            elif arr_call is None:
+                dep_call = TrainLegCallCallInData(
+                    service.service_uid,
+                    service.run_date,
+                    None,
+                    None,
+                    call.plan_dep,
+                    call.act_dep,
+                )
+            else:
+                dep_call = arr_call
             leg_call = TrainLegCallInData(
                 call.station_crs,
                 call.station_name,
                 arr_call,
-                arr_call,
+                dep_call,
                 (
                     call.mileage - mileage_at_board_call
                     if call.mileage is not None
