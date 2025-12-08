@@ -409,12 +409,12 @@ def get_stock(
                 number_of_units = input_number("Number of new units")
                 if number_of_units is None:
                     return []
+                current_segment_stock = previous_stock_segment_stock.copy()
                 for i in range(0, number_of_units):
                     information(f"Selecting unit {i + 1}")
                     stock_report = get_unit_report(stock_list)
                     if stock_report is None:
                         return []
-                    current_segment_stock = previous_stock_segment_stock.copy()
                     current_segment_stock.append(stock_report)
             case StockChange.LOSE:
                 result = input_checkbox(
