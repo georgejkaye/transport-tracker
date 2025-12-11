@@ -1,6 +1,7 @@
 DROP VIEW IF EXISTS transport_user_train_leg_high_view;
 DROP VIEW IF EXISTS transport_user_train_station_view;
 DROP VIEW IF EXISTS transport_user_train_class_view;
+DROP VIEW IF EXISTS transport_user_train_class_high_view;
 
 CREATE VIEW transport_user_train_leg_view AS
 SELECT
@@ -364,11 +365,15 @@ ON train_station.train_station_id = train_station_leg_view.train_station_id
 AND transport_user_train_station_leg_count_view.user_id
     = train_station_leg_view.user_id;
 
+-- TODO better count per leg? combine multiple stokc segments?
 CREATE OR REPLACE VIEW transport_user_train_stock_class_view AS
 SELECT
     transport_user_train_leg.user_id,
     train_stock.stock_class,
     train_stock.name,
+    COUNT(train_leg_stock_report_view.*) AS stock_count,
+    SUM(train_leg_stock_report_view.distance) AS distance,
+    SUM(train_leg_stock_report_view.duration) AS duration,
     ARRAY_AGG((
         train_leg_stock_report_view.train_leg_id,
         train_leg_stock_report_view.stock_number,
@@ -383,7 +388,7 @@ SELECT
         train_leg_stock_report_view.operator,
         train_leg_stock_report_view.brand
     )::transport_user_train_class_leg_out_data)
-        AS class_legs
+    AS class_legs
 FROM train_leg_stock_report_view
 INNER JOIN transport_user_train_leg
 ON train_leg_stock_report_view.train_leg_id
@@ -397,6 +402,7 @@ SELECT
     transport_user_train_leg.user_id,
     train_stock.stock_class,
     train_stock.name,
+    COUNT(train_leg_stock_report_view.*) AS stock_count,
     SUM(train_leg_stock_report_view.distance) AS distance,
     SUM(train_leg_stock_report_view.duration) AS duration
 FROM train_leg_stock_report_view
@@ -406,3 +412,65 @@ ON train_leg_stock_report_view.train_leg_id
 INNER JOIN train_stock
 ON train_leg_stock_report_view.stock_class = train_stock.stock_class
 GROUP BY user_id, train_stock.stock_class, train_stock.name;
+
+CREATE OR REPLACE VIEW transport_user_train_stock_unit_view AS
+SELECT
+    transport_user_train_leg.user_id,
+    train_leg_stock_report_view.stock_number,
+    train_leg_stock_report_view.stock_class,
+    train_leg_stock_report_view.stock_subclass,
+    train_leg_stock_report_view.stock_cars,
+    COUNT(train_leg_stock_report_view.*) AS unit_count,
+    SUM(train_leg_stock_report_view.distance) AS distance,
+    SUM(train_leg_stock_report_view.duration) AS duration,
+    ARRAY_AGG((
+        train_leg_stock_report_view.train_leg_id,
+        train_leg_stock_report_view.stock_start_station,
+        train_leg_stock_report_view.stock_end_station,
+        train_leg_stock_report_view.distance,
+        train_leg_stock_report_view.duration,
+        train_leg_stock_report_view.leg_start_station,
+        train_leg_stock_report_view.leg_end_station,
+        train_leg_stock_report_view.operator,
+        train_leg_stock_report_view.brand
+    )::transport_user_train_unit_leg_out_data)
+    AS unit_legs
+FROM train_leg_stock_report_view
+INNER JOIN transport_user_train_leg
+ON train_leg_stock_report_view.train_leg_id
+    = transport_user_train_leg.train_leg_id
+WHERE stock_number IS NOT NULL
+-- TODO: we can do this better with a proper stock unit table
+GROUP BY
+    user_id,
+    train_leg_stock_report_view.stock_number,
+    train_leg_stock_report_view.stock_class,
+    train_leg_stock_report_view.stock_subclass,
+    train_leg_stock_report_view.stock_cars,
+    train_leg_stock_report_view.operator,
+    train_leg_stock_report_view.brand;
+
+CREATE OR REPLACE VIEW transport_user_train_stock_unit_high_view AS
+SELECT
+    transport_user_train_leg.user_id,
+    train_leg_stock_report_view.stock_number,
+    train_leg_stock_report_view.stock_class,
+    train_leg_stock_report_view.stock_subclass,
+    train_leg_stock_report_view.stock_cars,
+    COUNT(train_leg_stock_report_view.*) AS unit_count,
+    SUM(train_leg_stock_report_view.distance) AS distance,
+    SUM(train_leg_stock_report_view.duration) AS duration
+FROM train_leg_stock_report_view
+INNER JOIN transport_user_train_leg
+ON train_leg_stock_report_view.train_leg_id
+    = transport_user_train_leg.train_leg_id
+WHERE stock_number IS NOT NULL
+-- TODO: we can do this better with a proper stock unit table
+GROUP BY
+    user_id,
+    train_leg_stock_report_view.stock_number,
+    train_leg_stock_report_view.stock_class,
+    train_leg_stock_report_view.stock_subclass,
+    train_leg_stock_report_view.stock_cars,
+    train_leg_stock_report_view.operator,
+    train_leg_stock_report_view.brand;
