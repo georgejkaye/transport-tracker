@@ -2,6 +2,7 @@ DROP VIEW IF EXISTS transport_user_train_leg_high_view;
 DROP VIEW IF EXISTS transport_user_train_station_view;
 DROP VIEW IF EXISTS transport_user_train_class_view;
 DROP VIEW IF EXISTS transport_user_train_class_high_view;
+DROP VIEW IF EXISTS transport_user_train_operator_view;
 
 CREATE VIEW transport_user_train_leg_view AS
 SELECT
@@ -395,7 +396,11 @@ ON train_leg_stock_report_view.train_leg_id
     = transport_user_train_leg.train_leg_id
 INNER JOIN train_stock
 ON train_leg_stock_report_view.stock_class = train_stock.stock_class
-GROUP BY user_id, train_stock.stock_class, train_stock.name;
+GROUP BY
+    user_id,
+    train_stock.stock_class,
+    train_stock.name,
+    train_leg_stock_report_view.train_leg_id;
 
 CREATE OR REPLACE VIEW transport_user_train_stock_class_high_view AS
 SELECT
@@ -411,7 +416,10 @@ ON train_leg_stock_report_view.train_leg_id
     = transport_user_train_leg.train_leg_id
 INNER JOIN train_stock
 ON train_leg_stock_report_view.stock_class = train_stock.stock_class
-GROUP BY user_id, train_stock.stock_class, train_stock.name;
+GROUP BY
+    user_id,
+    train_stock.stock_class,
+    train_stock.name;
 
 CREATE OR REPLACE VIEW transport_user_train_stock_unit_view AS
 SELECT
@@ -458,8 +466,12 @@ SELECT
     train_leg_stock_report_view.stock_subclass,
     train_leg_stock_report_view.stock_cars,
     COUNT(train_leg_stock_report_view.*) AS unit_count,
-    SUM(train_leg_stock_report_view.distance) AS distance,
-    SUM(train_leg_stock_report_view.duration) AS duration
+    SUM(
+        COALESCE(train_leg_stock_report_view.distance, 0)
+    ) AS distance,
+    SUM(
+        COALESCE(train_leg_stock_report_view.duration, INTERVAL '0 days')
+    ) AS duration
 FROM train_leg_stock_report_view
 INNER JOIN transport_user_train_leg
 ON train_leg_stock_report_view.train_leg_id
@@ -474,3 +486,88 @@ GROUP BY
     train_leg_stock_report_view.stock_cars,
     train_leg_stock_report_view.operator,
     train_leg_stock_report_view.brand;
+
+CREATE OR REPLACE VIEW transport_user_train_operator_view AS
+SELECT
+    transport_user_train_leg_view.user_id,
+    COALESCE(
+        (transport_user_train_leg_view.brand).operator_id,
+        (transport_user_train_leg_view.operator).operator_id
+    ) AS operator_id,
+    COALESCE(
+        (transport_user_train_leg_view.brand).operator_code,
+        (transport_user_train_leg_view.operator).operator_code
+    ) AS operator_code,
+    COALESCE(
+        (transport_user_train_leg_view.brand).operator_name,
+        (transport_user_train_leg_view.operator).operator_name
+    ) AS operator_name,
+    CASE
+        WHEN (transport_user_train_leg_view.brand).operator_id IS NULL
+        THEN FALSE
+        ELSE TRUE
+    END
+    AS is_brand,
+    COUNT(*) AS leg_count,
+    SUM(
+        COALESCE(transport_user_train_leg_view.duration, INTERVAL '0 days')
+    ) AS leg_duration,
+    SUM(
+        COALESCE(transport_user_train_leg_view.distance, 0)
+    ) AS leg_distance,
+    SUM(
+        COALESCE(transport_user_train_leg_view.delay, 0)
+    ) AS leg_delay,
+    ARRAY_AGG(
+        (
+            transport_user_train_leg_view.train_leg_id,
+            transport_user_train_leg_view.origin,
+            transport_user_train_leg_view.destination,
+            transport_user_train_leg_view.start_datetime,
+            transport_user_train_leg_view.distance,
+            transport_user_train_leg_view.duration,
+            transport_user_train_leg_view.delay
+        )::transport_user_train_operator_train_leg_out_data
+    ) AS operator_legs
+FROM transport_user_train_leg_view
+GROUP BY
+    transport_user_train_leg_view.user_id,
+    transport_user_train_leg_view.brand,
+    transport_user_train_leg_view.operator;
+
+CREATE OR REPLACE VIEW transport_user_train_operator_high_view AS
+SELECT
+    transport_user_train_leg_view.user_id,
+    COALESCE(
+        (transport_user_train_leg_view.brand).operator_id,
+        (transport_user_train_leg_view.operator).operator_id
+    ) AS operator_id,
+    COALESCE(
+        (transport_user_train_leg_view.brand).operator_code,
+        (transport_user_train_leg_view.operator).operator_code
+    ) AS operator_code,
+    COALESCE(
+        (transport_user_train_leg_view.brand).operator_name,
+        (transport_user_train_leg_view.operator).operator_name
+    ) AS operator_name,
+    CASE
+        WHEN (transport_user_train_leg_view.brand).operator_id IS NULL
+        THEN FALSE
+        ELSE TRUE
+    END
+    AS is_brand,
+    COUNT(*) AS leg_count,
+    SUM(
+        COALESCE(transport_user_train_leg_view.duration, INTERVAL '0 days')
+    ) AS leg_duration,
+    SUM(
+        COALESCE(transport_user_train_leg_view.distance, 0)
+    ) AS leg_distance,
+    SUM(
+        COALESCE(transport_user_train_leg_view.delay, 0)
+    ) AS leg_delay
+FROM transport_user_train_leg_view
+GROUP BY
+    transport_user_train_leg_view.user_id,
+    transport_user_train_leg_view.brand,
+    transport_user_train_leg_view.operator;

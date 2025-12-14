@@ -1,5 +1,6 @@
 DROP FUNCTION IF EXISTS select_transport_user_train_legs_by_user_id;
 DROP FUNCTION IF EXISTS select_transport_user_train_stations_by_user_id;
+DROP FUNCTION IF EXISTS select_transport_user_train_operator_by_user_id;
 
 CREATE FUNCTION select_transport_user_train_legs_by_user_id (
     p_user_id INTEGER_NOTNULL,
@@ -172,5 +173,25 @@ SELECT
     transport_user_train_stock_unit_high_view.distance,
     transport_user_train_stock_unit_high_view.duration
 FROM transport_user_train_stock_unit_high_view
+WHERE user_id = p_user_id;
+$$;
+
+CREATE FUNCTION select_transport_user_train_operator_by_user_id (
+    p_user_id INTEGER_NOTNULL
+)
+RETURNS SETOF transport_user_train_operator_high_out_data
+LANGUAGE sql
+AS
+$$
+SELECT
+    transport_user_train_operator_view.operator_id,
+    transport_user_train_operator_view.operator_code,
+    transport_user_train_operator_view.operator_name,
+    transport_user_train_operator_view.is_brand,
+    transport_user_train_operator_view.leg_count,
+    transport_user_train_operator_view.leg_duration,
+    transport_user_train_operator_view.leg_distance,
+    transport_user_train_operator_view.leg_delay
+FROM transport_user_train_operator_view
 WHERE user_id = p_user_id;
 $$;
