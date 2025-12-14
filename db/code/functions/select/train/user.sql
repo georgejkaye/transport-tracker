@@ -73,6 +73,30 @@ AND train_station_id = p_train_station_id
 ORDER BY station_name ASC;
 $$;
 
+CREATE FUNCTION select_transport_user_train_station_by_user_id_and_station_crs (
+    p_user_id INTEGER_NOTNULL,
+    p_station_crs TEXT_NOTNULL
+)
+RETURNS SETOF transport_user_train_station_out_data
+LANGUAGE sql
+AS
+$$
+SELECT
+    train_station_id,
+    station_crs,
+    station_name,
+    station_operator,
+    station_brand,
+    boards,
+    alights,
+    calls,
+    station_legs
+FROM transport_user_train_station_view
+WHERE user_id = p_user_id
+AND station_crs = p_station_crs
+ORDER BY station_name ASC;
+$$;
+
 CREATE FUNCTION select_transport_user_train_stock_class_by_user_id_and_class (
     p_user_id INTEGER_NOTNULL,
     p_stock_class INTEGER_NOTNULL
