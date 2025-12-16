@@ -177,7 +177,8 @@ WHERE user_id = p_user_id;
 $$;
 
 CREATE FUNCTION select_transport_user_train_operator_by_user_id (
-    p_user_id INTEGER_NOTNULL
+    p_user_id INTEGER_NOTNULL,
+    p_by_brands BOOLEAN_NOTNULL
 )
 RETURNS SETOF transport_user_train_operator_high_out_data
 LANGUAGE sql
@@ -193,5 +194,9 @@ SELECT
     transport_user_train_operator_view.leg_distance,
     transport_user_train_operator_view.leg_delay
 FROM transport_user_train_operator_view
-WHERE user_id = p_user_id;
+WHERE user_id = p_user_id
+AND (
+    (p_by_brands AND (is_brand OR operator_brands IS NULL))
+    OR (NOT p_by_brands AND (NOT is_brand))
+);
 $$;
