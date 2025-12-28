@@ -968,6 +968,10 @@ def record_new_leg(
     stock_segments = get_stock(conn, leg_calls, service)
     mileage = get_mileage(leg_calls)
     information(f"Computed mileage as {string_of_miles_and_chains(mileage)}")
+    if leg_calls[0].mileage is None:
+        leg_calls[0].mileage = Decimal(0)
+    if leg_calls[-1].mileage is None:
+        leg_calls[-1].mileage = mileage
     (
         train_leg_services,
         train_leg_service_endpoints,
