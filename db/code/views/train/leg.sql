@@ -1,10 +1,13 @@
 DROP VIEW IF EXISTS train_leg_view CASCADE;
 DROP VIEW IF EXISTS train_leg_points_view CASCADE;
 DROP VIEW IF EXISTS train_leg_stock_segment_view CASCADE;
+DROP VIEW IF EXISTS train_leg_stock_stats_view CASCADE;
+DROP VIEW IF EXISTS train_leg_stock_class_view CASCADE;
 
 CREATE OR REPLACE VIEW train_leg_high_view AS
 SELECT
     train_leg_boundary_time.train_leg_id,
+    train_leg_boundary_time.leg_start_time,
     (
         train_leg_start_station.train_station_id,
         train_leg_start_station.station_crs,
@@ -86,6 +89,7 @@ ON train_service.train_brand_id = train_brand.train_brand_id;
 CREATE OR REPLACE VIEW train_leg_view AS
 SELECT
     train_leg.train_leg_id,
+    train_leg_stock.leg_start,
     train_leg_service.services,
     train_leg_call.calls,
     train_leg_stock.stock
@@ -242,6 +246,7 @@ ON train_leg.train_leg_id = train_leg_call.train_leg_id
 INNER JOIN (
     SELECT
         train_leg_stock_segment_view.train_leg_id,
+        train_leg_stock_segment_view.leg_start,
         ARRAY_AGG((
             (
                 train_leg_stock_segment_station_start.train_station_id,
@@ -259,6 +264,8 @@ INNER JOIN (
     FROM (
         SELECT DISTINCT
             train_leg.train_leg_id,
+            train_leg_boundary.leg_start,
+
             train_stock_segment_boundary.train_stock_segment_id,
             train_stock_segment_boundary.stock_segment_start,
             CASE
@@ -429,7 +436,9 @@ INNER JOIN (
     ) train_leg_stock_report
     ON train_leg_stock_segment_view.train_stock_segment_id
         = train_leg_stock_report.train_stock_segment_id
-    GROUP BY train_leg_stock_segment_view.train_leg_id
+    GROUP BY
+        train_leg_stock_segment_view.train_leg_id,
+        train_leg_stock_segment_view.leg_start
 ) train_leg_stock
 ON train_leg.train_leg_id = train_leg_stock.train_leg_id;
 
@@ -660,7 +669,11 @@ SELECT
     train_station_end.station_name AS end_station_name,
     train_call_end.plan_arr AS end_call_plan_arr,
     train_call_end.act_arr AS end_call_act_arr,
-    train_leg_call_end.mileage AS end_call_mileage
+    train_leg_call_end.mileage AS end_call_mileage,
+    train_leg_call_end.mileage - train_leg_call_start.mileage AS mileage,
+    COALESCE(train_call_end.act_arr, train_call_end.plan_arr)
+        - COALESCE(train_call_start.act_dep, train_call_start.plan_dep)
+        AS duration
 FROM (
     SELECT
         train_leg_id,
@@ -710,94 +723,135 @@ ON train_call_end.train_call_id = train_leg_call_end.arr_call_id
 INNER JOIN train_station train_station_end
 ON train_call_end.train_station_id = train_station_end.train_station_id;
 
-CREATE OR REPLACE VIEW train_leg_stock_report_view AS
+CREATE OR REPLACE VIEW train_leg_stock_class_view AS
 SELECT
-    train_leg_stock_report_unit_view.train_leg_id,
-    train_leg_stock_report_unit_view.stock_class,
-    train_leg_stock_report_unit_view.stock_subclass,
-    train_leg_stock_report_unit_view.stock_number,
-    train_leg_stock_report_unit_view.stock_cars,
-    train_leg_stock_report_unit_view.distance,
-    train_leg_stock_report_unit_view.duration,
-    (
-        train_station_start.train_station_id,
-        train_station_start.station_name,
-        train_station_start.station_crs
-    )::train_leg_station_out_data AS stock_start_station,
-    (
-        train_station_end.train_station_id,
-        train_station_end.station_name,
-        train_station_end.station_crs
-    )::train_leg_station_out_data AS stock_end_station,
-    train_leg_high_view.origin AS leg_start_station,
-    train_leg_high_view.destination AS leg_end_station,
-    train_leg_high_view.operator,
-    train_leg_high_view.brand
+    train_leg_stock_class_unit.train_leg_id,
+    train_leg_stock_class_unit.stock_class,
+    ARRAY_AGG(
+        (
+            train_leg_stock_class_unit.stock_number,
+            train_leg_stock_class_unit.stock_subclass,
+            train_leg_stock_class_unit.stock_cars,
+            train_leg_stock_class_unit.segments,
+            train_leg_stock_class_unit.duration,
+            train_leg_stock_class_unit.distance
+        )::transport_user_train_class_leg_unit_out_data
+    ) AS units,
+    SUM(train_leg_stock_class_unit.duration) AS duration,
+    SUM(train_leg_stock_class_unit.distance) AS distance
 FROM (
     SELECT
-        train_leg_stock_segment_view.train_leg_id,
-        train_stock_report.stock_class,
-        train_stock_report.stock_subclass,
-        train_stock_report.stock_number,
-        train_stock_report.stock_cars,
-        MAX(train_leg_stock_segment_view.end_call_mileage)
-            - MIN(train_leg_stock_segment_view.start_call_mileage)
-            AS distance,
-        MIN(
-            COALESCE(
-                train_leg_stock_segment_view.start_call_act_dep,
-                train_leg_stock_segment_view.start_call_plan_dep
-            )
-        ) AS start_time,
-        MAX(
-            COALESCE(
-                train_leg_stock_segment_view.end_call_act_arr,
-                train_leg_stock_segment_view.end_call_plan_arr
-            )
-        ) AS end_time,
-        MAX(
-            COALESCE(
-                train_leg_stock_segment_view.end_call_act_arr,
-                train_leg_stock_segment_view.end_call_plan_arr
-            )
-        )
-            - MIN(
-                COALESCE(
-                    train_leg_stock_segment_view.start_call_act_dep,
-                    train_leg_stock_segment_view.start_call_plan_dep
-                )
-            )
-            AS duration
-    FROM train_leg_stock_segment_view
-    INNER JOIN train_stock_segment_report
-    ON train_leg_stock_segment_view.train_stock_segment_id
-        = train_stock_segment_report.train_stock_segment_id
-    INNER JOIN train_stock_report
-    ON train_stock_segment_report.train_stock_report_id
-        = train_stock_report.train_stock_report_id
+        train_leg_stock_class_unit_segment.train_leg_id,
+        train_leg_stock_class_unit_segment.stock_class,
+        train_leg_stock_class_unit_segment.stock_subclass,
+        train_leg_stock_class_unit_segment.stock_number,
+        train_leg_stock_class_unit_segment.stock_cars,
+        ARRAY_AGG(
+            (
+                stock_start_station,
+                stock_end_station
+            )::transport_user_train_class_leg_unit_segment_out_data
+        ) AS segments,
+        SUM(duration) AS duration,
+        SUM(distance) AS distance
+    FROM (
+        SELECT
+            train_leg_stock_report_unit_view.train_leg_id,
+            train_leg_stock_report_unit_view.stock_class,
+            train_leg_stock_report_unit_view.stock_subclass,
+            train_leg_stock_report_unit_view.stock_number,
+            train_leg_stock_report_unit_view.stock_cars,
+            (
+                train_station_start.train_station_id,
+                train_station_start.station_name,
+                train_station_start.station_crs
+            )::train_leg_station_out_data AS stock_start_station,
+            (
+                train_station_end.train_station_id,
+                train_station_end.station_name,
+                train_station_end.station_crs
+            )::train_leg_station_out_data AS stock_end_station,
+            train_leg_stock_report_unit_view.distance,
+            train_leg_stock_report_unit_view.end_time
+                - train_leg_stock_report_unit_view.start_time AS duration
+        FROM (
+            SELECT
+                train_leg_stock_segment_view.train_leg_id,
+                train_stock_report.stock_class,
+                train_stock_report.stock_subclass,
+                train_stock_report.stock_number,
+                train_stock_report.stock_cars,
+                MAX(train_leg_stock_segment_view.end_call_mileage)
+                    - MIN(train_leg_stock_segment_view.start_call_mileage)
+                    AS distance,
+                MIN(
+                    COALESCE(
+                        train_leg_stock_segment_view.start_call_act_dep,
+                        train_leg_stock_segment_view.start_call_plan_dep
+                    )
+                ) AS start_time,
+                MAX(
+                    COALESCE(
+                        train_leg_stock_segment_view.end_call_act_arr,
+                        train_leg_stock_segment_view.end_call_plan_arr
+                    )
+                ) AS end_time
+            FROM train_leg_stock_segment_view
+            INNER JOIN train_stock_segment_report
+            ON train_leg_stock_segment_view.train_stock_segment_id
+                = train_stock_segment_report.train_stock_segment_id
+            INNER JOIN train_stock_report
+            ON train_stock_segment_report.train_stock_report_id
+                = train_stock_report.train_stock_report_id
+            GROUP BY
+                train_leg_id,
+                stock_number,
+                stock_class,
+                stock_subclass,
+                stock_cars,
+                train_leg_stock_segment_view.train_stock_segment_id
+        ) train_leg_stock_report_unit_view
+        INNER JOIN train_leg_call train_leg_call_start
+        ON train_leg_stock_report_unit_view.train_leg_id = train_leg_call_start.train_leg_id
+        INNER JOIN train_call train_call_start
+        ON train_leg_call_start.dep_call_id = train_call_start.train_call_id
+        AND train_leg_stock_report_unit_view.start_time
+            = COALESCE(train_call_start.act_dep, train_call_start.plan_dep)
+        INNER JOIN train_station train_station_start
+        ON train_call_start.train_station_id = train_station_start.train_station_id
+        INNER JOIN train_leg_call train_leg_call_end
+        ON train_leg_stock_report_unit_view.train_leg_id = train_leg_call_end.train_leg_id
+        INNER JOIN train_call train_call_end
+        ON train_leg_call_end.arr_call_id = train_call_end.train_call_id
+        AND train_leg_stock_report_unit_view.end_time
+            = COALESCE(train_call_end.act_arr, train_call_end.plan_arr)
+        LEFT JOIN train_station train_station_end
+        ON train_call_end.train_station_id = train_station_end.train_station_id
+    ) train_leg_stock_class_unit_segment
     GROUP BY
-        train_leg_id,
-        stock_number,
-        stock_class,
-        stock_subclass,
-        stock_cars
-) train_leg_stock_report_unit_view
-INNER JOIN train_leg_call train_leg_call_start
-ON train_leg_stock_report_unit_view.train_leg_id = train_leg_call_start.train_leg_id
-INNER JOIN train_call train_call_start
-ON train_leg_call_start.dep_call_id = train_call_start.train_call_id
-AND train_leg_stock_report_unit_view.start_time
-    = COALESCE(train_call_start.act_dep, train_call_start.plan_dep)
-INNER JOIN train_station train_station_start
-ON train_call_start.train_station_id = train_station_start.train_station_id
-INNER JOIN train_leg_call train_leg_call_end
-ON train_leg_stock_report_unit_view.train_leg_id = train_leg_call_end.train_leg_id
-INNER JOIN train_call train_call_end
-ON train_leg_call_end.arr_call_id = train_call_end.train_call_id
-AND train_leg_stock_report_unit_view.end_time
-    = COALESCE(train_call_end.act_arr, train_call_end.plan_arr)
-LEFT JOIN train_station train_station_end
-ON train_call_end.train_station_id = train_station_end.train_station_id
-INNER JOIN train_leg_high_view
-ON train_leg_stock_report_unit_view.train_leg_id
-    = train_leg_high_view.train_leg_id;
+        train_leg_stock_class_unit_segment.train_leg_id,
+        train_leg_stock_class_unit_segment.stock_class,
+        train_leg_stock_class_unit_segment.stock_subclass,
+        train_leg_stock_class_unit_segment.stock_number,
+        train_leg_stock_class_unit_segment.stock_cars
+) train_leg_stock_class_unit
+GROUP BY
+    train_leg_stock_class_unit.train_leg_id,
+    train_leg_stock_class_unit.stock_class;
+
+CREATE OR REPLACE VIEW train_leg_stock_class_stats_view AS
+SELECT
+    train_leg_stock_segment_view.train_leg_id,
+    train_stock_report.stock_class,
+    SUM(train_leg_stock_segment_view.mileage) AS distance,
+    SUM(train_leg_stock_segment_view.duration) AS duration
+FROM train_leg_stock_segment_view
+INNER JOIN train_stock_segment_report
+ON train_leg_stock_segment_view.train_stock_segment_id
+    = train_stock_segment_report.train_stock_segment_id
+INNER JOIN train_stock_report
+ON train_stock_segment_report.train_stock_report_id
+    = train_stock_report.train_stock_report_id
+GROUP BY
+    train_leg_stock_segment_view.train_leg_id,
+    train_stock_report.stock_class;
