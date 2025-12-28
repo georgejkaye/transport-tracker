@@ -36,9 +36,9 @@ types-shapely = "^2.1.0.20250512"
 types-geopandas = "^1.0.1.20250601"
 types-networkx = "^3.5.0.20250918"
 
-[tool.black]
-line-length = 80
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 80
