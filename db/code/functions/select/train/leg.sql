@@ -93,6 +93,6 @@ AND (
 )
 AND (
     p_search_end IS NULL
-    OR train_leg_points_view.first_call_time <= p_search_end
+    OR train_leg_points_view.first_call_time < p_search_end
 )
 $$;

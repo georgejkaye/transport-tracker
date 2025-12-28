@@ -24,7 +24,7 @@ SELECT
 FROM transport_user_train_leg_view
 WHERE user_id = p_user_id
 AND (p_search_start IS NULL OR start_datetime >= p_search_start)
-AND (p_search_end IS NULL OR start_datetime <= p_search_end)
+AND (p_search_end IS NULL OR start_datetime < p_search_end)
 ORDER BY start_datetime ASC;
 $$;
 

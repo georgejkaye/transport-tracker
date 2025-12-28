@@ -355,7 +355,7 @@ AND COALESCE(
     (bus_leg_user_details_view.leg_calls)[1].plan_dep,
     (bus_leg_user_details_view.leg_calls)[1].act_dep,
     (bus_leg_user_details_view.leg_calls)[1].plan_arr,
-    (bus_leg_user_details_view.leg_calls)[1].act_arr) <= p_search_end;
+    (bus_leg_user_details_view.leg_calls)[1].act_arr) < p_search_end;
 $$;
 
 CREATE OR REPLACE FUNCTION select_bus_leg_user_details_by_user_id_and_start_datetime (
