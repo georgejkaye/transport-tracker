@@ -17,7 +17,11 @@ DROP DOMAIN IF EXISTS transport_user_train_unit_high_out_data_notnull CASCADE;
 
 CREATE TYPE transport_user_train_leg_unit_segment_out_data AS (
     start_station train_leg_station_out_data_notnull,
-    end_station train_leg_station_out_data_notnull
+    plan_dep TIMESTAMP WITH TIME ZONE,
+    act_dep TIMESTAMP WITH TIME ZONE,
+    end_station train_leg_station_out_data_notnull,
+    plan_arr TIMESTAMP WITH TIME ZONE,
+    act_arr TIMESTAMP WITH TIME ZONE
 );
 
 CREATE DOMAIN transport_user_train_leg_unit_segment_out_data_notnull
