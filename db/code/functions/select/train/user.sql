@@ -133,6 +133,7 @@ FROM (
                 train_leg_stock_class_view.distance,
                 train_leg_stock_class_view.duration
             )::transport_user_train_class_leg_out_data
+            ORDER BY train_leg_high_view.leg_start_time
         ) AS legs
     FROM train_leg_stock_class_view
     INNER JOIN train_leg_high_view
@@ -201,7 +202,8 @@ FROM (
         train_leg_stock_class_stats_view.stock_class
 ) train_leg_class_stock
 INNER JOIN train_stock
-ON train_leg_class_stock.stock_class = train_stock.stock_class;
+ON train_leg_class_stock.stock_class = train_stock.stock_class
+ORDER BY train_leg_class_stock.stock_class;
 $$;
 
 -- CREATE FUNCTION select_transport_user_train_stock_unit_by_user_id_and_number (
@@ -260,47 +262,58 @@ $$;
 --     train_leg_stock_report_view.brand;
 -- $$;
 
--- CREATE FUNCTION select_transport_user_train_stock_unit_by_user_id (
---     p_user_id INTEGER_NOTNULL,
---     p_search_start TIMESTAMP WITH TIME ZONE,
---     p_search_end TIMESTAMP WITH TIME ZONE
--- )
--- RETURNS SETOF transport_user_train_unit_high_out_data
--- LANGUAGE sql
--- AS
--- $$
--- SELECT
---     train_leg_stock_report_view.stock_number,
---     train_leg_stock_report_view.stock_class,
---     train_leg_stock_report_view.stock_subclass,
---     train_leg_stock_report_view.stock_cars,
---     COUNT(train_leg_stock_report_view.*) AS unit_count,
---     SUM(train_leg_stock_report_view.distance) AS distance,
---     SUM(train_leg_stock_report_view.duration) AS duration
--- FROM train_leg_stock_report_view
--- INNER JOIN transport_user_train_leg
--- ON train_leg_stock_report_view.train_leg_id
---     = transport_user_train_leg.train_leg_id
--- AND transport_user_train_leg.user_id = p_user_id
--- WHERE (
---     p_search_start IS NULL
---     OR train_leg_stock_report_view.leg_start_time >= p_search_start
--- )
--- AND (
---     p_search_end IS NULL
---     OR train_leg_stock_report_view.leg_start_time < p_search_end
--- )
--- AND train_leg_stock_report_view.stock_number IS NOT NULL
--- -- TODO: we can do this better with a proper stock unit table
--- GROUP BY
---     user_id,
---     train_leg_stock_report_view.stock_number,
---     train_leg_stock_report_view.stock_class,
---     train_leg_stock_report_view.stock_subclass,
---     train_leg_stock_report_view.stock_cars,
---     train_leg_stock_report_view.operator,
---     train_leg_stock_report_view.brand;
--- $$;
+CREATE FUNCTION select_transport_user_train_stock_unit_by_user_id (
+    p_user_id INTEGER_NOTNULL,
+    p_search_start TIMESTAMP WITH TIME ZONE,
+    p_search_end TIMESTAMP WITH TIME ZONE
+)
+RETURNS SETOF transport_user_train_unit_high_out_data
+LANGUAGE sql
+AS
+$$
+SELECT
+    train_leg_unit_stock.stock_number,
+    train_leg_unit_stock.stock_class,
+    train_leg_unit_stock.stock_subclass,
+    train_leg_unit_stock.stock_cars,
+    train_leg_unit_stock.count,
+    train_leg_unit_stock.distance,
+    train_leg_unit_stock.duration
+FROM (
+    SELECT
+        train_leg_stock_unit_stats_view.stock_number,
+        train_leg_stock_unit_stats_view.stock_class,
+        train_leg_stock_unit_stats_view.stock_subclass,
+        train_leg_stock_unit_stats_view.stock_cars,
+        COUNT(train_leg_stock_unit_stats_view.*) AS count,
+        SUM(train_leg_stock_unit_stats_view.distance) AS distance,
+        SUM(train_leg_stock_unit_stats_view.duration) AS duration
+    FROM train_leg_stock_unit_stats_view
+    INNER JOIN train_leg_high_view
+    ON train_leg_stock_unit_stats_view.train_leg_id
+        = train_leg_high_view.train_leg_id
+    INNER JOIN transport_user_train_leg
+    ON train_leg_stock_unit_stats_view.train_leg_id
+        = transport_user_train_leg.train_leg_id
+    WHERE transport_user_train_leg.user_id = p_user_id
+    AND (
+        p_search_start IS NULL
+        OR train_leg_high_view.leg_start_time >= p_search_start
+    )
+    AND (
+        p_search_end IS NULL
+        OR train_leg_high_view.leg_start_time < p_search_end
+    )
+    GROUP BY
+        user_id,
+        -- TODO explicit stock unit table
+        train_leg_stock_unit_stats_view.stock_number,
+        train_leg_stock_unit_stats_view.stock_class,
+        train_leg_stock_unit_stats_view.stock_subclass,
+        train_leg_stock_unit_stats_view.stock_cars
+) train_leg_unit_stock
+ORDER BY train_leg_unit_stock.stock_number;
+$$;
 
 CREATE FUNCTION select_transport_user_train_operator_by_user_id (
     p_user_id INTEGER_NOTNULL,

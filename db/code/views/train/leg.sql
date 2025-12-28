@@ -750,7 +750,7 @@ FROM (
             (
                 stock_start_station,
                 stock_end_station
-            )::transport_user_train_class_leg_unit_segment_out_data
+            )::transport_user_train_leg_unit_segment_out_data
         ) AS segments,
         SUM(duration) AS duration,
         SUM(distance) AS distance
@@ -855,3 +855,28 @@ ON train_stock_segment_report.train_stock_report_id
 GROUP BY
     train_leg_stock_segment_view.train_leg_id,
     train_stock_report.stock_class;
+
+CREATE OR REPLACE VIEW train_leg_stock_unit_stats_view AS
+SELECT
+    train_leg_stock_segment_view.train_leg_id,
+    train_stock_report.stock_number,
+    -- TODO stock unit table
+    train_stock_report.stock_class,
+    train_stock_report.stock_subclass,
+    train_stock_report.stock_cars,
+    SUM(train_leg_stock_segment_view.mileage) AS distance,
+    SUM(train_leg_stock_segment_view.duration) AS duration
+FROM train_leg_stock_segment_view
+INNER JOIN train_stock_segment_report
+ON train_leg_stock_segment_view.train_stock_segment_id
+    = train_stock_segment_report.train_stock_segment_id
+INNER JOIN train_stock_report
+ON train_stock_segment_report.train_stock_report_id
+    = train_stock_report.train_stock_report_id
+WHERE train_stock_report.stock_number IS NOT NULL
+GROUP BY
+    train_leg_stock_segment_view.train_leg_id,
+    train_stock_report.stock_number,
+    train_stock_report.stock_class,
+    train_stock_report.stock_subclass,
+    train_stock_report.stock_cars;
