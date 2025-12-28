@@ -22,7 +22,6 @@ CREATE TYPE transport_user_train_operator_out_data AS (
     train_operator_id INTEGER_NOTNULL,
     operator_code TEXT_NOTNULL,
     operator_name TEXT_NOTNULL,
-    is_brand BOOLEAN_NOTNULL,
     leg_count INTEGER_NOTNULL,
     leg_duration INTERVAL_NOTNULL,
     leg_distance DECIMAL_NOTNULL,
