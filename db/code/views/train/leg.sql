@@ -1,23 +1,26 @@
 DROP VIEW IF EXISTS train_leg_view CASCADE;
 DROP VIEW IF EXISTS train_leg_points_view CASCADE;
 DROP VIEW IF EXISTS train_leg_stock_segment_view CASCADE;
-DROP VIEW IF EXISTS train_leg_stock_stats_view CASCADE;
 DROP VIEW IF EXISTS train_leg_stock_class_view CASCADE;
+DROP VIEW IF EXISTS train_leg_stock_unit_view CASCADE;
 
 CREATE OR REPLACE VIEW train_leg_high_view AS
 SELECT
     train_leg_boundary_time.train_leg_id,
-    train_leg_boundary_time.leg_start_time,
+    train_leg_start_call.train_call_id AS board_call_id,
+    train_leg_boundary_time.board_time AS board_time,
     (
         train_leg_start_station.train_station_id,
         train_leg_start_station.station_crs,
         train_leg_start_station.station_name
-    )::train_leg_station_out_data AS origin,
+    )::train_leg_station_out_data AS board_station,
+    train_leg_end_call.train_call_id AS alight_call_id,
+    train_leg_boundary_time.leg_end_time AS alight_time,
     (
         train_leg_end_station.train_station_id,
         train_leg_end_station.station_crs,
         train_leg_end_station.station_name
-    )::train_leg_station_out_data AS destination,
+    )::train_leg_station_out_data AS alight_station,
     (
         train_operator.train_operator_id,
         train_operator.operator_code,
@@ -31,7 +34,8 @@ SELECT
             train_brand.brand_code,
             train_brand.brand_name
         )::train_leg_operator_out_data
-    END AS brand
+    END AS brand,
+    train_leg_boundary_time.total_calls
 FROM (
     SELECT
         train_leg_call.train_leg_id,
@@ -42,7 +46,7 @@ FROM (
                 train_call.act_dep,
                 train_call.act_arr
             )
-        ) AS leg_start_time,
+        ) AS board_time,
         MAX(
             COALESCE(
                 train_call.plan_arr,
@@ -50,7 +54,8 @@ FROM (
                 train_call.act_arr,
                 train_call.act_dep
             )
-        ) AS leg_end_time
+        ) AS leg_end_time,
+        COUNT(*) AS total_calls
     FROM train_leg_call
     INNER JOIN train_call
     ON train_leg_call.arr_call_id = train_call.train_call_id
@@ -58,7 +63,7 @@ FROM (
     GROUP BY train_leg_call.train_leg_id
 ) train_leg_boundary_time
 INNER JOIN train_call train_leg_start_call
-ON train_leg_boundary_time.leg_start_time
+ON train_leg_boundary_time.board_time
 = COALESCE(
     train_leg_start_call.plan_dep,
     train_leg_start_call.plan_arr,

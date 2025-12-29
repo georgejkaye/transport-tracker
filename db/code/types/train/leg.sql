@@ -146,7 +146,7 @@ CREATE DOMAIN train_leg_in_data_notnull
 AS train_leg_in_data NOT NULL;
 
 CREATE TYPE train_leg_station_out_data AS (
-    station_id INTEGER_NOTNULL,
+    train_station_id INTEGER_NOTNULL,
     station_crs TEXT_NOTNULL,
     station_name TEXT_NOTNULL
 );

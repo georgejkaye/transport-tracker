@@ -1,7 +1,13 @@
 DROP TYPE IF EXISTS transport_user_train_station_operator_out_data CASCADE;
+DROP DOMAIN IF EXISTS transport_user_train_station_operator_out_data_notnull CASCADE;
 DROP TYPE IF EXISTS transport_user_train_station_leg_endpoint_out_data CASCADE;
+DROP DOMAIN IF EXISTS transport_user_train_station_leg_endpoint_out_data_notnull CASCADE;
 DROP TYPE IF EXISTS transport_user_train_station_leg_out_data CASCADE;
+DROP DOMAIN IF EXISTS transport_user_train_station_leg_out_data_notnull CASCADE;
 DROP TYPE IF EXISTS transport_user_train_station_out_data CASCADE;
+DROP DOMAIN IF EXISTS transport_user_train_station_out_data_notnull CASCADE;
+DROP TYPE IF EXISTS transport_user_train_station_high_out_data CASCADE;
+DROP DOMAIN IF EXISTS transport_user_train_station_high_out_data_notnull CASCADE;
 
 CREATE TYPE transport_user_train_station_operator_out_data AS (
     operator_id INTEGER_NOTNULL,
@@ -53,3 +59,17 @@ CREATE TYPE transport_user_train_station_out_data AS (
 
 CREATE DOMAIN transport_user_train_station_out_data_notnull
 AS transport_user_train_station_out_data NOT NULL;
+
+CREATE TYPE transport_user_train_station_high_out_data AS (
+    station_id INTEGER_NOTNULL,
+    station_crs TEXT_NOTNULL,
+    station_name TEXT_NOTNULL,
+    station_operator train_operator_high_out_data,
+    station_brand train_operator_high_out_data,
+    boards BIGINT_NOTNULL,
+    alights BIGINT_NOTNULL,
+    calls BIGINT_NOTNULL
+);
+
+CREATE DOMAIN transport_user_train_station_high_out_data_notnull
+AS transport_user_train_station_high_out_data NOT NULL;

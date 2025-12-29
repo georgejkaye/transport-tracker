@@ -1,6 +1,8 @@
 DROP TYPE IF EXISTS train_brand_out_data CASCADE;
 DROP TYPE IF EXISTS train_operator_out_data CASCADE;
 DROP TYPE IF EXISTS train_operator_details_out_data CASCADE;
+DROP TYPE IF EXISTS train_operator_high_out_data CASCADE;
+DROP DOMAIN IF EXISTS train_operator_high_out_data_notnull CASCADE;
 
 CREATE TYPE train_brand_out_data AS (
     brand_id INTEGER_NOTNULL,
@@ -37,3 +39,12 @@ CREATE TYPE train_operator_details_out_data AS (
 
 CREATE DOMAIN train_operator_details_out_data_notnull
 AS train_operator_details_out_data NOT NULL;
+
+CREATE TYPE train_operator_high_out_data AS (
+    operator_id INTEGER_NOTNULL,
+    operator_code TEXT_NOTNULL,
+    operator_name TEXT_NOTNULL
+);
+
+CREATE DOMAIN train_operator_high_out_data_notnull
+AS train_operator_high_out_data NOT NULL;
