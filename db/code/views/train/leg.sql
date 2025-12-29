@@ -917,3 +917,20 @@ GROUP BY
     train_stock_report.stock_class,
     train_stock_report.stock_subclass,
     train_stock_report.stock_cars;
+
+CREATE OR REPLACE VIEW train_leg_stock_unit_view AS
+SELECT
+    train_leg_stock_view.train_leg_id,
+    train_leg_stock_view.stock_number,
+    train_leg_stock_view.stock_class,
+    train_leg_stock_view.stock_subclass,
+    train_leg_stock_view.stock_cars,
+    train_leg_stock_view.segments,
+    train_leg_stock_unit_stats_view.distance,
+    train_leg_stock_unit_stats_view.duration
+FROM train_leg_stock_view
+INNER JOIN train_leg_stock_unit_stats_view
+ON train_leg_stock_view.train_leg_id
+    = train_leg_stock_unit_stats_view.train_leg_id
+AND train_leg_stock_view.stock_number
+    = train_leg_stock_unit_stats_view.stock_number;

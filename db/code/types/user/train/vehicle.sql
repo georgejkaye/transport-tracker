@@ -81,13 +81,13 @@ AS transport_user_train_class_high_out_data NOT NULL;
 CREATE TYPE transport_user_train_unit_leg_out_data AS (
     leg_id INTEGER_NOTNULL,
     leg_start TIMESTAMP_NOTNULL,
+    board train_leg_station_out_data_notnull,
+    alight train_leg_station_out_data_notnull,
+    operator train_leg_operator_out_data,
+    brand train_leg_operator_out_data,
     segments transport_user_train_leg_unit_segment_out_data_notnull[],
     distance DECIMAL,
-    duration INTERVAL,
-    leg_board_station train_leg_station_out_data_notnull,
-    leg_alight_station train_leg_station_out_data_notnull,
-    operator train_leg_operator_out_data,
-    brand train_leg_operator_out_data
+    duration INTERVAL
 );
 
 CREATE TYPE transport_user_train_unit_out_data AS (
