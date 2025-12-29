@@ -7,6 +7,7 @@ from api.api.lifespan import get_db_connection
 from api.db.functions.select.train.user import (
     select_transport_user_train_stock_class_by_user_id_and_class_fetchone,
     select_transport_user_train_stock_class_by_user_id_fetchall,
+    select_transport_user_train_stock_unit_by_user_id_and_number_fetchone,
     select_transport_user_train_stock_unit_by_user_id_fetchall,
 )
 from api.db.types.user.train.vehicle import (
