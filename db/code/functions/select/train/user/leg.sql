@@ -11,8 +11,8 @@ AS
 $$
 SELECT
     train_leg_id,
-    origin,
-    destination,
+    board_station,
+    alight_station,
     start_datetime,
     operator,
     brand,

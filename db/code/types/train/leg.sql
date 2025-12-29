@@ -10,8 +10,6 @@ DROP TYPE IF EXISTS train_leg_stock_segment_report_in_data CASCADE;
 DROP TYPE IF EXISTS train_leg_stock_segment_in_data CASCADE;
 DROP TYPE IF EXISTS train_leg_in_data CASCADE;
 
-DROP TYPE IF EXISTS train_leg_station_out_data CASCADE;
-DROP TYPE IF EXISTS train_leg_operator_out_data CASCADE;
 DROP TYPE IF EXISTS train_leg_associated_service_out_data CASCADE;
 DROP TYPE IF EXISTS train_leg_call_out_data CASCADE;
 DROP TYPE IF EXISTS train_leg_service_out_data CASCADE;
@@ -145,24 +143,6 @@ CREATE TYPE train_leg_in_data AS (
 CREATE DOMAIN train_leg_in_data_notnull
 AS train_leg_in_data NOT NULL;
 
-CREATE TYPE train_leg_station_out_data AS (
-    train_station_id INTEGER_NOTNULL,
-    station_crs TEXT_NOTNULL,
-    station_name TEXT_NOTNULL
-);
-
-CREATE DOMAIN train_leg_station_out_data_notnull
-AS train_leg_station_out_data NOT NULL;
-
-CREATE TYPE train_leg_operator_out_data AS (
-    operator_id INTEGER_NOTNULL,
-    operator_code TEXT_NOTNULL,
-    operator_name TEXT_NOTNULL
-);
-
-CREATE DOMAIN train_leg_operator_out_data_notnull
-AS train_leg_operator_out_data NOT NULL;
-
 CREATE TYPE train_leg_associated_service_out_data AS (
     service_id INTEGER_NOTNULL,
     association_type INTEGER_NOTNULL
@@ -172,7 +152,7 @@ CREATE DOMAIN train_leg_associated_service_out_data_notnull
 AS train_leg_associated_service_out_data NOT NULL;
 
 CREATE TYPE train_leg_call_out_data AS (
-    station train_leg_station_out_data_notnull,
+    station train_station_high_out_data_notnull,
     platform TEXT,
     plan_arr TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
@@ -191,10 +171,10 @@ CREATE TYPE train_leg_service_out_data AS (
     run_date TIMESTAMP_NOTNULL,
     headcode TEXT_NOTNULL,
     start_datetime TIMESTAMP_NOTNULL,
-    origins train_leg_station_out_data_notnull[],
-    destinations train_leg_station_out_data_notnull[],
-    operator train_leg_operator_out_data_notnull,
-    brand train_leg_operator_out_data
+    origins train_station_high_out_data_notnull[],
+    destinations train_station_high_out_data_notnull[],
+    operator train_operator_high_out_data_notnull,
+    brand train_operator_high_out_data
 );
 
 CREATE DOMAIN train_leg_service_out_data_notnull
@@ -211,8 +191,8 @@ CREATE DOMAIN train_leg_stock_report_out_data_notnull
 AS train_leg_stock_report_out_data NOT NULL;
 
 CREATE TYPE train_leg_stock_segment_out_data AS (
-    stock_start train_leg_station_out_data_notnull,
-    stock_end train_leg_station_out_data_notnull,
+    stock_start train_station_high_out_data_notnull,
+    stock_end train_station_high_out_data_notnull,
     stock_reports train_leg_stock_report_out_data_notnull[]
 );
 

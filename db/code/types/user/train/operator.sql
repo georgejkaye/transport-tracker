@@ -7,8 +7,8 @@ DROP DOMAIN IF EXISTS transport_user_train_operator_high_out_data_notnull CASCAD
 
 CREATE TYPE transport_user_train_operator_train_leg_out_data AS (
     train_leg_id INTEGER_NOTNULL,
-    board_station transport_user_train_leg_station_out_data,
-    alight_station transport_user_train_leg_station_out_data,
+    board_station train_station_high_out_data_notnull,
+    alight_station train_station_high_out_data_notnull,
     start_datetime TIMESTAMP_NOTNULL,
     distance DECIMAL,
     duration INTERVAL_NOTNULL,

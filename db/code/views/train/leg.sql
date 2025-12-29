@@ -13,19 +13,19 @@ SELECT
         train_leg_start_station.train_station_id,
         train_leg_start_station.station_crs,
         train_leg_start_station.station_name
-    )::train_leg_station_out_data AS board_station,
+    )::train_station_high_out_data AS board_station,
     train_leg_end_call.train_call_id AS alight_call_id,
     train_leg_boundary_time.leg_end_time AS alight_time,
     (
         train_leg_end_station.train_station_id,
         train_leg_end_station.station_crs,
         train_leg_end_station.station_name
-    )::train_leg_station_out_data AS alight_station,
+    )::train_station_high_out_data AS alight_station,
     (
         train_operator.train_operator_id,
         train_operator.operator_code,
         train_operator.operator_name
-    )::train_leg_operator_out_data AS operator,
+    )::train_operator_high_out_data AS operator,
     CASE
         WHEN train_brand.train_brand_id IS NULL
         THEN NULL
@@ -33,7 +33,7 @@ SELECT
             train_brand.train_brand_id,
             train_brand.brand_code,
             train_brand.brand_name
-        )::train_leg_operator_out_data
+        )::train_operator_high_out_data
     END AS brand,
     train_leg_boundary_time.total_calls
 FROM (
@@ -102,30 +102,32 @@ FROM train_leg
 INNER JOIN (
     SELECT
         train_leg.train_leg_id,
-        ARRAY_AGG((
-            train_service.train_service_id,
-            train_service.unique_identifier,
-            train_service.run_date,
-            train_service.headcode,
-            train_service_call.first_call_time,
-            train_service_origin.origins,
-            train_service_destination.destinations,
+        ARRAY_AGG(
             (
-                train_operator.train_operator_id,
-                train_operator.operator_code,
-                train_operator.operator_name
-            )::train_leg_operator_out_data,
-            CASE WHEN train_brand.train_brand_id IS NULL
-            THEN
-                NULL
-            ELSE
+                train_service.train_service_id,
+                train_service.unique_identifier,
+                train_service.run_date,
+                train_service.headcode,
+                train_service_call.first_call_time,
+                train_service_origin.origins,
+                train_service_destination.destinations,
                 (
-                    train_brand.train_brand_id,
-                    train_brand.brand_code,
-                    train_brand.brand_name
-                )::train_leg_operator_out_data
-            END
-        )::train_leg_service_out_data) AS services
+                    train_operator.train_operator_id,
+                    train_operator.operator_code,
+                    train_operator.operator_name
+                )::train_operator_high_out_data,
+                CASE WHEN train_brand.train_brand_id IS NULL
+                THEN
+                    NULL
+                ELSE
+                    (
+                        train_brand.train_brand_id,
+                        train_brand.brand_code,
+                        train_brand.brand_name
+                    )::train_operator_high_out_data
+                END
+            )::train_leg_service_out_data
+        ) AS services
     FROM train_leg
     INNER JOIN (
         SELECT DISTINCT
@@ -165,7 +167,7 @@ INNER JOIN (
                 train_station.train_station_id,
                 train_station.station_crs,
                 train_station.station_name
-            )::train_leg_station_out_data) AS origins
+            )::train_station_high_out_data) AS origins
         FROM train_service_endpoint
         INNER JOIN train_station
         ON train_service_endpoint.train_station_id
@@ -181,7 +183,7 @@ INNER JOIN (
                 train_station.train_station_id,
                 train_station.station_crs,
                 train_station.station_name
-            )::train_leg_station_out_data) AS destinations
+            )::train_station_high_out_data) AS destinations
         FROM train_service_endpoint
         INNER JOIN train_station
         ON train_service_endpoint.train_station_id
@@ -215,7 +217,7 @@ INNER JOIN (
                     train_station_arr.station_name,
                     train_station_dep.station_name
                 )
-            )::train_leg_station_out_data,
+            )::train_station_high_out_data,
             COALESCE(
                 train_call_arr.platform,
                 train_call_dep.platform
@@ -257,12 +259,12 @@ INNER JOIN (
                 train_leg_stock_segment_station_start.train_station_id,
                 train_leg_stock_segment_station_start.station_crs,
                 train_leg_stock_segment_station_start.station_name
-            )::train_leg_station_out_data,
+            )::train_station_high_out_data,
             (
                 train_leg_stock_segment_station_end.train_station_id,
                 train_leg_stock_segment_station_end.station_crs,
                 train_leg_stock_segment_station_end.station_name
-            )::train_leg_station_out_data,
+            )::train_station_high_out_data,
             train_leg_stock_report.stock_reports
         )::train_leg_stock_segment_out_data
         ORDER BY train_leg_stock_segment_view.stock_segment_start) AS stock
@@ -740,14 +742,14 @@ SELECT
         train_station_start.train_station_id,
         train_station_start.station_name,
         train_station_start.station_crs
-    )::train_leg_station_out_data AS stock_start_station,
+    )::train_station_high_out_data AS stock_start_station,
     train_call_start.plan_dep,
     train_call_start.act_dep,
     (
         train_station_end.train_station_id,
         train_station_end.station_name,
         train_station_end.station_crs
-    )::train_leg_station_out_data AS stock_end_station,
+    )::train_station_high_out_data AS stock_end_station,
     train_call_end.plan_arr,
     train_call_end.act_arr,
     train_leg_stock_report_unit_view.distance,

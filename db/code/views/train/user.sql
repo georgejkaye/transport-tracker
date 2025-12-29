@@ -12,18 +12,18 @@ SELECT
         train_leg_start_station.train_station_id,
         train_leg_start_station.station_crs,
         train_leg_start_station.station_name
-    )::transport_user_train_leg_station_out_data AS board_station,
+    )::train_station_high_out_data AS board_station,
     (
         train_leg_end_station.train_station_id,
         train_leg_end_station.station_crs,
         train_leg_end_station.station_name
-    )::transport_user_train_leg_station_out_data AS alight_station,
+    )::train_station_high_out_data AS alight_station,
     train_leg_boundary_time.board_time AS start_datetime,
     (
         train_operator.train_operator_id,
         train_operator.operator_code,
         train_operator.operator_name
-    )::train_leg_operator_out_data AS operator,
+    )::train_operator_high_out_data AS operator,
     CASE
         WHEN train_brand.train_brand_id IS NULL
         THEN NULL
@@ -31,7 +31,7 @@ SELECT
             train_brand.train_brand_id,
             train_brand.brand_code,
             train_brand.brand_name
-        )::train_leg_operator_out_data
+        )::train_operator_high_out_data
     END AS brand,
     train_leg.distance,
     train_leg_boundary_time.leg_end_time
@@ -220,7 +220,7 @@ FROM (
                     train_brand_id,
                     brand_code,
                     brand_name
-                )::train_leg_operator_out_data
+                )::train_operator_high_out_data
             ) AS operator_brands
         FROM train_brand
         GROUP BY train_operator_id
@@ -244,7 +244,7 @@ SELECT
     leg_distance,
     leg_delay,
     operator_legs,
-    ARRAY[]::train_leg_operator_out_data[] AS operator_brands
+    ARRAY[]::train_operator_high_out_data[] AS operator_brands
 FROM (
     SELECT
         transport_user_train_leg_view.user_id,
@@ -318,7 +318,7 @@ FROM (
                     train_brand_id,
                     brand_code,
                     brand_name
-                )::train_leg_operator_out_data
+                )::train_operator_high_out_data
             ) AS operator_brands
         FROM train_brand
         GROUP BY train_operator_id
@@ -341,7 +341,7 @@ SELECT
     leg_duration,
     leg_distance,
     leg_delay,
-    ARRAY[]::train_leg_operator_out_data[] AS operator_brands
+    ARRAY[]::train_operator_high_out_data[] AS operator_brands
 FROM (
     SELECT
         transport_user_train_leg_view.user_id,
