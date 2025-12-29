@@ -1,6 +1,9 @@
 from datetime import datetime
 from typing import Optional
 
+from api.db.functions.select.train.user.leg import (
+    select_transport_user_train_legs_by_user_id_fetchall,
+)
 from fastapi import APIRouter
 
 from api.api.lifespan import (
@@ -8,9 +11,6 @@ from api.api.lifespan import (
 )
 from api.db.functions.select.train.leg import (
     select_train_leg_points_by_user_id_fetchall,
-)
-from api.db.functions.select.train.user import (
-    select_transport_user_train_legs_by_user_id_fetchall,
 )
 from api.db.types.train.leg import TrainLegPointsOutData
 from api.db.types.user.train.leg import TransportUserTrainLegOutData

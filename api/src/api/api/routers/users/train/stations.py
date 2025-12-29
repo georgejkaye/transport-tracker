@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException
 
 from api.api.lifespan import get_db_connection
-from api.db.functions.select.train.user import (
+from api.db.functions.select.train.user.station import (
     select_transport_user_train_station_by_user_id_and_station_crs_fetchone,
-    select_transport_user_train_station_by_user_id_fetchone,
+    select_transport_user_train_station_by_user_id_and_station_id_fetchone,
     select_transport_user_train_stations_by_user_id_fetchall,
 )
 from api.db.types.user.train.station import TransportUserTrainStationOutData
@@ -28,8 +28,10 @@ async def get_train_stations(
 async def get_train_station(
     user_id: int, station_id: int
 ) -> TransportUserTrainStationOutData:
-    station = select_transport_user_train_station_by_user_id_fetchone(
-        get_db_connection(), user_id, station_id
+    station = (
+        select_transport_user_train_station_by_user_id_and_station_id_fetchone(
+            get_db_connection(), user_id, station_id
+        )
     )
     if station is None:
         raise HTTPException(

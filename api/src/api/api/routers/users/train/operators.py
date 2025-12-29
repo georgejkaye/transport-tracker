@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 
 from api.api.lifespan import get_db_connection
-from api.db.functions.select.train.user import (
+from api.db.functions.select.train.user.operator import (
     select_transport_user_train_operator_by_user_id_and_operator_id_fetchone,
     select_transport_user_train_operator_by_user_id_fetchall,
 )

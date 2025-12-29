@@ -1,12 +1,12 @@
 from datetime import datetime
 from typing import Optional
 
+from api.db.functions.select.train.user.operator import (
+    select_transport_user_train_brand_by_user_id_and_brand_id_fetchone,
+)
 from fastapi import APIRouter, HTTPException
 
 from api.api.lifespan import get_db_connection
-from api.db.functions.select.train.user import (
-    select_transport_user_train_brand_by_user_id_and_brand_id_fetchone,
-)
 from api.db.types.user.train.operator import TransportUserTrainOperatorOutData
 
 router = APIRouter(prefix="/brands", tags=["users/train/operators"])
