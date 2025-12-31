@@ -17,15 +17,19 @@ class TrainStats:
     leg_count: int
     total_distance: Decimal
     longest_distance: Decimal
+    longest_distance_legs: list[TransportUserTrainLegOutData]
     shortest_distance: Decimal
+    shortest_distance_legs: list[TransportUserTrainLegOutData]
     total_duration: timedelta
     longest_duration: timedelta
+    longest_duration_legs: list[TransportUserTrainLegOutData]
     shortest_duration: timedelta
+    shortest_duration_legs: list[TransportUserTrainLegOutData]
     total_delay: int
     longest_delay: int
+    longest_delay_legs: list[TransportUserTrainLegOutData]
     shortest_delay: int
-    longest_legs: list[TransportUserTrainLegOutData]
-    shortest_legs: list[TransportUserTrainLegOutData]
+    shortest_delay_legs: list[TransportUserTrainLegOutData]
     operator_count: int
     top_operators: list[TransportUserTrainOperatorHighOutData]
     class_count: int

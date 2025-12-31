@@ -5,8 +5,6 @@ from psycopg import Connection
 
 from api.classes.train.stats import TrainStats
 from api.db.functions.select.train.user.leg import (
-    select_longest_transport_user_train_legs_by_user_id_fetchall,
-    select_shortest_transport_user_train_legs_by_user_id_fetchall,
     select_transport_user_train_leg_stats_by_user_id_fetchone,
 )
 from api.db.functions.select.train.user.operator import (
@@ -30,18 +28,10 @@ def get_train_stats(
     operators_by_brands: bool = True,
 ) -> Optional[TrainStats]:
     leg_stats = select_transport_user_train_leg_stats_by_user_id_fetchone(
-        conn, user_id, search_start, search_end
+        conn, user_id, search_start, search_end, rows_to_return
     )
     if leg_stats is None:
         return None
-    longest_legs = select_longest_transport_user_train_legs_by_user_id_fetchall(
-        conn, user_id, search_start, search_end, rows_to_return
-    )
-    shortest_legs = (
-        select_shortest_transport_user_train_legs_by_user_id_fetchall(
-            conn, user_id, search_start, search_end, rows_to_return
-        )
-    )
     operator_stats = (
         select_transport_user_train_operator_stats_by_user_id_fetchone(
             conn, user_id, operators_by_brands, search_start, search_end
@@ -79,15 +69,19 @@ def get_train_stats(
         leg_stats.count,
         leg_stats.total_distance,
         leg_stats.longest_distance,
+        leg_stats.longest_distance_legs,
         leg_stats.shortest_distance,
+        leg_stats.shortest_distance_legs,
         leg_stats.total_duration,
         leg_stats.longest_duration,
+        leg_stats.longest_duration_legs,
         leg_stats.shortest_duration,
+        leg_stats.shortest_duration_legs,
         leg_stats.total_delay,
         leg_stats.longest_delay,
+        leg_stats.longest_delay_legs,
         leg_stats.shortest_delay,
-        longest_legs,
-        shortest_legs,
+        leg_stats.shortest_delay_legs,
         operator_stats.count,
         top_operators,
         class_stats.count,
