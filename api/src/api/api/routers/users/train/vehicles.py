@@ -5,10 +5,10 @@ from fastapi import APIRouter, HTTPException
 
 from api.api.lifespan import get_db_connection
 from api.db.functions.select.train.user.vehicle import (
-    select_transport_user_train_stock_class_by_user_id_and_class_fetchone,
-    select_transport_user_train_stock_class_by_user_id_fetchall,
-    select_transport_user_train_stock_unit_by_user_id_and_number_fetchone,
-    select_transport_user_train_stock_unit_by_user_id_fetchall,
+    select_transport_user_train_class_by_user_id_and_class_fetchone,
+    select_transport_user_train_class_by_user_id_fetchall,
+    select_transport_user_train_unit_by_user_id_and_number_fetchone,
+    select_transport_user_train_unit_by_user_id_fetchall,
 )
 from api.db.types.user.train.vehicle import (
     TransportUserTrainClassHighOutData,
@@ -26,7 +26,7 @@ async def get_train_classes(
     search_start: Optional[datetime] = None,
     search_end: Optional[datetime] = None,
 ) -> list[TransportUserTrainClassHighOutData]:
-    class_data = select_transport_user_train_stock_class_by_user_id_fetchall(
+    class_data = select_transport_user_train_class_by_user_id_fetchall(
         get_db_connection(), user_id, search_start, search_end
     )
     return class_data
@@ -39,7 +39,7 @@ async def get_train_classes(
 async def get_train_classes_by_year(
     user_id: int, year: int
 ) -> list[TransportUserTrainClassHighOutData]:
-    class_data = select_transport_user_train_stock_class_by_user_id_fetchall(
+    class_data = select_transport_user_train_class_by_user_id_fetchall(
         get_db_connection(),
         user_id,
         datetime(year, 1, 1),
@@ -59,7 +59,7 @@ async def get_train_class(
     search_end: Optional[datetime] = None,
 ) -> TransportUserTrainClassOutData:
     class_data = (
-        select_transport_user_train_stock_class_by_user_id_and_class_fetchone(
+        select_transport_user_train_class_by_user_id_and_class_fetchone(
             get_db_connection(), user_id, class_number, search_start, search_end
         )
     )
@@ -79,7 +79,7 @@ async def get_train_class_by_year(
     user_id: int, class_number: int, year: int
 ) -> TransportUserTrainClassOutData:
     class_data = (
-        select_transport_user_train_stock_class_by_user_id_and_class_fetchone(
+        select_transport_user_train_class_by_user_id_and_class_fetchone(
             get_db_connection(),
             user_id,
             class_number,
@@ -101,7 +101,7 @@ async def get_train_units(
     search_start: Optional[datetime] = None,
     search_end: Optional[datetime] = None,
 ) -> list[TransportUserTrainUnitHighOutData]:
-    unit_data = select_transport_user_train_stock_unit_by_user_id_fetchall(
+    unit_data = select_transport_user_train_unit_by_user_id_fetchall(
         get_db_connection(), user_id, search_start, search_end
     )
     return unit_data
@@ -114,7 +114,7 @@ async def get_train_units(
 async def get_train_units_by_year(
     user_id: int, year: int
 ) -> list[TransportUserTrainUnitHighOutData]:
-    unit_data = select_transport_user_train_stock_unit_by_user_id_fetchall(
+    unit_data = select_transport_user_train_unit_by_user_id_fetchall(
         get_db_connection(),
         user_id,
         datetime(year, 1, 1),
@@ -133,10 +133,8 @@ async def get_train_unit(
     search_start: Optional[datetime] = None,
     search_end: Optional[datetime] = None,
 ) -> TransportUserTrainUnitOutData:
-    unit_data = (
-        select_transport_user_train_stock_unit_by_user_id_and_number_fetchone(
-            get_db_connection(), user_id, unit_number, search_start, search_end
-        )
+    unit_data = select_transport_user_train_unit_by_user_id_and_number_fetchone(
+        get_db_connection(), user_id, unit_number, search_start, search_end
     )
     if unit_data is None:
         raise HTTPException(
@@ -153,14 +151,12 @@ async def get_train_unit(
 async def get_train_unit_by_year(
     user_id: int, unit_number: int, year: int
 ) -> TransportUserTrainUnitOutData:
-    unit_data = (
-        select_transport_user_train_stock_unit_by_user_id_and_number_fetchone(
-            get_db_connection(),
-            user_id,
-            unit_number,
-            datetime(year, 1, 1),
-            datetime(year + 1, 1, 1),
-        )
+    unit_data = select_transport_user_train_unit_by_user_id_and_number_fetchone(
+        get_db_connection(),
+        user_id,
+        unit_number,
+        datetime(year, 1, 1),
+        datetime(year + 1, 1, 1),
     )
     if unit_data is None:
         raise HTTPException(
