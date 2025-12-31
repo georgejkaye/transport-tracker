@@ -173,7 +173,10 @@ FROM (
             FALSE AS is_brand,
             COUNT(*) AS count,
             SUM(
-                COALESCE(transport_user_train_leg_view.duration, INTERVAL '0 days')
+                COALESCE(
+                    transport_user_train_leg_view.duration,
+                    INTERVAL '0 days'
+                )
             ) AS duration,
             SUM(
                 COALESCE(transport_user_train_leg_view.distance, 0)

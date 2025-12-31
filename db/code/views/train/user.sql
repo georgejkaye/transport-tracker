@@ -1,8 +1,11 @@
-DROP VIEW IF EXISTS transport_user_train_leg_high_view;
+DROP VIEW IF EXISTS transport_user_train_leg_view;
 DROP VIEW IF EXISTS transport_user_train_station_view;
 DROP VIEW IF EXISTS transport_user_train_class_view;
 DROP VIEW IF EXISTS transport_user_train_class_high_view;
 DROP VIEW IF EXISTS transport_user_train_operator_view;
+DROP VIEW IF EXISTS transport_user_train_leg_distance_view;
+DROP VIEW IF EXISTS transport_user_train_leg_duration_view;
+DROP VIEW IF EXISTS transport_user_train_leg_delay_view;
 
 CREATE VIEW transport_user_train_leg_view AS
 SELECT
