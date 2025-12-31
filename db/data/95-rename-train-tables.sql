@@ -432,3 +432,36 @@ DROP TYPE IF EXISTS useroutpublicdata CASCADE;
 
 ALTER TABLE train_leg_call
 RENAME leg_call_id TO train_leg_call_id;
+
+-- train_stock_segment_report
+
+ALTER TABLE train_stock_segment_report
+ADD COLUMN train_stock_segment_report_id SERIAL;
+
+-- fix duplicates in train_stock_segment_report
+
+DELETE FROM train_stock_segment_report
+WHERE train_stock_segment_report_id IN (
+    SELECT train_stock_segment_report_id
+    FROM (
+        SELECT
+            train_stock_segment_report_id,
+            ROW_NUMBER() OVER (
+                PARTITION BY train_stock_segment_id, train_stock_report_id
+                ORDER BY train_stock_segment_id
+            )
+        FROM train_stock_segment_report
+    )
+    WHERE row_number > 1
+);
+
+-- fix dodgy train times
+
+UPDATE train_call
+SET plan_arr = plan_arr + '1 hour'::INTERVAL
+WHERE train_call_id >= 4827 AND train_call_id <= 4834;
+
+UPDATE train_leg_call
+SET mileage = mileage + 102.9875
+WHERE train_leg_id = 1074
+AND mileage != 0;
