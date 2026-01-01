@@ -11,6 +11,7 @@ from api.classes.bus.stop import (
     short_string_of_bus_stop_departure,
     short_string_of_bus_stop_details,
 )
+from api.db.functions.insert.bus import InsertBusLeg
 from api.db.functions.select.bus import (
     select_bus_stop_details_by_name_fetchall,
     select_bus_vehicle_details_fetchall,
@@ -23,10 +24,13 @@ from api.db.types.bus import (
     BusStopDetails,
     BusVehicleDetails,
 )
-from api.db.types.user.user import TransportUserOutData
+from api.db.types.register import register_types
 from api.pull.bus.journey import get_bus_journey
 from api.pull.bus.stop import get_departures_from_bus_stop
-from api.utils.database import connect, get_db_connection_data_from_args
+from api.record.user import input_users
+from api.utils.database import (
+    connect_with_env,
+)
 from api.utils.interactive import (
     PickSingle,
     information,
@@ -91,7 +95,9 @@ def get_alight_stop_input(
 def input_vehicle(
     vehicles: list[BusVehicleDetails],
 ) -> Optional[BusVehicleDetails]:
-    result = input_select("Select vehicle", vehicles, string_of_bus_vehicle_out)
+    result = input_select(
+        "Select vehicle", vehicles, lambda v: f"{v.vehicle_numberplate}"
+    )
     match result:
         case PickSingle(vehicle):
             return vehicle
@@ -124,9 +130,7 @@ def get_bus_vehicle(
     return input_vehicle(vehicles)
 
 
-def get_bus_leg_input(
-    conn: Connection, users: list[TransportUserOutData]
-) -> Optional[BusLegInData]:
+def get_bus_leg_input(conn: Connection) -> Optional[BusLegInData]:
     board_stop = get_bus_stop_input(conn, prompt="Board stop")
     if board_stop is None:
         print("Could not get board stop")
@@ -209,18 +213,25 @@ def get_bus_leg_input(
 
     journey = BusJourneyInData(
         journey_timetable.id,
-        journey_timetable.service,
+        journey_timetable.service.bus_service_id,
         journey_timetable.calls,
-        vehicle.vehicle_id if vehicle is not None else None,
+        vehicle.bus_vehicle_id if vehicle is not None else None,
     )
-    leg = BusLegIn(journey, board_call_index, alight_call_index)
-    insert_leg(conn, users, leg)
+    leg = BusLegInData(journey, board_call_index, alight_call_index)
     return leg
 
 
+def record_bus_leg(conn: Connection):
+    users = input_users(conn)
+    if len(users) == 0:
+        return
+    leg = get_bus_leg_input(conn)
+    if leg is None:
+        raise RuntimeError("Could not get bus leg")
+    InsertBusLeg(conn, [user.user_id for user in users], leg)
+
+
 if __name__ == "__main__":
-    connection_data = get_db_connection_data_from_args()
-    with connect(connection_data) as conn:
-        users = input_user(conn)
-        if users is not None:
-            get_bus_leg_input(conn, users)
+    with connect_with_env() as conn:
+        register_types(conn)
+        record_bus_leg(conn)
