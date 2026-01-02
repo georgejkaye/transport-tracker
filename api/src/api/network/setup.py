@@ -16,9 +16,9 @@ from api.network.network import (
     wgs84,
 )
 from api.utils.database import connect_with_env
-from api.utils.interactive import input_confirm
+from api.utils.interactive import get_confirmation_from_input
 
-input = input_confirm("Download network?", default=False)
+input = get_confirmation_from_input("Download network?", default=False)
 
 if input:
     network = get_railway_network(["England", "Wales", "Scotland"])

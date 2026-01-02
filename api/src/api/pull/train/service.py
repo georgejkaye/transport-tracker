@@ -19,7 +19,7 @@ from api.pull.train.types import (
     RttServiceCall,
 )
 from api.utils.credentials import get_api_credentials
-from api.utils.interactive import input_select
+from api.utils.interactive import get_choice_from_input
 from api.utils.mileage import miles_and_chains_to_miles
 from api.utils.request import get_soup, make_get_request
 from api.utils.soup import get_tag_by_class_name, get_tags_by_class_name
@@ -284,7 +284,7 @@ def get_brand_code_id_input(operator: TrainOperatorOutData) -> Optional[int]:
     elif len(operator.operator_brands) == 1:
         return operator.operator_brands[0].brand_id
     else:
-        match input_select(
+        match get_choice_from_input(
             "Select brand",
             operator.operator_brands,
             lambda b: f"{b.brand_name} ({b.brand_code})",

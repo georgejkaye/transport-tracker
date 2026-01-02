@@ -1,8 +1,7 @@
-import json
 from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Optional, Tuple
+from typing import Optional, Tuple
 
 from psycopg import Connection
 
@@ -54,19 +53,18 @@ from api.pull.train.types import (
 )
 from api.record.user import input_users
 from api.utils.database import connect_with_env
-from api.utils.debug import debug_msg
 from api.utils.interactive import (
     PickMultiple,
     PickSingle,
     PickUnknown,
+    get_choice_from_input,
+    get_choice_from_input_paginate,
+    get_choices_from_input,
+    get_confirmation_from_input,
+    get_datetime_from_input,
+    get_int_from_input,
+    get_text_from_input,
     information,
-    input_checkbox,
-    input_confirm,
-    input_datetime,
-    input_number,
-    input_select,
-    input_select_paginate,
-    input_text,
 )
 from api.utils.mileage import (
     miles_and_chains_to_miles,
@@ -101,7 +99,7 @@ def get_station_from_input(
         full_prompt = prompt
         default = ""
     while True:
-        input_string_opt = input_text(full_prompt, default=default)
+        input_string_opt = get_text_from_input(full_prompt, default=default)
         if input_string_opt is None:
             return None
         input_string = input_string_opt.lower()
@@ -113,7 +111,9 @@ def get_station_from_input(
                 conn, input_string
             )
             if crs_station is not None:
-                resp = input_confirm(f"Did you mean {crs_station.station_name}")
+                resp = get_confirmation_from_input(
+                    f"Did you mean {crs_station.station_name}"
+                )
                 if resp:
                     return crs_station
         # Otherwise search for substrings in the full names of stations
@@ -124,12 +124,14 @@ def get_station_from_input(
             print("No matches found, try again")
         elif len(matches) == 1:
             match = matches[0]
-            resp = input_confirm(f"Did you mean {match.station_name}?")
+            resp = get_confirmation_from_input(
+                f"Did you mean {match.station_name}?"
+            )
             if resp:
                 return match
         else:
             print("Multiple matches found: ")
-            choice = input_select_paginate(
+            choice = get_choice_from_input_paginate(
                 "Select a station",
                 matches,
                 display=lambda x: x.station_name,
@@ -170,7 +172,7 @@ def get_service_at_station(
     )
     if len(filtered_services) == 0:
         return None
-    choice = input_select_paginate(
+    choice = get_choice_from_input_paginate(
         "Pick a service",
         filtered_services,
         display=string_of_service_at_station_to_destination,
@@ -185,7 +187,7 @@ def get_service_at_station(
 def get_unit_class(
     operator_stock: list[TrainStockOutData],
 ) -> Optional[PickUnknown | PickSingle[TrainStockOutData]]:
-    chosen_class = input_select(
+    chosen_class = get_choice_from_input(
         "Class number",
         sort_by_classes(operator_stock),
         unknown=True,
@@ -208,7 +210,7 @@ def get_unit_subclass(
     if len(stock.stock_subclasses) == 1:
         return PickSingle(stock.stock_subclasses[0])
     else:
-        chosen_subclass = input_select(
+        chosen_subclass = get_choice_from_input(
             "Subclass no",
             sort_by_subclasses(stock.stock_subclasses),
             unknown=True,
@@ -230,7 +232,7 @@ def get_unit_no(
     stock_class: TrainStockOutData, stock_subclass: TrainStockSubclassOutData
 ) -> Optional[int]:
     while True:
-        unit_no_opt = input_number(
+        unit_no_opt = get_int_from_input(
             "Stock number",
             lower=stock_class.stock_class * 1000,
             upper=stock_class.stock_class * 1000 + 999,
@@ -248,7 +250,7 @@ def get_unit_cars(
             f"{string_of_class_and_subclass(stock_class, stock_subclass, name=False)} always has {stock_subclass.stock_cars[0]} cars"
         )
         return PickSingle(stock_subclass.stock_cars[0])
-    result = input_select(
+    result = get_choice_from_input(
         "Number of cars",
         stock_subclass.stock_cars,
         lambda c: f"{c} car{'s' if c > 1 else ''}",
@@ -269,7 +271,7 @@ def input_station_from_calls(
     current: TrainLegCallInData,
     calls: list[TrainLegCallInData],
 ) -> Optional[Tuple[TrainLegCallInData, int, list[TrainLegCallInData]]]:
-    end_call = input_select_paginate(
+    end_call = get_choice_from_input_paginate(
         f"Stock formation from {current.station_name} until",
         [(i, call) for (i, call) in enumerate(calls)],
         display=lambda x: f"{x[1].station_name} ({x[1].station_crs})",
@@ -345,7 +347,7 @@ def get_stock_change_reason(
 ) -> StockChange:
     if previous_stock_segment is None:
         return StockChange.GAIN
-    result = input_select(
+    result = get_choice_from_input(
         "Pick reason for stock change",
         [StockChange.GAIN, StockChange.LOSE],
         display=string_of_stock_change,
@@ -406,7 +408,7 @@ def get_stock(
         current_segment_stock: list[StockReport] = []
         match stock_change:
             case StockChange.GAIN:
-                number_of_units = input_number("Number of new units")
+                number_of_units = get_int_from_input("Number of new units")
                 if number_of_units is None:
                     return []
                 current_segment_stock = previous_stock_segment_stock.copy()
@@ -417,7 +419,7 @@ def get_stock(
                         return []
                     current_segment_stock.append(stock_report)
             case StockChange.LOSE:
-                result = input_checkbox(
+                result = get_choices_from_input(
                     "Which units remain",
                     previous_stock_segment_stock,
                     string_of_stock_report,
@@ -457,8 +459,8 @@ def input_mileage(calls: list[TrainLegCallInData]) -> Decimal:
         f"Manual mileage input between {calls[0].station_name} and {calls[-1].station_name} required"
     )
     # If we can get a good distance set this could be automated
-    miles = input_number("Miles")
-    chains = input_number("Chains", upper=79)
+    miles = get_int_from_input("Miles")
+    chains = get_int_from_input("Chains", upper=79)
     if miles is None or chains is None:
         raise RuntimeError("Cannot be None")
     return miles_and_chains_to_miles(miles, chains)
@@ -710,7 +712,7 @@ def get_service_from_service_id_input(
 ) -> Optional[RttService]:
     result = None
     while result is None:
-        service_id = input_text("Service id")
+        service_id = get_text_from_input("Service id")
         if service_id is None:
             return None
         result = get_service_from_id(
@@ -901,7 +903,7 @@ def get_train_stock_segment_in_data_from_stock_segments(
     return train_stock_segments
 
 
-def record_new_leg(
+def get_train_leg_from_input(
     conn: Connection,
     start: datetime | None = None,
     default_station: TrainStationOutData | None = None,
@@ -912,7 +914,7 @@ def record_new_leg(
     destination_station = get_station_from_input(conn, "Destination")
     if destination_station is None:
         return None
-    search_datetime = input_datetime(start)
+    search_datetime = get_datetime_from_input(start)
     service_at_station = get_service_at_station(
         conn, origin_station, search_datetime, destination_station
     )
@@ -930,7 +932,7 @@ def record_new_leg(
             return None
 
         if len(service_calls_at_origin) > 1:
-            origin_call_result = input_select(
+            origin_call_result = get_choice_from_input(
                 "Select boarding call",
                 service_calls_at_origin,
                 string_of_departure,
@@ -993,46 +995,24 @@ def record_new_leg(
     return leg
 
 
-def add_to_logfile(conn: Connection) -> None:
+def record_train_leg(conn: Connection) -> None:
     users = input_users(conn)
     if len(users) == 0:
         return None
-    leg = record_new_leg(conn)
+    leg = get_train_leg_from_input(conn)
     if leg is None:
-        print("Could not get leg")
-        exit(1)
-        print(leg)
+        information("Could not get train leg")
+        return
     result = insert_train_leg_fetchone(
         conn, [user.user_id for user in users], leg
     )
     if result is None:
-        information(f"Could not insert leg")
-    else:
-        information(f"Inserted leg id {result.train_leg_id}")
-
-
-def read_logfile(log_file: str) -> dict[str, Any]:
-    log: dict[str, Any] = {}
-    try:
-        with open(log_file, "r") as input:
-            log_content = json.load(input)
-        if log_content is not None:
-            log = log_content
-    except:
-        debug_msg(f"Logfile {log_file} not found, making empty log")
-    return log
-
-
-def write_logfile(log: dict[str, Any], log_file: str) -> None:
-    with open(log_file, "w+") as output:
-        json.dump(log, output)
-
-
-def int_factory(x: Any) -> list[int]:
-    return [int(a) for a in x]
+        information(f"Could not insert train leg")
+        return
+    information(f"Recorded train leg {result.train_leg_id}")
 
 
 if __name__ == "__main__":
     with connect_with_env() as conn:
         register_types(conn)
-        add_to_logfile(conn)
+        record_train_leg(conn)

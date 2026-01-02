@@ -61,11 +61,11 @@ def information(msg: str, end: str | None = None) -> None:
     print(f"{exclamation} {message}", end=end)
 
 
-def input_text(message: str, default: str = "") -> Optional[str]:
+def get_text_from_input(message: str, default: str = "") -> Optional[str]:
     return ask_text_question(message=message, default=default)
 
 
-def number_in_range(
+def get_number_in_range_from_input(
     input: str,
     lower: Optional[int],
     upper: Optional[int],
@@ -83,7 +83,7 @@ def number_in_range(
     return True
 
 
-def input_number(
+def get_int_from_input(
     message: str,
     default: Optional[int] = None,
     default_format: Optional[Callable[[int], str]] = None,
@@ -101,8 +101,8 @@ def input_number(
             default_string = str(default)
         if default_pad:
             default_string = str(default).rjust(default_pad, "0")
-    validation_fn: Callable[[str], bool | str] = lambda x: number_in_range(
-        x, lower, upper, unknown
+    validation_fn: Callable[[str], bool | str] = (
+        lambda x: get_number_in_range_from_input(x, lower, upper, unknown)
     )
     result = text(
         f"{message}", default=default_string, validate=validation_fn
@@ -114,7 +114,7 @@ def input_number(
     return int(result)
 
 
-def input_year(
+def get_year_from_input(
     message: str = "Year", default: Optional[int] = None, unknown: bool = False
 ) -> Optional[int]:
     now = datetime.now()
@@ -122,7 +122,7 @@ def input_year(
         default_year = default
     else:
         default_year = now.year
-    return input_number(
+    return get_int_from_input(
         message,
         default=default_year,
         default_pad=4,
@@ -132,7 +132,7 @@ def input_year(
     )
 
 
-def input_month(
+def get_month_from_input(
     message: str = "Month", default: Optional[int] = None, unknown: bool = False
 ) -> Optional[int]:
     now = datetime.now()
@@ -140,7 +140,7 @@ def input_month(
         default_month = default
     else:
         default_month = now.month
-    return input_number(
+    return get_int_from_input(
         message,
         default=default_month,
         default_pad=2,
@@ -164,7 +164,7 @@ def get_month_length(month: int, year: int) -> int:
         return 28
 
 
-def input_day(
+def get_day_from_input(
     month: int,
     year: int,
     message: str = "Date",
@@ -177,7 +177,7 @@ def input_day(
         default_day = default
     else:
         default_day = now.day
-    return input_number(
+    return get_int_from_input(
         message,
         default=default_day,
         default_pad=2,
@@ -200,7 +200,7 @@ def string_is_time(x: str) -> bool:
     return True
 
 
-def input_time(
+def get_time_from_input(
     message: str = "Time",
     default: Optional[datetime] = None,
     unknown: bool = False,
@@ -218,7 +218,7 @@ def input_time(
         return time_candidate
 
 
-def input_confirm(message: str, default: bool = True) -> bool:
+def get_confirmation_from_input(message: str, default: bool = True) -> bool:
     return ask_bool_question(message, default)
 
 
@@ -232,7 +232,7 @@ def choice_from_object[T](
     return Choice(title=title, value=PickSingle(object))
 
 
-def input_select[T](
+def get_choice_from_input[T](
     message: str,
     choices: list[T],
     display: Optional[Callable[[T], str]] = None,
@@ -249,7 +249,7 @@ def input_select[T](
     )
 
 
-def input_select_paginate[T](
+def get_choice_from_input_paginate[T](
     message: str, choices: list[T], display: Optional[Callable[[T], str]] = None
 ) -> Optional[PickChoice[T]]:
     partitions: list[list[T]] = []
@@ -281,7 +281,7 @@ def input_select_paginate[T](
     return None
 
 
-def input_checkbox[T](
+def get_choices_from_input[T](
     message: str,
     choices: list[T],
     display: Optional[Callable[[T], str]] = None,
@@ -305,7 +305,7 @@ def input_checkbox[T](
     return PickMultiple(answers)
 
 
-def input_datetime(start: Optional[datetime] = None) -> datetime:
+def get_datetime_from_input(start: Optional[datetime] = None) -> datetime:
     if start is not None:
         default_year = start.year
         default_month = start.month
@@ -316,23 +316,25 @@ def input_datetime(start: Optional[datetime] = None) -> datetime:
         default_month = None
         default_day = None
         default_time = None
-    year = input_year(default=default_year)
+    year = get_year_from_input(default=default_year)
     if year is None:
         raise RuntimeError()
-    month = input_month(default=default_month)
+    month = get_month_from_input(default=default_month)
     if month is None:
         raise RuntimeError()
-    date = input_day(month, year, default=default_day)
+    date = get_day_from_input(month, year, default=default_day)
     if date is None:
         raise RuntimeError()
-    time = input_time(default=default_time)
+    time = get_time_from_input(default=default_time)
     if time is None:
         raise RuntimeError()
-    input_datetime = datetime(year, month, date, time.hour, time.minute)
-    return make_timezone_aware(input_datetime)
+    get_datetime_from_input = datetime(
+        year, month, date, time.hour, time.minute
+    )
+    return make_timezone_aware(get_datetime_from_input)
 
 
-def input_price(prompt: str) -> Decimal:
+def get_price_from_input(prompt: str) -> Decimal:
     while True:
         string = input(f"{prompt} ")
         try:
