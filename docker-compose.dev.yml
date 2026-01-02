@@ -17,8 +17,9 @@ services:
     secrets:
       - db_secret
   db:
-    image: postgres
-    restart: always
+    build:
+      context: db/server
+      dockerfile: Dockerfile
     depends_on:
       data:
         condition: service_completed_successfully
@@ -67,7 +68,7 @@ services:
       context: api
       dockerfile: Dockerfile.dev
       args:
-        POETRY_VERSION: ${POETRY_VERSION}
+        POETRY_VERSION: 2.1.1
     ports:
       - "${API_PORT}:${API_PORT}"
     environment:
