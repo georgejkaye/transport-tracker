@@ -33,7 +33,6 @@ from api.utils.database import (
 )
 from api.utils.interactive import (
     PickSingle,
-    get_choice_from_input,
     get_choice_from_input_paginate,
     get_datetime_from_input,
     get_day_from_input,
@@ -93,10 +92,10 @@ def get_alight_call_and_index_from_input(
             return None
 
 
-def input_vehicle(
+def get_bus_vehicle_from_input(
     vehicles: list[BusVehicleDetails],
 ) -> Optional[BusVehicleDetails]:
-    result = get_choice_from_input(
+    result = get_choice_from_input_paginate(
         "Select vehicle", vehicles, lambda v: f"{v.vehicle_numberplate}"
     )
     match result:
@@ -107,10 +106,12 @@ def input_vehicle(
 
 
 def get_bus_vehicle(
-    conn: Connection, bus_operator: BusOperatorDetails
+    conn: Connection,
+    bus_operator: BusOperatorDetails,
+    suggested_vehicle: Optional[str],
 ) -> Optional[BusVehicleDetails]:
-    vehicle_id = get_text_from_input("Vehicle id")
-    if vehicle_id is None:
+    vehicle_id = get_text_from_input("Vehicle id", suggested_vehicle)
+    if vehicle_id is None or vehicle_id == "":
         return None
     vehicles = select_bus_vehicle_details_fetchall(
         conn, bus_operator.bus_operator_id, vehicle_id
@@ -118,7 +119,7 @@ def get_bus_vehicle(
     if len(vehicles) == 1:
         return vehicles[0]
     if len(vehicles) > 1:
-        vehicle = input_vehicle(vehicles)
+        vehicle = get_bus_vehicle_from_input(vehicles)
         if vehicle is not None:
             return vehicle
     information(
@@ -128,7 +129,7 @@ def get_bus_vehicle(
     if len(vehicles) == 0:
         information(f"No vehicles found with id {vehicle_id}")
         return None
-    return input_vehicle(vehicles)
+    return get_bus_vehicle_from_input(vehicles)
 
 
 def get_board_datetime() -> Optional[datetime]:
@@ -204,7 +205,11 @@ def get_bus_leg_from_input(conn: Connection) -> Optional[BusLegInData]:
     if alight_call_and_index is None:
         return None
     (_, alight_call_index) = alight_call_and_index
-    vehicle = get_bus_vehicle(conn, journey_timetable.operator)
+    vehicle = get_bus_vehicle(
+        conn,
+        journey_timetable.operator,
+        departure.vehicle if search_offset == 0 else None,
+    )
     journey = BusJourneyInData(
         journey_timetable.id,
         journey_timetable.service.bus_service_id,
