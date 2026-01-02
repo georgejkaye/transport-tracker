@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION InsertBusStops (
+CREATE OR REPLACE FUNCTION insert_bus_stops (
     p_stops bus_stop_in_data_notnull[]
 ) RETURNS VOID
 LANGUAGE plpgsql
@@ -41,7 +41,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION InsertBusOperators (
+CREATE OR REPLACE FUNCTION insert_bus_operators (
     p_operators bus_operator_in_data_notnull[]
 ) RETURNS VOID
 LANGUAGE plpgsql
@@ -59,7 +59,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION InsertBusServices (
+CREATE OR REPLACE FUNCTION insert_bus_services (
     p_services bus_service_in_data_notnull[]
 ) RETURNS VOID
 LANGUAGE plpgsql
@@ -88,7 +88,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION InsertBusServiceVias (
+CREATE OR REPLACE FUNCTION insert_bus_service_vias (
     p_vias bus_service_via_in_data_notnull[]
 ) RETURNS VOID
 LANGUAGE plpgsql
@@ -112,7 +112,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION InsertTransXChangeBusData (
+CREATE OR REPLACE FUNCTION insert_transxchange_bus_data (
     p_services bus_service_in_data_notnull[],
     p_vias bus_service_via_in_data_notnull[]
 ) RETURNS VOID
@@ -120,12 +120,12 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    PERFORM InsertBusServices(p_services);
-    PERFORM InsertBusServiceVias(p_vias);
+    PERFORM insert_bus_services(p_services);
+    PERFORM insert_bus_service_vias(p_vias);
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION InsertBusModels (
+CREATE OR REPLACE FUNCTION insert_bus_models (
     p_models bus_model_in_data_notnull[]
 ) RETURNS VOID
 LANGUAGE plpgsql
@@ -139,7 +139,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION InsertBusVehicles (
+CREATE OR REPLACE FUNCTION insert_bus_vehicles (
     p_vehicles bus_vehicle_in_data_notnull[]
 ) RETURNS VOID
 LANGUAGE plpgsql
@@ -170,7 +170,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION InsertBusModelsAndVehicles (
+CREATE OR REPLACE FUNCTION insert_bus_models_and_vehicles (
     p_models bus_model_in_data_notnull[],
     p_vehicles bus_vehicle_in_data_notnull[]
 ) RETURNS VOID
@@ -178,12 +178,12 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    PERFORM InsertBusModels(p_models);
-    PERFORM InsertBusVehicles(p_vehicles);
+    PERFORM insert_bus_models(p_models);
+    PERFORM insert_bus_vehicles(p_vehicles);
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION InsertBusCalls (
+CREATE OR REPLACE FUNCTION insert_bus_calls (
     p_journey_id INTEGER_NOTNULL,
     p_calls bus_call_in_data_notnull[]
 ) RETURNS VOID
@@ -213,36 +213,37 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION InsertBusJourney (
+CREATE OR REPLACE FUNCTION insert_bus_journey (
     p_journey bus_journey_in_data_notnull
 ) RETURNS INT
 LANGUAGE plpgsql
 AS
 $$
 DECLARE
-    v_journey_id INT;
+    v_bus_journey_id INT;
 BEGIN
     INSERT INTO BusJourney (
         bus_service_id,
         bus_vehicle_id
     ) VALUES (p_journey.service_id, p_journey.vehicle_id)
-    RETURNING bus_journey_id INTO v_journey_id;
-    PERFORM InsertBusCalls(v_journey_id, p_journey.journey_calls);
-    RETURN v_journey_id;
+    RETURNING bus_journey_id INTO v_bus_journey_id;
+    PERFORM insert_bus_calls(v_bus_journey_id, p_journey.journey_calls);
+    RETURN v_bus_journey_id;
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION InsertBusLeg (
+CREATE OR REPLACE FUNCTION insert_bus_leg (
     p_users INTEGER_NOTNULL[],
     p_leg bus_leg_in_data_notnull
-) RETURNS VOID
+) RETURNS SETOF insert_bus_leg_result
 LANGUAGE plpgsql
 AS
 $$
 DECLARE
-    v_journey_id INT;
+    v_bus_journey_id INTEGER_NOTNULL := 0;
+    v_bus_leg_id INTEGER_NOTNULL := 0;
 BEGIN
-    SELECT InsertBusJourney(p_leg.journey) INTO v_journey_id;
+    SELECT insert_bus_journey(p_leg.journey) INTO v_bus_journey_id;
     INSERT INTO BusLeg (
         user_id,
         bus_journey_id,
@@ -250,9 +251,12 @@ BEGIN
         alight_call_index
     ) SELECT
         v_user,
-        v_journey_id,
+        v_bus_journey_id,
         p_leg.board_index,
         p_leg.alight_index
-    FROM UNNEST(p_users) AS v_user;
+    FROM UNNEST(p_users) AS v_user
+    RETURNING bus_leg_id INTO v_bus_leg_id;
+
+    RETURN QUERY SELECT v_bus_leg_id;
 END;
 $$;

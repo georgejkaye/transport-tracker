@@ -26,6 +26,8 @@ DROP TYPE IF EXISTS bus_vehicle_user_details CASCADE;
 DROP TYPE IF EXISTS bus_stop_leg_details CASCADE;
 DROP TYPE IF EXISTS bus_stop_user_details CASCADE;
 
+DROP TYPE IF EXISTS insert_bus_leg_result CASCADE;
+
 CREATE TYPE bus_stop_in_data AS (
     atco_code TEXT_NOTNULL,
     naptan_code TEXT_NOTNULL,
@@ -308,3 +310,7 @@ CREATE TYPE bus_stop_user_details AS (
 );
 
 CREATE DOMAIN bus_stop_user_details_notnull AS bus_stop_user_details NOT NULL;
+
+CREATE TYPE insert_bus_leg_result AS (
+    bus_leg_id INTEGER_NOTNULL
+);
