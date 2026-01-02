@@ -121,7 +121,7 @@ def get_station_from_input(
             conn, input_string
         )
         if len(matches) == 0:
-            print("No matches found, try again")
+            information("No matches found, try again")
         elif len(matches) == 1:
             match = matches[0]
             resp = get_confirmation_from_input(
@@ -130,7 +130,7 @@ def get_station_from_input(
             if resp:
                 return match
         else:
-            print("Multiple matches found: ")
+            information("Multiple matches found: ")
             choice = get_choice_from_input_paginate(
                 "Select a station",
                 matches,
@@ -719,7 +719,7 @@ def get_service_from_service_id_input(
             conn, service_id, run_date, scrape_html=True, query_brand=True
         )
         if result is None:
-            print("Invalid service id, try again")
+            information("Invalid service id, try again")
         else:
             return result
     return None

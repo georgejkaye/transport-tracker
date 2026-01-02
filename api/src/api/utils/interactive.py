@@ -61,8 +61,12 @@ def information(msg: str, end: str | None = None) -> None:
     print(f"{exclamation} {message}", end=end)
 
 
-def get_text_from_input(message: str, default: str = "") -> Optional[str]:
-    return ask_text_question(message=message, default=default)
+def get_text_from_input(
+    message: str, default: Optional[str] = None
+) -> Optional[str]:
+    return ask_text_question(
+        message=message, default=default if default is not None else ""
+    )
 
 
 def get_number_in_range_from_input(
@@ -305,7 +309,9 @@ def get_choices_from_input[T](
     return PickMultiple(answers)
 
 
-def get_datetime_from_input(start: Optional[datetime] = None) -> datetime:
+def get_datetime_from_input(
+    start: Optional[datetime] = None,
+) -> Optional[datetime]:
     if start is not None:
         default_year = start.year
         default_month = start.month
@@ -318,16 +324,16 @@ def get_datetime_from_input(start: Optional[datetime] = None) -> datetime:
         default_time = None
     year = get_year_from_input(default=default_year)
     if year is None:
-        raise RuntimeError()
+        return None
     month = get_month_from_input(default=default_month)
     if month is None:
-        raise RuntimeError()
+        return None
     date = get_day_from_input(month, year, default=default_day)
     if date is None:
-        raise RuntimeError()
+        return None
     time = get_time_from_input(default=default_time)
     if time is None:
-        raise RuntimeError()
+        return None
     get_datetime_from_input = datetime(
         year, month, date, time.hour, time.minute
     )

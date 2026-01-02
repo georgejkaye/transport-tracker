@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
 
 from api.db.types.bus import BusStopDetails
 
@@ -10,6 +11,7 @@ class BusStopDeparture:
     destination: str
     dep_time: datetime
     bustimes_journey_id: int
+    vehicle: Optional[str]
 
 
 def short_string_of_bus_stop_departure(departure: BusStopDeparture) -> str:

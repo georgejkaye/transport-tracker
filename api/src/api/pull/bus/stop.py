@@ -53,9 +53,15 @@ def get_departures_from_bus_stop_soup(
                 continue
             departure_service = departure_service_a.text.strip()
             departure_destination_td = departure_data[1]
-            departure_destination = departure_destination_td.text.strip().split(
-                "\n"
-            )[0]
+            departure_destination_and_vehicle = (
+                departure_destination_td.text.strip().split("\n")
+            )
+            departure_destination = departure_destination_and_vehicle[0]
+            if len(departure_destination_and_vehicle) == 1:
+                departure_vehicle = None
+            else:
+                departure_vehicle_string = departure_destination_and_vehicle[1]
+                departure_vehicle = departure_vehicle_string.split(" - ")[0]
             departure_time_td = departure_data[2]
             if not isinstance(departure_time_td, Tag):
                 continue
@@ -84,6 +90,7 @@ def get_departures_from_bus_stop_soup(
                 departure_destination,
                 departure_datetime,
                 departure_bustimes_journey_id,
+                departure_vehicle,
             )
             departures.append(departure)
     return departures

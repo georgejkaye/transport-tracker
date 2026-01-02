@@ -162,7 +162,9 @@ def get_search_datetime_and_offset(
     if day_of_week_diff < 0:
         day_of_week_diff = day_of_week_diff + 7
     new_board_date = today.date() + timedelta(days=day_of_week_diff)
-    new_board_datetime = datetime.combine(new_board_date, board_datetime.time())
+    new_board_datetime = datetime.combine(
+        new_board_date, board_datetime.time(), board_datetime.tzinfo
+    )
     information(
         f"{board_datetime.strftime('%d/%m/%Y %H:%M:%S')} is before today, "
         + f"using {new_board_datetime.strftime('%d/%m/%Y %H:%M:%S')} instead"
@@ -174,9 +176,12 @@ def get_search_datetime_and_offset(
 def get_bus_leg_from_input(conn: Connection) -> Optional[BusLegInData]:
     board_stop = get_bus_stop_from_input(conn, prompt="Board stop")
     if board_stop is None:
-        print("Could not get board stop")
-        exit(-1)
+        information("Could not get board stop")
+        return
     board_datetime = get_datetime_from_input()
+    if board_datetime is None:
+        information("Could not get board datetime")
+        return None
     (search_datetime, search_offset) = get_search_datetime_and_offset(
         board_datetime
     )
@@ -188,6 +193,7 @@ def get_bus_leg_from_input(conn: Connection) -> Optional[BusLegInData]:
         return None
     departure = get_bus_stop_departure_from_input(departures)
     if departure is None:
+        information("Could not get departure")
         return None
     journey_and_board_call_index = get_bus_journey_and_board_call_index(
         conn,
@@ -196,7 +202,7 @@ def get_bus_leg_from_input(conn: Connection) -> Optional[BusLegInData]:
         departure,
     )
     if journey_and_board_call_index is None:
-        print("Could not get journey")
+        information("Could not get journey")
         return None
     (journey_timetable, board_call_index) = journey_and_board_call_index
     alight_call_and_index = get_alight_call_and_index_from_input(
