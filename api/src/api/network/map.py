@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 import folium
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 from networkx import MultiDiGraph
 from psycopg import Connection
 from pydantic import Field
@@ -29,7 +29,7 @@ from api.classes.network.map import (
     StationCountDict,
 )
 from api.classes.train.legs import (
-    DbTrainLegCallPointPointsOutData,
+    TrainLegCallPointPointsOutData,
 )
 from api.classes.train.station import DbTrainStationPointPointsOutData
 from api.db.functions.select.train.leg import (
@@ -169,30 +169,22 @@ def get_leg_map[T: LegLineCall](
 def get_leg_map_from_gml(gml_data: BeautifulSoup) -> Optional[str]:
     geometry_key = gml_data.find_all("key", {"attr.name": "geometry"})
     geometry_key_id = geometry_key[0]
-    if not isinstance(geometry_key_id, Tag):
-        return None
     geometry_attribute = geometry_key_id.get("id")
     if not isinstance(geometry_attribute, str):
         return None
     lat_keys = gml_data.find_all("key", {"attr.name": "y"})
     lat_first_key = lat_keys[0]
-    if not isinstance(lat_first_key, Tag):
-        return None
     lat_attribute = lat_first_key.get("id")
     if lat_attribute is None:
         return None
     lon_keys = gml_data.find_all("key", {"attr.name": "x"})
     lon_first_key = lon_keys[0]
-    if not isinstance(lon_first_key, Tag):
-        return None
     lon_attribute = lon_first_key.get("id")
     if lon_attribute is None:
         return None
     nodes = gml_data.find_all("node")
     node_dict: dict[str, tuple[Decimal, Decimal]] = {}
     for node in nodes:
-        if not isinstance(node, Tag):
-            return None
         node_id = node.get("id")
         if not isinstance(node_id, str):
             return None
@@ -211,8 +203,6 @@ def get_leg_map_from_gml(gml_data: BeautifulSoup) -> Optional[str]:
     leg_lines: list[LegLine[LegLineCall]] = []
 
     for edge in edges:
-        if not isinstance(edge, Tag):
-            return None
         edge_source = edge.get("source")
         edge_target = edge.get("target")
 
@@ -267,7 +257,7 @@ def get_leg_line_geometry_for_leg_id(
     conn: Connection,
     network: MultiDiGraph[int],
     leg_id: int,
-) -> Optional[LegLineGeometry[DbTrainLegCallPointPointsOutData]]:
+) -> Optional[LegLineGeometry[TrainLegCallPointPointsOutData]]:
     leg = select_train_leg_points_by_leg_id_fetchone(conn, leg_id)
     if leg is None:
         return None
@@ -275,7 +265,7 @@ def get_leg_line_geometry_for_leg_id(
         network,
         [
             [
-                DbTrainLegCallPointPointsOutData(call, point)
+                TrainLegCallPointPointsOutData(call, point)
                 for point in call.points
             ]
             for call in leg.call_points
@@ -289,7 +279,7 @@ def get_leg_lines_for_leg_points(
     get_train_operator_brand_colour: Callable[
         [int, Optional[int]], Optional[str]
     ],
-) -> list[LegLine[DbTrainLegCallPointPointsOutData]]:
+) -> list[LegLine[TrainLegCallPointPointsOutData]]:
     return [
         LegLine(
             leg.call_points[0].station_name,
@@ -313,7 +303,7 @@ def get_leg_lines_for_leg_points(
                 network,
                 [
                     [
-                        DbTrainLegCallPointPointsOutData(call, point)
+                        TrainLegCallPointPointsOutData(call, point)
                         for point in call.points
                     ]
                     for call in leg.call_points
@@ -334,7 +324,7 @@ def get_train_leg_geometries_for_leg_points(
             network,
             [
                 [
-                    DbTrainLegCallPointPointsOutData(call, point)
+                    TrainLegCallPointPointsOutData(call, point)
                     for point in call.points
                 ]
                 for call in leg.call_points
@@ -386,7 +376,7 @@ def get_leg_lines_for_leg_ids(
     get_train_operator_brand_colour: Callable[
         [int, Optional[int]], Optional[str]
     ],
-) -> list[LegLine[DbTrainLegCallPointPointsOutData]]:
+) -> list[LegLine[TrainLegCallPointPointsOutData]]:
     leg_points = select_train_leg_points_by_leg_ids_fetchall(conn, leg_ids)
     return get_leg_lines_for_leg_points(
         network, leg_points, get_train_operator_brand_colour
@@ -411,7 +401,7 @@ def get_leg_lines_for_user_id(
     ],
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
-) -> list[LegLine[DbTrainLegCallPointPointsOutData]]:
+) -> list[LegLine[TrainLegCallPointPointsOutData]]:
     leg_points = select_train_leg_points_by_user_id_fetchall(
         conn, user_id, start_date, end_date
     )

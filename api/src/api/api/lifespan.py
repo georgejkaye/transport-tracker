@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import AsyncGenerator, Optional
 
 from fastapi import FastAPI
 from networkx import MultiDiGraph
@@ -26,7 +26,7 @@ operator_brand_lookup: Optional[OperatorBrandLookup] = None
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if (network_path) is None:
         raise RuntimeError("Could not get environment variable NETWORK_PATH")
     global conn

@@ -72,7 +72,7 @@ def get_tag_text(
 ) -> str:
     if namespace is not None:
         tag = prefix_namespace(namespace, tag)
-    content: Any = get_or_throw(root.find(tag))
+    content = get_or_throw(root.find(tag))
     return get_or_throw(content.text)
 
 

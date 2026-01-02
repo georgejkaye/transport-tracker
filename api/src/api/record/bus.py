@@ -178,7 +178,7 @@ def get_bus_leg_from_input(conn: Connection) -> Optional[BusLegInData]:
     board_stop = get_bus_stop_from_input(conn, prompt="Board stop")
     if board_stop is None:
         print_error("Could not get board stop")
-        return
+        return None
     board_datetime = get_datetime_from_input()
     if board_datetime is None:
         print_error("Could not get board datetime")

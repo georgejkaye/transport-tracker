@@ -1,12 +1,10 @@
 import sys
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from dotenv import load_dotenv
 from psycopg import Connection
 from psycopg.rows import TupleRow
-from psycopg.types.composite import CompositeInfo, register_composite
 
 from api.utils.environment import get_env_variable, get_secret
 
@@ -65,27 +63,3 @@ def connect(data: DbConnectionData) -> DbConnection:
 
 def connect_with_env() -> DbConnection:
     return DbConnection(DbConnectionData(None, None, None, None))
-
-
-def str_or_null_to_datetime(
-    x: str | None, tz: Optional[Any] = None
-) -> datetime | None:
-    if x is None:
-        return None
-    try:
-        dt = datetime.fromisoformat(x)
-        if tz:
-            dt = dt.astimezone(tz)
-        return dt
-    except Exception:
-        return None
-
-
-def register_type[T](
-    conn: Connection, name: str, factory: type | Callable[..., T]
-) -> None:
-    info = CompositeInfo.fetch(conn, name)
-    if info is not None:
-        register_composite(info, conn, factory)
-    else:
-        raise RuntimeError(f"Could not find composite type {name}")

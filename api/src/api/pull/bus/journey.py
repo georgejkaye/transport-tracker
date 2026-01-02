@@ -12,7 +12,7 @@ from api.db.functions.select.bus import (
     select_bus_service_details_by_operator_id_and_line_name_fetchone,
 )
 from api.db.types.bus import BusCallInData
-from api.utils.interactive import print_error, print_information
+from api.utils.interactive import print_error
 from api.utils.request import get_soup
 from api.utils.times import make_timezone_aware
 

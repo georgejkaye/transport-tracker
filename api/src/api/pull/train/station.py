@@ -9,7 +9,7 @@ from api.db.functions.select.train.station import (
 from api.db.types.train.station import TrainStationOutData
 from api.pull.train.types import RttStationService, TrainStationIdentifiers
 from api.utils.credentials import get_api_credentials
-from api.utils.interactive import print_error, print_information
+from api.utils.interactive import print_error
 from api.utils.request import make_get_request
 from api.utils.times import get_datetime_route, make_timezone_aware
 

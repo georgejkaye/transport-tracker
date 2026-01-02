@@ -42,12 +42,8 @@ def get_departures_from_bus_stop_soup(
         current_date = search_date_value + timedelta(days=i)
         departure_rows = departure_table.find_all("tr")
         for departure_row in departure_rows[1:]:
-            if not isinstance(departure_row, Tag):
-                continue
             departure_data = departure_row.find_all("td")
             departure_service_td = departure_data[0]
-            if not isinstance(departure_service_td, Tag):
-                continue
             departure_service_a = departure_service_td.find("a")
             if not isinstance(departure_service_a, Tag):
                 continue
@@ -63,8 +59,6 @@ def get_departures_from_bus_stop_soup(
                 departure_vehicle_string = departure_destination_and_vehicle[1]
                 departure_vehicle = departure_vehicle_string.split(" - ")[0]
             departure_time_td = departure_data[2]
-            if not isinstance(departure_time_td, Tag):
-                continue
             departure_time_a = departure_time_td.find("a")
             if not isinstance(departure_time_a, Tag):
                 continue
