@@ -64,7 +64,8 @@ from api.utils.interactive import (
     get_datetime_from_input,
     get_int_from_input,
     get_text_from_input,
-    information,
+    print_error,
+    print_information,
 )
 from api.utils.mileage import (
     miles_and_chains_to_miles,
@@ -121,7 +122,7 @@ def get_station_from_input(
             conn, input_string
         )
         if len(matches) == 0:
-            information("No matches found, try again")
+            print_information("No matches found, try again")
         elif len(matches) == 1:
             match = matches[0]
             resp = get_confirmation_from_input(
@@ -130,7 +131,7 @@ def get_station_from_input(
             if resp:
                 return match
         else:
-            information("Multiple matches found: ")
+            print_information("Multiple matches found: ")
             choice = get_choice_from_input_paginate(
                 "Select a station",
                 matches,
@@ -163,7 +164,7 @@ def get_service_at_station(
     timeframe = 15
     earliest_time = add(search_datetime, -timeframe)
     latest_time = add(search_datetime, timeframe)
-    information("Searching for services from " + origin.station_name)
+    print_information("Searching for services from " + origin.station_name)
     # The results encompass a ~1 hour period
     # We only want to check our given timeframe
     # We also only want services that stop at our destination
@@ -246,7 +247,7 @@ def get_unit_cars(
     stock_subclass: TrainStockSubclassOutData,
 ) -> PickUnknown | PickSingle[int] | None:
     if len(stock_subclass.stock_cars) == 1:
-        information(
+        print_information(
             f"{string_of_class_and_subclass(stock_class, stock_subclass, name=False)} always has {stock_subclass.stock_cars[0]} cars"
         )
         return PickSingle(stock_subclass.stock_cars[0])
@@ -267,7 +268,7 @@ def get_unit_cars(
             return None
 
 
-def input_station_from_calls(
+def get_station_from_input_choice(
     current: TrainLegCallInData,
     calls: list[TrainLegCallInData],
 ) -> Optional[Tuple[TrainLegCallInData, int, list[TrainLegCallInData]]]:
@@ -375,7 +376,7 @@ def get_stock(
     service: RttService,
     stock_number: int = 0,
 ) -> list[StockSegment]:
-    information("Recording stock formations")
+    print_information("Recording stock formations")
     stock_segments: list[StockSegment] = []
     previous_stock_segment: Optional[StockSegment] = None
     # Currently getting this automatically isn't implemented
@@ -385,12 +386,14 @@ def get_stock(
     current_call = calls[0]
     remaining_calls = calls[1:]
     while len(remaining_calls) > 0:
-        information(
+        print_information(
             f"Recording stock formation after {current_call.station_name}"
         )
         segment_start = current_call
         next_remaining_calls: list[TrainLegCallInData] = []
-        stock_end_opt = input_station_from_calls(segment_start, remaining_calls)
+        stock_end_opt = get_station_from_input_choice(
+            segment_start, remaining_calls
+        )
         if stock_end_opt is None:
             segment_end = remaining_calls[-1]
             segment_end_index = len(calls) - 1
@@ -413,7 +416,7 @@ def get_stock(
                     return []
                 current_segment_stock = previous_stock_segment_stock.copy()
                 for i in range(0, number_of_units):
-                    information(f"Selecting unit {i + 1}")
+                    print_information(f"Selecting unit {i + 1}")
                     stock_report = get_unit_report(stock_list)
                     if stock_report is None:
                         return []
@@ -447,7 +450,7 @@ def get_stock(
         )
         stock_segments.append(segment)
         previous_stock_segment = segment
-        information(
+        print_information(
             f"Stock formation {len(stock_segments) + stock_number} recorded"
         )
         current_call = segment_end
@@ -455,7 +458,7 @@ def get_stock(
 
 
 def input_mileage(calls: list[TrainLegCallInData]) -> Decimal:
-    information(
+    print_information(
         f"Manual mileage input between {calls[0].station_name} and {calls[-1].station_name} required"
     )
     # If we can get a good distance set this could be automated
@@ -671,9 +674,7 @@ def filter_services_by_time_and_stop(
         if service.plan_dep is None:
             continue
         max_string_length = max(max_string_length, len(string))
-
-        information(string.ljust(max_string_length), end="\r")
-
+        print_information(string.ljust(max_string_length), end="\r")
         full_service = get_service_from_id(
             conn, service.id, service.run_date, scrape_html=False
         )
@@ -700,9 +701,7 @@ def filter_services_by_time_and_stop(
                     leg_calls_from_origin_to_destination,
                 )
             )
-
-    information(" " * max_string_length, end="\r")
-
+    print_information(" " * max_string_length, end="\r")
     return services_filtered_by_destination
 
 
@@ -719,7 +718,7 @@ def get_service_from_service_id_input(
             conn, service_id, run_date, scrape_html=True, query_brand=True
         )
         if result is None:
-            information("Invalid service id, try again")
+            print_information("Invalid service id, try again")
         else:
             return result
     return None
@@ -908,29 +907,33 @@ def get_train_leg_from_input(
     start: datetime | None = None,
     default_station: TrainStationOutData | None = None,
 ) -> TrainLegInData | None:
-    origin_station = get_station_from_input(conn, "Origin", default_station)
-    if origin_station is None:
+    board_station = get_station_from_input(conn, "Board", default_station)
+    if board_station is None:
+        print_error("Could not get board station")
         return None
-    destination_station = get_station_from_input(conn, "Destination")
-    if destination_station is None:
+    alight_station = get_station_from_input(conn, "Destination")
+    if alight_station is None:
+        print_error("Could not get destination station")
         return None
     search_datetime = get_datetime_from_input(start)
+    if search_datetime is None:
+        print_error("Could not get search datetime")
+        return None
     service_at_station = get_service_at_station(
-        conn, origin_station, search_datetime, destination_station
+        conn, board_station, search_datetime, alight_station
     )
     if service_at_station is None:
         service = get_service_from_service_id_input(conn, search_datetime)
         if service is None:
             return None
         service_calls_at_origin = get_calls_at_station(
-            service, origin_station.station_crs
+            service, board_station.station_crs
         )
         if len(service_calls_at_origin) == 0:
-            information(
-                f"No call at {origin_station.station_name} found on service"
+            print_error(
+                f"No call at {board_station.station_name} found on service"
             )
             return None
-
         if len(service_calls_at_origin) > 1:
             origin_call_result = get_choice_from_input(
                 "Select boarding call",
@@ -949,27 +952,31 @@ def get_train_leg_from_input(
         leg_plan_dep = origin_call.plan_dep
     else:
         if service_at_station.plan_dep is None:
+            print_error("Could not get planned departure time for service")
             return None
         service = get_service_from_service_at_station_input(
             conn, service_at_station, search_datetime
         )
         if service is None:
+            print_error("Could not get service")
             return None
         leg_plan_dep = service_at_station.plan_dep
     leg_calls = get_leg_calls_between_calls(
         service,
-        origin_station.station_crs,
+        board_station.station_crs,
         leg_plan_dep,
-        destination_station.station_crs,
+        alight_station.station_crs,
     )
     if leg_calls is None:
-        information(
-            f"Could not find route between {origin_station.station_name} and {destination_station.station_crs}"
+        print_error(
+            f"Could not find route between {board_station.station_name} and {alight_station.station_crs}"
         )
         return None
     stock_segments = get_stock(conn, leg_calls, service)
     mileage = get_mileage(leg_calls)
-    information(f"Computed mileage as {string_of_miles_and_chains(mileage)}")
+    print_information(
+        f"Computed mileage as {string_of_miles_and_chains(mileage)}"
+    )
     if leg_calls[0].mileage is None:
         leg_calls[0].mileage = Decimal(0)
     if leg_calls[-1].mileage is None:
@@ -1001,15 +1008,15 @@ def record_train_leg(conn: Connection) -> None:
         return None
     leg = get_train_leg_from_input(conn)
     if leg is None:
-        information("Could not get train leg")
+        print_error("Could not get train leg")
         return
     result = insert_train_leg_fetchone(
         conn, [user.user_id for user in users], leg
     )
     if result is None:
-        information(f"Could not insert train leg")
+        print_error(f"Could not insert train leg")
         return
-    information(f"Recorded train leg {result.train_leg_id}")
+    print_information(f"Recorded train leg {result.train_leg_id}")
 
 
 if __name__ == "__main__":

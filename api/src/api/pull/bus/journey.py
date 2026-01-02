@@ -12,7 +12,7 @@ from api.db.functions.select.bus import (
     select_bus_service_details_by_operator_id_and_line_name_fetchone,
 )
 from api.db.types.bus import BusCallInData
-from api.utils.interactive import information
+from api.utils.interactive import print_error, print_information
 from api.utils.request import get_soup
 from api.utils.times import make_timezone_aware
 
@@ -111,11 +111,11 @@ def get_bus_journey_and_board_call_index(
 ) -> Optional[tuple[BusJourneyTimetable, int]]:
     soup = get_bus_journey_page(bustimes_journey_id)
     if soup is None:
-        information("Could not get journey page")
+        print_error("Could not get journey page")
         return None
     trip_script = soup.select_one("script#trip-data")
     if trip_script is None:
-        information("Could not get trip script")
+        print_error("Could not get trip script")
         return None
     trip_script_dict = json.loads(trip_script.text)
     service_operator_noc = trip_script_dict["operator"]["noc"]
@@ -123,7 +123,7 @@ def get_bus_journey_and_board_call_index(
         conn, service_operator_noc
     )
     if operator is None:
-        information("Could not get operator")
+        print_error("Could not get operator")
         return None
     service_line = trip_script_dict["service"]["line_name"]
     bus_service = (
@@ -132,13 +132,13 @@ def get_bus_journey_and_board_call_index(
         )
     )
     if bus_service is None:
-        information("Could not get service")
+        print_error("Could not get service")
         return None
     (board_call_index, journey_calls) = get_bus_journey_calls(
         trip_script_dict["times"], board_stop, board_stop_departure
     )
     if board_call_index is None:
-        information("Could not get board call")
+        print_error("Could not get board call")
         return None
     journey = BusJourneyTimetable(
         bustimes_journey_id, operator, bus_service, journey_calls

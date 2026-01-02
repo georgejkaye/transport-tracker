@@ -9,7 +9,7 @@ from api.db.functions.select.train.station import (
 from api.db.types.train.station import TrainStationOutData
 from api.pull.train.types import RttStationService, TrainStationIdentifiers
 from api.utils.credentials import get_api_credentials
-from api.utils.interactive import information
+from api.utils.interactive import print_error, print_information
 from api.utils.request import make_get_request
 from api.utils.times import get_datetime_route, make_timezone_aware
 
@@ -40,7 +40,7 @@ def response_to_train_station_identifiers(
     name = data["description"]
     station = select_train_station_by_name_fetchone(conn, name)
     if station is None:
-        information(
+        print_error(
             f"No station with name {name} found. Please update the database."
         )
         exit(1)

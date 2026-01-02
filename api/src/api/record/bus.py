@@ -40,7 +40,8 @@ from api.utils.interactive import (
     get_text_from_input,
     get_time_from_input,
     get_year_from_input,
-    information,
+    print_error,
+    print_information,
 )
 
 
@@ -122,12 +123,12 @@ def get_bus_vehicle(
         vehicle = get_bus_vehicle_from_input(vehicles)
         if vehicle is not None:
             return vehicle
-    information(
+    print_information(
         f"Vehicle {vehicle_id} not found for operator {bus_operator.operator_name}, falling back to all operators"
     )
     vehicles = select_bus_vehicle_details_fetchall(conn, None, vehicle_id)
     if len(vehicles) == 0:
-        information(f"No vehicles found with id {vehicle_id}")
+        print_error(f"No vehicles found with id {vehicle_id}")
         return None
     return get_bus_vehicle_from_input(vehicles)
 
@@ -165,7 +166,7 @@ def get_search_datetime_and_offset(
     new_board_datetime = datetime.combine(
         new_board_date, board_datetime.time(), board_datetime.tzinfo
     )
-    information(
+    print_information(
         f"{board_datetime.strftime('%d/%m/%Y %H:%M:%S')} is before today, "
         + f"using {new_board_datetime.strftime('%d/%m/%Y %H:%M:%S')} instead"
     )
@@ -176,11 +177,11 @@ def get_search_datetime_and_offset(
 def get_bus_leg_from_input(conn: Connection) -> Optional[BusLegInData]:
     board_stop = get_bus_stop_from_input(conn, prompt="Board stop")
     if board_stop is None:
-        information("Could not get board stop")
+        print_error("Could not get board stop")
         return
     board_datetime = get_datetime_from_input()
     if board_datetime is None:
-        information("Could not get board datetime")
+        print_error("Could not get board datetime")
         return None
     (search_datetime, search_offset) = get_search_datetime_and_offset(
         board_datetime
@@ -189,11 +190,11 @@ def get_bus_leg_from_input(conn: Connection) -> Optional[BusLegInData]:
         board_stop, search_datetime, search_offset
     )
     if len(departures) == 0:
-        information("No departures from bus stop")
+        print_error("No departures from bus stop")
         return None
     departure = get_bus_stop_departure_from_input(departures)
     if departure is None:
-        information("Could not get departure")
+        print_error("Could not get departure")
         return None
     journey_and_board_call_index = get_bus_journey_and_board_call_index(
         conn,
@@ -202,7 +203,7 @@ def get_bus_leg_from_input(conn: Connection) -> Optional[BusLegInData]:
         departure,
     )
     if journey_and_board_call_index is None:
-        information("Could not get journey")
+        print_error("Could not get journey")
         return None
     (journey_timetable, board_call_index) = journey_and_board_call_index
     alight_call_and_index = get_alight_call_and_index_from_input(
@@ -232,15 +233,15 @@ def record_bus_leg(conn: Connection):
         return
     leg = get_bus_leg_from_input(conn)
     if leg is None:
-        information("Could not get bus leg")
+        print_error("Could not get bus leg")
         return
     insert_bus_leg_result = insert_bus_leg_fetchone(
         conn, [user.user_id for user in users], leg
     )
     if insert_bus_leg_result is None:
-        information("Could not insert bus leg")
+        print_error("Could not insert bus leg")
         return
-    information(f"Recorded bus leg {insert_bus_leg_result.bus_leg_id}")
+    print_information(f"Recorded bus leg {insert_bus_leg_result.bus_leg_id}")
 
 
 if __name__ == "__main__":

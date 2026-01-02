@@ -55,9 +55,15 @@ def subheader(msg: str, length: int = 80) -> None:
     space()
 
 
-def information(msg: str, end: str | None = None) -> None:
+def print_information(msg: str, end: str | None = None) -> None:
     exclamation = colored("!", "dark_grey")
     message = colored(msg, attrs=["bold"])
+    print(f"{exclamation} {message}", end=end)
+
+
+def print_error(msg: str, end: str | None = None) -> None:
+    exclamation = colored("!", "dark_grey")
+    message = colored(msg, color="red", attrs=["bold"])
     print(f"{exclamation} {message}", end=end)
 
 
