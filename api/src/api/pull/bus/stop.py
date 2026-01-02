@@ -53,7 +53,9 @@ def get_departures_from_bus_stop_soup(
                 continue
             departure_service = departure_service_a.text.strip()
             departure_destination_td = departure_data[1]
-            departure_destination = departure_destination_td.text.strip()
+            departure_destination = departure_destination_td.text.strip().split(
+                "\n"
+            )[0]
             departure_time_td = departure_data[2]
             if not isinstance(departure_time_td, Tag):
                 continue
