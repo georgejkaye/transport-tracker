@@ -16,7 +16,7 @@ questionary = "^2.0.1"
 uvicorn = "^0.30.5"
 pytz = "^2024.1"
 fastapi = "^0.128.0"
-psycopg = "^3.2.3"
+psycopg = "^3.3.2"
 folium = "^0.19.3"
 osmnx = "^2.0.6"
 
