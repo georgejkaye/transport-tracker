@@ -5,6 +5,7 @@ from typing import Optional, Tuple
 
 from psycopg import Connection
 
+from api.classes.interactive import PickMultiple, PickSingle, PickUnknown
 from api.classes.train.association import (
     AssociationType,
     int_of_association_type,
@@ -54,9 +55,6 @@ from api.pull.train.types import (
 from api.record.user import input_users
 from api.utils.database import connect_with_env
 from api.utils.interactive import (
-    PickMultiple,
-    PickSingle,
-    PickUnknown,
     get_choice_from_input,
     get_choice_from_input_paginate,
     get_choices_from_input,

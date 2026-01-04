@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     register_types(conn)
     print("Initialised db connection")
     global network
-    network = load_osmnx_graphml(network_path)  # type: ignore
+    network = load_osmnx_graphml(network_path)
     print("Initialised train network")
     global operator_brand_lookup
     operator_brand_lookup = initialise_train_operator_brand_lookup(conn)

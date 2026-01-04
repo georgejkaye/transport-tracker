@@ -478,7 +478,7 @@ def get_leg_map_page_by_leg_ids(
     network: MultiDiGraph[int],
     leg_ids: list[int],
     get_train_operator_brand_colour: Callable[[int, Optional[int]], str],
-):
+) -> str:
     leg_lines = get_leg_lines_for_leg_ids(
         conn, network, leg_ids, get_train_operator_brand_colour
     )
@@ -492,7 +492,7 @@ def get_leg_map_page_by_leg_id(
     get_train_operator_brand_colour: Callable[
         [int, Optional[int]], Optional[str]
     ],
-):
+) -> str:
     leg_lines = get_leg_lines_for_leg_ids(
         conn, network, [leg_id], get_train_operator_brand_colour
     )

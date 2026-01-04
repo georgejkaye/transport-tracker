@@ -43,7 +43,7 @@ def get_edge_weight(
         max_speed = max(
             [int(string.split(" ")[0]) for string in max_speed_value]
         )
-    length = edge_tags.get("length")
+    length: Optional[float] = edge_tags.get("length")
     if length is None:
         raise RuntimeError(f"Edge ({source_id} {target_id}) has no length")
     return length / max_speed
