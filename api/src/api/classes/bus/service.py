@@ -1,4 +1,4 @@
-from api.db.types.bus import BusServiceDetails
+from api.db.types.bus.service import BusServiceDetails
 
 
 def short_string_of_bus_service(service: BusServiceDetails) -> str:

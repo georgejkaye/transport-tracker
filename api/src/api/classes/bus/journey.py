@@ -1,10 +1,8 @@
 from dataclasses import dataclass
 
-from api.db.types.bus import (
-    BusCallInData,
-    BusOperatorDetails,
-    BusServiceDetails,
-)
+from api.db.types.bus.journey import BusCallInData
+from api.db.types.bus.operator import BusOperatorDetails
+from api.db.types.bus.service import BusServiceDetails
 
 
 def string_of_bus_call_in(bus_call: BusCallInData) -> str:

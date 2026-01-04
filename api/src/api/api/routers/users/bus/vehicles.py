@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException
 
 from api.api.lifespan import get_db_connection
-from api.db.functions.select.bus import (
+from api.db.functions.select.bus.user.vehicle import (
     select_bus_vehicle_user_details_by_user_id_and_vehicle_id_fetchone,
     select_bus_vehicle_user_details_by_user_id_fetchall,
 )
-from api.db.types.bus import BusVehicleUserDetails
+from api.db.types.bus.user.vehicle import BusVehicleUserDetails
 
 router = APIRouter(prefix="/vehicles", tags=["users/bus/vehicles"])
 

@@ -4,14 +4,14 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 
 from api.api.lifespan import get_db_connection
-from api.db.functions.select.bus import (
+from api.db.functions.select.bus.user.leg import (
     select_bus_leg_user_details_by_user_id_and_datetime_fetchall,
     select_bus_leg_user_details_by_user_id_and_end_datetime_fetchall,
     select_bus_leg_user_details_by_user_id_and_leg_id_fetchone,
     select_bus_leg_user_details_by_user_id_and_start_datetime_fetchall,
     select_bus_leg_user_details_fetchall,
 )
-from api.db.types.bus import BusLegUserDetails
+from api.db.types.bus.user.leg import BusLegUserDetails
 
 router = APIRouter(prefix="/legs", tags=["users/bus/legs"])
 

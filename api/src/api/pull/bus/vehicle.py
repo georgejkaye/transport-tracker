@@ -2,7 +2,8 @@ from typing import Optional
 
 from bs4 import BeautifulSoup
 
-from api.db.types.bus import BusOperatorDetails, BusVehicleInData
+from api.db.types.bus.operator import BusOperatorDetails
+from api.db.types.bus.vehicle import BusVehicleInData
 from api.utils.request import get_soup
 
 

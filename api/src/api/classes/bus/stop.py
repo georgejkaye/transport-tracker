@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from api.db.types.bus import BusStopDetails
+from api.db.types.bus.stop import BusStopDetails
 
 
 @dataclass

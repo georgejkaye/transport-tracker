@@ -2,16 +2,19 @@ import json
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
+from api.db.types.bus.journey import BusCallInData
+from api.db.types.bus.stop import BusStopDetails
 from bs4 import BeautifulSoup
 from psycopg import Connection
 
 from api.classes.bus.journey import BusJourneyTimetable
-from api.classes.bus.stop import BusStopDeparture, BusStopDetails
-from api.db.functions.select.bus import (
+from api.classes.bus.stop import BusStopDeparture
+from api.db.functions.select.bus.operator import (
     select_bus_operator_details_by_national_operator_code_fetchone,
+)
+from api.db.functions.select.bus.service import (
     select_bus_service_details_by_operator_id_and_line_name_fetchone,
 )
-from api.db.types.bus import BusCallInData
 from api.utils.interactive import print_error
 from api.utils.request import get_soup
 from api.utils.times import make_timezone_aware

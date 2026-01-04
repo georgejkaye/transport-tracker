@@ -1,4 +1,4 @@
-from api.db.types.bus import BusVehicleInData
+from api.db.types.bus.vehicle import BusVehicleInData
 
 
 def string_of_bus_vehicle_in(bus_vehicle: BusVehicleInData) -> str:

@@ -11,19 +11,19 @@ from api.classes.bus.stop import (
     short_string_of_bus_stop_departure,
     short_string_of_bus_stop_details,
 )
-from api.db.functions.insert.bus import insert_bus_leg_fetchone
-from api.db.functions.select.bus import (
+from api.classes.interactive import PickSingle
+from api.db.functions.insert.bus.leg import insert_bus_leg_fetchone
+from api.db.functions.select.bus.stop import (
     select_bus_stop_details_by_name_fetchall,
+)
+from api.db.functions.select.bus.vehicle import (
     select_bus_vehicle_details_fetchall,
 )
-from api.db.types.bus import (
-    BusCallInData,
-    BusJourneyInData,
-    BusLegInData,
-    BusOperatorDetails,
-    BusStopDetails,
-    BusVehicleDetails,
-)
+from api.db.types.bus.journey import BusCallInData, BusJourneyInData
+from api.db.types.bus.leg import BusLegInData
+from api.db.types.bus.operator import BusOperatorDetails
+from api.db.types.bus.stop import BusStopDetails
+from api.db.types.bus.vehicle import BusVehicleDetails
 from api.db.types.register import register_types
 from api.pull.bus.journey import get_bus_journey_and_board_call_index
 from api.pull.bus.stop import get_departures_from_bus_stop
@@ -32,7 +32,6 @@ from api.utils.database import (
     connect_with_env,
 )
 from api.utils.interactive import (
-    PickSingle,
     get_choice_from_input_paginate,
     get_datetime_from_input,
     get_day_from_input,
@@ -227,7 +226,7 @@ def get_bus_leg_from_input(conn: Connection) -> Optional[BusLegInData]:
     return leg
 
 
-def record_bus_leg(conn: Connection):
+def record_bus_leg(conn: Connection) -> None:
     users = input_users(conn)
     if len(users) == 0:
         return

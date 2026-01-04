@@ -4,7 +4,7 @@ from typing import Optional
 from bs4 import BeautifulSoup, Tag
 
 from api.classes.bus.stop import BusStopDeparture
-from api.db.types.bus import BusStopDetails
+from api.db.types.bus.stop import BusStopDetails
 from api.utils.request import get_soup
 
 
