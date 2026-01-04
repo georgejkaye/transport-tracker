@@ -214,7 +214,7 @@ def get_bus_leg_from_input(conn: Connection) -> Optional[BusLegInData]:
     vehicle = get_bus_vehicle(
         conn,
         journey_timetable.operator,
-        departure.vehicle if search_offset == 0 else None,
+        departure.vehicle if search_offset.seconds == 0 else None,
     )
     journey = BusJourneyInData(
         journey_timetable.id,
