@@ -1,7 +1,7 @@
 CREATE OR REPLACE VIEW bus_stop_leg_details_view AS
 SELECT
     BusStop.bus_stop_id,
-    BusLeg.user_id,
+    transport_user_bus_leg.user_id,
     ARRAY_AGG(
         (
             BusLeg.bus_leg_id,
@@ -100,16 +100,16 @@ ON BusLeg.alight_call_index = AlightCall.call_index
 AND BusJourney.bus_journey_id = AlightCall.bus_journey_id
 INNER JOIN BusStop AlightStop
 ON AlightCall.bus_stop_id = AlightStop.bus_stop_id
-INNER JOIN transport_user
-ON BusLeg.user_id = transport_user.user_id
+INNER JOIN transport_user_bus_leg
+ON BusLeg.bus_leg_id = transport_user_bus_leg.bus_leg_id
 WHERE BusCall.call_index >= BoardCall.call_index
 AND BusCall.call_index <= AlightCall.call_index
-GROUP BY BusStop.bus_stop_id, BusLeg.user_id;
+GROUP BY BusStop.bus_stop_id, transport_user_bus_leg.user_id;
 
 CREATE OR REPLACE VIEW bus_leg_user_details_view AS
 SELECT
     BusLeg.bus_leg_id AS leg_id,
-    BusLeg.user_id AS user_id,
+    transport_user_bus_leg.user_id,
     (
         BusService.bus_service_id,
         BusService.service_line,
@@ -153,7 +153,9 @@ SELECT
             BusLegCall.leg_calls[1].act_dep,
             BusLegCall.leg_calls[1].plan_dep
     ) AS leg_duration
-FROM BusLeg
+FROM transport_user_bus_leg
+INNER JOIN BusLeg
+ON transport_user_bus_leg.bus_leg_id = BusLeg.bus_leg_id
 INNER JOIN BusJourney
 ON BusLeg.bus_journey_id = BusJourney.bus_journey_id
 INNER JOIN BusService
@@ -321,7 +323,7 @@ ON (BusOperatorOut.operator_out).bus_operator_id = BusVehicle.bus_operator_id
 INNER JOIN (
     SELECT
         BusJourney.bus_vehicle_id,
-        BusLeg.user_id,
+        transport_user_bus_leg.user_id,
         ARRAY_AGG(
             (
                 BusLeg.bus_leg_id,
@@ -371,6 +373,8 @@ INNER JOIN (
             )
         ) AS vehicle_duration
     FROM BusLeg
+    INNER JOIN transport_user_bus_leg
+    ON BusLeg.bus_leg_id = transport_user_bus_leg.bus_leg_id
     INNER JOIN BusJourney
     ON BusLeg.bus_journey_id = BusJourney.bus_journey_id
     INNER JOIN BusService

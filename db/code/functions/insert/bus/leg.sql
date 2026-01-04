@@ -11,17 +11,25 @@ DECLARE
 BEGIN
     SELECT insert_bus_journey(p_leg.journey) INTO v_bus_journey_id;
     INSERT INTO BusLeg (
-        user_id,
         bus_journey_id,
         board_call_index,
         alight_call_index
-    ) SELECT
-        v_user,
+    ) VALUES (
         v_bus_journey_id,
         p_leg.board_index,
         p_leg.alight_index
-    FROM UNNEST(p_users) AS v_user
+    )
     RETURNING bus_leg_id INTO v_bus_leg_id;
+
+    INSERT INTO transport_user_bus_leg (
+        user_id,
+        bus_leg_id
+    ) SELECT
+        v_user,
+        v_bus_leg_id
+    FROM UNNEST(p_users) AS v_user;
+
+    RAISE LOG 'Inserted bus_leg_id: %', v_bus_leg_id;
 
     RETURN QUERY SELECT v_bus_leg_id;
 END;

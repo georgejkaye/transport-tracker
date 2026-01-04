@@ -465,3 +465,61 @@ UPDATE train_leg_call
 SET mileage = mileage + 102.9875
 WHERE train_leg_id = 1074
 AND mileage != 0;
+
+-- bus tables
+
+CREATE TABLE transport_user_bus_leg (
+    transport_user_bus_leg_id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    bus_leg_id INTEGER NOT NULL,
+    FOREIGN KEY (bus_leg_id) REFERENCES BusLeg(bus_leg_id),
+    FOREIGN KEY (user_id) REFERENCES transport_user(user_id)
+);
+
+INSERT INTO transport_user_bus_leg (
+    user_id,
+    bus_leg_id
+)
+SELECT user_id, bus_leg_id
+FROM BusLeg;
+
+UPDATE transport_user_bus_leg
+SET bus_leg_id = (
+    SELECT new_bus_leg_id
+    FROM (
+        SELECT
+            MIN(bus_leg_id) AS new_bus_leg_id,
+            bus_journey_id,
+            board_call_index,
+            alight_call_index
+        FROM BusLeg
+        GROUP BY
+            bus_journey_id,
+            board_call_index,
+            alight_call_index
+    ) new_bus_leg
+    INNER JOIN BusLeg
+    ON BusLeg.bus_journey_id = new_bus_leg.bus_journey_id
+    AND BusLeg.board_call_index = new_bus_leg.board_call_index
+    AND BusLeg.alight_call_index = new_bus_leg.alight_call_index
+    WHERE BusLeg.bus_leg_id = transport_user_bus_leg.bus_leg_id
+);
+
+ALTER TABLE BusLeg
+DROP COLUMN user_id;
+
+DELETE FROM BusLeg
+WHERE bus_leg_id IN (
+    SELECT bus_leg_id
+    FROM (
+        SELECT
+            bus_leg_id,
+            ROW_NUMBER() OVER (
+                PARTITION BY
+                    bus_journey_id, board_call_index, alight_call_index
+                ORDER BY bus_journey_id
+            )
+        FROM BusLeg
+    )
+    WHERE row_number > 1
+);
