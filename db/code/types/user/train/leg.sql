@@ -1,5 +1,6 @@
 DROP TYPE IF EXISTS transport_user_train_leg_out_data CASCADE;
 DROP TYPE IF EXISTS transport_user_train_leg_stats CASCADE;
+DROP TYPE IF EXISTS transport_user_train_leg_stats_numbers CASCADE;
 
 CREATE TYPE transport_user_train_leg_out_data AS (
     leg_id INTEGER_NOTNULL,
@@ -15,6 +16,19 @@ CREATE TYPE transport_user_train_leg_out_data AS (
 
 CREATE DOMAIN transport_user_train_leg_out_data_notnull
 AS transport_user_train_leg_out_data NOT NULL;
+
+CREATE TYPE transport_user_train_leg_stats_numbers AS (
+    count INTEGER_NOTNULL,
+    total_distance DECIMAL_NOTNULL,
+    longest_distance DECIMAL_NOTNULL,
+    shortest_distance DECIMAL_NOTNULL,
+    total_duration INTERVAL_NOTNULL,
+    longest_duration INTERVAL_NOTNULL,
+    shortest_duration INTERVAL_NOTNULL,
+    total_delay INTEGER_NOTNULL,
+    longest_delay INTEGER_NOTNULL,
+    shortest_delay INTEGER_NOTNULL
+);
 
 CREATE TYPE transport_user_train_leg_stats AS (
     count INTEGER_NOTNULL,
