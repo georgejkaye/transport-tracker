@@ -12,18 +12,26 @@ import {
 import { Feature, FeatureCollection } from "geojson"
 import bbox from "@turf/bbox"
 
-import { getLegColour, TrainLeg } from "@/app/structs"
+import { paths } from "@/app/api/api"
 
-const getLinesAndBoundingBox = (legs: TrainLeg[]) => {
+export type TrainLegGeometry =
+  paths["/train/legs/geometries/{leg_id}"]["get"]["responses"][200]["content"]["application/json"]
+
+const getLinesAndBoundingBox = (legs: TrainLegGeometry[]) => {
   let features: Feature[] = []
   for (const leg of legs) {
-    if (leg.geometry) {
-      features.push({
-        type: "Feature",
-        geometry: { type: "LineString", coordinates: leg.geometry },
-        properties: { color: getLegColour(leg), width: 5 },
-      })
+    if (!leg.geometry) {
+      continue
     }
+    let coordinates = leg.geometry.map((coords) => [
+      Number(coords[0]),
+      Number(coords[1]),
+    ])
+    features.push({
+      type: "Feature",
+      geometry: { type: "LineString", coordinates },
+      properties: { color: "#ff00ff", width: 5 },
+    })
   }
   let featureCollection: FeatureCollection = {
     type: "FeatureCollection",
@@ -48,7 +56,7 @@ const getLineLayer = (): LineLayer => ({
 
 const boundingBoxPadding = 0.05
 
-export const LegMap = (props: { legs: TrainLeg[] }) => {
+export const LegMap = (props: { legs: TrainLegGeometry[] }) => {
   let { legs } = props
   let data = getLinesAndBoundingBox(legs)
   let initialViewState: Partial<ViewState> & { bounds?: LngLatBoundsLike } = {
@@ -65,7 +73,7 @@ export const LegMap = (props: { legs: TrainLeg[] }) => {
       <Map
         initialViewState={initialViewState}
         style={{ height: 800 }}
-        mapStyle={`https://api.maptiler.com/maps/streets-v2/style.json?key=${process.env.NEXT_PUBLIC_MAPTILER_KEY}`}
+        mapStyle={"https://tiles.openfreemap.org/styles/bright"}
       >
         <FullscreenControl position="top-left" />
         <NavigationControl position="top-left" />

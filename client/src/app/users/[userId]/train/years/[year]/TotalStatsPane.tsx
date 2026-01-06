@@ -8,9 +8,9 @@ interface TotalStatBoxProps {
 }
 
 const TotalStatBox = ({ title, value }: TotalStatBoxProps) => (
-  <div className="rounded-xl border-2 border-gray-100 flex flex-col py-4 px-8 w-52 gap-2">
+  <div className="rounded-xl bg-blue-900 text-white border-2 border-gray-100 flex flex-col py-4 px-8 w-96 gap-1">
     <div>{title}</div>
-    <div className="text-xl font-bold">{value}</div>
+    <div className="text-2xl font-bold">{value}</div>
   </div>
 )
 

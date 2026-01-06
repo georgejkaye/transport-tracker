@@ -1,17 +1,6 @@
 "use client"
 
-import { getLegsForYear, getStatsForYear } from "@/app/data"
 import { Loader } from "@/app/loader"
-import { Stats, TrainLeg } from "@/app/structs"
-import { useState, useEffect } from "react"
-import {
-  ClassStats,
-  GeneralStats,
-  LegStats,
-  OperatorStats,
-  StationStats,
-  UnitStats,
-} from "../core"
 import { LegMap } from "../map"
 import { notFound, useRouter } from "next/navigation"
 import client from "@/app/api/client"
@@ -36,21 +25,42 @@ const Content = ({ userId, year }: ContentProps) => {
       },
     },
   })
+  const {
+    data: geometries,
+    error: geometriesError,
+    isLoading: isLoadingGeometries,
+  } = client.useQuery(
+    "get",
+    "/users/{user_id}/train/legs/geometries/years/{year}",
+    {
+      params: {
+        path: {
+          user_id: userId,
+          year: year,
+        },
+      },
+    }
+  )
   return (
     <div className="flex flex-col gap-4">
       <h1 className="font-bold text-3xl my-2">
         Train journey stats for {year}
       </h1>
-      {isLoadingStats ? (
+      {isLoadingStats || !stats ? (
         <Loader />
       ) : (
         <div>
           <TotalStatsPane
-            count={stats?.leg_count ?? 0}
-            totalDistance={stats?.total_distance ?? 0}
-            totalDuration={stats?.total_duration ?? 0}
-            totalDelay={stats?.total_delay ?? 0}
+            count={stats.leg_count}
+            totalDistance={stats.total_distance}
+            totalDuration={stats.total_duration}
+            totalDelay={stats.total_delay}
           />
+          {isLoadingGeometries || !geometries ? (
+            <Loader />
+          ) : (
+            <LegMap legs={geometries} />
+          )}
         </div>
       )}
     </div>

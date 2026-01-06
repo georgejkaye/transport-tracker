@@ -388,7 +388,7 @@ export const responseToLeg = (data: any): TrainLeg => {
   }
 }
 
-export const getLegColour = (leg: TrainLeg) => {
+export const getLegColour = (leg: TrainLegGeometry) => {
   const service = leg.services[0]
   return service.brand ? service.brand.bg : service.operator.bg
 }
