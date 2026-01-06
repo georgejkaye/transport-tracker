@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import Link from "next/link"
+import { ReactQueryClientProvider } from "./ReactQueryClientProvider"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -24,17 +25,19 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <TopBar />
-        <main className="items-center flex flex-col justify-between p-4 flex">
-          <div className="w-full lg:w-[64rem]">{children}</div>
-        </main>
-        <link
-          href="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.css"
-          rel="stylesheet"
-        />
-      </body>
-    </html>
+    <ReactQueryClientProvider>
+      <html lang="en">
+        <body className={inter.className}>
+          <TopBar />
+          <main className="items-center flex flex-col justify-between p-4 flex">
+            <div className="w-full lg:w-[64rem]">{children}</div>
+          </main>
+          <link
+            href="https://unpkg.com/maplibre-gl@4.7.0/dist/maplibre-gl.css"
+            rel="stylesheet"
+          />
+        </body>
+      </html>
+    </ReactQueryClientProvider>
   )
 }
