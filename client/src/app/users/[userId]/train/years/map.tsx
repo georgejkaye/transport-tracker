@@ -69,7 +69,7 @@ export const LegMap = (props: { legs: TrainLegGeometry[] }) => {
   }
   let layerStyle = getLineLayer()
   return (
-    <div className="overflow-hidden rounded">
+    <div className="overflow-hidden rounded-xl">
       <Map
         initialViewState={initialViewState}
         style={{ height: 800 }}

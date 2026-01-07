@@ -6,6 +6,7 @@ import { notFound, useRouter } from "next/navigation"
 import client from "@/app/api/client"
 import { isNumber } from "@/app/utils/number"
 import TotalStatsPane from "./TotalStatsPane"
+import DistanceStatsPane from "./DistanceStatsPane"
 
 interface ContentProps {
   userId: number
@@ -55,6 +56,10 @@ const Content = ({ userId, year }: ContentProps) => {
             totalDistance={stats.total_distance}
             totalDuration={stats.total_duration}
             totalDelay={stats.total_delay}
+          />
+          <DistanceStatsPane
+            longestDistanceLegs={stats.longest_distance_legs}
+            shortestDistanceLegs={stats.shortest_distance_legs}
           />
           {isLoadingGeometries || !geometries ? (
             <Loader />
