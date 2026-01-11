@@ -7,6 +7,8 @@ import client from "@/app/api/client"
 import { isNumber } from "@/app/utils/number"
 import TotalStatsPane from "./TotalStatsPane"
 import DistanceStatsPane from "./DistanceStatsPane"
+import DurationStatsPane from "./DurationStatsPane"
+import DelayStatsPane from "./DelayStatsPane"
 
 interface ContentProps {
   userId: number
@@ -44,13 +46,11 @@ const Content = ({ userId, year }: ContentProps) => {
   )
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="font-bold text-3xl my-2">
-        Train journey stats for {year}
-      </h1>
+      <h1 className="font-bold text-3xl my-2">{year}</h1>
       {isLoadingStats || !stats ? (
         <Loader />
       ) : (
-        <div>
+        <div className="flex flex-col gap-4">
           <TotalStatsPane
             count={stats.leg_count}
             totalDistance={stats.total_distance}
@@ -60,6 +60,14 @@ const Content = ({ userId, year }: ContentProps) => {
           <DistanceStatsPane
             longestDistanceLegs={stats.longest_distance_legs}
             shortestDistanceLegs={stats.shortest_distance_legs}
+          />
+          <DurationStatsPane
+            longestDurationLegs={stats.longest_duration_legs}
+            shortestDurationLegs={stats.shortest_duration_legs}
+          />
+          <DelayStatsPane
+            longestDelayLegs={stats.longest_delay_legs}
+            shortestDelayLegs={stats.shortest_delay_legs}
           />
           {isLoadingGeometries || !geometries ? (
             <Loader />
