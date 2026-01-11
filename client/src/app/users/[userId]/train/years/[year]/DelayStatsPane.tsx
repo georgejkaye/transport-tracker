@@ -1,6 +1,6 @@
-import { RankingGadget } from "@/app/components/dashboard/RankingGadget"
+import { LegRankingGadget } from "@/app/components/dashboard/RankingGadget"
 import { getDelayString } from "@/app/utils/delay"
-import { TransportUserTrainLegOutData } from "@/app/utils/leg"
+import { TransportUserTrainLegOutData } from "@/app/utils/train"
 
 interface DelayStatsPaneProps {
   longestDelayLegs: TransportUserTrainLegOutData[]
@@ -16,20 +16,20 @@ export const DelayStatsPane = ({
     longestDelayLegs[0].delay && (
       <div className="flex flex-col">
         <div className="flex flex-col lg:flex-row gap-4">
-          <RankingGadget
+          <LegRankingGadget
             legs={longestDelayLegs}
             title="Longest by delay"
             colour="#166534"
             getStatValue={(leg) =>
-              leg.delay === null ? "" : getDelayString(leg.delay)
+              leg.delay === null ? "" : `${getDelayString(leg.delay)} mins`
             }
           />
-          <RankingGadget
+          <LegRankingGadget
             legs={shortestDelayLegs}
             title="Shortest by delay"
             colour="#166534"
             getStatValue={(leg) =>
-              leg.delay === null ? "" : getDelayString(leg.delay)
+              leg.delay === null ? "" : `${getDelayString(leg.delay)} mins`
             }
           />
         </div>

@@ -1,8 +1,8 @@
 import { Duration } from "js-joda"
 
-import { RankingGadget } from "@/app/components/dashboard/RankingGadget"
+import { LegRankingGadget } from "@/app/components/dashboard/RankingGadget"
 import { getDurationString } from "@/app/utils/duration"
-import { TransportUserTrainLegOutData } from "@/app/utils/leg"
+import { TransportUserTrainLegOutData } from "@/app/utils/train"
 
 interface DurationStatsPaneProps {
   longestDurationLegs: TransportUserTrainLegOutData[]
@@ -16,7 +16,7 @@ export const DurationStatsPane = ({
   return (
     <div className="flex flex-col">
       <div className="flex flex-col lg:flex-row gap-4">
-        <RankingGadget
+        <LegRankingGadget
           legs={longestDurationLegs}
           title="Longest by duration"
           colour="#166534"
@@ -24,7 +24,7 @@ export const DurationStatsPane = ({
             getDurationString(Duration.parse(leg.duration))
           }
         />
-        <RankingGadget
+        <LegRankingGadget
           legs={shortestDurationLegs}
           title="Shortest by duration"
           colour="#166534"

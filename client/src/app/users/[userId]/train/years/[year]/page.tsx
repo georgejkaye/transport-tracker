@@ -2,13 +2,16 @@
 
 import { Loader } from "@/app/loader"
 import { LegMap } from "../map"
-import { notFound, useRouter } from "next/navigation"
+import { notFound } from "next/navigation"
 import client from "@/app/api/client"
 import { isNumber } from "@/app/utils/number"
 import TotalStatsPane from "./TotalStatsPane"
 import DistanceStatsPane from "./DistanceStatsPane"
-import DurationStatsPane from "./DurationStatsPane"
+import OperatorStatsPane from "./OperatorStatsPane"
 import DelayStatsPane from "./DelayStatsPane"
+import UnitStatsPane from "./UnitStatsPane"
+import ClassStatsPane from "./ClassStatsPane"
+import DurationStatsPane from "./DurationStatsPane"
 
 interface ContentProps {
   userId: number
@@ -56,6 +59,9 @@ const Content = ({ userId, year }: ContentProps) => {
             totalDistance={stats.total_distance}
             totalDuration={stats.total_duration}
             totalDelay={stats.total_delay}
+            operatorCount={stats.operator_count}
+            classCount={stats.class_count}
+            unitCount={stats.unit_count}
           />
           <DistanceStatsPane
             longestDistanceLegs={stats.longest_distance_legs}
@@ -69,6 +75,9 @@ const Content = ({ userId, year }: ContentProps) => {
             longestDelayLegs={stats.longest_delay_legs}
             shortestDelayLegs={stats.shortest_delay_legs}
           />
+          <OperatorStatsPane topOperators={stats.top_operators} />
+          <ClassStatsPane topClasses={stats.top_classes} />
+          <UnitStatsPane topUnits={stats.top_units} />
           {isLoadingGeometries || !geometries ? (
             <Loader />
           ) : (

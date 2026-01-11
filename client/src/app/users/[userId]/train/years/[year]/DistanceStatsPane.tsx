@@ -1,6 +1,6 @@
-import { RankingGadget } from "@/app/components/dashboard/RankingGadget"
+import { LegRankingGadget } from "@/app/components/dashboard/RankingGadget"
 import { getMilesAndChainsString } from "@/app/utils/distance"
-import { TransportUserTrainLegOutData } from "@/app/utils/leg"
+import { TransportUserTrainLegOutData } from "@/app/utils/train"
 
 interface DistanceStatsPaneProps {
   longestDistanceLegs: TransportUserTrainLegOutData[]
@@ -14,13 +14,13 @@ export const DistanceStatsPane = ({
   return (
     <div className="flex flex-col">
       <div className="flex flex-col lg:flex-row gap-4">
-        <RankingGadget
+        <LegRankingGadget
           legs={longestDistanceLegs}
           title="Longest by distance"
           colour="#166534"
           getStatValue={(leg) => getMilesAndChainsString(Number(leg.distance))}
         />
-        <RankingGadget
+        <LegRankingGadget
           legs={shortestDistanceLegs}
           title="Shortest by distance"
           colour="#166534"
