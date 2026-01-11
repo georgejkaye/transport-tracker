@@ -15,11 +15,11 @@ export const DurationStatsPane = ({
 }: DurationStatsPaneProps) => {
   return (
     <div className="flex flex-col">
-      <div className="flex flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-4">
         <RankingGadget
           legs={longestDurationLegs}
           title="Longest by duration"
-          colour="bg-green-800"
+          colour="#166534"
           getStatValue={(leg) =>
             getDurationString(Duration.parse(leg.duration))
           }
@@ -27,7 +27,7 @@ export const DurationStatsPane = ({
         <RankingGadget
           legs={shortestDurationLegs}
           title="Shortest by duration"
-          colour="bg-green-800"
+          colour="#166534"
           getStatValue={(leg) =>
             getDurationString(Duration.parse(leg.duration))
           }

@@ -1,2 +1,2 @@
 export const getDelayString = (delay: number) =>
-  delay > 0 ? `+${delay}` : `${delay}`
+  delay == null ? "-" : delay > 0 ? `+${delay}` : `${delay}`

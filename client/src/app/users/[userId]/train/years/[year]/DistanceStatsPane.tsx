@@ -13,17 +13,17 @@ export const DistanceStatsPane = ({
 }: DistanceStatsPaneProps) => {
   return (
     <div className="flex flex-col">
-      <div className="flex flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-4">
         <RankingGadget
           legs={longestDistanceLegs}
           title="Longest by distance"
-          colour="bg-green-800"
+          colour="#166534"
           getStatValue={(leg) => getMilesAndChainsString(Number(leg.distance))}
         />
         <RankingGadget
           legs={shortestDistanceLegs}
           title="Shortest by distance"
-          colour="bg-green-800"
+          colour="#166534"
           getStatValue={(leg) => getMilesAndChainsString(Number(leg.distance))}
         />
       </div>
