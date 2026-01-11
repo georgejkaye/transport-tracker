@@ -25,9 +25,9 @@ CREATE TYPE transport_user_train_leg_stats_numbers AS (
     total_duration INTERVAL_NOTNULL,
     longest_duration INTERVAL_NOTNULL,
     shortest_duration INTERVAL_NOTNULL,
-    total_delay INTEGER_NOTNULL,
-    longest_delay INTEGER_NOTNULL,
-    shortest_delay INTEGER_NOTNULL
+    total_delay INTEGER,
+    longest_delay INTEGER,
+    shortest_delay INTEGER
 );
 
 CREATE TYPE transport_user_train_leg_stats AS (
@@ -42,9 +42,9 @@ CREATE TYPE transport_user_train_leg_stats AS (
     longest_duration_legs transport_user_train_leg_out_data[],
     shortest_duration INTERVAL_NOTNULL,
     shortest_duration_legs transport_user_train_leg_out_data[],
-    total_delay INTEGER_NOTNULL,
-    longest_delay INTEGER_NOTNULL,
+    total_delay INTEGER,
+    longest_delay INTEGER,
     longest_delay_legs transport_user_train_leg_out_data[],
-    shortest_delay INTEGER_NOTNULL,
+    shortest_delay INTEGER,
     shortest_delay_legs transport_user_train_leg_out_data[]
 );
