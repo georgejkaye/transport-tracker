@@ -192,7 +192,7 @@ FROM (
     LIMIT p_rows_to_return
 );
 $$;
-a;
+
 CREATE FUNCTION select_transport_user_train_leg_stats_numbers_by_user_id (
     p_user_id INTEGER_NOTNULL,
     p_search_start TIMESTAMP WITH TIME ZONE,
