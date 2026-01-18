@@ -1,6 +1,5 @@
 DROP DOMAIN IF EXISTS transport_user_out_data_notnull CASCADE;
 DROP DOMAIN IF EXISTS transport_user_public_out_data_notnull CASCADE;
-DROP DOMAIN IF EXISTS transport_user_details_train_out_data_notnull CASCADE;
 DROP DOMAIN IF EXISTS transport_user_details_out_data_notnull CASCADE;
 
 DROP TYPE IF EXISTS transport_user_out_data CASCADE;
@@ -17,7 +16,8 @@ DROP TYPE IF EXISTS transport_user_details_train_station_out_data CASCADE;
 DROP TYPE IF EXISTS transport_user_details_train_class_out_data CASCADE;
 DROP TYPE IF EXISTS transport_user_details_train_unit_out_data CASCADE;
 DROP TYPE IF EXISTS transport_user_details_train_operator_out_data CASCADE;
-DROP TYPE IF EXISTS transport_user_details_train_out_data CASCADE;
+DROP TYPE IF EXISTS transport_user_details_train_period_out_data CASCADE;
+DROP TYPE IF EXISTS transport_user_details_train_year_out_data CASCADE;
 DROP TYPE IF EXISTS transport_user_details_out_data CASCADE;
 
 CREATE TYPE transport_user_out_data AS (
@@ -114,6 +114,15 @@ CREATE TYPE transport_user_details_train_station_out_data AS (
     most_calls_station transport_user_details_integer_stat
 );
 
+CREATE TYPE transport_user_details_train_station_year_out_data AS (
+    station_count INTEGER_NOTNULL,
+    new_station_count INTEGER_NOTNULL,
+    most_boards_and_alights_station transport_user_details_integer_stat,
+    most_boards_station transport_user_details_integer_stat,
+    most_alights_station transport_user_details_integer_stat,
+    most_calls_station transport_user_details_integer_stat
+);
+
 CREATE TYPE transport_user_details_train_class_out_data AS (
     class_count INTEGER_NOTNULL,
     most_count_class transport_user_details_integer_stat,
@@ -138,19 +147,27 @@ CREATE TYPE transport_user_details_train_operator_out_data AS (
     shortest_delay_operator transport_user_details_integer_stat
 );
 
-CREATE TYPE transport_user_details_train_out_data AS (
+CREATE TYPE transport_user_details_train_period_out_data AS (
     dummy INTEGER_NOTNULL,
-    leg_stats transport_user_details_train_leg_out_data
+    leg_stats transport_user_details_train_leg_period_out_data
 );
 
-CREATE DOMAIN transport_user_details_train_out_data_notnull
-AS transport_user_details_train_out_data NOT NULL;
+CREATE DOMAIN transport_user_details_train_period_out_data_notnull
+AS transport_user_details_train_period_out_data NOT NULL;
+
+CREATE TYPE transport_user_details_train_year_out_data AS (
+    dummy INTEGER_NOTNULL,
+    leg_stats transport_user_details_train_leg_year_out_data
+);
+
+CREATE DOMAIN transport_user_details_train_year_out_data_notnull
+AS transport_user_details_train_year_out_data NOT NULL;
 
 CREATE TYPE transport_user_details_out_data AS (
     user_id INTEGER_NOTNULL,
     user_name TEXT_NOTNULL,
     display_name TEXT_NOTNULL,
-    train_stats transport_user_details_train_out_data_notnull
+    train_stats transport_user_details_train_year_out_data_notnull
 );
 
 CREATE DOMAIN transport_user_details_out_data_notnull
