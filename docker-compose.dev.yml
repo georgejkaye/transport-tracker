@@ -16,6 +16,21 @@ services:
       DATA_PASSWORD: /run/secrets/db_secret
     secrets:
       - db_secret
+  codegen_init:
+    image: georgejkaye/postgres-codegen:latest
+    environment:
+      OUTPUT_MODULE_NAME: api.db
+      WATCH_FILES: 0
+      ROLL_SCRIPTS: 0
+      DB_HOST: db
+      DB_USER: transport
+      DB_NAME: transport
+      DB_PASSWORD_FILE: /run/secrets/db_local_secret
+    volumes:
+      - ./db/code:/app/input
+      - ./api/src/api:/app/output
+    secrets:
+      - db_local_secret
   db:
     build:
       context: db/server
@@ -47,8 +62,8 @@ services:
         condition: service_healthy
     environment:
       OUTPUT_MODULE_NAME: api.db
-      WATCH_MODE: 1
-      ROLL_MODE: 1
+      WATCH_FILES: 1
+      ROLL_SCRIPTS: 1
       DB_HOST: db
       DB_USER: transport
       DB_NAME: transport
@@ -62,6 +77,8 @@ services:
       - db_local_secret
   api:
     depends_on:
+      codegen_init:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
     build:
