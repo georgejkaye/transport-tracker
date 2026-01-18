@@ -11,7 +11,6 @@ from api.db.functions.select.train.user.leg import (
     select_shortest_delay_transport_user_train_legs_by_user_id_fetchall,
     select_shortest_distance_transport_user_train_legs_by_user_id_fetchall,
     select_shortest_duration_transport_user_train_legs_by_user_id_fetchall,
-    select_transport_user_train_leg_stats_numbers_by_user_id_fetchone,
 )
 from api.db.functions.select.train.user.operator import (
     select_top_transport_user_train_operators_by_user_id_fetchall,
@@ -22,6 +21,9 @@ from api.db.functions.select.train.user.vehicle import (
     select_top_transport_user_train_units_by_user_id_fetchall,
     select_transport_user_train_class_stats_by_user_id_fetchone,
     select_transport_user_train_unit_stats_by_user_id_fetchone,
+)
+from api.db.functions.select.user.stats import (
+    select_transport_user_train_leg_stats_numbers_by_user_id_fetchone,
 )
 
 
