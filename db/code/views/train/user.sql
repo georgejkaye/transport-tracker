@@ -132,6 +132,8 @@ CREATE OR REPLACE VIEW train_station_leg_view AS
 SELECT
     train_station_leg_call_view.train_station_id,
     train_station_leg_call_view.train_leg_id,
+    train_leg_high_view.board_time,
+    train_leg_high_view.alight_time,
     train_leg_high_view.board_station,
     train_leg_high_view.alight_station,
     train_station_leg_call_view.plan_arr,
