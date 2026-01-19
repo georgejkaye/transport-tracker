@@ -474,15 +474,15 @@ FROM (
 ORDER BY year NULLS FIRST;
 $$;
 
-CREATE FUNCTION select_transport_user_train_operator_stats_years_by_user_id (
+CREATE FUNCTION select_transport_user_train_station_stats_years_by_user_id (
     p_user_id INTEGER_NOTNULL
 )
-RETURNS transport_user_details_train_operator_out_data
+RETURNS SETOF transport_user_details_train_station_year_out_data
 LANGUAGE sql
 AS
 $$
 WITH
-train_station_leg_view AS (
+train_station_leg_stat_view AS (
     SELECT
         year,
         train_station_id,
@@ -506,26 +506,76 @@ train_station_leg_view AS (
                 ) = alight_time
             THEN 1
             END
-        ) AS alights
+        ) AS alights,
+        COUNT(
+            CASE
+            WHEN
+                COALESCE(
+                    plan_arr,
+                    act_arr
+                ) != alight_time
+                AND
+                COALESCE(
+                    plan_arr,
+                    act_arr
+                ) != board_time
+            THEN 1
+            END
+        ) AS calls
     FROM (
         SELECT
             DATE_PART(
                 'year',
-                COALESCE(plan_arr, act_arr, plan_dep, act_dep)
+                COALESCE(
+                    train_station_leg_view.plan_arr,
+                    train_station_leg_view.act_arr,
+                    train_station_leg_view.plan_dep,
+                    train_station_leg_view.act_dep
+                )
             ) AS year,
-            train_leg_id,
-            train_station_id,
-            plan_arr,
-            act_arr,
-            plan_dep,
-            act_dep
+            transport_user_train_leg.user_id,
+            train_station_leg_view.train_leg_id,
+            train_station_leg_view.board_time,
+            train_station_leg_view.alight_time,
+            train_station_leg_view.train_station_id,
+            train_station_leg_view.plan_arr,
+            train_station_leg_view.act_arr,
+            train_station_leg_view.plan_dep,
+            train_station_leg_view.act_dep
         FROM train_station_leg_view
+        INNER JOIN transport_user_train_leg
+        ON train_station_leg_view.train_leg_id
+            = transport_user_train_leg.train_leg_id
+        WHERE transport_user_train_leg.user_id = p_user_id
     ) train_station_leg_year_view
-    INNER JOIN train_leg_high_view
-    ON train_station_leg_year_view.train_leg_id
-        = train_leg_high_view.train_leg_id
-    GROUP BY year, train_station_id
+    GROUP BY
+        train_station_leg_year_view.year,
+        train_station_leg_year_view.train_station_id
 )
+SELECT *
+FROM (
+    SELECT
+        year,
+        COUNT(*) AS station_count,
+        COUNT(
+            CASE WHEN train_station_leg_stat_view.year
+                = train_station_year_first_visited.first_year_visited
+            THEN 1
+            ELSE 0
+            END
+        ) AS new_station_count
+    FROM train_station_leg_stat_view
+    INNER JOIN (
+        SELECT
+            train_station_id,
+            MIN(year) AS first_year_visited
+        FROM train_station_leg_stat_view
+        GROUP BY train_station_id
+    ) train_station_year_first_visited
+    ON train_station_leg_stat_view.train_station_id
+        = train_station_year_first_visited.train_station_id
+    GROUP BY year
+);
 
 $$;
 
