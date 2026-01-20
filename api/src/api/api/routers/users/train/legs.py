@@ -42,7 +42,7 @@ async def get_user_legs_by_year(
         get_db_connection(),
         user_id,
         datetime(year, 1, 1),
-        datetime(year, 12, 31),
+        datetime(year + 1, 1, 1),
     )
 
 
@@ -67,6 +67,6 @@ async def get_train_geometries_for_user_year(
         get_db_connection(),
         user_id,
         datetime(year, 1, 1),
-        datetime(year, 12, 31),
+        datetime(year + 1, 1, 1),
     )
     return get_train_leg_geometries_for_leg_points(get_network(), legs)
