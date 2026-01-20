@@ -484,73 +484,87 @@ $$
 WITH
 train_station_leg_stat_view AS (
     SELECT
-        year,
-        train_station_id,
-        COUNT(*) AS total,
-        COUNT(
-            CASE
-            WHEN
-                COALESCE(
-                    plan_dep,
-                    act_dep
-                ) = board_time
-            THEN 1
-            END
-        ) AS boards,
-        COUNT(
-            CASE
-            WHEN
-                COALESCE(
-                    plan_arr,
-                    act_arr
-                ) = alight_time
-            THEN 1
-            END
-        ) AS alights,
-        COUNT(
-            CASE
-            WHEN
-                COALESCE(
-                    plan_arr,
-                    act_arr
-                ) != alight_time
-                AND
-                COALESCE(
-                    plan_arr,
-                    act_arr
-                ) != board_time
-            THEN 1
-            END
-        ) AS calls
+        train_station_year_stat.year,
+        train_station_year_stat.train_station_id,
+        train_station.station_crs,
+        train_station.station_name,
+        train_station_year_stat.total,
+        train_station_year_stat.boards,
+        train_station_year_stat.last_board,
+        train_station_year_stat.alights,
+        train_station_year_stat.last_alight,
+        train_station_year_stat.calls
     FROM (
         SELECT
-            DATE_PART(
-                'year',
-                COALESCE(
-                    train_station_leg_view.plan_arr,
-                    train_station_leg_view.act_arr,
-                    train_station_leg_view.plan_dep,
-                    train_station_leg_view.act_dep
-                )
-            ) AS year,
-            transport_user_train_leg.user_id,
-            train_station_leg_view.train_leg_id,
-            train_station_leg_view.board_time,
-            train_station_leg_view.alight_time,
-            train_station_leg_view.train_station_id,
-            train_station_leg_view.plan_arr,
-            train_station_leg_view.act_arr,
-            train_station_leg_view.plan_dep,
-            train_station_leg_view.act_dep
-        FROM train_station_leg_view
-        INNER JOIN transport_user_train_leg
-        ON train_station_leg_view.train_leg_id
-            = transport_user_train_leg.train_leg_id
-        WHERE transport_user_train_leg.user_id = p_user_id
-    ) train_station_leg_year_view
-    GROUP BY
-        train_station_leg_year_view.year,
-        train_station_leg_year_view.train_station_id
+            year,
+            train_station_id,
+            COUNT(*) AS total,
+            COUNT(
+                CASE
+                WHEN COALESCE(plan_dep, act_dep) = board_time
+                THEN 1
+                END
+            ) AS boards,
+            MAX(
+                CASE
+                WHEN COALESCE(plan_dep, act_dep) = board_time
+                THEN COALESCE(plan_dep, act_dep)
+                ELSE '-INFINITY'
+                END
+            ) AS last_board,
+            COUNT(
+                CASE
+                WHEN COALESCE( plan_arr, act_arr) = alight_time
+                THEN 1
+                END
+            ) AS alights,
+            MAX(
+                CASE
+                WHEN COALESCE(plan_arr, act_arr) = alight_time
+                THEN COALESCE(plan_arr, act_arr)
+                ELSE '-INFINITY'
+                END
+            ) AS last_alight,
+            COUNT(
+                CASE
+                WHEN COALESCE(plan_arr, act_arr) != alight_time
+                    AND COALESCE(plan_arr, act_arr) != board_time
+                THEN 1
+                END
+            ) AS calls
+        FROM (
+            SELECT
+                DATE_PART(
+                    'year',
+                    COALESCE(
+                        train_station_leg_view.plan_arr,
+                        train_station_leg_view.act_arr,
+                        train_station_leg_view.plan_dep,
+                        train_station_leg_view.act_dep
+                    )
+                ) AS year,
+                transport_user_train_leg.user_id,
+                train_station_leg_view.train_leg_id,
+                train_station_leg_view.board_time,
+                train_station_leg_view.alight_time,
+                train_station_leg_view.train_station_id,
+                train_station_leg_view.plan_arr,
+                train_station_leg_view.act_arr,
+                train_station_leg_view.plan_dep,
+                train_station_leg_view.act_dep
+            FROM train_station_leg_view
+            INNER JOIN transport_user_train_leg
+            ON train_station_leg_view.train_leg_id
+                = transport_user_train_leg.train_leg_id
+            WHERE transport_user_train_leg.user_id = p_user_id
+        ) train_station_leg_year_view
+        GROUP BY
+            train_station_leg_year_view.year,
+            train_station_leg_year_view.train_station_id
+    ) train_station_year_stat
+    INNER JOIN train_station
+    ON train_station_year_stat.train_station_id
+        = train_station.train_station_id
 )
 SELECT *
 FROM (
@@ -558,25 +572,52 @@ FROM (
         year,
         COUNT(*) AS station_count,
         COUNT(
-            CASE WHEN train_station_leg_stat_view.year
+            CASE
+            WHEN train_station_leg_stat_view.year
                 = train_station_year_first_visited.first_year_visited
             THEN 1
-            ELSE 0
             END
-        ) AS new_station_count
+        ) AS new_station_count,
+        MAX(train_station_leg_stat_view.boards) AS most_boards,
+        MAX(train_station_leg_stat_view.alights) AS most_alights,
+        MAX(
+            train_station_leg_stat_view.boards
+                + train_station_leg_stat_view.alights
+        ) AS most_boards_and_alights,
+        MAX(train_station_leg_stat_view.calls) AS most_calls
     FROM train_station_leg_stat_view
     INNER JOIN (
         SELECT
             train_station_id,
             MIN(year) AS first_year_visited
         FROM train_station_leg_stat_view
+        WHERE boards > 0 OR alights > 0
         GROUP BY train_station_id
     ) train_station_year_first_visited
     ON train_station_leg_stat_view.train_station_id
         = train_station_year_first_visited.train_station_id
     GROUP BY year
-);
-
+) train_station_leg_year_stat_number
+INNER JOIN (
+    SELECT
+        year,
+        boards,
+        train_station_id,
+        description,
+    FROM (
+        SELECT
+            year,
+            delay,
+            train_leg_id,
+            description,
+            start_datetime,
+            ROW_NUMBER() OVER (
+                PARTITION BY year, boards
+                ORDER BY start_datetime
+            ) AS rownum
+        FROM train_station_leg_stat_view
+    ) WHERE rownum = 1
+)
 $$;
 
 CREATE FUNCTION select_transport_user_train_stats_years_by_user_id (
