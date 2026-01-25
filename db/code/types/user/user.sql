@@ -119,8 +119,8 @@ CREATE TYPE transport_user_details_train_station_out_data AS (
 
 CREATE TYPE transport_user_details_train_station_year_out_data AS (
     year INTEGER,
-    station_count INTEGER_NOTNULL,
-    new_station_count INTEGER_NOTNULL,
+    station_count BIGINT_NOTNULL,
+    new_station_count BIGINT_NOTNULL,
     most_boards_and_alights_station transport_user_details_integer_stat,
     most_boards_station transport_user_details_integer_stat,
     most_alights_station transport_user_details_integer_stat,
