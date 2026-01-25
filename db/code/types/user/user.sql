@@ -96,7 +96,7 @@ CREATE TYPE transport_user_details_train_leg_period_out_data AS (
 
 CREATE TYPE transport_user_details_train_leg_year_out_data AS (
     year INTEGER,
-    count INTEGER_NOTNULL,
+    count BIGINT_NOTNULL,
     total_distance DECIMAL_NOTNULL,
     longest_distance transport_user_details_decimal_timestamp_stat,
     shortest_distance transport_user_details_decimal_timestamp_stat,
