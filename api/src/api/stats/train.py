@@ -22,9 +22,6 @@ from api.db.functions.select.train.user.vehicle import (
     select_transport_user_train_class_stats_by_user_id_fetchone,
     select_transport_user_train_unit_stats_by_user_id_fetchone,
 )
-from api.db.functions.select.user.stats import (
-    select_transport_user_train_leg_stats_numbers_by_user_id_fetchone,
-)
 
 
 def get_train_stats(
