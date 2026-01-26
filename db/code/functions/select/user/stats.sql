@@ -1,6 +1,8 @@
 DROP FUNCTION IF EXISTS select_transport_user_train_leg_stats_numbers_by_user_id CASCADE;
-DROP FUNCTION IF EXISTS select_transport_user_train_stats_numbers_by_user_id CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_leg_year_stats_by_user_id CASCADE;
+DROP FUNCTION IF EXISTS select_transport_user_train_station_year_stats_by_user_id CASCADE;
+DROP FUNCTION IF EXISTS select_transport_user_train_stats_numbers_by_user_id CASCADE;
+DROP FUNCTION IF EXISTS select_transport_user_train_stats_years_by_user_id CASCADE;
 
 CREATE FUNCTION select_transport_user_train_leg_stats_numbers_by_user_id (
     p_user_id INTEGER_NOTNULL,
@@ -975,27 +977,94 @@ $$;
 CREATE FUNCTION select_transport_user_train_stats_years_by_user_id (
     p_user_id INTEGER_NOTNULL
 )
+RETURNS transport_user_details_train_year_out_data
+LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    v_train_leg_stats transport_user_details_train_leg_year_out_data[];
+    v_train_station_stats transport_user_details_train_station_year_out_data[];
+    v_train_operator_stats transport_user_details_train_operator_out_data;
+    v_train_class_stats transport_user_details_train_class_out_data;
+    v_train_unit_stats transport_user_details_train_unit_out_data;
+BEGIN
+    v_train_leg_stats := (
+        SELECT ARRAY_AGG(
+            (
+                year,
+                count,
+                total_distance,
+                longest_distance,
+                shortest_distance,
+                total_duration,
+                longest_duration,
+                shortest_duration,
+                total_delay,
+                longest_delay,
+                shortest_delay
+            )::transport_user_details_train_leg_year_out_data
+        )
+        FROM select_transport_user_train_leg_year_stats_by_user_id(
+            p_user_id
+        )
+    );
+    v_train_station_stats := (
+        SELECT ARRAY_AGG(
+            (
+                year,
+                station_count,
+                new_station_count,
+                most_boards_and_alights_station,
+                most_boards_station,
+                most_alights_station,
+                most_calls_station
+            )::transport_user_details_train_station_year_out_data
+        )
+        FROM select_transport_user_train_station_year_stats_by_user_id(
+            p_user_id
+        )
+    );
+
+    RETURN (
+        v_train_leg_stats,
+        v_train_station_stats
+    )::transport_user_details_train_year_out_data;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION select_transport_user_details (
+    p_user_id INTEGER_NOTNULL
+)
 RETURNS transport_user_details_out_data
 LANGUAGE plpgsql
 AS
 $$
 DECLARE
-    v_train_leg_stats transport_user_details_train_leg_year_out_data;
-    v_train_station_stats transport_user_details_train_station_out_data;
-    v_train_operator_stats transport_user_details_train_operator_out_data;
-    v_train_class_stats transport_user_details_train_class_out_data;
-    v_train_unit_stats transport_user_details_train_unit_out_data;
-BEGIN
-    v_train_leg_stats :=
-        select_transport_user_train_leg_stats_numbers_by_user_id(
-            p_user_id,
-            p_search_start,
-            p_search_end
+    v_user_name TEXT_NOTNULL := '';
+    v_display_name TEXT_NOTNULL := '';
+    v_train_stats transport_user_details_train_year_out_data_notnull
+        := (
+            ARRAY[]::transport_user_details_train_leg_year_out_data[],
+            ARRAY[]::transport_user_details_train_station_year_out_data[]
         );
+BEGIN
+    SELECT
+        user_name,
+        display_name
+    INTO
+        v_user_name,
+        v_display_name
+    FROM
+        transport_user;
+
+    v_train_stats :=
+        select_transport_user_train_stats_years_by_user_id(p_user_id);
 
     RETURN (
-        1,
-        v_train_leg_stats
+        p_user_id,
+        v_user_name,
+        v_display_name,
+        v_train_stats
     )::transport_user_details_out_data;
 END;
 $$;

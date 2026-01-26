@@ -160,8 +160,8 @@ CREATE DOMAIN transport_user_details_train_period_out_data_notnull
 AS transport_user_details_train_period_out_data NOT NULL;
 
 CREATE TYPE transport_user_details_train_year_out_data AS (
-    dummy INTEGER_NOTNULL,
-    leg_stats transport_user_details_train_leg_year_out_data
+    leg_stats transport_user_details_train_leg_year_out_data[],
+    station_stats transport_user_details_train_station_year_out_data[]
 );
 
 CREATE DOMAIN transport_user_details_train_year_out_data_notnull
