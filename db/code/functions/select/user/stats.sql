@@ -131,19 +131,27 @@ BEGIN
                 transport_user_train_leg_duration_stat_shortest.description,
                 transport_user_train_leg_duration_stat_shortest.start_datetime
             )::transport_user_details_interval_timestamp_stat AS shortest_duration,
-            transport_user_train_leg_stats_view.total_delay::INTEGER_NOTNULL,
-            (
-                transport_user_train_leg_delay_stat_longest.delay,
-                transport_user_train_leg_delay_stat_longest.train_leg_id,
-                transport_user_train_leg_delay_stat_longest.description,
-                transport_user_train_leg_delay_stat_longest.start_datetime
-            )::transport_user_details_integer_timestamp_stat AS longest_delay,
-            (
-                transport_user_train_leg_delay_stat_shortest.delay,
-                transport_user_train_leg_delay_stat_shortest.train_leg_id,
-                transport_user_train_leg_delay_stat_shortest.description,
-                transport_user_train_leg_delay_stat_shortest.start_datetime
-            )::transport_user_details_integer_timestamp_stat AS shortest_delay
+            transport_user_train_leg_stats_view.total_delay::INTEGER,
+            CASE
+                WHEN transport_user_train_leg_delay_stat_longest.delay IS NULL
+                THEN NULL
+                ELSE (
+                    transport_user_train_leg_delay_stat_longest.delay,
+                    transport_user_train_leg_delay_stat_longest.train_leg_id,
+                    transport_user_train_leg_delay_stat_longest.description,
+                    transport_user_train_leg_delay_stat_longest.start_datetime
+                )::transport_user_details_integer_timestamp_stat
+            END AS longest_delay,
+            CASE
+                WHEN transport_user_train_leg_delay_stat_shortest.delay IS NULL
+                THEN NULL
+                ELSE (
+                    transport_user_train_leg_delay_stat_shortest.delay,
+                    transport_user_train_leg_delay_stat_shortest.train_leg_id,
+                    transport_user_train_leg_delay_stat_shortest.description,
+                    transport_user_train_leg_delay_stat_shortest.start_datetime
+                )::transport_user_details_integer_timestamp_stat
+            END AS shortest_delay
         FROM (
             SELECT
                 COUNT(*) AS count,
@@ -212,19 +220,27 @@ BEGIN
                 transport_user_train_leg_duration_stat_shortest.description,
                 transport_user_train_leg_duration_stat_shortest.start_datetime
             )::transport_user_details_interval_timestamp_stat,
-            transport_user_train_leg_stats_view.total_delay::INTEGER_NOTNULL,
-            (
-                transport_user_train_leg_delay_stat_longest.delay,
-                transport_user_train_leg_delay_stat_longest.train_leg_id,
-                transport_user_train_leg_delay_stat_longest.description,
-                transport_user_train_leg_delay_stat_longest.start_datetime
-            )::transport_user_details_integer_timestamp_stat,
-            (
-                transport_user_train_leg_delay_stat_shortest.delay,
-                transport_user_train_leg_delay_stat_shortest.train_leg_id,
-                transport_user_train_leg_delay_stat_shortest.description,
-                transport_user_train_leg_delay_stat_shortest.start_datetime
-            )::transport_user_details_integer_timestamp_stat
+            transport_user_train_leg_stats_view.total_delay::INTEGER,
+            CASE
+                WHEN transport_user_train_leg_delay_stat_longest.delay IS NULL
+                THEN NULL
+                ELSE (
+                    transport_user_train_leg_delay_stat_longest.delay,
+                    transport_user_train_leg_delay_stat_longest.train_leg_id,
+                    transport_user_train_leg_delay_stat_longest.description,
+                    transport_user_train_leg_delay_stat_longest.start_datetime
+                )::transport_user_details_integer_timestamp_stat
+            END,
+            CASE
+                WHEN transport_user_train_leg_delay_stat_shortest.delay IS NULL
+                THEN NULL
+                ELSE (
+                    transport_user_train_leg_delay_stat_shortest.delay,
+                    transport_user_train_leg_delay_stat_shortest.train_leg_id,
+                    transport_user_train_leg_delay_stat_shortest.description,
+                    transport_user_train_leg_delay_stat_shortest.start_datetime
+                )::transport_user_details_integer_timestamp_stat
+            END
         FROM (
             SELECT
                 year,
@@ -265,13 +281,13 @@ BEGIN
             = transport_user_train_leg_duration_stat_shortest.duration
         AND transport_user_train_leg_stats_view.year
             = transport_user_train_leg_duration_stat_shortest.year
-        INNER JOIN transport_user_train_leg_delay_stat
+        LEFT JOIN transport_user_train_leg_delay_stat
             transport_user_train_leg_delay_stat_longest
         ON transport_user_train_leg_stats_view.longest_delay
             = transport_user_train_leg_delay_stat_longest.delay
         AND transport_user_train_leg_stats_view.year
             = transport_user_train_leg_delay_stat_longest.year
-        INNER JOIN transport_user_train_leg_delay_stat
+        LEFT JOIN transport_user_train_leg_delay_stat
             transport_user_train_leg_delay_stat_shortest
         ON transport_user_train_leg_stats_view.shortest_delay
             = transport_user_train_leg_delay_stat_shortest.delay

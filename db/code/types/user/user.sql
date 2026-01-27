@@ -88,7 +88,7 @@ CREATE TYPE transport_user_details_train_leg_out_data AS (
     total_duration INTERVAL_NOTNULL,
     longest_duration transport_user_details_interval_timestamp_stat,
     shortest_duration transport_user_details_interval_timestamp_stat,
-    total_delay INTEGER_NOTNULL,
+    total_delay INTEGER,
     longest_delay transport_user_details_integer_timestamp_stat,
     shortest_delay transport_user_details_integer_timestamp_stat
 );
@@ -106,7 +106,7 @@ CREATE TYPE transport_user_details_train_leg_year_out_data AS (
     total_duration INTERVAL_NOTNULL,
     longest_duration transport_user_details_interval_timestamp_stat,
     shortest_duration transport_user_details_interval_timestamp_stat,
-    total_delay INTEGER_NOTNULL,
+    total_delay INTEGER,
     longest_delay transport_user_details_integer_timestamp_stat,
     shortest_delay transport_user_details_integer_timestamp_stat
 );
