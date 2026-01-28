@@ -748,11 +748,22 @@ BEGIN
         FROM (
             SELECT
                 year,
-                COUNT(*) AS station_count,
+                COUNT(
+                    CASE
+                    WHEN
+                        transport_user_train_station_leg_year_stat.boards
+                            + transport_user_train_station_leg_year_stat.alights
+                            > 0
+                    THEN 1
+                    END
+                ) AS station_count,
                 COUNT(
                     CASE
                     WHEN transport_user_train_station_leg_year_stat.year
                         = train_station_year_first_visited.first_year_visited
+                        AND transport_user_train_station_leg_year_stat.boards
+                            + transport_user_train_station_leg_year_stat.alights
+                            > 0
                     THEN 1
                     END
                 ) AS new_station_count,
