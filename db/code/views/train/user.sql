@@ -369,3 +369,89 @@ FROM (
         transport_user_train_leg_view.user_id,
         transport_user_train_leg_view.brand
 );
+
+CREATE VIEW transport_user_train_station_leg_year_stat_view AS
+SELECT
+    train_station_year_stat.user_id,
+    train_station_year_stat.year,
+    train_station_year_stat.train_station_id,
+    train_station.station_crs,
+    train_station.station_name,
+    train_station_year_stat.total,
+    train_station_year_stat.boards,
+    train_station_year_stat.last_board,
+    train_station_year_stat.alights,
+    train_station_year_stat.last_alight,
+    train_station_year_stat.calls
+FROM (
+    SELECT
+        user_id,
+        year,
+        train_station_id,
+        COUNT(*) AS total,
+        COUNT(
+            CASE
+            WHEN COALESCE(plan_dep, act_dep) = board_time
+            THEN 1
+            END
+        ) AS boards,
+        MAX(
+            CASE
+            WHEN COALESCE(plan_dep, act_dep) = board_time
+            THEN COALESCE(plan_dep, act_dep)
+            ELSE NULL
+            END
+        ) AS last_board,
+        COUNT(
+            CASE
+            WHEN COALESCE(plan_arr, act_arr) = alight_time
+            THEN 1
+            END
+        ) AS alights,
+        MAX(
+            CASE
+            WHEN COALESCE(plan_arr, act_arr) = alight_time
+            THEN COALESCE(plan_arr, act_arr)
+            ELSE NULL
+            END
+        ) AS last_alight,
+        COUNT(
+            CASE
+            WHEN COALESCE(plan_arr, act_arr) != alight_time
+                AND COALESCE(plan_arr, act_arr) != board_time
+            THEN 1
+            END
+        ) AS calls
+    FROM (
+        SELECT
+            DATE_PART(
+                'year',
+                COALESCE(
+                    train_station_leg_view.plan_arr,
+                    train_station_leg_view.act_arr,
+                    train_station_leg_view.plan_dep,
+                    train_station_leg_view.act_dep
+                )
+            ) AS year,
+            transport_user_train_leg.user_id,
+            train_station_leg_view.train_leg_id,
+            train_station_leg_view.board_time,
+            train_station_leg_view.alight_time,
+            train_station_leg_view.train_station_id,
+            train_station_leg_view.plan_arr,
+            train_station_leg_view.act_arr,
+            train_station_leg_view.plan_dep,
+            train_station_leg_view.act_dep
+        FROM train_station_leg_view
+        INNER JOIN transport_user_train_leg
+        ON train_station_leg_view.train_leg_id
+            = transport_user_train_leg.train_leg_id
+    ) train_station_leg_year_view
+    GROUP BY
+        train_station_leg_year_view.user_id,
+        train_station_leg_year_view.year,
+        train_station_leg_year_view.train_station_id
+) train_station_year_stat
+INNER JOIN train_station
+ON train_station_year_stat.train_station_id
+    = train_station.train_station_id;
