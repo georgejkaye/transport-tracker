@@ -25,6 +25,15 @@ for statement in statements:
 
 print()
 
+create_view_regex = r"CREATE(?: OR REPLACE)?\s+VIEW\s+([A-z_]+)"
+
+for statement in statements:
+    result = re.search(create_view_regex, statement)
+    if result is not None and result.group(1):
+        print(f"DROP VIEW IF EXISTS {result.group(1)} CASCADE;")
+
+print()
+
 create_type_regex = r"CREATE\s+TYPE\s+([A-z_]+)"
 
 for statement in statements:
