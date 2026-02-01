@@ -6,6 +6,8 @@ DROP DOMAIN IF EXISTS transport_user_train_leg_overall_stats_notnull CASCADE;
 DROP DOMAIN IF EXISTS transport_user_details_train_station_out_data_notnull CASCADE;
 DROP DOMAIN IF EXISTS transport_user_details_train_station_year_out_data_notnull CASCADE;
 DROP DOMAIN IF EXISTS transport_user_train_station_overall_stats_notnull CASCADE;
+DROP DOMAIN IF EXISTS transport_user_train_operator_stats_notnull CASCADE;
+DROP DOMAIN IF EXISTS transport_user_train_operator_year_stats_notnull CASCADE;
 DROP DOMAIN IF EXISTS transport_user_details_train_year_out_data_notnull CASCADE;
 DROP DOMAIN IF EXISTS transport_user_details_out_data_notnull CASCADE;
 
@@ -25,7 +27,9 @@ DROP TYPE IF EXISTS transport_user_details_train_station_year_out_data CASCADE;
 DROP TYPE IF EXISTS transport_user_train_station_overall_stats CASCADE;
 DROP TYPE IF EXISTS transport_user_details_train_class_out_data CASCADE;
 DROP TYPE IF EXISTS transport_user_details_train_unit_out_data CASCADE;
-DROP TYPE IF EXISTS transport_user_details_train_operator_out_data CASCADE;
+DROP TYPE IF EXISTS transport_user_train_operator_stats CASCADE;
+DROP TYPE IF EXISTS transport_user_train_operator_year_stats CASCADE;
+DROP TYPE IF EXISTS transport_user_train_operator_overall_stats CASCADE;
 DROP TYPE IF EXISTS transport_user_details_train_year_out_data CASCADE;
 DROP TYPE IF EXISTS transport_user_details_out_data CASCADE;
 
@@ -176,7 +180,7 @@ CREATE TYPE transport_user_details_train_unit_out_data AS (
     longest_duration_unit transport_user_details_interval_stat
 );
 
-CREATE TYPE transport_user_details_train_operator_out_data AS (
+CREATE TYPE transport_user_train_operator_stats AS (
     operator_count INTEGER_NOTNULL,
     longest_distance_operator transport_user_details_decimal_stat,
     shortest_distance_operator transport_user_details_decimal_stat,
@@ -186,10 +190,10 @@ CREATE TYPE transport_user_details_train_operator_out_data AS (
     shortest_delay_operator transport_user_details_integer_stat
 );
 
-CREATE DOMAIN transport_user_details_train_operator_out_data_notnull
-AS transport_user_details_train_operator_out_data NOT NULL;
+CREATE DOMAIN transport_user_train_operator_stats_notnull
+AS transport_user_train_operator_stats NOT NULL;
 
-CREATE TYPE transport_user_details_train_operator_year_out_data AS (
+CREATE TYPE transport_user_train_operator_year_stats AS (
     year INTEGER_NOTNULL,
     operator_count INTEGER_NOTNULL,
     longest_distance_operator transport_user_details_decimal_stat,
@@ -200,12 +204,12 @@ CREATE TYPE transport_user_details_train_operator_year_out_data AS (
     shortest_delay_operator transport_user_details_integer_stat
 );
 
-CREATE DOMAIN transport_user_details_train_operator_year_out_data_notnull
-AS transport_user_details_train_operator_year_out_data NOT NULL;
+CREATE DOMAIN transport_user_train_operator_year_stats_notnull
+AS transport_user_train_operator_year_stats NOT NULL;
 
-CREATE TYPE transport_user_details_train_operator_overall_out_data AS (
-    overall_operator_stats transport_user_details_train_operator_out_data_notnull,
-    overall_year_stats transport_user_details_train_operator_year_out_data_notnull[]
+CREATE TYPE transport_user_train_operator_overall_stats AS (
+    overall_operator_stats transport_user_train_operator_stats_notnull,
+    overall_year_stats transport_user_train_operator_year_stats_notnull[]
 );
 
 CREATE TYPE transport_user_details_train_year_out_data AS (
@@ -213,8 +217,8 @@ CREATE TYPE transport_user_details_train_year_out_data AS (
     leg_stats_yearly transport_user_details_train_leg_year_out_data[],
     station_stats_overall transport_user_details_train_station_out_data,
     station_stats_yearly transport_user_details_train_station_year_out_data[],
-    operator_stats_overall transport_user_details_train_operator_out_data,
-    operator_stats_yearly transport_user_details_train_operator_year_out_data[]
+    operator_stats_overall transport_user_train_operator_stats,
+    operator_stats_yearly transport_user_train_operator_year_stats[]
 );
 
 CREATE DOMAIN transport_user_details_train_year_out_data_notnull

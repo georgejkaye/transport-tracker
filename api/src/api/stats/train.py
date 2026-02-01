@@ -14,7 +14,6 @@ from api.db.functions.select.train.user.leg import (
 )
 from api.db.functions.select.train.user.operator import (
     select_top_transport_user_train_operators_by_user_id_fetchall,
-    select_transport_user_train_operator_stats_by_user_id_fetchone,
 )
 from api.db.functions.select.train.user.vehicle import (
     select_top_transport_user_train_classes_by_user_id_fetchall,

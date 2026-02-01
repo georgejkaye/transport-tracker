@@ -46,7 +46,3 @@ CREATE TYPE transport_user_train_operator_high_out_data AS (
 
 CREATE DOMAIN transport_user_train_operator_high_out_data_notnull
 AS transport_user_train_operator_high_out_data NOT NULL;
-
-CREATE TYPE transport_user_train_operator_stats AS (
-    count BIGINT_NOTNULL
-);

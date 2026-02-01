@@ -1,29 +1,35 @@
+DROP FUNCTION IF EXISTS create_transport_user_train_leg_stat CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_leg_stats_by_user_id CASCADE;
-DROP FUNCTION IF EXISTS select_transport_user_train_station_year_stats_by_user_id CASCADE;
-DROP FUNCTION IF EXISTS select_transport_user_train_stats_numbers_by_user_id CASCADE;
-DROP FUNCTION IF EXISTS select_transport_user_train_stats_years_by_user_id CASCADE;
+DROP FUNCTION IF EXISTS select_transport_user_train_station_stats_by_user_id CASCADE;
+DROP FUNCTION IF EXISTS create_transport_user_train_leg_operator_stat CASCADE;
+DROP FUNCTION IF EXISTS create_transport_user_train_leg_operator_year_stat CASCADE;
+DROP FUNCTION IF EXISTS create_transport_user_train_operator_longest_distance_year_stats CASCADE;
+DROP FUNCTION IF EXISTS select_transport_user_train_operator_year_stats_by_user_id CASCADE;
+DROP FUNCTION IF EXISTS select_transport_user_train_stats_by_user_id CASCADE;
 
 CREATE FUNCTION create_transport_user_train_leg_stat (
     p_user_id INTEGER_NOTNULL
 )
 RETURNS VOID
-LANGUAGE sql
+LANGUAGE plpgsql
 AS
 $$
-CREATE TEMP TABLE transport_user_train_leg_stat AS
-SELECT
-    DATE_PART('year', start_datetime) AS year,
-    train_leg_id,
-    board_station_name
-        || ' to '
-        || (alight_station).station_name
-        AS description,
-    distance,
-    duration,
-    delay,
-    start_datetime
-FROM transport_user_train_leg_minimal_view
-WHERE user_id = p_user_id;
+BEGIN
+    CREATE TEMP TABLE transport_user_train_leg_stat AS
+    SELECT
+        DATE_PART('year', start_datetime) AS year,
+        train_leg_id,
+        board_station_name
+            || ' to '
+            || alight_station_name
+            AS description,
+        distance,
+        duration,
+        delay,
+        start_datetime
+    FROM transport_user_train_leg_minimal_view
+    WHERE user_id = p_user_id;
+END;
 $$;
 
 CREATE FUNCTION select_transport_user_train_leg_stats_by_user_id (
@@ -793,47 +799,51 @@ $$;
 
 CREATE FUNCTION create_transport_user_train_leg_operator_year_stat ()
 RETURNS VOID
-LANGUAGE sql
+LANGUAGE plpgsql
 AS
 $$
-CREATE TEMP TABLE transport_user_train_leg_operator_year_stat AS
-SELECT
-    year,
-    train_operator_or_brand,
-    COUNT(*) AS count,
-    SUM(distance) AS distance,
-    SUM(duration) AS duration,
-    SUM(delay) AS delay,
-    MIN(start_datetime) AS first_usage
-FROM transport_user_train_leg_operator_stat
-GROUP BY year, train_operator_or_brand;
+BEGIN
+    CREATE TEMP TABLE transport_user_train_leg_operator_year_stat AS
+    SELECT
+        year,
+        train_operator_or_brand,
+        COUNT(*) AS count,
+        SUM(distance) AS distance,
+        SUM(duration) AS duration,
+        SUM(delay) AS delay,
+        MIN(start_datetime) AS first_usage
+    FROM transport_user_train_leg_operator_stat
+    GROUP BY year, train_operator_or_brand;
+END;
 $$;
 
 CREATE FUNCTION create_transport_user_train_operator_longest_distance_year_stats ()
 RETURNS VOID
-LANGUAGE sql
+LANGUAGE plpgsql
 AS
 $$
-CREATE TEMP TABLE transport_user_train_operator_distance_year_stat AS
-SELECT
-    year,
-    train_operator_or_brand,
-    distance
-FROM (
+BEGIN
+    CREATE TEMP TABLE transport_user_train_operator_distance_year_stat AS
     SELECT
         year,
         train_operator_or_brand,
-        distance,
-        ROW_NUMBER() OVER (
-            PARTITION BY distance
-            ORDER BY first_usage
-        ) AS rownum
-    FROM transport_user_train_leg_operator_year_stat
-)
-WHERE rownum = 1;
+        distance
+    FROM (
+        SELECT
+            year,
+            train_operator_or_brand,
+            distance,
+            ROW_NUMBER() OVER (
+                PARTITION BY distance
+                ORDER BY first_usage
+            ) AS rownum
+        FROM transport_user_train_leg_operator_year_stat
+    )
+    WHERE rownum = 1;
+END;
 $$;
 
-CREATE FUNCTION select_transport_user_train_operator_stats_by_user_id (
+CREATE FUNCTION select_transport_user_train_operator_year_stats_by_user_id (
     p_user_id INTEGER_NOTNULL
 )
 RETURNS transport_user_train_operator_overall_stats
@@ -841,8 +851,8 @@ LANGUAGE plpgsql
 AS
 $$
 DECLARE
-    v_train_operator_overall_stats transport_user_details_train_operator_out_data;
-    v_train_operator_year_stats transport_user_details_train_operator_out_data;
+    v_train_operator_overall_stats transport_user_train_operator_stats;
+    v_train_operator_year_stats transport_user_train_operator_year_stats;
 BEGIN
     PERFORM create_transport_user_train_leg_operator_stat(p_user_id);
     PERFORM create_transport_user_train_leg_operator_year_stat();
@@ -852,6 +862,7 @@ BEGIN
     DROP TABLE transport_user_train_leg_operator_stat;
     DROP TABLE transport_user_train_leg_operator_year_stat;
 END;
+$$;
 
 CREATE FUNCTION select_transport_user_train_stats_by_user_id (
     p_user_id INTEGER_NOTNULL
@@ -863,7 +874,7 @@ $$
 DECLARE
     v_train_leg_stats transport_user_train_leg_overall_stats;
     v_train_station_stats transport_user_train_station_overall_stats;
-    v_train_operator_stats transport_user_details_train_operator_out_data;
+    v_train_operator_stats transport_user_train_operator_overall_stats;
     v_train_class_stats transport_user_details_train_class_out_data;
     v_train_unit_stats transport_user_details_train_unit_out_data;
 BEGIN
