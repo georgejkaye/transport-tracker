@@ -1,25 +1,24 @@
-DROP VIEW IF EXISTS transport_user_train_leg_view;
-DROP VIEW IF EXISTS transport_user_train_station_view;
-DROP VIEW IF EXISTS transport_user_train_class_view;
-DROP VIEW IF EXISTS transport_user_train_class_high_view;
-DROP VIEW IF EXISTS transport_user_train_operator_view;
-DROP VIEW IF EXISTS transport_user_train_leg_distance_view;
-DROP VIEW IF EXISTS transport_user_train_leg_duration_view;
-DROP VIEW IF EXISTS transport_user_train_leg_delay_view;
+DROP VIEW IF EXISTS transport_user_train_leg_view CASCADE;
+DROP VIEW IF EXISTS transport_user_train_leg_minimal_view CASCADE;
+DROP VIEW IF EXISTS train_station_leg_call_view CASCADE;
+DROP VIEW IF EXISTS train_station_leg_view CASCADE;
+DROP VIEW IF EXISTS transport_user_train_operator_view CASCADE;
+DROP VIEW IF EXISTS transport_user_train_operator_high_view CASCADE;
+DROP VIEW IF EXISTS transport_user_train_station_leg_year_stat_view CASCADE;
 
 CREATE VIEW transport_user_train_leg_view AS
 SELECT
     transport_user_train_leg.user_id,
     train_leg.train_leg_id,
     (
-        train_leg_start_station.train_station_id,
-        train_leg_start_station.station_crs,
-        train_leg_start_station.station_name
+        train_leg_board_station.train_station_id,
+        train_leg_board_station.station_crs,
+        train_leg_board_station.station_name
     )::train_station_high_out_data AS board_station,
     (
-        train_leg_end_station.train_station_id,
-        train_leg_end_station.station_crs,
-        train_leg_end_station.station_name
+        train_leg_alight_station.train_station_id,
+        train_leg_alight_station.station_crs,
+        train_leg_alight_station.station_name
     )::train_station_high_out_data AS alight_station,
     train_leg_boundary_time.board_time AS start_datetime,
     (
@@ -81,9 +80,9 @@ ON train_leg_boundary_time.board_time
         train_leg_start_call.act_dep,
         train_leg_start_call.act_arr
     )
-INNER JOIN train_station train_leg_start_station
+INNER JOIN train_station train_leg_board_station
 ON train_leg_start_call.train_station_id
-    = train_leg_start_station.train_station_id
+    = train_leg_board_station.train_station_id
 INNER JOIN train_call train_leg_end_call
 ON train_leg_boundary_time.leg_end_time
     = COALESCE(
@@ -92,15 +91,88 @@ ON train_leg_boundary_time.leg_end_time
         train_leg_end_call.act_arr,
         train_leg_end_call.act_dep
     )
-INNER JOIN train_station train_leg_end_station
+INNER JOIN train_station train_leg_alight_station
 ON train_leg_end_call.train_station_id
-    = train_leg_end_station.train_station_id
+    = train_leg_alight_station.train_station_id
 INNER JOIN train_service
 ON train_leg_start_call.train_service_id = train_service.train_service_id
 INNER JOIN train_operator
 ON train_service.train_operator_id = train_operator.train_operator_id
 LEFT JOIN train_brand
 ON train_service.train_brand_id = train_brand.train_brand_id;
+
+CREATE VIEW transport_user_train_leg_minimal_view AS
+SELECT
+    transport_user_train_leg.user_id,
+    train_leg.train_leg_id,
+    train_leg_board_station.train_station_id AS board_station_id,
+    train_leg_board_station.station_name AS board_station_name,
+    train_leg_alight_station.train_station_id AS alight_station_id,
+    train_leg_alight_station.station_name AS alight_station_name,
+    train_leg_boundary_time.board_time AS start_datetime,
+    train_service.train_operator_id,
+    train_service.train_brand_id,
+    train_leg.distance,
+    train_leg_boundary_time.leg_end_time
+        - train_leg_boundary_time.board_time AS duration,
+    EXTRACT(
+        HOUR FROM train_leg_end_call.act_arr - train_leg_end_call.plan_arr) * 60
+        + EXTRACT(
+            MINUTE FROM train_leg_end_call.act_arr - train_leg_end_call.plan_arr
+        ) AS delay
+FROM transport_user_train_leg
+INNER JOIN train_leg
+ON transport_user_train_leg.train_leg_id = train_leg.train_leg_id
+INNER JOIN (
+    SELECT
+        train_leg_call.train_leg_id,
+        MIN(
+            COALESCE(
+                train_call.plan_dep,
+                train_call.plan_arr,
+                train_call.act_dep,
+                train_call.act_arr
+            )
+        ) AS board_time,
+        MAX(
+            COALESCE(
+                train_call.plan_arr,
+                train_call.plan_dep,
+                train_call.act_arr,
+                train_call.act_dep
+            )
+        ) AS leg_end_time
+    FROM train_leg_call
+    INNER JOIN train_call
+    ON train_leg_call.arr_call_id = train_call.train_call_id
+    OR train_leg_call.dep_call_id = train_call.train_call_id
+    GROUP BY train_leg_call.train_leg_id
+) train_leg_boundary_time
+ON train_leg.train_leg_id = train_leg_boundary_time.train_leg_id
+INNER JOIN train_call train_leg_start_call
+ON train_leg_boundary_time.board_time
+    = COALESCE(
+        train_leg_start_call.plan_dep,
+        train_leg_start_call.plan_arr,
+        train_leg_start_call.act_dep,
+        train_leg_start_call.act_arr
+    )
+INNER JOIN train_station train_leg_board_station
+ON train_leg_start_call.train_station_id
+    = train_leg_board_station.train_station_id
+INNER JOIN train_call train_leg_end_call
+ON train_leg_boundary_time.leg_end_time
+    = COALESCE(
+        train_leg_end_call.plan_arr,
+        train_leg_end_call.plan_dep,
+        train_leg_end_call.act_arr,
+        train_leg_end_call.act_dep
+    )
+INNER JOIN train_station train_leg_alight_station
+ON train_leg_end_call.train_station_id
+    = train_leg_alight_station.train_station_id
+INNER JOIN train_service
+ON train_leg_start_call.train_service_id = train_service.train_service_id;
 
 CREATE OR REPLACE VIEW train_station_leg_call_view AS
 SELECT
