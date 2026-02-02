@@ -3,7 +3,7 @@ DROP FUNCTION IF EXISTS select_transport_user_train_leg_stats_by_user_id CASCADE
 DROP FUNCTION IF EXISTS select_transport_user_train_station_stats_by_user_id CASCADE;
 DROP FUNCTION IF EXISTS create_transport_user_train_leg_operator_stat CASCADE;
 DROP FUNCTION IF EXISTS create_transport_user_train_leg_operator_year_stat CASCADE;
-DROP FUNCTION IF EXISTS create_transport_user_train_operator_longest_distance_year_stats CASCADE;
+DROP FUNCTION IF EXISTS create_transport_user_train_operator_distance_year_stat CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_operator_year_stats_by_user_id CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_stats_by_user_id CASCADE;
 
@@ -817,7 +817,33 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION create_transport_user_train_operator_longest_distance_year_stats ()
+CREATE FUNCTION create_transport_user_train_operator_count_year_stat ()
+RETURNS VOID
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    CREATE TEMP TABLE transport_user_train_operator_count_year_stat AS
+    SELECT
+        year,
+        count,
+        train_operator_or_brand
+    FROM (
+        SELECT
+            year,
+            train_operator_or_brand,
+            count,
+            ROW_NUMBER() OVER (
+                PARTITION BY count
+                ORDER BY first_usage
+            ) AS rownum
+        FROM transport_user_train_leg_operator_year_stat
+    )
+    WHERE rownum = 1;
+END;
+$$;
+
+CREATE FUNCTION create_transport_user_train_operator_distance_year_stat ()
 RETURNS VOID
 LANGUAGE plpgsql
 AS
@@ -826,8 +852,8 @@ BEGIN
     CREATE TEMP TABLE transport_user_train_operator_distance_year_stat AS
     SELECT
         year,
-        train_operator_or_brand,
-        distance
+        distance,
+        train_operator_or_brand
     FROM (
         SELECT
             year,
@@ -835,6 +861,58 @@ BEGIN
             distance,
             ROW_NUMBER() OVER (
                 PARTITION BY distance
+                ORDER BY first_usage
+            ) AS rownum
+        FROM transport_user_train_leg_operator_year_stat
+    )
+    WHERE rownum = 1;
+END;
+$$;
+
+CREATE FUNCTION create_transport_user_train_operator_duration_year_stat ()
+RETURNS VOID
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    CREATE TEMP TABLE transport_user_train_operator_duration_year_stat AS
+    SELECT
+        year,
+        duration,
+        train_operator_or_brand
+    FROM (
+        SELECT
+            year,
+            train_operator_or_brand,
+            duration,
+            ROW_NUMBER() OVER (
+                PARTITION BY duration
+                ORDER BY first_usage
+            ) AS rownum
+        FROM transport_user_train_leg_operator_year_stat
+    )
+    WHERE rownum = 1;
+END;
+$$;
+
+CREATE FUNCTION create_transport_user_train_operator_delay_year_stat ()
+RETURNS VOID
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    CREATE TEMP TABLE transport_user_train_operator_delay_year_stat AS
+    SELECT
+        year,
+        delay,
+        train_operator_or_brand
+    FROM (
+        SELECT
+            year,
+            train_operator_or_brand,
+            delay,
+            ROW_NUMBER() OVER (
+                PARTITION BY delay
                 ORDER BY first_usage
             ) AS rownum
         FROM transport_user_train_leg_operator_year_stat
@@ -856,11 +934,18 @@ DECLARE
 BEGIN
     PERFORM create_transport_user_train_leg_operator_stat(p_user_id);
     PERFORM create_transport_user_train_leg_operator_year_stat();
-    PERFORM create_transport_user_train_leg_operator_longest_distance_year_stat();
+    PERFORM create_transport_user_train_leg_operator_count_year_stat();
+    PERFORM create_transport_user_train_leg_operator_distance_year_stat();
+    PERFORM create_transport_user_train_leg_operator_duration_year_stat();
+    PERFORM create_transport_user_train_leg_operator_delay_year_stat();
 
 
     DROP TABLE transport_user_train_leg_operator_stat;
     DROP TABLE transport_user_train_leg_operator_year_stat;
+    DROP TABLE transport_user_train_leg_operator_count_year_stat;
+    DROP TABLE transport_user_train_leg_operator_distance_year_stat;
+    DROP TABLE transport_user_train_leg_operator_duration_year_stat;
+    DROP TABLE transport_user_train_leg_operator_delay_year_stat;
 END;
 $$;
 
