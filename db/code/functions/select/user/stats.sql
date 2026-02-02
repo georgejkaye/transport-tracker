@@ -3,10 +3,16 @@ DROP FUNCTION IF EXISTS select_transport_user_train_leg_stats_by_user_id CASCADE
 DROP FUNCTION IF EXISTS select_transport_user_train_station_stats_by_user_id CASCADE;
 DROP FUNCTION IF EXISTS create_transport_user_train_leg_operator_stat CASCADE;
 DROP FUNCTION IF EXISTS create_transport_user_train_operator_year_stat CASCADE;
+DROP FUNCTION IF EXISTS create_transport_user_train_operator_count_all_stat CASCADE;
 DROP FUNCTION IF EXISTS create_transport_user_train_operator_count_year_stat CASCADE;
+DROP FUNCTION IF EXISTS create_transport_user_train_operator_distance_all_stat CASCADE;
 DROP FUNCTION IF EXISTS create_transport_user_train_operator_distance_year_stat CASCADE;
+DROP FUNCTION IF EXISTS create_transport_user_train_operator_duration_all_stat CASCADE;
 DROP FUNCTION IF EXISTS create_transport_user_train_operator_duration_year_stat CASCADE;
+DROP FUNCTION IF EXISTS create_transport_user_train_operator_delay_all_stat CASCADE;
 DROP FUNCTION IF EXISTS create_transport_user_train_operator_delay_year_stat CASCADE;
+DROP FUNCTION IF EXISTS select_transport_user_train_operator_all_stats CASCADE;
+DROP FUNCTION IF EXISTS select_transport_user_train_operator_year_stats CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_operator_year_stats_by_user_id CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_stats_by_user_id CASCADE;
 
@@ -843,6 +849,37 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION create_transport_user_train_operator_count_all_stat ()
+RETURNS VOID
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    CREATE TEMP TABLE transport_user_train_operator_count_all_stat AS
+    SELECT
+        count,
+        operator_or_brand_id,
+        is_brand,
+        operator_or_brand_name,
+        operator_or_brand_code
+    FROM (
+        SELECT
+            year,
+            operator_or_brand_id,
+            is_brand,
+            operator_or_brand_name,
+            operator_or_brand_code,
+            count,
+            ROW_NUMBER() OVER (
+                PARTITION BY count
+                ORDER BY first_usage
+            ) AS rownum
+        FROM transport_user_train_operator_year_stat
+    )
+    WHERE rownum = 1;
+END;
+$$;
+
 CREATE FUNCTION create_transport_user_train_operator_count_year_stat ()
 RETURNS VOID
 LANGUAGE plpgsql
@@ -866,7 +903,37 @@ BEGIN
             operator_or_brand_code,
             count,
             ROW_NUMBER() OVER (
-                PARTITION BY count
+                PARTITION BY year, count
+                ORDER BY first_usage
+            ) AS rownum
+        FROM transport_user_train_operator_year_stat
+    )
+    WHERE rownum = 1;
+END;
+$$;
+
+CREATE FUNCTION create_transport_user_train_operator_distance_all_stat ()
+RETURNS VOID
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    CREATE TEMP TABLE transport_user_train_operator_distance_all_stat AS
+    SELECT
+        distance,
+        operator_or_brand_id,
+        is_brand,
+        operator_or_brand_name,
+        operator_or_brand_code
+    FROM (
+        SELECT
+            operator_or_brand_id,
+            is_brand,
+            operator_or_brand_name,
+            operator_or_brand_code,
+            distance,
+            ROW_NUMBER() OVER (
+                PARTITION BY distance
                 ORDER BY first_usage
             ) AS rownum
         FROM transport_user_train_operator_year_stat
@@ -898,7 +965,37 @@ BEGIN
             operator_or_brand_code,
             distance,
             ROW_NUMBER() OVER (
-                PARTITION BY distance
+                PARTITION BY year, distance
+                ORDER BY first_usage
+            ) AS rownum
+        FROM transport_user_train_operator_year_stat
+    )
+    WHERE rownum = 1;
+END;
+$$;
+
+CREATE FUNCTION create_transport_user_train_operator_duration_all_stat ()
+RETURNS VOID
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    CREATE TEMP TABLE transport_user_train_operator_duration_all_stat AS
+    SELECT
+        duration,
+        operator_or_brand_id,
+        is_brand,
+        operator_or_brand_name,
+        operator_or_brand_code
+    FROM (
+        SELECT
+            operator_or_brand_id,
+            is_brand,
+            operator_or_brand_name,
+            operator_or_brand_code,
+            duration,
+            ROW_NUMBER() OVER (
+                PARTITION BY duration
                 ORDER BY first_usage
             ) AS rownum
         FROM transport_user_train_operator_year_stat
@@ -930,7 +1027,37 @@ BEGIN
             operator_or_brand_code,
             duration,
             ROW_NUMBER() OVER (
-                PARTITION BY duration
+                PARTITION BY year, duration
+                ORDER BY first_usage
+            ) AS rownum
+        FROM transport_user_train_operator_year_stat
+    )
+    WHERE rownum = 1;
+END;
+$$;
+
+CREATE FUNCTION create_transport_user_train_operator_delay_all_stat ()
+RETURNS VOID
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    CREATE TEMP TABLE transport_user_train_operator_delay_all_stat AS
+    SELECT
+        delay,
+        operator_or_brand_id,
+        is_brand,
+        operator_or_brand_name,
+        operator_or_brand_code
+    FROM (
+        SELECT
+            operator_or_brand_id,
+            is_brand,
+            operator_or_brand_name,
+            operator_or_brand_code,
+            delay,
+            ROW_NUMBER() OVER (
+                PARTITION BY delay
                 ORDER BY first_usage
             ) AS rownum
         FROM transport_user_train_operator_year_stat
@@ -962,12 +1089,220 @@ BEGIN
             operator_or_brand_code,
             delay,
             ROW_NUMBER() OVER (
-                PARTITION BY delay
+                PARTITION BY year, delay
                 ORDER BY first_usage
             ) AS rownum
         FROM transport_user_train_operator_year_stat
     )
     WHERE rownum = 1;
+END;
+$$;
+
+CREATE FUNCTION select_transport_user_train_operator_all_stats ()
+RETURNS transport_user_train_operator_stats
+LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    v_transport_user_train_operator_stats transport_user_train_operator_stats;
+BEGIN
+    SELECT INTO v_transport_user_train_operator_stats
+        transport_user_train_operator_stat_view.operator_count,
+        (
+            transport_user_train_operator_distance_all_longest_stat.distance,
+            transport_user_train_operator_distance_all_longest_stat.operator_or_brand_id,
+            transport_user_train_operator_distance_all_longest_stat.is_brand,
+            transport_user_train_operator_distance_all_longest_stat.operator_or_brand_name
+        ),
+        (
+            transport_user_train_operator_distance_all_shortest_stat.distance,
+            transport_user_train_operator_distance_all_shortest_stat.operator_or_brand_id,
+            transport_user_train_operator_distance_all_shortest_stat.is_brand,
+            transport_user_train_operator_distance_all_shortest_stat.operator_or_brand_name
+        ),
+        (
+            transport_user_train_operator_duration_all_longest_stat.duration,
+            transport_user_train_operator_duration_all_longest_stat.operator_or_brand_id,
+            transport_user_train_operator_duration_all_longest_stat.is_brand,
+            transport_user_train_operator_duration_all_longest_stat.operator_or_brand_name
+        ),
+        (
+            transport_user_train_operator_duration_all_shortest_stat.duration,
+            transport_user_train_operator_duration_all_shortest_stat.operator_or_brand_id,
+            transport_user_train_operator_duration_all_shortest_stat.is_brand,
+            transport_user_train_operator_duration_all_shortest_stat.operator_or_brand_name
+        ),
+        (
+            transport_user_train_operator_delay_all_longest_stat.delay,
+            transport_user_train_operator_delay_all_longest_stat.operator_or_brand_id,
+            transport_user_train_operator_delay_all_longest_stat.is_brand,
+            transport_user_train_operator_delay_all_longest_stat.operator_or_brand_name
+        ),
+        (
+            transport_user_train_operator_delay_all_shortest_stat.delay,
+            transport_user_train_operator_delay_all_shortest_stat.operator_or_brand_id,
+            transport_user_train_operator_delay_all_shortest_stat.is_brand,
+            transport_user_train_operator_delay_all_shortest_stat.operator_or_brand_name
+        )
+    FROM (
+        SELECT
+            COUNT(*) AS operator_count,
+            MAX(distance) AS longest_distance,
+            MIN(distance) AS shortest_distance,
+            MAX(duration) AS longest_duration,
+            MIN(duration) AS shortest_duration,
+            MAX(delay) AS longest_delay,
+            MIN(delay) AS shortest_delay
+        FROM transport_user_train_operator_year_stat
+    ) transport_user_train_operator_stat_view
+    INNER JOIN transport_user_train_operator_distance_all_stat
+        transport_user_train_operator_distance_all_longest_stat
+    ON transport_user_train_operator_stat_view.longest_distance
+        = transport_user_train_operator_distance_all_longest_stat.distance
+    INNER JOIN transport_user_train_operator_distance_all_stat
+        transport_user_train_operator_distance_all_shortest_stat
+    ON transport_user_train_operator_stat_view.shortest_distance
+        = transport_user_train_operator_distance_all_shortest_stat.distance
+    INNER JOIN transport_user_train_operator_duration_all_stat
+        transport_user_train_operator_duration_all_longest_stat
+    ON transport_user_train_operator_stat_view.longest_duration
+        = transport_user_train_operator_duration_all_longest_stat.duration
+    INNER JOIN transport_user_train_operator_duration_all_stat
+        transport_user_train_operator_duration_all_shortest_stat
+    ON transport_user_train_operator_stat_view.shortest_duration
+        = transport_user_train_operator_duration_all_shortest_stat.duration
+    INNER JOIN transport_user_train_operator_delay_all_stat
+        transport_user_train_operator_delay_all_longest_stat
+    ON transport_user_train_operator_stat_view.longest_delay
+        = transport_user_train_operator_delay_all_longest_stat.delay
+    INNER JOIN transport_user_train_operator_delay_all_stat
+        transport_user_train_operator_delay_all_shortest_stat
+    ON transport_user_train_operator_stat_view.shortest_delay
+        = transport_user_train_operator_delay_all_shortest_stat.delay;
+
+    RETURN v_transport_user_train_operator_stats;
+END;
+$$;
+
+CREATE FUNCTION select_transport_user_train_operator_year_stats ()
+RETURNS transport_user_train_operator_year_stats[]
+LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    v_transport_user_train_operator_year_stats
+        transport_user_train_operator_year_stats[];
+BEGIN
+    SELECT INTO v_transport_user_train_operator_year_stats
+        ARRAY_AGG(
+            (
+                transport_user_train_operator_stat_view.year,
+                transport_user_train_operator_stat_view.operator_count,
+                CASE
+                WHEN transport_user_train_operator_distance_year_longest_stat.distance IS NULL
+                THEN NULL
+                ELSE (
+                    transport_user_train_operator_distance_year_longest_stat.distance,
+                    transport_user_train_operator_distance_year_longest_stat.operator_or_brand_id,
+                    transport_user_train_operator_distance_year_longest_stat.is_brand,
+                    transport_user_train_operator_distance_year_longest_stat.operator_or_brand_name
+                )
+                END,
+                CASE
+                WHEN transport_user_train_operator_distance_year_shortest_stat.distance IS NULL
+                THEN NULL
+                ELSE (
+                    transport_user_train_operator_distance_year_shortest_stat.distance,
+                    transport_user_train_operator_distance_year_shortest_stat.operator_or_brand_id,
+                    transport_user_train_operator_distance_year_shortest_stat.is_brand,
+                    transport_user_train_operator_distance_year_shortest_stat.operator_or_brand_name
+                )
+                END,
+                (
+                    transport_user_train_operator_duration_year_longest_stat.duration,
+                    transport_user_train_operator_duration_year_longest_stat.operator_or_brand_id,
+                    transport_user_train_operator_duration_year_longest_stat.is_brand,
+                    transport_user_train_operator_duration_year_longest_stat.operator_or_brand_name
+                ),
+                (
+                    transport_user_train_operator_duration_year_shortest_stat.duration,
+                    transport_user_train_operator_duration_year_shortest_stat.operator_or_brand_id,
+                    transport_user_train_operator_duration_year_shortest_stat.is_brand,
+                    transport_user_train_operator_duration_year_shortest_stat.operator_or_brand_name
+                ),
+                CASE
+                WHEN transport_user_train_operator_delay_year_longest_stat.delay IS NULL
+                THEN NULL
+                ELSE (
+                    transport_user_train_operator_delay_year_longest_stat.delay,
+                    transport_user_train_operator_delay_year_longest_stat.operator_or_brand_id,
+                    transport_user_train_operator_delay_year_longest_stat.is_brand,
+                    transport_user_train_operator_delay_year_longest_stat.operator_or_brand_name
+                )
+                END,
+                CASE
+                WHEN transport_user_train_operator_delay_year_shortest_stat.delay IS NULL
+                THEN NULL
+                ELSE (
+                    transport_user_train_operator_delay_year_shortest_stat.delay,
+                    transport_user_train_operator_delay_year_shortest_stat.operator_or_brand_id,
+                    transport_user_train_operator_delay_year_shortest_stat.is_brand,
+                    transport_user_train_operator_delay_year_shortest_stat.operator_or_brand_name
+                )
+                END
+            ) ORDER BY transport_user_train_operator_stat_view.year
+        )
+        FROM (
+            SELECT
+                year,
+                COUNT(*) AS operator_count,
+                MAX(distance) AS longest_distance,
+                MIN(distance) AS shortest_distance,
+                MAX(duration) AS longest_duration,
+                MIN(duration) AS shortest_duration,
+                MAX(delay) AS longest_delay,
+                MIN(delay) AS shortest_delay
+            FROM transport_user_train_operator_year_stat
+            GROUP BY year
+        ) transport_user_train_operator_stat_view
+        LEFT JOIN transport_user_train_operator_distance_year_stat
+            transport_user_train_operator_distance_year_longest_stat
+        ON transport_user_train_operator_stat_view.longest_distance
+            = transport_user_train_operator_distance_year_longest_stat.distance
+        AND transport_user_train_operator_stat_view.year
+            = transport_user_train_operator_distance_year_longest_stat.year
+        LEFT JOIN transport_user_train_operator_distance_year_stat
+            transport_user_train_operator_distance_year_shortest_stat
+        ON transport_user_train_operator_stat_view.shortest_distance
+            = transport_user_train_operator_distance_year_shortest_stat.distance
+        AND transport_user_train_operator_stat_view.year
+            = transport_user_train_operator_distance_year_shortest_stat.year
+        LEFT JOIN transport_user_train_operator_duration_year_stat
+            transport_user_train_operator_duration_year_longest_stat
+        ON transport_user_train_operator_stat_view.longest_duration
+            = transport_user_train_operator_duration_year_longest_stat.duration
+        AND transport_user_train_operator_stat_view.year
+            = transport_user_train_operator_duration_year_longest_stat.year
+        LEFT JOIN transport_user_train_operator_duration_year_stat
+            transport_user_train_operator_duration_year_shortest_stat
+        ON transport_user_train_operator_stat_view.shortest_duration
+            = transport_user_train_operator_duration_year_shortest_stat.duration
+        AND transport_user_train_operator_stat_view.year
+            = transport_user_train_operator_duration_year_shortest_stat.year
+        LEFT JOIN transport_user_train_operator_delay_year_stat
+            transport_user_train_operator_delay_year_longest_stat
+        ON transport_user_train_operator_stat_view.longest_delay
+            = transport_user_train_operator_delay_year_longest_stat.delay
+        AND transport_user_train_operator_stat_view.year
+            = transport_user_train_operator_delay_year_longest_stat.year
+        LEFT JOIN transport_user_train_operator_delay_year_stat
+            transport_user_train_operator_delay_year_shortest_stat
+        ON transport_user_train_operator_stat_view.shortest_delay
+            = transport_user_train_operator_delay_year_shortest_stat.delay
+        AND transport_user_train_operator_stat_view.year
+            = transport_user_train_operator_delay_year_shortest_stat.year;
+
+        RETURN v_transport_user_train_operator_year_stats;
 END;
 $$;
 
@@ -979,101 +1314,40 @@ LANGUAGE plpgsql
 AS
 $$
 DECLARE
-    v_train_operator_overall_stats transport_user_train_operator_stats;
-    v_train_operator_year_stats transport_user_train_operator_year_stats;
+    v_train_operator_all_stats transport_user_train_operator_stats;
+    v_train_operator_year_stats transport_user_train_operator_year_stats[];
 BEGIN
     PERFORM create_transport_user_train_leg_operator_stat(p_user_id);
     PERFORM create_transport_user_train_operator_year_stat();
+    PERFORM create_transport_user_train_operator_count_all_stat();
     PERFORM create_transport_user_train_operator_count_year_stat();
+    PERFORM create_transport_user_train_operator_distance_all_stat();
     PERFORM create_transport_user_train_operator_distance_year_stat();
+    PERFORM create_transport_user_train_operator_duration_all_stat();
     PERFORM create_transport_user_train_operator_duration_year_stat();
+    PERFORM create_transport_user_train_operator_delay_all_stat();
     PERFORM create_transport_user_train_operator_delay_year_stat();
 
-    SELECT
-        transport_user_train_operator_stat_view.year,
-        transport_user_train_operator_stat_view.operator_count,
-        (
-            transport_user_train_operator_distance_year_longest_stat.distance,
-            transport_user_train_operator_distance_year_longest_stat.operator_or_brand_id,
-            transport_user_train_operator_distance_year_longest_stat.is_brand,
-            transport_user_train_operator_distance_year_longest_stat.operator_or_brand_name
-        ) AS longest_distance,
-        (
-            transport_user_train_operator_distance_year_shortest_stat.distance,
-            transport_user_train_operator_distance_year_shortest_stat.operator_or_brand_id,
-            transport_user_train_operator_distance_year_shortest_stat.is_brand,
-            transport_user_train_operator_distance_year_shortest_stat.operator_or_brand_name
-        ) AS shortest_distance,
-        (
-            transport_user_train_operator_duration_year_longest_stat.duration,
-            transport_user_train_operator_duration_year_longest_stat.operator_or_brand_id,
-            transport_user_train_operator_duration_year_longest_stat.is_brand,
-            transport_user_train_operator_duration_year_longest_stat.operator_or_brand_name
-        ) AS longest_duration,
-        (
-            transport_user_train_operator_duration_year_shortest_stat.duration,
-            transport_user_train_operator_duration_year_shortest_stat.operator_or_brand_id,
-            transport_user_train_operator_duration_year_shortest_stat.is_brand,
-            transport_user_train_operator_duration_year_shortest_stat.operator_or_brand_name
-        ) AS shortest_duration,
-        (
-            transport_user_train_operator_delay_year_longest_stat.delay,
-            transport_user_train_operator_delay_year_longest_stat.operator_or_brand_id,
-            transport_user_train_operator_delay_year_longest_stat.is_brand,
-            transport_user_train_operator_delay_year_longest_stat.operator_or_brand_name
-        ) AS longest_delay,
-        (
-            transport_user_train_operator_delay_year_shortest_stat.delay,
-            transport_user_train_operator_delay_year_shortest_stat.operator_or_brand_id,
-            transport_user_train_operator_delay_year_shortest_stat.is_brand,
-            transport_user_train_operator_delay_year_shortest_stat.operator_or_brand_name
-        ) AS shortest_delay
-    FROM (
-        SELECT
-            year,
-            COUNT(*) AS operator_count,
-            MAX(distance) AS longest_distance,
-            MIN(distance) AS shortest_distance,
-            MAX(duration) AS longest_duration,
-            MIN(duration) AS shortest_duration,
-            MAX(delay) AS longest_delay,
-            MIN(delay) AS shortest_delay
-        FROM transport_user_train_operator_year_stat
-        GROUP BY year
-    ) transport_user_train_operator_stat_view
-    INNER JOIN transport_user_train_operator_distance_year_stat
-        transport_user_train_operator_distance_year_longest_stat
-    ON transport_user_train_operator_stat_view.longest_distance
-        = transport_user_train_operator_distance_year_longest_stat.distance
-    INNER JOIN transport_user_train_operator_distance_year_stat
-        transport_user_train_operator_distance_year_shortest_stat
-    ON transport_user_train_operator_stat_view.shortest_distance
-        = transport_user_train_operator_distance_year_shortest_stat.distance
-    INNER JOIN transport_user_train_operator_duration_year_stat
-        transport_user_train_operator_duration_year_longest_stat
-    ON transport_user_train_operator_stat_view.longest_duration
-        = transport_user_train_operator_duration_year_longest_stat.duration
-    INNER JOIN transport_user_train_operator_duration_year_stat
-        transport_user_train_operator_duration_year_shortest_stat
-    ON transport_user_train_operator_stat_view.shortest_duration
-        = transport_user_train_operator_duration_year_shortest_stat.duration
-    INNER JOIN transport_user_train_operator_delay_year_stat
-        transport_user_train_operator_delay_year_longest_stat
-    ON transport_user_train_operator_stat_view.longest_delay
-        = transport_user_train_operator_delay_year_longest_stat.delay
-    INNER JOIN transport_user_train_operator_delay_year_stat
-        transport_user_train_operator_delay_year_shortest_stat
-    ON transport_user_train_operator_stat_view.shortest_delay
-        = transport_user_train_operator_delay_year_shortest_stat.delay;
+    v_train_operator_all_stats :=
+        select_transport_user_train_operator_all_stats();
+    v_train_operator_year_stats :=
+        select_transport_user_train_operator_year_stats();
 
     DROP TABLE transport_user_train_leg_operator_stat;
     DROP TABLE transport_user_train_operator_year_stat;
+    DROP TABLE transport_user_train_operator_count_all_stat;
     DROP TABLE transport_user_train_operator_count_year_stat;
+    DROP TABLE transport_user_train_operator_distance_all_stat;
     DROP TABLE transport_user_train_operator_distance_year_stat;
+    DROP TABLE transport_user_train_operator_duration_all_stat;
     DROP TABLE transport_user_train_operator_duration_year_stat;
+    DROP TABLE transport_user_train_operator_delay_all_stat;
     DROP TABLE transport_user_train_operator_delay_year_stat;
 
-    RETURN NULL;
+    RETURN (
+        v_train_operator_all_stats::transport_user_train_operator_stats_notnull,
+        v_train_operator_year_stats::transport_user_train_operator_year_stats_notnull[]
+    );
 END;
 $$;
 
