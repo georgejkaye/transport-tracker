@@ -91,6 +91,27 @@ CREATE TYPE transport_user_details_interval_stat AS (
     text TEXT_NOTNULL
 );
 
+CREATE TYPE transport_user_details_decimal_operator_stat AS (
+    value DECIMAL_NOTNULL,
+    operator_or_brand_id INTEGER_NOTNULL,
+    is_brand BOOLEAN_NOTNULL,
+    operator_or_brand_name TEXT_NOTNULL
+);
+
+CREATE TYPE transport_user_details_integer_operator_stat AS (
+    value INTEGER_NOTNULL,
+    operator_or_brand_id INTEGER_NOTNULL,
+    is_brand BOOLEAN_NOTNULL,
+    operator_or_brand_name TEXT_NOTNULL
+);
+
+CREATE TYPE transport_user_details_interval_operator_stat AS (
+    value INTERVAL_NOTNULL,
+    operator_id INTEGER_NOTNULL,
+    is_brand BOOLEAN_NOTNULL,
+    operator_or_brand_name TEXT_NOTNULL
+);
+
 CREATE TYPE transport_user_details_train_leg_out_data AS (
     count INTEGER_NOTNULL,
     total_distance DECIMAL_NOTNULL,
@@ -182,12 +203,12 @@ CREATE TYPE transport_user_details_train_unit_out_data AS (
 
 CREATE TYPE transport_user_train_operator_stats AS (
     operator_count INTEGER_NOTNULL,
-    longest_distance_operator transport_user_details_decimal_stat,
-    shortest_distance_operator transport_user_details_decimal_stat,
-    longest_duration_operator transport_user_details_interval_stat,
-    shortest_duration_operator transport_user_details_interval_stat,
-    longest_delay_operator transport_user_details_integer_stat,
-    shortest_delay_operator transport_user_details_integer_stat
+    longest_distance transport_user_details_decimal_stat,
+    shortest_distance transport_user_details_decimal_stat,
+    longest_duration transport_user_details_interval_stat,
+    shortest_duration transport_user_details_interval_stat,
+    longest_delay transport_user_details_integer_stat,
+    shortest_delay transport_user_details_integer_stat
 );
 
 CREATE DOMAIN transport_user_train_operator_stats_notnull
@@ -196,12 +217,12 @@ AS transport_user_train_operator_stats NOT NULL;
 CREATE TYPE transport_user_train_operator_year_stats AS (
     year INTEGER_NOTNULL,
     operator_count INTEGER_NOTNULL,
-    longest_distance_operator transport_user_details_decimal_stat,
-    shortest_distance_operator transport_user_details_decimal_stat,
-    longest_duration_operator transport_user_details_interval_stat,
-    shortest_duration_operator transport_user_details_interval_stat,
-    longest_delay_operator transport_user_details_integer_stat,
-    shortest_delay_operator transport_user_details_integer_stat
+    longest_distance transport_user_details_decimal_operator_stat,
+    shortest_distance transport_user_details_decimal_operator_stat,
+    longest_duration transport_user_details_interval_operator_stat,
+    shortest_duration transport_user_details_interval_operator_stat,
+    longest_delay transport_user_details_integer_operator_stat,
+    shortest_delay transport_user_details_integer_operator_stat
 );
 
 CREATE DOMAIN transport_user_train_operator_year_stats_notnull
