@@ -2,8 +2,11 @@ DROP FUNCTION IF EXISTS create_transport_user_train_leg_stat CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_leg_stats_by_user_id CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_station_stats_by_user_id CASCADE;
 DROP FUNCTION IF EXISTS create_transport_user_train_leg_operator_stat CASCADE;
-DROP FUNCTION IF EXISTS create_transport_user_train_leg_operator_year_stat CASCADE;
+DROP FUNCTION IF EXISTS create_transport_user_train_operator_year_stat CASCADE;
+DROP FUNCTION IF EXISTS create_transport_user_train_operator_count_year_stat CASCADE;
 DROP FUNCTION IF EXISTS create_transport_user_train_operator_distance_year_stat CASCADE;
+DROP FUNCTION IF EXISTS create_transport_user_train_operator_duration_year_stat CASCADE;
+DROP FUNCTION IF EXISTS create_transport_user_train_operator_delay_year_stat CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_operator_year_stats_by_user_id CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_stats_by_user_id CASCADE;
 
@@ -797,23 +800,46 @@ FROM transport_user_train_leg_minimal_view
 WHERE user_id = p_user_id;
 $$;
 
-CREATE FUNCTION create_transport_user_train_leg_operator_year_stat ()
+CREATE FUNCTION create_transport_user_train_operator_year_stat ()
 RETURNS VOID
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    CREATE TEMP TABLE transport_user_train_leg_operator_year_stat AS
+    CREATE TEMP TABLE transport_user_train_operator_year_stat AS
     SELECT
         year,
-        train_operator_or_brand,
-        COUNT(*) AS count,
-        SUM(distance) AS distance,
-        SUM(duration) AS duration,
-        SUM(delay) AS delay,
-        MIN(start_datetime) AS first_usage
-    FROM transport_user_train_leg_operator_stat
-    GROUP BY year, train_operator_or_brand;
+        (train_operator_or_brand).operator_or_brand_id,
+        (train_operator_or_brand).is_brand,
+        COALESCE(train_brand.brand_name, train_operator.operator_name)
+            AS operator_or_brand_name,
+        COALESCE(train_brand.brand_code, train_operator.operator_code)
+            AS operator_or_brand_code,
+        count,
+        distance,
+        duration,
+        delay,
+        first_usage
+    FROM (
+        SELECT
+            year,
+            train_operator_or_brand,
+            COUNT(*) AS count,
+            SUM(distance) AS distance,
+            SUM(duration) AS duration,
+            SUM(delay) AS delay,
+            MIN(start_datetime) AS first_usage
+        FROM transport_user_train_leg_operator_stat
+        GROUP BY year, train_operator_or_brand
+    ) transport_user_train_operator_year
+    LEFT JOIN train_operator
+    ON (transport_user_train_operator_year.train_operator_or_brand).operator_or_brand_id
+        = train_operator.train_operator_id
+    AND NOT (transport_user_train_operator_year.train_operator_or_brand).is_brand
+    LEFT JOIN train_brand
+    ON (transport_user_train_operator_year.train_operator_or_brand).operator_or_brand_id
+        = train_brand.train_brand_id
+    AND (transport_user_train_operator_year.train_operator_or_brand).is_brand;
 END;
 $$;
 
@@ -827,17 +853,23 @@ BEGIN
     SELECT
         year,
         count,
-        train_operator_or_brand
+        operator_or_brand_id,
+        is_brand,
+        operator_or_brand_name,
+        operator_or_brand_code,
     FROM (
         SELECT
             year,
-            train_operator_or_brand,
+            operator_or_brand_id,
+            is_brand,
+            operator_or_brand_name,
+            operator_or_brand_code,
             count,
             ROW_NUMBER() OVER (
                 PARTITION BY count
                 ORDER BY first_usage
             ) AS rownum
-        FROM transport_user_train_leg_operator_year_stat
+        FROM transport_user_train_operator_year_stat
     )
     WHERE rownum = 1;
 END;
@@ -853,17 +885,23 @@ BEGIN
     SELECT
         year,
         distance,
-        train_operator_or_brand
+        operator_or_brand_id,
+        is_brand,
+        operator_or_brand_name,
+        operator_or_brand_code,
     FROM (
         SELECT
             year,
-            train_operator_or_brand,
+            operator_or_brand_id,
+            is_brand,
+            operator_or_brand_name,
+            operator_or_brand_code,
             distance,
             ROW_NUMBER() OVER (
                 PARTITION BY distance
                 ORDER BY first_usage
             ) AS rownum
-        FROM transport_user_train_leg_operator_year_stat
+        FROM transport_user_train_operator_year_stat
     )
     WHERE rownum = 1;
 END;
@@ -879,17 +917,23 @@ BEGIN
     SELECT
         year,
         duration,
-        train_operator_or_brand
+        operator_or_brand_id,
+        is_brand,
+        operator_or_brand_name,
+        operator_or_brand_code,
     FROM (
         SELECT
             year,
-            train_operator_or_brand,
+            operator_or_brand_id,
+            is_brand,
+            operator_or_brand_name,
+            operator_or_brand_code,
             duration,
             ROW_NUMBER() OVER (
                 PARTITION BY duration
                 ORDER BY first_usage
             ) AS rownum
-        FROM transport_user_train_leg_operator_year_stat
+        FROM transport_user_train_operator_year_stat
     )
     WHERE rownum = 1;
 END;
@@ -905,17 +949,23 @@ BEGIN
     SELECT
         year,
         delay,
-        train_operator_or_brand
+        operator_or_brand_id,
+        is_brand,
+        operator_or_brand_name,
+        operator_or_brand_code,
     FROM (
         SELECT
             year,
-            train_operator_or_brand,
+            operator_or_brand_id,
+            is_brand,
+            operator_or_brand_name,
+            operator_or_brand_code,
             delay,
             ROW_NUMBER() OVER (
                 PARTITION BY delay
                 ORDER BY first_usage
             ) AS rownum
-        FROM transport_user_train_leg_operator_year_stat
+        FROM transport_user_train_operator_year_stat
     )
     WHERE rownum = 1;
 END;
@@ -933,19 +983,21 @@ DECLARE
     v_train_operator_year_stats transport_user_train_operator_year_stats;
 BEGIN
     PERFORM create_transport_user_train_leg_operator_stat(p_user_id);
-    PERFORM create_transport_user_train_leg_operator_year_stat();
-    PERFORM create_transport_user_train_leg_operator_count_year_stat();
-    PERFORM create_transport_user_train_leg_operator_distance_year_stat();
-    PERFORM create_transport_user_train_leg_operator_duration_year_stat();
-    PERFORM create_transport_user_train_leg_operator_delay_year_stat();
+    PERFORM create_transport_user_train_operator_year_stat();
+    PERFORM create_transport_user_train_operator_count_year_stat();
+    PERFORM create_transport_user_train_operator_distance_year_stat();
+    PERFORM create_transport_user_train_operator_duration_year_stat();
+    PERFORM create_transport_user_train_operator_delay_year_stat();
 
 
     DROP TABLE transport_user_train_leg_operator_stat;
-    DROP TABLE transport_user_train_leg_operator_year_stat;
-    DROP TABLE transport_user_train_leg_operator_count_year_stat;
-    DROP TABLE transport_user_train_leg_operator_distance_year_stat;
-    DROP TABLE transport_user_train_leg_operator_duration_year_stat;
-    DROP TABLE transport_user_train_leg_operator_delay_year_stat;
+    DROP TABLE transport_user_train_operator_year_stat;
+    DROP TABLE transport_user_train_operator_count_year_stat;
+    DROP TABLE transport_user_train_operator_distance_year_stat;
+    DROP TABLE transport_user_train_operator_duration_year_stat;
+    DROP TABLE transport_user_train_operator_delay_year_stat;
+
+    RETURN NULL;
 END;
 $$;
 
