@@ -206,6 +206,8 @@ CREATE TYPE transport_user_details_train_unit_out_data AS (
 
 CREATE TYPE transport_user_train_operator_stats AS (
     operator_count INTEGER_NOTNULL,
+    greatest_count transport_user_details_integer_operator_stat,
+    least_count transport_user_details_integer_operator_stat,
     longest_distance transport_user_details_decimal_operator_stat,
     shortest_distance transport_user_details_decimal_operator_stat,
     longest_duration transport_user_details_interval_operator_stat,
@@ -233,7 +235,7 @@ AS transport_user_train_operator_year_stats NOT NULL;
 
 CREATE TYPE transport_user_train_operator_overall_stats AS (
     overall_operator_stats transport_user_train_operator_stats_notnull,
-    overall_year_stats transport_user_train_operator_year_stats_notnull[]
+    year_operator_stats transport_user_train_operator_year_stats_notnull[]
 );
 
 CREATE TYPE transport_user_details_train_year_out_data AS (
