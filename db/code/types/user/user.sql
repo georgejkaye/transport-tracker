@@ -8,6 +8,8 @@ DROP DOMAIN IF EXISTS transport_user_details_train_station_year_out_data_notnull
 DROP DOMAIN IF EXISTS transport_user_train_station_overall_stats_notnull CASCADE;
 DROP DOMAIN IF EXISTS transport_user_train_operator_stats_notnull CASCADE;
 DROP DOMAIN IF EXISTS transport_user_train_operator_year_stats_notnull CASCADE;
+DROP DOMAIN IF EXISTS transport_user_train_class_all_stats_notnull CASCADE;
+DROP DOMAIN IF EXISTS transport_user_train_class_year_stats_notnull CASCADE;
 DROP DOMAIN IF EXISTS transport_user_details_train_year_out_data_notnull CASCADE;
 DROP DOMAIN IF EXISTS transport_user_details_out_data_notnull CASCADE;
 
@@ -33,6 +35,9 @@ DROP TYPE IF EXISTS transport_user_details_train_unit_out_data CASCADE;
 DROP TYPE IF EXISTS transport_user_train_operator_stats CASCADE;
 DROP TYPE IF EXISTS transport_user_train_operator_year_stats CASCADE;
 DROP TYPE IF EXISTS transport_user_train_operator_overall_stats CASCADE;
+DROP TYPE IF EXISTS transport_user_train_class_all_stats CASCADE;
+DROP TYPE IF EXISTS transport_user_train_class_year_stats CASCADE;
+DROP TYPE IF EXISTS transport_user_train_class_overall_stats CASCADE;
 DROP TYPE IF EXISTS transport_user_details_train_year_out_data CASCADE;
 DROP TYPE IF EXISTS transport_user_details_out_data CASCADE;
 
@@ -236,6 +241,38 @@ AS transport_user_train_operator_year_stats NOT NULL;
 CREATE TYPE transport_user_train_operator_overall_stats AS (
     overall_operator_stats transport_user_train_operator_stats_notnull,
     year_operator_stats transport_user_train_operator_year_stats_notnull[]
+);
+
+CREATE TYPE transport_user_train_class_all_stats AS (
+    class_count INTEGER_NOTNULL,
+    greatest_count INTEGER_NOTNULL,
+    least_count INTEGER_NOTNULL,
+    longest_distance transport_user_details_decimal_stat,
+    shortest_distance transport_user_details_decimal_stat,
+    longest_duration transport_user_details_interval_stat,
+    shortest_duration transport_user_details_interval_stat
+);
+
+CREATE DOMAIN transport_user_train_class_all_stats_notnull
+AS transport_user_train_class_all_stats NOT NULL;
+
+CREATE TYPE transport_user_train_class_year_stats AS (
+    year INTEGER_NOTNULL,
+    class_count INTEGER_NOTNULL,
+    greatest_count INTEGER_NOTNULL,
+    least_count INTEGER_NOTNULL,
+    longest_distance transport_user_details_decimal_stat,
+    shortest_distance transport_user_details_decimal_stat,
+    longest_duration transport_user_details_interval_stat,
+    shortest_duration transport_user_details_interval_stat
+);
+
+CREATE DOMAIN transport_user_train_class_year_stats_notnull
+AS transport_user_train_class_year_stats NOT NULL;
+
+CREATE TYPE transport_user_train_class_overall_stats AS (
+    all_stats transport_user_train_class_all_stats_notnull,
+    year_stats transport_user_train_class_year_stats_notnull
 );
 
 CREATE TYPE transport_user_details_train_year_out_data AS (

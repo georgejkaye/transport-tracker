@@ -15,6 +15,10 @@ DROP FUNCTION IF EXISTS create_transport_user_train_operator_delay_year_stat CAS
 DROP FUNCTION IF EXISTS select_transport_user_train_operator_all_stats CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_operator_year_stats CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_operator_stats_by_user_id CASCADE;
+DROP FUNCTION IF EXISTS create_transport_user_train_leg_class_stats CASCADE;
+DROP FUNCTION IF EXISTS create_transport_user_train_class_overall_stats CASCADE;
+DROP FUNCTION IF EXISTS create_transport_user_train_class_year_stats CASCADE;
+DROP FUNCTION IF EXISTS select_transport_user_train_class_stats_by_user_id CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_stats_by_user_id CASCADE;
 
 CREATE FUNCTION create_transport_user_train_leg_stat (
@@ -1416,6 +1420,93 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION create_transport_user_train_leg_class_stats (
+    p_user_id INTEGER_NOTNULL
+)
+RETURNS VOID
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    CREATE TEMP TABLE transport_user_train_leg_class_stats AS
+    SELECT
+        train_leg_stock_class_stats_view.train_leg_id,
+        transport_user_train_leg_minimal_view.start_datetime,
+        DATE_PART('year', transport_user_train_leg_minimal_view.start_datetime)
+            AS year,
+        train_leg_stock_class_stats_view.stock_class,
+        train_leg_stock_class_stats_view.distance,
+        train_leg_stock_class_stats_view.duration
+    FROM train_leg_stock_class_stats_view
+    INNER JOIN transport_user_train_leg_minimal_view
+    ON train_leg_stock_class_stats_view.train_leg_id
+        = transport_user_train_leg_minimal_view.train_leg_id
+    WHERE transport_user_train_leg_minimal_view.user_id = p_user_id;
+END;
+$$;
+
+CREATE FUNCTION create_transport_user_train_class_all_stats ()
+RETURNS VOID
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    CREATE TEMP TABLE transport_user_train_class_all_stats AS
+    SELECT
+        stock_class,
+        COUNT(*) AS count,
+        SUM(distance) AS distance,
+        SUM(duration) AS duration,
+        MIN(start_datetime) AS first_usage
+    FROM transport_user_train_leg_class_stats
+    GROUP BY stock_class;
+END;
+$$;
+
+CREATE FUNCTION create_transport_user_train_class_year_stats ()
+RETURNS VOID
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    CREATE TEMP TABLE transport_user_train_class_year_stats AS
+    SELECT
+        year,
+        stock_class,
+        COUNT(*) AS count,
+        SUM(distance) AS distance,
+        SUM(duration) AS duration,
+        MIN(start_datetime) AS first_usage
+    FROM transport_user_train_leg_class_stats
+    GROUP BY year, stock_class;
+END;
+$$;
+
+CREATE FUNCTION select_transport_user_train_class_stats_by_user_id (
+    p_user_id INTEGER_NOTNULL
+)
+RETURNS transport_user_train_class_stats
+LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    v_transport_user_train_class_overall_stats
+        transport_user_train_class_overall_stats;
+    v_transport_user_train_class_year_stats
+        transport_user_train_class_year_stats;
+BEGIN
+    PERFORM create_transport_user_train_leg_class_stats(p_user_id);
+    PERFORM create_transport_user_train_class_all_stats();
+    PERFORM create_transport_user_train_class_year_stats();
+
+    DROP TABLE transport_user_train_leg_class_stats;
+    DROP TABLE transport_user_train_class_all_stats;
+    DROP TABLE transport_user_train_class_year_stats;
+
+    RETURN NULL;
+END;
+$$;
+
 CREATE FUNCTION select_transport_user_train_stats_by_user_id (
     p_user_id INTEGER_NOTNULL
 )
@@ -1481,6 +1572,5 @@ END;
 $$;
 
 -- TODO
--- operator stats
 -- unit stats
 -- class stats
