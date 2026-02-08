@@ -60,4 +60,4 @@ def get_user_train_legs_in_range(
             start_date,
             end_date,
         )
-    return Page(pages, page_no, legs)
+    return Page(page_size, pages, page_no, legs)
