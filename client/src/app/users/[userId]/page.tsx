@@ -2,6 +2,10 @@
 
 import Link from "next/link"
 import { linkStyle } from "../../styles"
+import client from "@/app/api/client"
+import { isNumber } from "@/app/utils/number"
+import { notFound } from "next/navigation"
+import { Loader } from "@/app/loader"
 
 const YearLink = (props: { userId: number; year: number }) => (
   <Link
@@ -12,23 +16,67 @@ const YearLink = (props: { userId: number; year: number }) => (
   </Link>
 )
 
-const Page = ({ params }: { params: { userId: string } }) => {
-  const { userId } = params
-  const userIdNumber = parseInt(userId)
+interface UserHeaderProps {
+  userName: string
+  displayName: string
+}
+
+const UserHeader = ({ userName, displayName }: UserHeaderProps) => {
   return (
-    <div>
-      <h1 className="text-xl font-bold mb-2">Years</h1>
-      <div className="flex flex-row flex-wrap gap-4">
-        <YearLink userId={userIdNumber} year={2025} />
-        <YearLink userId={userIdNumber} year={2024} />
-        <YearLink userId={userIdNumber} year={2023} />
-        <YearLink userId={userIdNumber} year={2022} />
-        <YearLink userId={userIdNumber} year={2021} />
-        <YearLink userId={userIdNumber} year={2020} />
-        <YearLink userId={userIdNumber} year={2019} />
-      </div>
+    <div className="flex flex-col gap-1">
+      <h1 className="text-3xl font-bold">{displayName}</h1>
+      <div>@{userName}</div>
     </div>
   )
+}
+
+interface LegFeedProps {
+  userId: number
+}
+
+const LegFeed = ({ userId }: LegFeedProps) => {
+  const {
+    data: legs,
+    error,
+    isLoading: isLoadingLegs,
+  } = client.useQuery("get", "/users/{user_id}/train/legs", {
+    params: {
+      path: {
+        user_id: userId,
+      },
+    },
+  })
+}
+
+interface ContentProps {
+  userId: number
+}
+
+const Content = ({ userId }: ContentProps) => {
+  const {
+    data: user,
+    error,
+    isLoading: isLoadingUser,
+  } = client.useQuery("get", "/users/{user_id}", {
+    params: {
+      path: {
+        user_id: userId,
+      },
+    },
+  })
+  return isLoadingUser || user == undefined ? (
+    <Loader />
+  ) : (
+    <div>
+      <UserHeader userName={user.user_name} displayName={user.display_name} />
+      <LegFeed userId={user.user_id} />
+    </div>
+  )
+}
+
+const Page = ({ params }: { params: { userId: string } }) => {
+  let { userId } = params
+  return !isNumber(userId) ? notFound() : <Content userId={Number(userId)} />
 }
 
 export default Page
