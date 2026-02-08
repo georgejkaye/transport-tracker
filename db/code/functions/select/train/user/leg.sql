@@ -4,9 +4,10 @@ DROP FUNCTION IF EXISTS select_longest_duration_transport_user_train_legs_by_use
 DROP FUNCTION IF EXISTS select_shortest_duration_transport_user_train_legs_by_user_id CASCADE;
 DROP FUNCTION IF EXISTS select_longest_delay_transport_user_train_legs_by_user_id CASCADE;
 DROP FUNCTION IF EXISTS select_shortest_delay_transport_user_train_legs_by_user_id CASCADE;
-DROP FUNCTION IF EXISTS select_transport_user_train_leg_stats_numbers_by_user_id CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_leg_stats_by_user_id CASCADE;
-DROP FUNCTION IF EXISTS select_transport_user_train_legs_by_user_id CASCADE;
+DROP FUNCTION IF EXISTS select_transport_user_train_legs_by_user_id_count CASCADE;
+DROP FUNCTION IF EXISTS select_transport_user_train_legs_by_user_id_desc CASCADE;
+DROP FUNCTION IF EXISTS select_transport_user_train_legs_by_user_id_asc CASCADE;
 DROP FUNCTION IF EXISTS select_longest_transport_user_train_legs_by_user_id CASCADE;
 DROP FUNCTION IF EXISTS select_shortest_transport_user_train_legs_by_user_id CASCADE;
 
@@ -399,8 +400,26 @@ CROSS JOIN transport_user_train_leg_longest_delay_view longest_delay_leg
 CROSS JOIN transport_user_train_leg_shortest_delay_view shortest_delay_leg;
 $$;
 
-CREATE FUNCTION select_transport_user_train_legs_by_user_id (
+CREATE FUNCTION select_transport_user_train_legs_by_user_id_count (
     p_user_id INTEGER_NOTNULL,
+    p_search_start TIMESTAMP WITH TIME ZONE,
+    p_search_end TIMESTAMP WITH TIME ZONE
+)
+RETURNS SETOF train_leg_count_result
+LANGUAGE sql
+AS
+$$
+SELECT COUNT(*)
+FROM transport_user_train_leg_view
+WHERE user_id = p_user_id
+AND (p_search_start IS NULL OR start_datetime >= p_search_start)
+AND (p_search_end IS NULL OR start_datetime < p_search_end);
+$$;
+
+CREATE FUNCTION select_transport_user_train_legs_by_user_id_desc (
+    p_user_id INTEGER_NOTNULL,
+    p_rows_to_return INTEGER,
+    p_first_row INTEGER,
     p_search_start TIMESTAMP WITH TIME ZONE,
     p_search_end TIMESTAMP WITH TIME ZONE
 )
@@ -418,11 +437,79 @@ SELECT
     distance,
     duration,
     delay
-FROM transport_user_train_leg_view
-WHERE user_id = p_user_id
-AND (p_search_start IS NULL OR start_datetime >= p_search_start)
-AND (p_search_end IS NULL OR start_datetime < p_search_end)
-ORDER BY start_datetime ASC;
+FROM (
+    SELECT
+        ROW_NUMBER() OVER (
+            ORDER BY start_datetime DESC
+        ) AS rownum,
+        train_leg_id,
+        board_station,
+        alight_station,
+        start_datetime,
+        operator,
+        brand,
+        distance,
+        duration,
+        delay
+    FROM transport_user_train_leg_view
+    WHERE user_id = p_user_id
+    AND (p_search_start IS NULL OR start_datetime >= p_search_start)
+    AND (p_search_end IS NULL OR start_datetime < p_search_end)
+    ORDER BY start_datetime DESC
+)
+WHERE (p_first_row IS NULL OR rownum >= p_first_row)
+AND (
+    (p_rows_to_return IS NULL OR p_first_row IS NULL)
+    OR rownum <= p_first_row + p_rows_to_return
+);
+$$;
+
+CREATE FUNCTION select_transport_user_train_legs_by_user_id_asc (
+    p_user_id INTEGER_NOTNULL,
+    p_rows_to_return INTEGER,
+    p_first_row INTEGER,
+    p_search_start TIMESTAMP WITH TIME ZONE,
+    p_search_end TIMESTAMP WITH TIME ZONE
+)
+RETURNS SETOF transport_user_train_leg_out_data
+LANGUAGE sql
+AS
+$$
+SELECT
+    train_leg_id,
+    board_station,
+    alight_station,
+    start_datetime,
+    operator,
+    brand,
+    distance,
+    duration,
+    delay
+FROM (
+    SELECT
+        ROW_NUMBER() OVER (
+            ORDER BY start_datetime ASC
+        ) AS rownum,
+        train_leg_id,
+        board_station,
+        alight_station,
+        start_datetime,
+        operator,
+        brand,
+        distance,
+        duration,
+        delay
+    FROM transport_user_train_leg_view
+    WHERE user_id = p_user_id
+    AND (p_search_start IS NULL OR start_datetime >= p_search_start)
+    AND (p_search_end IS NULL OR start_datetime < p_search_end)
+    ORDER BY start_datetime ASC
+)
+WHERE (p_first_row IS NULL OR rownum >= p_first_row)
+AND (
+    (p_rows_to_return IS NULL OR p_first_row IS NULL)
+    OR rownum <= p_first_row + p_rows_to_return
+);
 $$;
 
 CREATE FUNCTION select_longest_transport_user_train_legs_by_user_id (

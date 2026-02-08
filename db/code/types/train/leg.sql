@@ -1,27 +1,46 @@
+DROP DOMAIN IF EXISTS train_leg_service_in_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_service_endpoint_in_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_service_call_in_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_associated_service_in_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_service_call_associated_service_in_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_call_call_in_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_call_in_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_stock_segment_in_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_in_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_associated_service_out_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_call_out_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_service_out_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_stock_report_out_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_stock_segment_out_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_out_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_call_point_out_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_call_points_out_data_notnull CASCADE;
+DROP DOMAIN IF EXISTS train_leg_points_out_data_notnull CASCADE;
+
+DROP TYPE IF EXISTS train_leg_count_result CASCADE;
 DROP TYPE IF EXISTS train_leg_service_in_data CASCADE;
 DROP TYPE IF EXISTS train_leg_service_endpoint_in_data CASCADE;
 DROP TYPE IF EXISTS train_leg_service_call_in_data CASCADE;
 DROP TYPE IF EXISTS train_leg_associated_service_in_data CASCADE;
 DROP TYPE IF EXISTS train_leg_service_call_associated_service_in_data CASCADE;
-DROP TYPE IF EXISTS train_leg_service_call_in_data CASCADE;
 DROP TYPE IF EXISTS train_leg_call_call_in_data CASCADE;
 DROP TYPE IF EXISTS train_leg_call_in_data CASCADE;
-DROP TYPE IF EXISTS train_leg_stock_segment_report_in_data CASCADE;
 DROP TYPE IF EXISTS train_leg_stock_segment_in_data CASCADE;
 DROP TYPE IF EXISTS train_leg_in_data CASCADE;
-
 DROP TYPE IF EXISTS train_leg_associated_service_out_data CASCADE;
 DROP TYPE IF EXISTS train_leg_call_out_data CASCADE;
 DROP TYPE IF EXISTS train_leg_service_out_data CASCADE;
 DROP TYPE IF EXISTS train_leg_stock_report_out_data CASCADE;
 DROP TYPE IF EXISTS train_leg_stock_segment_out_data CASCADE;
 DROP TYPE IF EXISTS train_leg_out_data CASCADE;
-
 DROP TYPE IF EXISTS train_leg_call_point_out_data CASCADE;
 DROP TYPE IF EXISTS train_leg_call_points_out_data CASCADE;
 DROP TYPE IF EXISTS train_leg_points_out_data CASCADE;
+DROP TYPE IF EXISTS insert_train_leg_result CASCADE;
 
-DROP TYPE IF EXISTS insert_train_leg_result;
+CREATE TYPE train_leg_count_result AS (
+    count BIGINT_NOTNULL
+);
 
 CREATE TYPE train_leg_service_in_data AS (
     unique_identifier TEXT_NOTNULL,
