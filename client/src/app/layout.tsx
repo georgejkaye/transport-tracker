@@ -7,14 +7,14 @@ import { ReactQueryClientProvider } from "./api/ReactQueryClientProvider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Train Journey Tracker",
-  description: "Keep track of train journeys",
+  title: "Transport tracker",
+  description: "Keep track of public transport journeys",
 }
 
 const TopBar = () => (
   <div className="bg-accent p-4">
     <Link href={"/"}>
-      <h1 className="font-bold text-2xl text-white">Train Journey Tracker</h1>
+      <h1 className="font-bold text-2xl text-white">Transport Tracker</h1>
     </Link>
   </div>
 )
