@@ -457,7 +457,7 @@ FROM (
     AND (p_search_end IS NULL OR start_datetime < p_search_end)
     ORDER BY start_datetime DESC
 )
-WHERE (p_first_row IS NULL OR rownum >= p_first_row)
+WHERE (p_first_row IS NULL OR rownum >= p_first_row + 1)
 AND (
     (p_rows_to_return IS NULL OR p_first_row IS NULL)
     OR rownum <= p_first_row + p_rows_to_return
@@ -505,7 +505,7 @@ FROM (
     AND (p_search_end IS NULL OR start_datetime < p_search_end)
     ORDER BY start_datetime ASC
 )
-WHERE (p_first_row IS NULL OR rownum >= p_first_row)
+WHERE (p_first_row IS NULL OR rownum >= p_first_row + 1)
 AND (
     (p_rows_to_return IS NULL OR p_first_row IS NULL)
     OR rownum <= p_first_row + p_rows_to_return
