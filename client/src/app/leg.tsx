@@ -67,7 +67,7 @@ export const PlanActTime = (props: { plan?: Date; act?: Date }) => {
 
 export const getDelayOrUndefined = (
   plan: Date | undefined,
-  act: Date | undefined
+  act: Date | undefined,
 ) => {
   if (!plan || !act) {
     return { delay: undefined, text: "" }
@@ -79,14 +79,14 @@ export const getDelayStyle = (delay: number | undefined) =>
   delay === undefined
     ? ""
     : delay <= -5
-    ? "#43a047"
-    : delay < 0
-    ? "#66bb6a"
-    : delay === 0
-    ? "#bdbdbd"
-    : delay < 5
-    ? "#ef5350"
-    : "#e53935"
+      ? "#43a047"
+      : delay < 0
+        ? "#66bb6a"
+        : delay === 0
+          ? "#bdbdbd"
+          : delay < 5
+            ? "#ef5350"
+            : "#e53935"
 
 const getDurationString = (origin: Date, destination: Date) => {
   let duration = destination.getTime() - origin.getTime()
@@ -123,17 +123,11 @@ export const Delay = (props: {
   )
 }
 
-export const ShortStationLink = (props: {
-  userId: number
-  station: TrainStation
-}) => {
-  let { userId, station } = props
+export const ShortStationLink = (props: { station: TrainStation }) => {
+  let { station } = props
   return (
     <div className="flex-1 flex-wrap">
-      <Link
-        className={linkStyle}
-        href={`/users/${userId}/train/stations/${station.crs}`}
-      >
+      <Link className={linkStyle} href={`/train/stations/${station.crs}`}>
         {station.name}
       </Link>
     </div>

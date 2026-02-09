@@ -1,7 +1,16 @@
 "use client"
 
+import { FaTrain } from "react-icons/fa6"
+import {
+  AttributionControl,
+  Layer,
+  LineLayer,
+  LngLatBoundsLike,
+  Map,
+  Source,
+  ViewState,
+} from "react-map-gl/maplibre"
 import Link from "next/link"
-import { linkStyle } from "../../styles"
 import client from "@/app/api/client"
 import { isNumber } from "@/app/utils/number"
 import { notFound } from "next/navigation"
@@ -11,11 +20,12 @@ import { getMilesAndChainsString } from "@/app/utils/distance"
 import { getDurationString } from "@/app/utils/duration"
 import { Duration } from "js-joda"
 import { getDelayString } from "@/app/utils/delay"
+import { getLongDateAndTime } from "@/app/utils/datetime"
 import {
-  getLongDate,
-  getLongDateAndTime,
-  getShortDate,
-} from "@/app/utils/datetime"
+  getBoundingBoxForFeatureCollection,
+  getFeatureCollection,
+} from "@/app/utils/map"
+import { useEffect, useState } from "react"
 
 const YearLink = (props: { userId: number; year: number }) => (
   <Link
@@ -40,18 +50,90 @@ const UserHeader = ({ userName, displayName }: UserHeaderProps) => {
   )
 }
 
+interface LegFeedItemMapProps {
+  leg: TransportUserTrainLegOutData
+}
+
+const lineLayer: LineLayer = {
+  id: "line",
+  source: "geometry",
+  type: "line",
+  paint: {
+    "line-width": 5,
+    "line-color": ["get", "color"],
+  },
+  layout: {
+    "line-cap": "round",
+  },
+}
+
+const boundingBoxPadding = 0.1
+
+const LegFeedItemMap = ({ leg }: LegFeedItemMapProps) => {
+  let { data, isLoading, error } = client.useQuery(
+    "get",
+    "/train/legs/geometries/{leg_id}",
+    {
+      params: {
+        path: {
+          leg_id: leg.leg_id,
+        },
+      },
+    },
+  )
+  let featureCollection = data?.geometry
+    ? getFeatureCollection(data?.geometry, "#0c0040")
+    : undefined
+  let bounds = featureCollection
+    ? getBoundingBoxForFeatureCollection(featureCollection)
+    : undefined
+
+  let windowWidth = window.innerWidth
+  let width = windowWidth < 1024 ? "calc(100vw - 60px)" : "1000"
+  let viewState = bounds && {
+    bounds: [
+      bounds.minLng - boundingBoxPadding,
+      bounds.minLat - boundingBoxPadding,
+      bounds.maxLng + boundingBoxPadding,
+      bounds.maxLat + boundingBoxPadding,
+    ],
+  }
+
+  return isLoading ? (
+    <Loader />
+  ) : (
+    <div className="overflow-hidden">
+      {viewState && (
+        <Map
+          attributionControl={false}
+          interactive={false}
+          style={{ height: 400, width }}
+          {...viewState}
+          mapStyle={"https://tiles.openfreemap.org/styles/bright"}
+        >
+          <Source id="lines" type="geojson" data={featureCollection}>
+            <Layer {...lineLayer} />
+          </Source>
+          <AttributionControl compact={true} />
+        </Map>
+      )}
+    </div>
+  )
+}
+
 interface LegFeedItemProps {
   leg: TransportUserTrainLegOutData
 }
 
 const LegFeedItem = ({ leg }: LegFeedItemProps) => {
   return (
-    <div className="shadow-lg p-2">
+    <div className="shadow-lg p-4 flex flex-col gap-2">
       <div className="text-sm text-gray-600">
         {getLongDateAndTime(leg.start_datetime)}
       </div>
-      <div className="font-bold text-lg">
-        <Link href={`/train/leg/${leg.leg_id}`}>
+      <div className="font-bold text-xl flex flex-row gap-2 items-center">
+        <FaTrain />
+        <Link href={`/train/legs/${leg.leg_id}`}>
           {leg.board_station.station_name} to {leg.alight_station.station_name}
         </Link>
       </div>
@@ -67,6 +149,7 @@ const LegFeedItem = ({ leg }: LegFeedItemProps) => {
           <div>{getDelayString(leg.delay)} </div>
         )}
       </div>
+      <LegFeedItemMap leg={leg} />
     </div>
   )
 }
@@ -93,9 +176,7 @@ const LegFeed = ({ userId }: LegFeedProps) => {
         initialPageParam: 0,
       },
     )
-  return isFetching ? (
-    <Loader />
-  ) : (
+  return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         {data?.pages.map((page) => (

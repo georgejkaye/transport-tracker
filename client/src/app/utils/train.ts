@@ -1,5 +1,7 @@
 import { components } from "../api/api"
 
+export type TrainLegOutData = components["schemas"]["TrainLegOutData"]
+
 export type TransportUserTrainLegOutData =
   components["schemas"]["TransportUserTrainLegOutData"]
 

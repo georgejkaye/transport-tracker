@@ -1,8 +1,9 @@
 import { Duration } from "js-joda"
+import { TrainLegOutData, TransportUserTrainLegOutData } from "./utils/train"
 
 export const getSorter = <T>(
   sortFn: (t1: T, t2: T) => number,
-  asc: boolean
+  asc: boolean,
 ) => ({
   sortFn,
   asc,
@@ -275,9 +276,9 @@ const getServiceEndpointString = (stations: TrainStation[]) => {
 
 export const getTrainServiceString = (service: TrainService) =>
   `${service.headcode} ${dateToTimeString(
-    service.serviceStart
+    service.serviceStart,
   )} ${getServiceEndpointString(service.origins)} to ${getServiceEndpointString(
-    service.destinations
+    service.destinations,
   )}`
 
 export interface TrainStockReport {
@@ -294,8 +295,8 @@ export const responseToTrainStockReport = (data: any) => ({
   cars: !data.cars
     ? undefined
     : data.cars["cars"]
-    ? data.cars["cars"]
-    : undefined,
+      ? data.cars["cars"]
+      : undefined,
 })
 
 export interface TrainLegCall {
@@ -393,9 +394,11 @@ export const getLegColour = (leg: TrainLegGeometry) => {
   return service.brand ? service.brand.bg : service.operator.bg
 }
 
-export const getLegOperator = (leg: TrainLeg) => {
+export const getLegOperator = (leg: TrainLegOutData) => {
   const service = leg.services[0]
-  return service.brand ? service.brand.name : service.operator.name
+  return service?.brand
+    ? service?.brand.operator_name
+    : service?.operator.operator_name
 }
 
 export interface LegStat {

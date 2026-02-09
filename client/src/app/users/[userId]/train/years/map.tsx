@@ -72,7 +72,7 @@ export const LegMap = (props: { legs: TrainLegGeometry[] }) => {
     <div className="overflow-hidden rounded-xl">
       <Map
         initialViewState={initialViewState}
-        style={{ height: 800 }}
+        style={{ height: 800, width: 600 }}
         mapStyle={"https://tiles.openfreemap.org/styles/bright"}
       >
         <FullscreenControl position="top-left" />
