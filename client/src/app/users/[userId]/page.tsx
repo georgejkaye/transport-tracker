@@ -7,6 +7,15 @@ import { isNumber } from "@/app/utils/number"
 import { notFound } from "next/navigation"
 import { Loader } from "@/app/loader"
 import { TransportUserTrainLegOutData } from "@/app/utils/train"
+import { getMilesAndChainsString } from "@/app/utils/distance"
+import { getDurationString } from "@/app/utils/duration"
+import { Duration } from "js-joda"
+import { getDelayString } from "@/app/utils/delay"
+import {
+  getLongDate,
+  getLongDateAndTime,
+  getShortDate,
+} from "@/app/utils/datetime"
 
 const YearLink = (props: { userId: number; year: number }) => (
   <Link
@@ -37,8 +46,27 @@ interface LegFeedItemProps {
 
 const LegFeedItem = ({ leg }: LegFeedItemProps) => {
   return (
-    <div>
-      {leg.board_station.station_name} to {leg.alight_station.station_name}
+    <div className="shadow-lg p-2">
+      <div className="text-sm text-gray-600">
+        {getLongDateAndTime(leg.start_datetime)}
+      </div>
+      <div className="font-bold text-lg">
+        <Link href={`/train/leg/${leg.leg_id}`}>
+          {leg.board_station.station_name} to {leg.alight_station.station_name}
+        </Link>
+      </div>
+      <div className="flex flex-row gap-4">
+        <div>{leg.operator.operator_code}</div>
+        <div>
+          {leg.distance && getMilesAndChainsString(parseFloat(leg.distance))}
+        </div>
+        <div>
+          {leg.duration && getDurationString(Duration.parse(leg.duration))}{" "}
+        </div>
+        {leg.delay !== null && leg.delay !== 0 && (
+          <div>{getDelayString(leg.delay)} </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -68,8 +96,8 @@ const LegFeed = ({ userId }: LegFeedProps) => {
   return isFetching ? (
     <Loader />
   ) : (
-    <div>
-      <div>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
         {data?.pages.map((page) => (
           <>
             {page.items.map((leg) => (
@@ -106,7 +134,7 @@ const Content = ({ userId }: ContentProps) => {
   return isLoadingUser || user == undefined ? (
     <Loader />
   ) : (
-    <div>
+    <div className="flex flex-col gap-4">
       <UserHeader userName={user.user_name} displayName={user.display_name} />
       <LegFeed userId={user.user_id} />
     </div>
