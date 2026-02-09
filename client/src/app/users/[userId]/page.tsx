@@ -6,6 +6,7 @@ import client from "@/app/api/client"
 import { isNumber } from "@/app/utils/number"
 import { notFound } from "next/navigation"
 import { Loader } from "@/app/loader"
+import { TransportUserTrainLegOutData } from "@/app/utils/train"
 
 const YearLink = (props: { userId: number; year: number }) => (
   <Link
@@ -30,22 +31,60 @@ const UserHeader = ({ userName, displayName }: UserHeaderProps) => {
   )
 }
 
+interface LegFeedItemProps {
+  leg: TransportUserTrainLegOutData
+}
+
+const LegFeedItem = ({ leg }: LegFeedItemProps) => {
+  return (
+    <div>
+      {leg.board_station.station_name} to {leg.alight_station.station_name}
+    </div>
+  )
+}
+
 interface LegFeedProps {
   userId: number
 }
 
 const LegFeed = ({ userId }: LegFeedProps) => {
-  const {
-    data: legs,
-    error,
-    isLoading: isLoadingLegs,
-  } = client.useQuery("get", "/users/{user_id}/train/legs", {
-    params: {
-      path: {
-        user_id: userId,
+  const { data, fetchNextPage, hasNextPage, isFetching } =
+    client.useInfiniteQuery(
+      "get",
+      "/users/{user_id}/train/legs",
+      {
+        params: {
+          path: {
+            user_id: userId,
+          },
+        },
       },
-    },
-  })
+      {
+        pageParamName: "page_no",
+        getNextPageParam: (lastPage) => `${lastPage.current_page + 1}`,
+        initialPageParam: 0,
+      },
+    )
+  return isFetching ? (
+    <Loader />
+  ) : (
+    <div>
+      <div>
+        {data?.pages.map((page) => (
+          <>
+            {page.items.map((leg) => (
+              <LegFeedItem leg={leg} key={leg.leg_id} />
+            ))}
+          </>
+        ))}
+      </div>
+      {hasNextPage && (
+        <button onClick={() => fetchNextPage()} disabled={isFetching}>
+          {isFetching ? "Loading..." : "Load more"}
+        </button>
+      )}
+    </div>
+  )
 }
 
 interface ContentProps {
