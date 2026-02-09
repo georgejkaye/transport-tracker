@@ -1556,8 +1556,8 @@ BEGIN
     INTO
         v_user_name,
         v_display_name
-    FROM
-        transport_user;
+    FROM transport_user
+    WHERE user_id = p_user_id;
 
     v_train_stats :=
         select_transport_user_train_stats_by_user_id(p_user_id);
