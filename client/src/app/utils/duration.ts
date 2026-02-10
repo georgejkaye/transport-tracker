@@ -1,6 +1,9 @@
 import { Duration } from "js-joda"
 
-export const getDurationString = (duration: Duration) => {
+export const getDurationStringFromString = (duration: string) =>
+  getDurationStringFromDuration(Duration.parse(duration))
+
+export const getDurationStringFromDuration = (duration: Duration) => {
   let days = Math.floor(duration.toDays())
   let hours = Math.floor(duration.toHours()) % 24
   let minutes = Math.round(duration.toMinutes()) % 60

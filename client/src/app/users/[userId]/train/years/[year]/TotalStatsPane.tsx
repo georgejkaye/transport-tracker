@@ -1,6 +1,6 @@
 import { getDelayString } from "@/app/utils/delay"
-import { getMilesAndChainsString } from "@/app/utils/distance"
-import { getDurationString } from "@/app/utils/duration"
+import { getMilesAndChainsStringFromNumber } from "@/app/utils/distance"
+import { getDurationStringFromString } from "@/app/utils/duration"
 import { Duration } from "js-joda"
 
 interface TotalStatBoxProps {
@@ -41,13 +41,15 @@ export const TotalStatsPane = ({
           <TotalStatBox title="Count" value={count} />
           <TotalStatBox
             title="Distance"
-            value={getMilesAndChainsString(Number(totalDistance ?? 0))}
+            value={getMilesAndChainsStringFromNumber(
+              Number(totalDistance ?? 0),
+            )}
           />
         </div>
         <div className="w-full grow flex flex-row gap-4">
           <TotalStatBox
             title="Duration"
-            value={getDurationString(Duration.parse(totalDuration))}
+            value={getDurationStringFromString(totalDuration)}
           />
           <TotalStatBox title="Delay" value={getDelayString(totalDelay)} />
         </div>

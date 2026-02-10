@@ -3,7 +3,10 @@ const mileageToMilesAndChains = (miles: number) => ({
   chains: (miles * 80) % 80,
 })
 
-export const getMilesAndChainsString = (mileage: number) => {
+export const getMilesAndChainsStringFromString = (mileage: string) =>
+  getMilesAndChainsStringFromNumber(Number(mileage))
+
+export const getMilesAndChainsStringFromNumber = (mileage: number) => {
   let { miles, chains } = mileageToMilesAndChains(mileage)
   return `${miles}m ${Math.round(chains)}ch`
 }

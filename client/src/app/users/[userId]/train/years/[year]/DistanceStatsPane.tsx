@@ -1,5 +1,5 @@
 import { LegRankingGadget } from "@/app/components/dashboard/RankingGadget"
-import { getMilesAndChainsString } from "@/app/utils/distance"
+import { getMilesAndChainsStringFromNumber } from "@/app/utils/distance"
 import { TransportUserTrainLegOutData } from "@/app/utils/train"
 
 interface DistanceStatsPaneProps {
@@ -18,13 +18,17 @@ export const DistanceStatsPane = ({
           legs={longestDistanceLegs}
           title="Longest by distance"
           colour="#166534"
-          getStatValue={(leg) => getMilesAndChainsString(Number(leg.distance))}
+          getStatValue={(leg) =>
+            getMilesAndChainsStringFromNumber(Number(leg.distance))
+          }
         />
         <LegRankingGadget
           legs={shortestDistanceLegs}
           title="Shortest by distance"
           colour="#166534"
-          getStatValue={(leg) => getMilesAndChainsString(Number(leg.distance))}
+          getStatValue={(leg) =>
+            getMilesAndChainsStringFromNumber(Number(leg.distance))
+          }
         />
       </div>
     </div>
