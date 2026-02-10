@@ -5,10 +5,8 @@ import {
   AttributionControl,
   Layer,
   LineLayer,
-  LngLatBoundsLike,
   Map,
   Source,
-  ViewState,
 } from "react-map-gl/maplibre"
 import Link from "next/link"
 import client from "@/app/api/client"
@@ -25,7 +23,6 @@ import {
   getBoundingBoxForFeatureCollection,
   getFeatureCollection,
 } from "@/app/utils/map"
-import { useEffect, useState } from "react"
 
 const YearLink = (props: { userId: number; year: number }) => (
   <Link
@@ -54,25 +51,29 @@ const UserHeader = ({ userId, userName, displayName }: UserHeaderProps) => {
         <h1 className="text-3xl font-bold">{displayName}</h1>
         <div>@{userName}</div>
       </div>
-      <div className="flex flex-row gap-4 items-center">
-        <FaTrain />
-        <div>{data?.train_stats.leg_stats_overall?.count}</div>
-        <div>
-          {getMilesAndChainsString(
-            Number(data?.train_stats.leg_stats_overall?.total_distance),
-          )}
-        </div>
-        {data?.train_stats.leg_stats_overall?.total_duration && (
+      <div className="flex flex-col md:flex-row gap-4 items-left">
+        <div className="flex flex-row gap-4 items-center">
+          <FaTrain />
+          <div>{data?.train_stats.leg_stats_overall?.count}</div>
           <div>
-            {getDurationString(
-              Duration.parse(
-                data?.train_stats.leg_stats_overall?.total_duration,
-              ),
+            {getMilesAndChainsString(
+              Number(data?.train_stats.leg_stats_overall?.total_distance),
             )}
           </div>
-        )}
-        <FaBusSimple />
-        <div>-</div>
+          {data?.train_stats.leg_stats_overall?.total_duration && (
+            <div>
+              {getDurationString(
+                Duration.parse(
+                  data?.train_stats.leg_stats_overall?.total_duration,
+                ),
+              )}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-row gap-4 items-center">
+          <FaBusSimple />
+          <div>-</div>
+        </div>
       </div>
     </div>
   )
