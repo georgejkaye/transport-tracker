@@ -1,6 +1,6 @@
 "use client"
 
-import { FaTrain } from "react-icons/fa6"
+import { FaBusSimple, FaTrain } from "react-icons/fa6"
 import {
   AttributionControl,
   Layer,
@@ -37,15 +37,43 @@ const YearLink = (props: { userId: number; year: number }) => (
 )
 
 interface UserHeaderProps {
+  userId: number
   userName: string
   displayName: string
 }
 
-const UserHeader = ({ userName, displayName }: UserHeaderProps) => {
+const UserHeader = ({ userId, userName, displayName }: UserHeaderProps) => {
+  const { data, isLoading, error } = client.useQuery(
+    "get",
+    "/users/{user_id}",
+    { params: { path: { user_id: userId } } },
+  )
   return (
-    <div className="flex flex-col gap-1">
-      <h1 className="text-3xl font-bold">{displayName}</h1>
-      <div>@{userName}</div>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-bold">{displayName}</h1>
+        <div>@{userName}</div>
+      </div>
+      <div className="flex flex-row gap-4 items-center">
+        <FaTrain />
+        <div>{data?.train_stats.leg_stats_overall?.count}</div>
+        <div>
+          {getMilesAndChainsString(
+            Number(data?.train_stats.leg_stats_overall?.total_distance),
+          )}
+        </div>
+        {data?.train_stats.leg_stats_overall?.total_duration && (
+          <div>
+            {getDurationString(
+              Duration.parse(
+                data?.train_stats.leg_stats_overall?.total_duration,
+              ),
+            )}
+          </div>
+        )}
+        <FaBusSimple />
+        <div>-</div>
+      </div>
     </div>
   )
 }
@@ -133,9 +161,7 @@ const LegFeedItem = ({ leg }: LegFeedItemProps) => {
       </div>
       <div className="font-bold text-xl flex flex-row gap-2 items-center">
         <FaTrain />
-        <Link href={`/train/legs/${leg.leg_id}`}>
-          {leg.board_station.station_name} to {leg.alight_station.station_name}
-        </Link>
+        {leg.board_station.station_name} to {leg.alight_station.station_name}
       </div>
       <div className="flex flex-row gap-4">
         <div>{leg.operator.operator_code}</div>
@@ -216,7 +242,11 @@ const Content = ({ userId }: ContentProps) => {
     <Loader />
   ) : (
     <div className="flex flex-col gap-4">
-      <UserHeader userName={user.user_name} displayName={user.display_name} />
+      <UserHeader
+        userId={user.user_id}
+        userName={user.user_name}
+        displayName={user.display_name}
+      />
       <LegFeed userId={user.user_id} />
     </div>
   )
