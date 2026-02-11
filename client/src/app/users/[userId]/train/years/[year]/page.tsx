@@ -1,8 +1,8 @@
 "use client"
 
 import { Loader } from "@/app/loader"
-import { LegMap } from "../map"
-import { notFound } from "next/navigation"
+import { use } from "react"
+import { notFound, useRouter } from "next/navigation"
 import client from "@/app/api/client"
 import { isNumber } from "@/app/utils/number"
 import TotalStatsPane from "./TotalStatsPane"
@@ -19,33 +19,20 @@ interface ContentProps {
 }
 
 const Content = ({ userId, year }: ContentProps) => {
-  const {
-    data: stats,
-    error,
-    isLoading: isLoadingStats,
-  } = client.useQuery("get", "/users/{user_id}/train/stats/years/{year}", {
-    params: {
-      path: {
-        user_id: userId,
-        year: year,
-      },
-    },
-  })
-  const {
-    data: geometries,
-    error: geometriesError,
-    isLoading: isLoadingGeometries,
-  } = client.useQuery(
+  let router = useRouter()
+  const { data: stats, isLoading: isLoadingStats } = client.useQuery(
     "get",
-    "/users/{user_id}/train/legs/geometries/years/{year}",
+    "/users/{user_id}/train/stats/years/{year}",
     {
-      params: {
-        path: {
-          user_id: userId,
-          year: year,
-        },
-      },
-    }
+      params: { path: { user_id: userId, year } },
+    },
+  )
+  const { data: legs, isLoading: isLoadingLegs } = client.useQuery(
+    "get",
+    "/users/{user_id}/train/legs/years/{year}",
+    {
+      params: { path: { user_id: userId, year } },
+    },
   )
   return (
     <div className="flex flex-col gap-4">
@@ -78,19 +65,14 @@ const Content = ({ userId, year }: ContentProps) => {
           <OperatorStatsPane topOperators={stats.top_operators} />
           <ClassStatsPane topClasses={stats.top_classes} />
           <UnitStatsPane topUnits={stats.top_units} />
-          {isLoadingGeometries || !geometries ? (
-            <Loader />
-          ) : (
-            <LegMap legs={geometries} />
-          )}
         </div>
       )}
     </div>
   )
 }
 
-const Page = ({ params }: { params: { userId: string; year: string } }) => {
-  let { userId, year } = params
+const Page = (props: { params: Promise<{ userId: string; year: string }> }) => {
+  let { userId, year } = use(props.params)
   return !isNumber(userId) || !isNumber(year) ? (
     notFound()
   ) : (

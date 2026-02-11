@@ -1,4 +1,5 @@
 "use client"
+import { use } from "react"
 
 import Link from "next/link"
 import client from "@/app/api/client"
@@ -46,8 +47,8 @@ const Content = ({ userId }: ContentProps) => {
   )
 }
 
-const Page = ({ params }: { params: { userId: string } }) => {
-  let { userId } = params
+const Page = (props: { params: Promise<{ userId: string }> }) => {
+  let { userId } = use(props.params)
   return !isNumber(userId) ? notFound() : <Content userId={Number(userId)} />
 }
 

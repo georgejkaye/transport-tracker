@@ -2,8 +2,7 @@
 
 import bbox from "@turf/bbox"
 import Link from "next/link"
-import { notFound, useRouter } from "next/navigation"
-import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react"
+import { Dispatch, SetStateAction, useMemo, useState, use } from "react"
 import {
   Layer,
   LineLayer,
@@ -20,7 +19,6 @@ import {
 import { FeatureCollection, Position } from "geojson"
 
 import {
-  dateToLongString,
   dateToTimeString,
   getDurationString,
   getLegColour,
@@ -47,6 +45,8 @@ import { isNumber } from "@/app/utils/number"
 import client from "@/app/api/client"
 import { getLongDate } from "@/app/utils/datetime"
 import { TrainLegOutData } from "@/app/utils/train"
+import { notFound, useRouter } from "next/navigation"
+import { getFeatureCollection } from "@/app/utils/map"
 
 const getLineLayer = (leg: TrainLeg): LineLayer => ({
   id: "line",
@@ -74,21 +74,6 @@ const getLineFeatureCollection = (geometry: Position[]): FeatureCollection => ({
     },
   ],
 })
-
-const getLineAndBoundingBox = (leg: TrainLegOutData) => {
-  if (!leg.geometry) {
-    return undefined
-  }
-  let line = getLineFeatureCollection(leg.geometry)
-  let [minLng, minLat, maxLng, maxLat] = bbox(line)
-  return {
-    line,
-    minLng,
-    minLat,
-    maxLng,
-    maxLat,
-  }
-}
 
 const gbMidpointLng = -2.547855
 const gbMidpointLat = 54.00366
@@ -229,6 +214,7 @@ const TrainLegMap = (props: { leg: TrainLegOutData }) => {
   const [currentStation, setCurrentStation] = useState<
     TrainLegCall | undefined
   >(undefined)
+  let featureCollection = getFeatureCollection(leg)
   let data = getLineAndBoundingBox(leg)
   let layerStyle = getLineLayer(leg)
   let initialViewState: Partial<ViewState> & { bounds?: LngLatBoundsLike } =
@@ -446,14 +432,15 @@ interface ContentProps {
 }
 
 const Content = ({ legId }: ContentProps) => {
+  let router = useRouter()
   const {
     data: leg,
-    isLoading,
     error,
+    isLoading,
   } = client.useQuery("get", "/train/legs/{leg_id}", {
     params: { path: { leg_id: legId } },
   })
-  return isLoading || !leg ? (
+  return !leg ? (
     <Loader />
   ) : (
     <div className="flex flex-col gap-4 mx-4 my-2">
@@ -485,8 +472,10 @@ const Content = ({ legId }: ContentProps) => {
   )
 }
 
-const Page = ({ params }: { params: { legId: string } }) => {
-  let { legId } = params
+const Page = (props: {
+  params: Promise<{ userId: string; legId: string }>
+}) => {
+  let { legId } = use(props.params)
   return !isNumber(legId) ? notFound() : <Content legId={Number(legId)} />
 }
 

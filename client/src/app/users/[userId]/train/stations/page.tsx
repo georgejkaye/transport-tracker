@@ -7,7 +7,7 @@ import { TrainStationData } from "@/app/structs"
 import { linkStyle } from "@/app/styles"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, use } from "react";
 
 const StationCallStat = (props: { name: string; stat: number }) => {
   let { name, stat } = props
@@ -39,7 +39,8 @@ const StationRow = (props: { userId: number; station: TrainStationData }) => {
   )
 }
 
-const Page = ({ params }: { params: { userId: string } }) => {
+const Page = (props: { params: Promise<{ userId: string }> }) => {
+  const params = use(props.params);
   let [stations, setStations] = useState<TrainStationData[] | undefined>(
     undefined
   )
