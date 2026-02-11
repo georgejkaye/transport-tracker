@@ -13,7 +13,7 @@ import {
   TrainStationLegData,
 } from "@/app/structs"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, use } from "react";
 import { Delay, delayWidth, LegIconLink, PlanActTime } from "@/app/leg"
 import { linkStyle } from "@/app/styles"
 import Link from "next/link"
@@ -236,7 +236,8 @@ const StationLegs = (props: {
   )
 }
 
-const Page = ({ params }: { params: { userId: string; crs: string } }) => {
+const Page = (props: { params: Promise<{ userId: string; crs: string }> }) => {
+  const params = use(props.params);
   let { userId, crs } = params
   let router = useRouter()
   let [station, setStation] = useState<TrainStationData | undefined>(undefined)
