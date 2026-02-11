@@ -4,7 +4,7 @@ import { getTrainLeg } from "@/app/data"
 import bbox from "@turf/bbox"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react"
+import { Dispatch, SetStateAction, useEffect, useMemo, useState, use } from "react";
 import {
   Layer,
   LineLayer,
@@ -452,7 +452,8 @@ const TrainLegStockSegments = (props: {
   )
 }
 
-const Page = ({ params }: { params: { userId: string; legId: string } }) => {
+const Page = (props: { params: Promise<{ userId: string; legId: string }> }) => {
+  const params = use(props.params);
   let { userId, legId } = params
   let userIdNumber = parseInt(userId)
   let legIdNumber = parseInt(legId)

@@ -3,11 +3,12 @@
 import { getLegsForYear } from "@/app/data"
 import { Loader } from "@/app/loader"
 import { TrainLeg } from "@/app/structs"
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react";
 import { TotalLegStats, LegList, LegMap } from "../../core"
 import { useRouter } from "next/navigation"
 
-const Page = ({ params }: { params: { userId: string; year: string } }) => {
+const Page = (props: { params: Promise<{ userId: string; year: string }> }) => {
+  const params = use(props.params);
   let { userId, year } = params
   let userIdNumber = parseInt(userId)
   let yearNumber = parseInt(year)

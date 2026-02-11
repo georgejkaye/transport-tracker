@@ -1,4 +1,5 @@
-"use client"
+"use client";
+import { use } from "react";
 
 import Link from "next/link"
 import { linkStyle } from "../../styles"
@@ -12,7 +13,8 @@ const YearLink = (props: { userId: number; year: number }) => (
   </Link>
 )
 
-const Page = ({ params }: { params: { userId: string } }) => {
+const Page = (props: { params: Promise<{ userId: string }> }) => {
+  const params = use(props.params);
   const { userId } = params
   const userIdNumber = parseInt(userId)
   return (
