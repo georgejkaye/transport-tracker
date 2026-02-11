@@ -49,10 +49,14 @@ interface StatsTableProps {
   shortestLegDurationText: string
   totalDistance: string
   longestLegDistance: string
+  longestLegDistanceText: string
   shortestLegDistance: string
+  shortestLegDistanceText: string
   totalDelay: number
   longestLegDelay: number
+  longestLegDelayText: string
   shortestLegDelay: number
+  shortestLegDelayText: string
   stationCount: number
   newStationCount?: number
   mostVisitedStationCount: number
@@ -64,6 +68,12 @@ interface StatsTableProps {
   operatorCount: number
   mostUsedOperatorCount: number
   mostUsedOperator: string
+  mostOperatorDistance: string
+  mostOperatorDistanceName: string
+  mostOperatorDuration: string
+  mostOperatorDurationName: string
+  mostOperatorDelay: number
+  mostOperatorDelayName: string
 }
 
 const StatsTable = ({
@@ -75,10 +85,14 @@ const StatsTable = ({
   shortestLegDurationText,
   totalDistance,
   longestLegDistance,
+  longestLegDistanceText,
   shortestLegDistance,
+  shortestLegDistanceText,
   totalDelay,
   longestLegDelay,
+  longestLegDelayText,
   shortestLegDelay,
+  shortestLegDelayText,
   stationCount,
   newStationCount,
   mostVisitedStationCount,
@@ -90,6 +104,12 @@ const StatsTable = ({
   operatorCount,
   mostUsedOperatorCount,
   mostUsedOperator,
+  mostOperatorDistance,
+  mostOperatorDistanceName,
+  mostOperatorDuration,
+  mostOperatorDurationName,
+  mostOperatorDelay,
+  mostOperatorDelayName,
 }: StatsTableProps) => {
   return (
     <div className="flex flex-col gap-4">
@@ -111,20 +131,30 @@ const StatsTable = ({
           text={shortestLegDurationText}
         />
         <StatsRow
-          label="Distance"
+          label="Total distance"
           value={getMilesAndChainsStringFromString(totalDistance)}
         />
-        <StatsRow
-          label="(Longest)"
+        <StatsRowWithText
+          label="Longest distance"
           value={getMilesAndChainsStringFromString(longestLegDistance)}
+          text={longestLegDistanceText}
         />
-        <StatsRow
-          label="(Shortest)"
+        <StatsRowWithText
+          label="Shortest distance"
           value={getMilesAndChainsStringFromString(shortestLegDistance)}
+          text={shortestLegDistanceText}
         />
-        <StatsRow label="Delay" value={getDelayString(totalDelay)} />
-        <StatsRow label="(Longest)" value={getDelayString(longestLegDelay)} />
-        <StatsRow label="(Shortest)" value={getDelayString(shortestLegDelay)} />
+        <StatsRow label="Total delay" value={getDelayString(totalDelay)} />
+        <StatsRowWithText
+          label="Longest"
+          value={getDelayString(longestLegDelay)}
+          text={longestLegDelayText}
+        />
+        <StatsRowWithText
+          label="Shortest"
+          value={getDelayString(shortestLegDelay)}
+          text={shortestLegDelayText}
+        />
       </div>
       <StatsTableSubheader title="Stations" />
       <div className="flex flex-col gap-2">
@@ -153,6 +183,21 @@ const StatsTable = ({
           value={mostUsedOperatorCount}
           text={mostUsedOperator}
         />
+        <StatsRowWithText
+          label="Most duration"
+          value={getDurationStringFromString(mostOperatorDuration)}
+          text={mostOperatorDurationName}
+        />
+        <StatsRowWithText
+          label="Most distance"
+          value={getMilesAndChainsStringFromString(mostOperatorDistance)}
+          text={mostOperatorDistanceName}
+        />
+        <StatsRowWithText
+          label="Most delay"
+          value={getDelayString(mostOperatorDelay)}
+          text={mostOperatorDelayName}
+        />
       </div>
     </div>
   )
@@ -169,10 +214,14 @@ const OverallStatsTable = ({
   shortestLegDurationText,
   totalDistance,
   longestLegDistance,
+  longestLegDistanceText,
   shortestLegDistance,
+  shortestLegDistanceText,
   totalDelay,
   longestLegDelay,
+  longestLegDelayText,
   shortestLegDelay,
+  shortestLegDelayText,
   stationCount,
   mostVisitedStationCount,
   mostVisitedStationName,
@@ -183,10 +232,16 @@ const OverallStatsTable = ({
   operatorCount,
   mostUsedOperatorCount,
   mostUsedOperator,
+  mostOperatorDistance,
+  mostOperatorDistanceName,
+  mostOperatorDuration,
+  mostOperatorDurationName,
+  mostOperatorDelay,
+  mostOperatorDelayName,
 }: OverallStatsTableProps) => {
   return (
     <div className="flex flex-col gap-4">
-      <div className="font-bold text-lg">Overall</div>
+      <div className="font-bold text-xl">Overall</div>
       <StatsTable
         legCount={legCount}
         totalDuration={totalDuration}
@@ -196,10 +251,14 @@ const OverallStatsTable = ({
         shortestLegDurationText={shortestLegDurationText}
         totalDistance={totalDistance}
         longestLegDistance={longestLegDistance}
+        longestLegDistanceText={longestLegDistanceText}
         shortestLegDistance={shortestLegDistance}
+        shortestLegDistanceText={shortestLegDistanceText}
         totalDelay={totalDelay}
         longestLegDelay={longestLegDelay}
+        longestLegDelayText={longestLegDelayText}
         shortestLegDelay={shortestLegDelay}
+        shortestLegDelayText={shortestLegDelayText}
         stationCount={stationCount}
         mostVisitedStationCount={mostVisitedStationCount}
         mostVisitedStationName={mostVisitedStationName}
@@ -210,6 +269,12 @@ const OverallStatsTable = ({
         operatorCount={operatorCount}
         mostUsedOperatorCount={mostUsedOperatorCount}
         mostUsedOperator={mostUsedOperator}
+        mostOperatorDistance={mostOperatorDistance}
+        mostOperatorDistanceName={mostOperatorDistanceName}
+        mostOperatorDuration={mostOperatorDuration}
+        mostOperatorDurationName={mostOperatorDurationName}
+        mostOperatorDelay={mostOperatorDelay}
+        mostOperatorDelayName={mostOperatorDelayName}
       />
     </div>
   )
@@ -243,15 +308,27 @@ const StatsPane = ({ trainStats }: StatsPaneProps) => {
         longestLegDistance={
           trainStats.leg_stats_overall?.longest_distance?.value ?? ""
         }
+        longestLegDistanceText={
+          trainStats.leg_stats_overall?.longest_distance?.text ?? ""
+        }
         shortestLegDistance={
           trainStats.leg_stats_overall?.shortest_distance?.value ?? ""
+        }
+        shortestLegDistanceText={
+          trainStats.leg_stats_overall?.shortest_distance?.text ?? ""
         }
         totalDelay={trainStats.leg_stats_overall?.total_delay ?? 0}
         longestLegDelay={
           trainStats.leg_stats_overall?.longest_delay?.value ?? 0
         }
+        longestLegDelayText={
+          trainStats.leg_stats_overall?.longest_delay?.text ?? ""
+        }
         shortestLegDelay={
           trainStats.leg_stats_overall?.shortest_delay?.value ?? 0
+        }
+        shortestLegDelayText={
+          trainStats.leg_stats_overall?.shortest_delay?.text ?? ""
         }
         stationCount={trainStats.station_stats_overall?.station_count ?? 0}
         mostVisitedStationCount={
@@ -280,6 +357,27 @@ const StatsPane = ({ trainStats }: StatsPaneProps) => {
         }
         mostUsedOperator={
           trainStats.operator_stats_overall?.greatest_count
+            ?.operator_or_brand_name ?? ""
+        }
+        mostOperatorDuration={
+          trainStats.operator_stats_overall?.longest_duration?.value ?? ""
+        }
+        mostOperatorDurationName={
+          trainStats.operator_stats_overall?.longest_duration
+            ?.operator_or_brand_name ?? ""
+        }
+        mostOperatorDistance={
+          trainStats.operator_stats_overall?.longest_distance?.value ?? ""
+        }
+        mostOperatorDistanceName={
+          trainStats.operator_stats_overall?.longest_distance
+            ?.operator_or_brand_name ?? ""
+        }
+        mostOperatorDelay={
+          trainStats.operator_stats_overall?.longest_delay?.value ?? 0
+        }
+        mostOperatorDelayName={
+          trainStats.operator_stats_overall?.longest_delay
             ?.operator_or_brand_name ?? ""
         }
       />
