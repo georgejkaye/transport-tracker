@@ -18,6 +18,7 @@ import {
   getFeatureCollection,
 } from "@/app/utils/map"
 import { Loader } from "@/app/loader"
+import { Fragment } from "react"
 
 interface LegFeedItemMapProps {
   leg: TransportUserTrainLegOutData
@@ -146,11 +147,11 @@ const LegFeed = ({ userId }: LegFeedProps) => {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         {data?.pages.map((page) => (
-          <>
+          <Fragment key={page.current_page}>
             {page.items.map((leg) => (
               <LegFeedItem leg={leg} key={leg.leg_id} />
             ))}
-          </>
+          </Fragment>
         ))}
       </div>
       {hasNextPage && (
