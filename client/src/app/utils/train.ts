@@ -16,3 +16,12 @@ export type TransportUserTrainUnitHighOutData =
 
 export type TransportUserDetailsTrainYearOutData =
   components["schemas"]["TransportUserDetailsTrainYearOutData"]
+
+export type TransportUserDetailsTrainLegYearOutData =
+  components["schemas"]["TransportUserDetailsTrainLegYearOutData"]
+
+export type TransportUserDetailsTrainStationYearOutData =
+  components["schemas"]["TransportUserDetailsTrainStationYearOutData"]
+
+export type TransportUserTrainOperatorYearStats =
+  components["schemas"]["TransportUserTrainOperatorYearStats"]
