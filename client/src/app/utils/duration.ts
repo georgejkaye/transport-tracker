@@ -10,3 +10,11 @@ export const getDurationStringFromDuration = (duration: Duration) => {
   let dayString = days ? `${days}d ` : ""
   return `${dayString}${hours}h ${minutes}m`
 }
+
+export const getDurationStringFromMinutes = (minutes: number) => {
+  let dayCount = Math.floor(minutes / 1440)
+  let hourCount = Math.floor(minutes / 60) % 24
+  let minuteCount = minutes % 60
+  let dayString = dayCount ? `${dayCount}d ` : ""
+  return `${dayString}${hourCount}h ${minuteCount}m`
+}
