@@ -17,7 +17,7 @@ const UserHeader = ({ trainStats, userName, displayName }: UserHeaderProps) => {
         <div>@{userName}</div>
       </div>
       <div className="flex flex-col md:flex-row gap-4 items-left">
-        <div className="flex flex-row gap-4 items-center">
+        <div className="flex flex-row gap-4 items-center p-4 shadow-lg">
           <FaTrain />
           <div>{trainStats.leg_stats_overall?.count}</div>
           <div>
@@ -33,7 +33,7 @@ const UserHeader = ({ trainStats, userName, displayName }: UserHeaderProps) => {
             </div>
           )}
         </div>
-        <div className="flex flex-row gap-4 items-center">
+        <div className="flex flex-row gap-4 items-center p-4 shadow-lg">
           <FaBusSimple />
           <div>-</div>
         </div>
