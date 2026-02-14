@@ -35,7 +35,7 @@ const YearGraph = ({
   )
   let yData = sortedData.map((datum) => datum.value)
   return (
-    <div className="w-1/3 p-4 shadow-lg" style={{ height: "300px" }}>
+    <div className="flex-1 p-4 shadow-lg" style={{ height: "300px" }}>
       <h2 className="font-bold text-lg">{title}</h2>
       <LineChart
         series={[
@@ -83,7 +83,7 @@ const StatsGraphs = ({
     value: Duration.parse(yearData.total_duration).toMinutes(),
   }))
   return (
-    <div className="flex flex-row">
+    <div className="flex flex-col md:flex-row">
       <YearGraph
         data={legCountData}
         title="Count"
