@@ -288,7 +288,7 @@ interface StatsPaneProps {
 
 const StatsPane = ({ trainStats }: StatsPaneProps) => {
   return (
-    <div className="flex flex-col p-4">
+    <div className="flex flex-col p-4 shadow-lg">
       <OverallStatsTable
         legCount={trainStats.leg_stats_overall?.count ?? 0}
         totalDuration={trainStats.leg_stats_overall?.total_duration ?? ""}
