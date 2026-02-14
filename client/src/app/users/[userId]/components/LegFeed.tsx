@@ -30,7 +30,7 @@ const lineLayer: LineLayer = {
   type: "line",
   paint: {
     "line-width": 5,
-    "line-color": ["get", "color"],
+    "line-color": "#003366",
   },
   layout: {
     "line-cap": "round",
