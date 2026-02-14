@@ -9,6 +9,7 @@ import { Loader } from "@/app/loader"
 import UserHeader from "./components/UserHeader"
 import LegFeed from "./components/LegFeed"
 import StatsPane from "./components/StatsPane"
+import StatsGraphs from "./train/years/[year]/StatsGraphs"
 
 interface ContentProps {
   userId: number
@@ -35,7 +36,12 @@ const Content = ({ userId }: ContentProps) => {
         userName={user.user_name}
         displayName={user.display_name}
       />
-      <div className="flex flex-row">
+      <StatsGraphs
+        trainLegStats={user.train_stats.leg_stats_yearly}
+        trainOperatorStats={user.train_stats.operator_stats_yearly}
+        trainStationStats={user.train_stats.station_stats_yearly}
+      />
+      <div className="flex flex-row gap-4">
         <div className="flex-1">
           <LegFeed userId={user.user_id} />
         </div>
