@@ -23,8 +23,8 @@ interface YearGraphProps {
   title: string
   data: YearTaggedDatum[]
   style: YearTaggedSeriesStyle[]
-  popupFormatter: (value: number) => string
-  axisFormatter: (value: number) => string
+  tooltipFormatter?: (value: number) => string
+  axisFormatter?: (value: number) => string
   yAxisWidth: number
 }
 
@@ -32,7 +32,7 @@ const YearGraph = ({
   title,
   data,
   style,
-  popupFormatter,
+  tooltipFormatter,
   axisFormatter,
   yAxisWidth,
 }: YearGraphProps) => {
@@ -54,7 +54,8 @@ const YearGraph = ({
         series={yData.map((series, i) => ({
           data: series,
           id: style[i]?.name ?? `${title}-${i}`,
-          valueFormatter: (x) => (!x ? "" : popupFormatter(x)),
+          valueFormatter: (x) =>
+            !x ? "" : !tooltipFormatter ? `${x}` : tooltipFormatter(x),
           label: style[i]?.name,
           color: "#003366",
         }))}
@@ -62,7 +63,9 @@ const YearGraph = ({
         yAxis={[
           {
             id: "leftAxisId",
-            valueFormatter: axisFormatter,
+            valueFormatter: !axisFormatter
+              ? (x: number) => `${x}`
+              : axisFormatter,
             width: yAxisWidth,
           },
         ]}
@@ -106,15 +109,13 @@ const StatsGraphs = ({
           data={legCountData}
           title="Count"
           style={[{ name: "Count" }]}
-          popupFormatter={(x) => `${x}`}
-          axisFormatter={(x) => `${x}`}
           yAxisWidth={30}
         />
         <YearGraph
           data={legDistanceData}
           title="Distance"
           style={[{ name: "Distance" }]}
-          popupFormatter={getMilesAndChainsStringFromNumber}
+          tooltipFormatter={getMilesAndChainsStringFromNumber}
           axisFormatter={(x) => `${Math.floor(x)} mi`}
           yAxisWidth={60}
         />
@@ -122,7 +123,7 @@ const StatsGraphs = ({
           data={legDurationData}
           title="Duration"
           style={[{ name: "Duration" }]}
-          popupFormatter={getDurationStringFromMinutes}
+          tooltipFormatter={getDurationStringFromMinutes}
           axisFormatter={(x) => `${Math.floor(x / 60)} h`}
           yAxisWidth={40}
         />
@@ -132,8 +133,6 @@ const StatsGraphs = ({
           data={stationCountData}
           title="Stations"
           style={[{ name: "Total stations" }, { name: "New stations" }]}
-          popupFormatter={(x) => `${x}`}
-          axisFormatter={(x) => `${x}`}
           yAxisWidth={30}
         />
       </div>
