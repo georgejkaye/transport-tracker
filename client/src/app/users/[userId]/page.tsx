@@ -44,10 +44,10 @@ const Content = ({ userId }: ContentProps) => {
       />
       <hr className="border-1 border-blue-700" />
       <div className="flex flex-row gap-4">
-        <div className="flex-1">
+        <div className="hidden md:block flex-1">
           <LegFeed userId={user.user_id} />
         </div>
-        <div className="hidden md:block flex flex-row w-1/5">
+        <div className="flex flex-1 flex-row md:w-1/5">
           <StatsPane trainStats={user.train_stats} />
         </div>
       </div>
