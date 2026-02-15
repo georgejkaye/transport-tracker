@@ -102,6 +102,10 @@ const StatsGraphs = ({
     year: yearData.year,
     value: [yearData.station_count, yearData.new_station_count],
   }))
+  let operatorCountData = trainOperatorStats.map((yearData) => ({
+    year: yearData.year,
+    value: [yearData.operator_count],
+  }))
   return (
     <div className="flex flex-col">
       <div className="flex flex-col md:flex-row">
@@ -128,11 +132,17 @@ const StatsGraphs = ({
           yAxisWidth={40}
         />
       </div>
-      <div>
+      <div className="flex flex-col md:flex-row">
         <YearGraph
           data={stationCountData}
           title="Stations"
           style={[{ name: "Total stations" }, { name: "New stations" }]}
+          yAxisWidth={30}
+        />
+        <YearGraph
+          data={operatorCountData}
+          title="Operators"
+          style={[{ name: "Total operators" }]}
           yAxisWidth={30}
         />
       </div>
