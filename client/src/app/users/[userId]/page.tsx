@@ -36,11 +36,13 @@ const Content = ({ userId }: ContentProps) => {
         userName={user.user_name}
         displayName={user.display_name}
       />
+      <hr className="border-1 border-blue-700" />
       <StatsGraphs
         trainLegStats={user.train_stats.leg_stats_yearly}
         trainOperatorStats={user.train_stats.operator_stats_yearly}
         trainStationStats={user.train_stats.station_stats_yearly}
       />
+      <hr className="border-1 border-blue-700" />
       <div className="flex flex-row gap-4">
         <div className="flex-1">
           <LegFeed userId={user.user_id} />
