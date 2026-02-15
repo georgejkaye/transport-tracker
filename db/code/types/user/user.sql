@@ -115,7 +115,7 @@ CREATE TYPE transport_user_details_integer_operator_stat AS (
 
 CREATE TYPE transport_user_details_interval_operator_stat AS (
     value INTERVAL_NOTNULL,
-    operator_id INTEGER_NOTNULL,
+    operator_or_brand_id INTEGER_NOTNULL,
     is_brand BOOLEAN_NOTNULL,
     operator_or_brand_name TEXT_NOTNULL
 );
@@ -227,6 +227,8 @@ AS transport_user_train_operator_stats NOT NULL;
 CREATE TYPE transport_user_train_operator_year_stats AS (
     year INTEGER_NOTNULL,
     operator_count INTEGER_NOTNULL,
+    greatest_count transport_user_details_integer_operator_stat,
+    least_count transport_user_details_integer_operator_stat,
     longest_distance transport_user_details_decimal_operator_stat,
     shortest_distance transport_user_details_decimal_operator_stat,
     longest_duration transport_user_details_interval_operator_stat,
@@ -276,12 +278,12 @@ CREATE TYPE transport_user_train_class_overall_stats AS (
 );
 
 CREATE TYPE transport_user_details_train_year_out_data AS (
-    leg_stats_overall transport_user_details_train_leg_out_data,
-    leg_stats_yearly transport_user_details_train_leg_year_out_data[],
-    station_stats_overall transport_user_details_train_station_out_data,
-    station_stats_yearly transport_user_details_train_station_year_out_data[],
-    operator_stats_overall transport_user_train_operator_stats,
-    operator_stats_yearly transport_user_train_operator_year_stats[]
+    leg_stats_overall transport_user_details_train_leg_out_data_notnull,
+    leg_stats_yearly transport_user_details_train_leg_year_out_data_notnull[],
+    station_stats_overall transport_user_details_train_station_out_data_notnull,
+    station_stats_yearly transport_user_details_train_station_year_out_data_notnull[],
+    operator_stats_overall transport_user_train_operator_stats_notnull,
+    operator_stats_yearly transport_user_train_operator_year_stats_notnull[]
 );
 
 CREATE DOMAIN transport_user_details_train_year_out_data_notnull

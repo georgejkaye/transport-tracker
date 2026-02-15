@@ -16,7 +16,7 @@ DROP FUNCTION IF EXISTS select_transport_user_train_operator_all_stats CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_operator_year_stats CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_operator_stats_by_user_id CASCADE;
 DROP FUNCTION IF EXISTS create_transport_user_train_leg_class_stats CASCADE;
-DROP FUNCTION IF EXISTS create_transport_user_train_class_overall_stats CASCADE;
+DROP FUNCTION IF EXISTS create_transport_user_train_class_all_stats CASCADE;
 DROP FUNCTION IF EXISTS create_transport_user_train_class_year_stats CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_class_stats_by_user_id CASCADE;
 DROP FUNCTION IF EXISTS select_transport_user_train_stats_by_user_id CASCADE;
@@ -1265,6 +1265,18 @@ BEGIN
             (
                 transport_user_train_operator_stat_view.year,
                 transport_user_train_operator_stat_view.operator_count,
+                (
+                    transport_user_train_operator_count_year_greatest_stat.count,
+                    transport_user_train_operator_count_year_greatest_stat.operator_or_brand_id,
+                    transport_user_train_operator_count_year_greatest_stat.is_brand,
+                    transport_user_train_operator_count_year_greatest_stat.operator_or_brand_name
+                ),
+                (
+                    transport_user_train_operator_count_year_least_stat.count,
+                    transport_user_train_operator_count_year_least_stat.operator_or_brand_id,
+                    transport_user_train_operator_count_year_least_stat.is_brand,
+                    transport_user_train_operator_count_year_least_stat.operator_or_brand_name
+                ),
                 CASE
                 WHEN transport_user_train_operator_distance_year_longest_stat.distance IS NULL
                 THEN NULL
@@ -1323,6 +1335,8 @@ BEGIN
             SELECT
                 year,
                 COUNT(*) AS operator_count,
+                MAX(count) AS greatest_count,
+                MIN(count) AS least_count,
                 MAX(distance) AS longest_distance,
                 MIN(distance) AS shortest_distance,
                 MAX(duration) AS longest_duration,
@@ -1332,6 +1346,18 @@ BEGIN
             FROM transport_user_train_operator_year_stat
             GROUP BY year
         ) transport_user_train_operator_stat_view
+        LEFT JOIN transport_user_train_operator_count_year_stat
+            transport_user_train_operator_count_year_greatest_stat
+        ON transport_user_train_operator_stat_view.greatest_count
+            = transport_user_train_operator_count_year_greatest_stat.count
+        AND transport_user_train_operator_stat_view.year
+            = transport_user_train_operator_count_year_greatest_stat.year
+        LEFT JOIN transport_user_train_operator_count_year_stat
+            transport_user_train_operator_count_year_least_stat
+        ON transport_user_train_operator_stat_view.least_count
+            = transport_user_train_operator_count_year_least_stat.count
+        AND transport_user_train_operator_stat_view.year
+            = transport_user_train_operator_count_year_least_stat.year
         LEFT JOIN transport_user_train_operator_distance_year_stat
             transport_user_train_operator_distance_year_longest_stat
         ON transport_user_train_operator_stat_view.longest_distance

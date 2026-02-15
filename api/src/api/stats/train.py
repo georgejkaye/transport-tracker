@@ -21,6 +21,88 @@ from api.db.functions.select.train.user.vehicle import (
     select_transport_user_train_class_stats_by_user_id_fetchone,
     select_transport_user_train_unit_stats_by_user_id_fetchone,
 )
+from api.db.functions.select.user.stats import (
+    select_transport_user_details_fetchone,
+)
+from api.db.types.user.user import (
+    TransportUserDetailsTrainLegOutData,
+    TransportUserDetailsTrainStationOutData,
+    TransportUserDetailsTrainYearOutData,
+    TransportUserTrainOperatorStats,
+)
+from api.stats.classes.train import (
+    UserTrainAllStats,
+    UserTrainStats,
+    UserTrainYearStats,
+)
+from api.stats.classes.user import UserDetails
+
+
+def transform_train_stats(
+    train_stats: TransportUserDetailsTrainYearOutData,
+) -> UserTrainAllStats:
+    years = [yearly_stat.year for yearly_stat in train_stats.leg_stats_yearly]
+    year_stats = [
+        UserTrainYearStats(
+            year,
+            TransportUserDetailsTrainLegOutData(
+                train_stats.leg_stats_yearly[i].count,
+                train_stats.leg_stats_yearly[i].total_distance,
+                train_stats.leg_stats_yearly[i].longest_distance,
+                train_stats.leg_stats_yearly[i].shortest_distance,
+                train_stats.leg_stats_yearly[i].total_duration,
+                train_stats.leg_stats_yearly[i].longest_duration,
+                train_stats.leg_stats_yearly[i].shortest_duration,
+                train_stats.leg_stats_yearly[i].total_delay,
+                train_stats.leg_stats_yearly[i].longest_delay,
+                train_stats.leg_stats_yearly[i].shortest_delay,
+            ),
+            TransportUserDetailsTrainStationOutData(
+                train_stats.station_stats_yearly[i].station_count,
+                train_stats.station_stats_yearly[i].new_station_count,
+                train_stats.station_stats_yearly[
+                    i
+                ].most_boards_and_alights_station,
+                train_stats.station_stats_yearly[i].most_boards_station,
+                train_stats.station_stats_yearly[i].most_alights_station,
+                train_stats.station_stats_yearly[i].most_calls_station,
+            ),
+            TransportUserTrainOperatorStats(
+                train_stats.operator_stats_yearly[i].operator_count,
+                train_stats.operator_stats_yearly[i].greatest_count,
+                train_stats.operator_stats_yearly[i].least_count,
+                train_stats.operator_stats_yearly[i].longest_distance,
+                train_stats.operator_stats_yearly[i].shortest_distance,
+                train_stats.operator_stats_yearly[i].longest_duration,
+                train_stats.operator_stats_yearly[i].shortest_duration,
+                train_stats.operator_stats_yearly[i].longest_delay,
+                train_stats.operator_stats_yearly[i].shortest_delay,
+            ),
+        )
+        for (i, year) in enumerate(years)
+    ]
+
+    return UserTrainAllStats(
+        UserTrainStats(
+            train_stats.leg_stats_overall,
+            train_stats.station_stats_overall,
+            train_stats.operator_stats_overall,
+        ),
+        year_stats,
+    )
+
+
+def get_user_details(conn: Connection, user_id: int) -> Optional[UserDetails]:
+    raw_user_details = select_transport_user_details_fetchone(conn, user_id)
+    if raw_user_details is None:
+        return None
+    train_stats = transform_train_stats(raw_user_details.train_stats)
+    return UserDetails(
+        raw_user_details.user_id,
+        raw_user_details.user_name,
+        raw_user_details.display_name,
+        train_stats,
+    )
 
 
 def get_train_stats(

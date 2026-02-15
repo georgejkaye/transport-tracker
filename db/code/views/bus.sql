@@ -408,6 +408,6 @@ INNER JOIN (
         GROUP BY BusJourney.bus_journey_id
     ) BusJourneyCallDetail
     ON BusJourney.bus_journey_id = BusJourneyCallDetail.bus_journey_id
-    GROUP BY (bus_vehicle_id, user_id)
+    GROUP BY (bus_vehicle_id, transport_user_bus_leg.user_id)
 ) BusVehicleLegUserDetails
 ON BusVehicleLegUserDetails.bus_vehicle_id = BusVehicle.bus_vehicle_id;

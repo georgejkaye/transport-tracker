@@ -517,7 +517,7 @@ WHERE bus_leg_id IN (
             ROW_NUMBER() OVER (
                 PARTITION BY
                     bus_journey_id, board_call_index, alight_call_index
-                ORDER BY bus_journey_id
+                ORDER BY bus_leg_id
             )
         FROM BusLeg
     )
