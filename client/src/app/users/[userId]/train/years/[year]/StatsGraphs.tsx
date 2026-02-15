@@ -48,8 +48,8 @@ const YearGraph = ({
     ),
   )
   return (
-    <div className="flex-1 p-4 shadow-lg" style={{ height: "300px" }}>
-      <h2 className="font-bold text-lg">{title}</h2>
+    <div className="md:flex-1 py-4 shadow-lg" style={{ height: "300px" }}>
+      <h2 className="font-bold text-lg px-4">{title}</h2>
       <LineChart
         series={yData.map((series, i) => ({
           data: series,
