@@ -1,10 +1,10 @@
 import { getMilesAndChainsStringFromNumber } from "@/app/utils/distance"
 import { getDurationStringFromString } from "@/app/utils/duration"
-import { TransportUserDetailsTrainYearOutData } from "@/app/utils/train"
+import { UserTrainStats } from "@/app/utils/train"
 import { FaBusSimple, FaTrain } from "react-icons/fa6"
 
 interface UserHeaderProps {
-  trainStats: TransportUserDetailsTrainYearOutData
+  trainStats: UserTrainStats
   userName: string
   displayName: string
 }
@@ -19,17 +19,15 @@ const UserHeader = ({ trainStats, userName, displayName }: UserHeaderProps) => {
       <div className="flex flex-col md:flex-row gap-4 items-left">
         <div className="flex flex-row gap-4 items-center p-4 shadow-lg">
           <FaTrain />
-          <div>{trainStats.leg_stats_overall?.count}</div>
+          <div>{trainStats.leg_stats.count}</div>
           <div>
             {getMilesAndChainsStringFromNumber(
-              Number(trainStats.leg_stats_overall?.total_distance),
+              Number(trainStats.leg_stats.total_distance),
             )}
           </div>
-          {trainStats.leg_stats_overall?.total_duration && (
+          {trainStats.leg_stats.total_duration && (
             <div>
-              {getDurationStringFromString(
-                trainStats.leg_stats_overall?.total_duration,
-              )}
+              {getDurationStringFromString(trainStats.leg_stats.total_duration)}
             </div>
           )}
         </div>

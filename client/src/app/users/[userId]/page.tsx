@@ -32,24 +32,18 @@ const Content = ({ userId }: ContentProps) => {
   ) : (
     <div className="flex flex-col gap-4">
       <UserHeader
-        trainStats={user.train_stats}
+        trainStats={user.train_stats.overall_stats}
         userName={user.user_name}
         displayName={user.display_name}
       />
       <hr className="border-1 border-blue-700" />
-      <StatsGraphs
-        trainLegStats={user.train_stats.leg_stats_yearly}
-        trainOperatorStats={user.train_stats.operator_stats_yearly}
-        trainStationStats={user.train_stats.station_stats_yearly}
-      />
+      <StatsGraphs trainStats={user.train_stats.year_stats} />
       <hr className="border-1 border-blue-700" />
       <div className="flex flex-row gap-4">
         <div className="hidden md:block flex-1">
           <LegFeed userId={user.user_id} />
         </div>
-        <div className="flex flex-1 flex-row md:w-1/5">
-          <StatsPane trainStats={user.train_stats} />
-        </div>
+        <StatsPane trainStats={user.train_stats} />
       </div>
     </div>
   )

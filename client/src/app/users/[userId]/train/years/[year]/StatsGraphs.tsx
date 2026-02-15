@@ -1,7 +1,8 @@
 import {
-  TransportUserDetailsTrainLegYearOutData,
-  TransportUserDetailsTrainStationYearOutData,
-  TransportUserTrainOperatorYearStats,
+  TransportUserDetailsTrainLegOutData,
+  TransportUserDetailsTrainStationOutData,
+  TransportUserTrainOperatorStats,
+  UserTrainYearStats,
 } from "@/app/utils/train"
 import { LineChart } from "@mui/x-charts/LineChart"
 import { getMilesAndChainsStringFromNumber } from "@/app/utils/distance"
@@ -76,35 +77,32 @@ const YearGraph = ({
 }
 
 interface StatsGraphsProps {
-  trainLegStats: TransportUserDetailsTrainLegYearOutData[]
-  trainStationStats: TransportUserDetailsTrainStationYearOutData[]
-  trainOperatorStats: TransportUserTrainOperatorYearStats[]
+  trainStats: UserTrainYearStats[]
 }
 
-const StatsGraphs = ({
-  trainLegStats,
-  trainStationStats,
-  trainOperatorStats,
-}: StatsGraphsProps) => {
-  let legCountData = trainLegStats.map((yearData) => ({
+const StatsGraphs = ({ trainStats }: StatsGraphsProps) => {
+  let legCountData = trainStats.map((yearData) => ({
     year: yearData.year,
-    value: [yearData.count],
+    value: [yearData.leg_stats.count],
   }))
-  let legDistanceData = trainLegStats.map((yearData) => ({
+  let legDistanceData = trainStats.map((yearData) => ({
     year: yearData.year,
-    value: [Number(yearData.total_distance)],
+    value: [Number(yearData.leg_stats.total_distance)],
   }))
-  let legDurationData = trainLegStats.map((yearData) => ({
+  let legDurationData = trainStats.map((yearData) => ({
     year: yearData.year,
-    value: [Duration.parse(yearData.total_duration).toMinutes()],
+    value: [Duration.parse(yearData.leg_stats.total_duration).toMinutes()],
   }))
-  let stationCountData = trainStationStats.map((yearData) => ({
+  let stationCountData = trainStats.map((yearData) => ({
     year: yearData.year,
-    value: [yearData.station_count, yearData.new_station_count],
+    value: [
+      yearData.station_stats.station_count,
+      yearData.station_stats.new_station_count,
+    ],
   }))
-  let operatorCountData = trainOperatorStats.map((yearData) => ({
+  let operatorCountData = trainStats.map((yearData) => ({
     year: yearData.year,
-    value: [yearData.operator_count],
+    value: [yearData.operator_stats.operator_count],
   }))
   return (
     <div className="flex flex-col">
