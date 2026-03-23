@@ -30,7 +30,7 @@ cssutils = "^2.11.1"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.5.1"
-black = "^24.3.0"
+black = "^26.3.1"
 
 [tool.black]
 line-length = 80
