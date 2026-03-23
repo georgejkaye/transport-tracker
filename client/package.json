@@ -15,7 +15,7 @@
     "@mui/icons-material": "^5.16.7",
     "@mui/material": "^5.16.7",
     "@turf/bbox": "^7.2.0",
-    "axios": "^1.12.0",
+    "axios": "^1.13.5",
     "js-joda": "^1.11.0",
     "maplibre-gl": "4.7.1",
     "next": "15.5.14",
