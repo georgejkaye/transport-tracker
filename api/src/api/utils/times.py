@@ -136,3 +136,12 @@ def change_timezone(
     source_time = make_timezone_aware(datetime, source_tz)
     target_time = source_time.astimezone(target_tz)
     return target_time
+
+
+def get_datetime_after_start_datetime(
+    run_date: date, run_datetime: Optional[datetime], current_time: time
+) -> datetime:
+    current_datetime = datetime.combine(run_date, current_time)
+    if run_datetime is not None and current_datetime < run_datetime:
+        return current_datetime + timedelta(days=1)
+    return current_datetime
