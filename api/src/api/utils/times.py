@@ -1,11 +1,9 @@
 import zoneinfo
-import pytz
-
 from datetime import date, datetime, time, timedelta
 from typing import Optional
 
+import pytz
 from api.utils.environment import get_env_variable
-
 
 timezone_variable = get_env_variable("TIMEZONE")
 if timezone_variable is None or timezone_variable not in pytz.all_timezones_set:
@@ -57,7 +55,7 @@ def get_hourmin_string(datetime: datetime | time | None, colon: bool = False):
 
 
 def get_duration_string(td: timedelta):
-    return f"{pad_front(str(td.seconds // 3600), 2)}:{pad_front(str((td.seconds//60) % 60), 2)}"
+    return f"{pad_front(str(td.seconds // 3600), 2)}:{pad_front(str((td.seconds // 60) % 60), 2)}"
 
 
 def get_hour(datetime: datetime):
@@ -81,9 +79,7 @@ def get_day(datetime: datetime | date):
 
 
 def get_url(datetime: datetime, long: bool = True):
-    string = (
-        get_year(datetime) + "/" + get_month(datetime) + "/" + get_day(datetime)
-    )
+    string = get_year(datetime) + "/" + get_month(datetime) + "/" + get_day(datetime)
     if long:
         string = string + "/" + get_hourmin_string(datetime)
     return string
