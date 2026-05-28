@@ -1,6 +1,8 @@
 # Build image
 FROM python:3.13-bookworm AS builder
 
+RUN apt install firefox-geckodriver -y
+
 ARG POETRY_VERSION
 RUN pip install poetry==${POETRY_VERSION}
 

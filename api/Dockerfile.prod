@@ -22,7 +22,7 @@ RUN poetry install --without dev --no-root && rm -rf ${POETRY_CACHE_DIR}
 FROM python:3.12-slim-bookworm AS runtime
 
 RUN apt update
-RUN apt install libpq-dev -y
+RUN apt install libpq-dev firefox-geckodriver -y
 
 ENV VIRTUAL_ENV=/app/.venv \
     PATH="/app/.venv/bin:$PATH" \
@@ -31,7 +31,7 @@ ENV VIRTUAL_ENV=/app/.venv \
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 COPY --from=builder /app/pyproject.toml ./app/pyproject.toml
 
-ENV PYTHONPATH=/app/src:$PYTHONPATH
+ENV PYTHONPATH=/app/src
 
 COPY src ./app/src
 
