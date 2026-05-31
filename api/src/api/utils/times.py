@@ -36,7 +36,7 @@ def add(dt: datetime, delta: int):
     return dt + timedelta(minutes=delta)
 
 
-def pad_front(string, length):
+def pad_front(string: str, length: int):
     """
     Add zeroes to the front of a number string until it is the desired length
     """
@@ -47,10 +47,10 @@ def pad_front(string, length):
 def get_hourmin_string(datetime: datetime | time | None, colon: bool = False):
     if datetime is None:
         return "-"
-    string = pad_front(datetime.hour, 2)
+    string = pad_front(str(datetime.hour), 2)
     if colon:
         string = string + " : "
-    string = string + pad_front(datetime.minute, 2)
+    string = string + pad_front(str(datetime.minute), 2)
     return string
 
 
@@ -59,11 +59,11 @@ def get_duration_string(td: timedelta):
 
 
 def get_hour(datetime: datetime):
-    return pad_front(datetime.hour, 2)
+    return pad_front(str(datetime.hour), 2)
 
 
 def get_mins(datetime: datetime):
-    return pad_front(datetime.minute, 2)
+    return pad_front(str(datetime.minute), 2)
 
 
 def get_year(datetime: datetime | date):
@@ -71,11 +71,11 @@ def get_year(datetime: datetime | date):
 
 
 def get_month(datetime: datetime | date):
-    return pad_front(datetime.month, 2)
+    return pad_front(str(datetime.month), 2)
 
 
 def get_day(datetime: datetime | date):
-    return pad_front(datetime.day, 2)
+    return pad_front(str(datetime.day), 2)
 
 
 def get_url(datetime: datetime, long: bool = True):
