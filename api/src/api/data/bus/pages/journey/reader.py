@@ -8,27 +8,10 @@ from api.data.bus.pages.journey.classes import (
     BustimesJourneyVehicle,
 )
 from api.data.selenium.driver import Driver
-from api.utils.request import get_soup
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.webdriver import WebDriver
-
-
-def get_operator_nocs(page_soup: BeautifulSoup) -> Optional[list[str]]:
-    operator_a = page_soup.select_one(".breadcrumb li:nth-child(1) a")
-    if operator_a is None:
-        return None
-    operator_a_href = operator_a.get("href")
-    if operator_a_href is None or not isinstance(operator_a_href, str):
-        return None
-    operator_soup = get_soup(f"https://bustimes.org{operator_a_href}")
-    if operator_soup is None:
-        return None
-    noc_dd = operator_soup.select_one(".contact-details div:last-child dd")
-    if noc_dd is None:
-        return None
-    return noc_dd.text.split(", ")
 
 
 def get_bustimes_journey_url(bustimes_journey_id: int) -> str:
