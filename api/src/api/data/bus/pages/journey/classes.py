@@ -26,4 +26,4 @@ class BustimesJourney:
     trip_id: int
     calls: list[BustimesJourneyCall]
     vehicle: Optional[BustimesJourneyVehicle]
-    block: str
+    block: Optional[str]

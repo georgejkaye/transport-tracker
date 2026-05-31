@@ -250,9 +250,16 @@ def get_bus_leg_input(
     if journey is None or journey.vehicle is None or journey.vehicle.identifier is None:
         vehicle = get_bus_vehicle(conn, journey_timetable.operator)
     else:
-        vehicle = get_bus_vehicles_by_operator_and_id(
+        vehicle_options = get_bus_vehicles_by_operator_and_id(
             conn, journey_timetable.operator, journey.vehicle.identifier
-        )[0]
+        )
+        if len(vehicle_options) == 0:
+            information(
+                f"Could not find vehicle {journey.vehicle.identifier} for {journey_timetable.operator.name}, skipping"
+            )
+            vehicle = None
+        else:
+            vehicle = vehicle_options[0]
 
     journey = BusJourneyIn(
         journey_timetable.id,
