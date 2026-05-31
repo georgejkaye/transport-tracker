@@ -154,7 +154,7 @@ def get_bus_leg_input(
 
     today = datetime.today()
 
-    if board_datetime.date() < today.date():
+    if board_datetime.date() < today.date() - timedelta(days=28):
         board_day_of_week = board_datetime.weekday()
         today_day_of_week = today.weekday()
         day_of_week_diff = board_day_of_week - today_day_of_week
@@ -162,12 +162,10 @@ def get_bus_leg_input(
             day_of_week_diff = day_of_week_diff + 7
         new_board_date = today.date() + timedelta(days=day_of_week_diff)
 
-        new_board_datetime = datetime.combine(
-            new_board_date, board_datetime.time()
-        )
+        new_board_datetime = datetime.combine(new_board_date, board_datetime.time())
         information(
-            f"{board_datetime.strftime("%d/%m/%Y %H:%M:%S")} is before today, "
-            + f"using {new_board_datetime.strftime("%d/%m/%Y %H:%M:%S")} instead"
+            f"{board_datetime.strftime('%d/%m/%Y %H:%M:%S')} is 28 days before today, "
+            + f"using {new_board_datetime.strftime('%d/%m/%Y %H:%M:%S')} instead"
         )
         datetime_offset = new_board_datetime - board_datetime
         board_datetime = new_board_datetime
