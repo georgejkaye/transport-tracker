@@ -1,6 +1,6 @@
+import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-import json
 from typing import Optional
 
 from api.data.bus.operators import (
@@ -15,8 +15,8 @@ from api.data.bus.service import (
     register_bus_journey_service_details_types,
 )
 from api.data.bus.stop import (
-    BusStopDetails,
     BusStopDeparture,
+    BusStopDetails,
     get_bus_stops_from_atcos,
     register_bus_call_stop_details_types,
 )
@@ -29,6 +29,7 @@ from api.utils.request import get_soup
 from api.utils.times import make_timezone_aware
 from bs4 import BeautifulSoup
 from psycopg import Connection
+from selenium import webdriver
 
 
 @dataclass
@@ -44,11 +45,11 @@ class BusCallIn:
 
 def string_of_bus_call_in(bus_call: BusCallIn) -> str:
     if bus_call.plan_arr is not None:
-        time_string = f" arr {bus_call.plan_arr.strftime("%H:%M")}"
+        time_string = f" arr {bus_call.plan_arr.strftime('%H:%M')}"
     else:
         time_string = ""
     if bus_call.plan_dep is not None:
-        time_string = f"{time_string} dep {bus_call.plan_dep.strftime("%H:%M")}"
+        time_string = f"{time_string} dep {bus_call.plan_dep.strftime('%H:%M')}"
     return f"{bus_call.stop_name}{time_string}"
 
 
@@ -69,9 +70,7 @@ class BusJourneyIn:
     vehicle: Optional[BusVehicleDetails]
 
 
-def string_of_bus_journey_in(
-    conn: Connection, bus_journey: BusJourneyIn
-) -> str:
+def string_of_bus_journey_in(conn: Connection, bus_journey: BusJourneyIn) -> str:
     return_string = f"{bus_journey.id}: {bus_journey.service.line} {bus_journey.service.outbound.description} ({bus_journey.service.operator.name})\n============="
     atcos = [str(call.atco) for call in bus_journey.calls]
     atco_bus_stop_dict = get_bus_stops_from_atcos(conn, atcos)
@@ -86,12 +85,12 @@ def string_of_bus_journey_in(
     return return_string
 
 
-def get_bus_journey_url(bustimes_journey_id: int) -> str:
-    return f"https://bustimes.org/trips/{bustimes_journey_id}"
+def get_bus_trip_url(bustimes_trip_id: int) -> str:
+    return f"https://bustimes.org/trips/{bustimes_trip_id}"
 
 
-def get_bus_journey_page(bustimes_journey_id: int) -> Optional[BeautifulSoup]:
-    url = get_bus_journey_url(bustimes_journey_id)
+def get_bus_trip_page(bustimes_trip_id: int) -> Optional[BeautifulSoup]:
+    url = get_bus_trip_url(bustimes_trip_id)
     return get_soup(url)
 
 
@@ -114,13 +113,13 @@ def get_call_datetime(
     return make_timezone_aware(datetime_object)
 
 
-def get_bus_journey(
+def get_bus_trip(
     conn: Connection,
     bustimes_journey_id: int,
     ref_stop: BusStopDetails,
     ref_departure: BusStopDeparture,
 ) -> Optional[tuple[BusJourneyTimetable, int]]:
-    soup = get_bus_journey_page(bustimes_journey_id)
+    soup = get_bus_trip_page(bustimes_journey_id)
     if soup is None:
         print("Could not get journey page")
         return soup
@@ -133,17 +132,13 @@ def get_bus_journey(
     trip_script_dict = json.loads(trip_script.text)
     service_operator_noc = trip_script_dict["operator"]["noc"]
 
-    operator = get_bus_operator_from_national_operator_code(
-        conn, service_operator_noc
-    )
+    operator = get_bus_operator_from_national_operator_code(conn, service_operator_noc)
     if operator is None:
         print("Could not get operator")
         return None
 
     service_line = trip_script_dict["service"]["line_name"]
-    bus_service = get_service_from_line_and_operator(
-        conn, service_line, operator
-    )
+    bus_service = get_service_from_line_and_operator(conn, service_line, operator)
 
     if bus_service is None:
         print("Could not get service")
@@ -151,7 +146,6 @@ def get_bus_journey(
 
     service_calls = trip_script_dict["times"]
     is_after_ref = False
-    first_call_datetime = None
     service_call_objects: list[BusCallIn] = []
 
     ref_departure_time = ref_departure.dep_time
@@ -177,14 +171,10 @@ def get_bus_journey(
                 if plan_arr.time() <= ref_departure_time.time():
                     plan_arr_date = ref_departure_time.date()
                 else:
-                    plan_arr_date = ref_departure_time.date() - timedelta(
-                        days=1
-                    )
+                    plan_arr_date = ref_departure_time.date() - timedelta(days=1)
             else:
                 if plan_arr.time() <= ref_departure_time.time():
-                    plan_arr_date = ref_departure_time.date() + timedelta(
-                        days=1
-                    )
+                    plan_arr_date = ref_departure_time.date() + timedelta(days=1)
                 else:
                     plan_arr_date = ref_departure_time.date()
             plan_arr = datetime.combine(plan_arr_date, plan_arr.time())
@@ -194,20 +184,14 @@ def get_bus_journey(
                 if plan_dep.time() <= ref_departure_time.time():
                     plan_dep_date = ref_departure_time.date()
                 else:
-                    plan_dep_date = ref_departure_time.date() - timedelta(
-                        days=1
-                    )
+                    plan_dep_date = ref_departure_time.date() - timedelta(days=1)
             else:
                 if plan_dep.time() <= ref_departure_time.time():
-                    plan_dep_date = ref_departure_time.date() + timedelta(
-                        days=1
-                    )
+                    plan_dep_date = ref_departure_time.date() + timedelta(days=1)
                 else:
                     plan_dep_date = ref_departure_time.date()
             plan_dep = datetime.combine(plan_dep_date, plan_dep.time())
-        call_object = BusCallIn(
-            i, call_id, call_name, plan_arr, None, plan_dep, None
-        )
+        call_object = BusCallIn(i, call_id, call_name, plan_arr, None, plan_dep, None)
 
         if call_id == ref_stop.atco and not is_after_ref:
             is_after_ref = True
@@ -272,9 +256,7 @@ def register_bus_journey_call_details(
 
 def register_bus_journey_call_details_types(conn: Connection):
     register_bus_call_stop_details_types(conn)
-    register_type(
-        conn, "BusJourneyCallDetails", register_bus_journey_call_details
-    )
+    register_type(conn, "BusJourneyCallDetails", register_bus_journey_call_details)
 
 
 @dataclass
