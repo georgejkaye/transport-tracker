@@ -5,7 +5,7 @@ from typing import Optional
 
 @dataclass
 class BustimesJourneyCall:
-    stop_id: int
+    stop_id: str
     stop_name: str
     plan_arr: Optional[datetime]
     act_arr: Optional[datetime]
@@ -16,7 +16,7 @@ class BustimesJourneyCall:
 @dataclass
 class BustimesJourneyVehicle:
     bustimes_id: str
-    operator_id: Optional[str]
+    identifier: Optional[str]
     numberplate: str
 
 
@@ -25,5 +25,5 @@ class BustimesJourney:
     journey_id: int
     trip_id: int
     calls: list[BustimesJourneyCall]
-    vehicle: BustimesJourneyVehicle
+    vehicle: Optional[BustimesJourneyVehicle]
     block: str
