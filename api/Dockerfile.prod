@@ -22,7 +22,7 @@ RUN poetry install --without dev --no-root && rm -rf ${POETRY_CACHE_DIR}
 FROM python:3.13-slim-bookworm AS runtime
 
 RUN apt update
-RUN apt install libpq-dev firefox-esr -y
+RUN apt install curl libpq-dev firefox-esr -y
 
 RUN curl -L -O https://github.com/mozilla/geckodriver/releases/download/v0.36.0/geckodriver-v0.36.0-linux64.tar.gz
 RUN tar -zxvf geckodriver-v0.36.0-linux64.tar.gz
