@@ -195,7 +195,7 @@ def get_departures_from_bus_stop_soup(
             if departure_service_a is None:
                 continue
             departure_service = departure_service_a.text.strip()
-            departure_destination = departure_data[1].text.strip()
+            departure_destination = departure_data[1].text.strip().split("\n")[0]
             departure_time_data = departure_data[2]
             departure_time_a = departure_time_data.select_one("a")
             if departure_time_a is None:
