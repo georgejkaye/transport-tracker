@@ -213,9 +213,19 @@ def setup_bustimes_journey_page(driver: WebDriver):
         checkboxes[0].click()
 
 
-def get_bustimes_journey_trip_id_and_block(
+def get_bustimes_trip_id(page_soup: BeautifulSoup) -> Optional[int]:
+    map_a = page_soup.select_one(".breadcrumb li:last-child a")
+    if map_a is None:
+        return None
+    map_a_href = map_a.get("href")
+    if map_a_href is None or not isinstance(map_a_href, str):
+        return None
+    return int(map_a_href.split("/")[2])
+
+
+def get_bustimes_journey_block(
     page_soup: BeautifulSoup,
-) -> Optional[tuple[int, str]]:
+) -> Optional[str]:
     block_div = page_soup.select_one(".contact-details div:nth-child(2)")
     if block_div is None:
         return None
@@ -225,9 +235,8 @@ def get_bustimes_journey_trip_id_and_block(
     block_a_href = block_a.get("href")
     if block_a_href is None or not isinstance(block_a_href, str):
         return None
-    trip_id = int(block_a_href.split("/")[2])
     block = block_a.text
-    return (trip_id, block)
+    return block
 
 
 def get_bustimes_journey(
@@ -237,10 +246,10 @@ def get_bustimes_journey(
         get_bustimes_journey_url(bustimes_journey_id), setup_bustimes_journey_page
     )
     stop_rows = get_call_row_lists(page_soup)
+    trip_id = get_bustimes_trip_id(page_soup)
+    if trip_id is None:
+        return None
     calls = get_bustimes_calls(board_date, board_atco, stop_rows)
     vehicle = get_bustimes_journey_vehicle(page_soup)
-    trip_id_and_block_result = get_bustimes_journey_trip_id_and_block(page_soup)
-    if trip_id_and_block_result is None:
-        return None
-    (trip_id, block) = trip_id_and_block_result
+    block = get_bustimes_journey_block(page_soup)
     return BustimesJourney(bustimes_journey_id, trip_id, calls, vehicle, block)
