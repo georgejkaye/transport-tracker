@@ -20,7 +20,7 @@ class SeleniumDriver(Driver):
         self, url: str, action: Callable[[WebDriver], None]
     ) -> BeautifulSoup:
         options = Options()
-        options.add_argument("--headless=new")
+        options.add_argument("--headless")
         driver = webdriver.Firefox(options=options)
         driver.get(url)
         action(driver)
