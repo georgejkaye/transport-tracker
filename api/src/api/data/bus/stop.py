@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Optional
+
 from api.utils.database import register_type
 from api.utils.request import get_soup
 from bs4 import BeautifulSoup
@@ -48,9 +49,7 @@ def insert_bus_stops(conn: Connection, bus_stops: list[BusStopData]):
         )
         for bus_stop in bus_stops
     ]
-    conn.execute(
-        "SELECT * FROM InsertBusStops(%s::BusStopInData[])", [bus_stop_tuples]
-    )
+    conn.execute("SELECT * FROM InsertBusStops(%s::BusStopInData[])", [bus_stop_tuples])
     conn.commit()
 
 
@@ -121,14 +120,14 @@ def short_string_of_bus_stop(bus_stop: BusStopDetails) -> str:
         indicator_text = ""
     else:
         indicator_text = f" ({bus_stop.indicator})"
-    return f"{bus_stop.common_name}{indicator_text}, {bus_stop.locality} ({bus_stop.atco})"
+    return (
+        f"{bus_stop.common_name}{indicator_text}, {bus_stop.locality} ({bus_stop.atco})"
+    )
 
 
 def get_bus_stops(conn: Connection, search_string: str) -> list[BusStopDetails]:
     register_bus_stop_details_types(conn)
-    rows = conn.execute(
-        "SELECT GetBusStopsByName(%s)", [search_string]
-    ).fetchall()
+    rows = conn.execute("SELECT GetBusStopsByName(%s)", [search_string]).fetchall()
     return [row[0] for row in rows]
 
 
@@ -149,8 +148,8 @@ def get_bus_stop_page_url(
 ) -> str:
     return (
         f"https://bustimes.org/stops/{bus_stop.atco}"
-        + f"?date={search_datetime.strftime("%Y-%m-%d")}"
-        + f"&time={search_datetime.strftime("%H:%M")}"
+        + f"?date={search_datetime.strftime('%Y-%m-%d')}"
+        + f"&time={search_datetime.strftime('%H:%M')}"
     )
 
 
@@ -164,14 +163,15 @@ def get_bus_stop_page(
 
 @dataclass
 class BusStopDeparture:
+    live: bool
     service: str
     destination: str
     dep_time: datetime
-    bustimes_journey_id: int
+    bustimes_id: int
 
 
 def short_string_of_bus_stop_departure(departure: BusStopDeparture) -> str:
-    return f"{departure.dep_time.strftime("%H:%M")}: {departure.service} to {departure.destination}"
+    return f"{departure.dep_time.strftime('%H:%M')}: {departure.service} to {departure.destination}"
 
 
 def get_departures_from_bus_stop_soup(
@@ -184,22 +184,23 @@ def get_departures_from_bus_stop_soup(
         datetime.strptime(str(departure_input_boxes[0]["value"]), "%Y-%m-%d")
         - datetime_offset
     )
-    search_time_value = datetime.strptime(
-        str(departure_input_boxes[1]["value"]), "%H:%M"
-    )
     departures_tables = soup.select("#departures > table")
-    departures = []
+    departures: list[BusStopDeparture] = []
     for i, departure_table in enumerate(departures_tables):
         current_date = search_date_value + timedelta(days=i)
-        departure_rows = departure_table.find_all("tr")
+        departure_rows = departure_table.select("tr")
         for departure_row in departure_rows[1:]:
-            departure_data = departure_row.find_all("td")
-            departure_service = departure_data[0].find("a").text.strip()
-            departure_destination = departure_data[1].text.strip()
+            departure_data = departure_row.select("td")
+            departure_service_a = departure_data[0].select_one("a")
+            if departure_service_a is None:
+                continue
+            departure_service = departure_service_a.text.strip()
+            departure_destination = departure_data[1].text.strip().split("\n")[0]
             departure_time_data = departure_data[2]
-            departure_time = datetime.strptime(
-                departure_time_data.find("a").text.strip(), "%H:%M"
-            )
+            departure_time_a = departure_time_data.select_one("a")
+            if departure_time_a is None:
+                continue
+            departure_time = datetime.strptime(departure_time_a.text.strip(), "%H:%M")
             departure_datetime = datetime(
                 current_date.year,
                 current_date.month,
@@ -208,14 +209,24 @@ def get_departures_from_bus_stop_soup(
                 departure_time.minute,
                 0,
             )
-            departure_bustimes_journey_id = int(
-                departure_time_data.find("a")["href"].split("/")[2]
-            )
+            departure_time_date_a_href = departure_time_a.get("href")
+            if departure_time_date_a_href is None or not isinstance(
+                departure_time_date_a_href, str
+            ):
+                continue
+            if "trips" in departure_time_date_a_href:
+                live = False
+            elif "journeys" in departure_time_date_a_href:
+                live = True
+            else:
+                continue
+            departure_bustimes_id = int(departure_time_date_a_href.split("/")[2])
             departure = BusStopDeparture(
+                live,
                 departure_service,
                 departure_destination,
                 departure_datetime,
-                departure_bustimes_journey_id,
+                departure_bustimes_id,
             )
             departures.append(departure)
     return departures

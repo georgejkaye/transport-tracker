@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{ include = "api", from = "src" }]
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "3.13.13"
 Jinja2 = "^3.1.6"
 termcolor = "^2.3.0"
 libsass = "^0.22.0"
@@ -27,6 +27,7 @@ folium = "^0.19.3"
 osmnx = "^2.0.1"
 python-slugify = "^8.0.4"
 cssutils = "^2.11.1"
+selenium = "^4.44.0"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.5.1"

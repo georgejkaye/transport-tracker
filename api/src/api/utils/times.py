@@ -1,11 +1,9 @@
 import zoneinfo
-import pytz
-
 from datetime import date, datetime, time, timedelta
 from typing import Optional
 
+import pytz
 from api.utils.environment import get_env_variable
-
 
 timezone_variable = get_env_variable("TIMEZONE")
 if timezone_variable is None or timezone_variable not in pytz.all_timezones_set:
@@ -38,7 +36,7 @@ def add(dt: datetime, delta: int):
     return dt + timedelta(minutes=delta)
 
 
-def pad_front(string, length):
+def pad_front(string: str, length: int):
     """
     Add zeroes to the front of a number string until it is the desired length
     """
@@ -49,23 +47,23 @@ def pad_front(string, length):
 def get_hourmin_string(datetime: datetime | time | None, colon: bool = False):
     if datetime is None:
         return "-"
-    string = pad_front(datetime.hour, 2)
+    string = pad_front(str(datetime.hour), 2)
     if colon:
         string = string + " : "
-    string = string + pad_front(datetime.minute, 2)
+    string = string + pad_front(str(datetime.minute), 2)
     return string
 
 
 def get_duration_string(td: timedelta):
-    return f"{pad_front(str(td.seconds // 3600), 2)}:{pad_front(str((td.seconds//60) % 60), 2)}"
+    return f"{pad_front(str(td.seconds // 3600), 2)}:{pad_front(str((td.seconds // 60) % 60), 2)}"
 
 
 def get_hour(datetime: datetime):
-    return pad_front(datetime.hour, 2)
+    return pad_front(str(datetime.hour), 2)
 
 
 def get_mins(datetime: datetime):
-    return pad_front(datetime.minute, 2)
+    return pad_front(str(datetime.minute), 2)
 
 
 def get_year(datetime: datetime | date):
@@ -73,17 +71,15 @@ def get_year(datetime: datetime | date):
 
 
 def get_month(datetime: datetime | date):
-    return pad_front(datetime.month, 2)
+    return pad_front(str(datetime.month), 2)
 
 
 def get_day(datetime: datetime | date):
-    return pad_front(datetime.day, 2)
+    return pad_front(str(datetime.day), 2)
 
 
 def get_url(datetime: datetime, long: bool = True):
-    string = (
-        get_year(datetime) + "/" + get_month(datetime) + "/" + get_day(datetime)
-    )
+    string = get_year(datetime) + "/" + get_month(datetime) + "/" + get_day(datetime)
     if long:
         string = string + "/" + get_hourmin_string(datetime)
     return string
@@ -140,3 +136,12 @@ def change_timezone(
     source_time = make_timezone_aware(datetime, source_tz)
     target_time = source_time.astimezone(target_tz)
     return target_time
+
+
+def get_datetime_after_start_datetime(
+    run_date: date, run_datetime: Optional[datetime], current_time: time
+) -> datetime:
+    current_datetime = datetime.combine(run_date, current_time)
+    if run_datetime is not None and current_datetime < run_datetime:
+        return current_datetime + timedelta(days=1)
+    return current_datetime

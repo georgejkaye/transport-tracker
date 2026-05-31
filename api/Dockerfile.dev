@@ -1,6 +1,15 @@
 # Build image
 FROM python:3.13-bookworm AS builder
 
+RUN apt update
+RUN apt install firefox-esr -y
+
+RUN curl -L -O https://github.com/mozilla/geckodriver/releases/download/v0.36.0/geckodriver-v0.36.0-linux64.tar.gz
+RUN tar -zxvf geckodriver-v0.36.0-linux64.tar.gz
+RUN mv geckodriver /usr/bin
+RUN chown root:root /usr/bin/geckodriver
+RUN chmod +x /usr/bin/geckodriver
+
 ARG POETRY_VERSION
 RUN pip install poetry==${POETRY_VERSION}
 

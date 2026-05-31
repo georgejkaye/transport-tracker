@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional
 
-from api.data.bus.journey import (
+from api.data.bus.trip import (
     BusCall,
     BusJourneyDetails,
     BusJourneyCallDetails,
@@ -73,9 +73,7 @@ def insert_leg(conn: Connection, users: list[User], leg: BusLegIn):
         leg.alight_stop_index,
     )
     user_ids = [user.user_id for user in users]
-    conn.execute(
-        "SELECT InsertBusLeg(%s, %s::BusLegInData)", [user_ids, leg_tuple]
-    )
+    conn.execute("SELECT InsertBusLeg(%s, %s::BusLegInData)", [user_ids, leg_tuple])
     conn.commit()
 
 
@@ -107,9 +105,7 @@ def register_leg_types(conn: Connection):
 
 def select_bus_legs(conn: Connection, user_id: int) -> list[BusLegUserDetails]:
     register_leg_types(conn)
-    rows = conn.execute(
-        "SELECT GetUserDetailsForBusLeg(%s)", [user_id]
-    ).fetchall()
+    rows = conn.execute("SELECT GetUserDetailsForBusLeg(%s)", [user_id]).fetchall()
     return [row[0] for row in rows]
 
 

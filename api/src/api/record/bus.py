@@ -1,7 +1,35 @@
 from datetime import datetime, timedelta
 from typing import Optional
-from psycopg import Connection
 
+from api.data.bus.leg import BusLegIn, insert_leg
+from api.data.bus.operators import (
+    BusOperatorDetails,
+)
+from api.data.bus.pages.journey.classes import BustimesJourney
+from api.data.bus.pages.journey.reader import get_bustimes_journey
+from api.data.bus.stop import (
+    BusStopDeparture,
+    BusStopDetails,
+    get_bus_stops,
+    get_departures_from_bus_stop,
+    short_string_of_bus_stop,
+    short_string_of_bus_stop_departure,
+)
+from api.data.bus.trip import (
+    BusCallIn,
+    BusJourneyDetails,
+    BusJourneyIn,
+    get_bus_trip,
+    string_of_bus_call_in,
+)
+from api.data.bus.vehicle import (
+    BusVehicleDetails,
+    get_bus_vehicles_by_id,
+    get_bus_vehicles_by_operator_and_id,
+    string_of_bus_vehicle_out,
+)
+from api.data.selenium.driver import SeleniumDriver
+from api.user import User, input_user
 from api.utils.database import connect, get_db_connection_data_from_args
 from api.utils.interactive import (
     PickSingle,
@@ -14,30 +42,7 @@ from api.utils.interactive import (
     input_time,
     input_year,
 )
-from api.user import User, input_user
-from api.data.bus.journey import (
-    BusCallIn,
-    BusJourneyDetails,
-    BusJourneyIn,
-    get_bus_journey,
-    string_of_bus_call_in,
-)
-from api.data.bus.leg import BusLegIn, insert_leg
-from api.data.bus.operators import BusOperatorDetails
-from api.data.bus.stop import (
-    BusStopDetails,
-    BusStopDeparture,
-    get_bus_stops,
-    get_departures_from_bus_stop,
-    short_string_of_bus_stop,
-    short_string_of_bus_stop_departure,
-)
-from api.data.bus.vehicle import (
-    BusVehicleDetails,
-    get_bus_vehicles_by_id,
-    get_bus_vehicles_by_operator_and_id,
-    string_of_bus_vehicle_out,
-)
+from psycopg import Connection
 
 
 def get_bus_stop_input(
@@ -105,9 +110,7 @@ def get_bus_vehicle(
     vehicle_id = input_text("Vehicle id")
     if vehicle_id is None:
         return None
-    vehicles = get_bus_vehicles_by_operator_and_id(
-        conn, bus_operator, vehicle_id
-    )
+    vehicles = get_bus_vehicles_by_operator_and_id(conn, bus_operator, vehicle_id)
     if len(vehicles) == 1:
         return vehicles[0]
     if len(vehicles) > 1:
@@ -122,6 +125,15 @@ def get_bus_vehicle(
         information(f"No vehicles found with id {vehicle_id}")
         return None
     return input_vehicle(vehicles)
+
+
+def get_board_call_index_from_bustimes_journey(
+    journey: BustimesJourney, board_atco: str
+) -> Optional[int]:
+    for i, call in enumerate(journey.calls):
+        if call.stop_id == board_atco:
+            return i
+    return None
 
 
 def get_bus_leg_input(
@@ -154,7 +166,7 @@ def get_bus_leg_input(
 
     today = datetime.today()
 
-    if board_datetime.date() < today.date():
+    if board_datetime.date() < today.date() - timedelta(days=28):
         board_day_of_week = board_datetime.weekday()
         today_day_of_week = today.weekday()
         day_of_week_diff = board_day_of_week - today_day_of_week
@@ -162,12 +174,10 @@ def get_bus_leg_input(
             day_of_week_diff = day_of_week_diff + 7
         new_board_date = today.date() + timedelta(days=day_of_week_diff)
 
-        new_board_datetime = datetime.combine(
-            new_board_date, board_datetime.time()
-        )
+        new_board_datetime = datetime.combine(new_board_date, board_datetime.time())
         information(
-            f"{board_datetime.strftime("%d/%m/%Y %H:%M:%S")} is before today, "
-            + f"using {new_board_datetime.strftime("%d/%m/%Y %H:%M:%S")} instead"
+            f"{board_datetime.strftime('%d/%m/%Y %H:%M:%S')} is 28 days before today, "
+            + f"using {new_board_datetime.strftime('%d/%m/%Y %H:%M:%S')} instead"
         )
         datetime_offset = new_board_datetime - board_datetime
         board_datetime = new_board_datetime
@@ -185,33 +195,70 @@ def get_bus_leg_input(
     if departure is None:
         return None
 
-    journey_and_board_call_index = get_bus_journey(
+    if departure.live:
+        journey = get_bustimes_journey(
+            SeleniumDriver(),
+            departure.dep_time.date(),
+            board_stop.atco,
+            departure.bustimes_id,
+        )
+        if journey is None:
+            print(f"Could not get journey {departure.bustimes_id}")
+            return None
+        board_call_index = get_board_call_index_from_bustimes_journey(
+            journey, board_stop.atco
+        )
+        if board_call_index is None:
+            print("Could not get board index")
+            return None
+        journey_calls = [
+            BusCallIn(
+                i,
+                call.stop_id,
+                call.stop_name,
+                call.plan_arr,
+                call.act_arr,
+                call.plan_dep,
+                call.act_dep,
+            )
+            for i, call in enumerate(journey.calls)
+        ]
+        trip_id = journey.trip_id
+    else:
+        journey = None
+        trip_id = departure.bustimes_id
+        journey_calls = []
+    trip_and_board_call_index = get_bus_trip(
         conn,
-        departure.bustimes_journey_id,
+        trip_id,
         board_stop,
         departure,
     )
-    if journey_and_board_call_index is None:
-        print("Could not get journey")
+    if trip_and_board_call_index is None:
+        print(f"Could not get trip {trip_id}")
         return None
+    (journey_timetable, board_call_index) = trip_and_board_call_index
+    if journey is None:
+        journey_calls = journey_timetable.calls
 
-    (journey_timetable, board_call_index) = journey_and_board_call_index
-
-    alight_call_and_index = get_alight_stop_input(
-        journey_timetable.calls, board_call_index
-    )
+    alight_call_and_index = get_alight_stop_input(journey_calls, board_call_index)
     if alight_call_and_index is None:
         return None
 
-    (alight_call, alight_call_index) = alight_call_and_index
+    (_, alight_call_index) = alight_call_and_index
 
-    vehicle = get_bus_vehicle(conn, journey_timetable.operator)
+    if journey is None or journey.vehicle is None or journey.vehicle.identifier is None:
+        vehicle = get_bus_vehicle(conn, journey_timetable.operator)
+    else:
+        vehicle = get_bus_vehicles_by_operator_and_id(
+            conn, journey_timetable.operator, journey.vehicle.identifier
+        )[0]
 
     journey = BusJourneyIn(
         journey_timetable.id,
         journey_timetable.operator,
         journey_timetable.service,
-        journey_timetable.calls,
+        journey_calls,
         vehicle,
     )
     leg = BusLegIn(journey, board_call_index, alight_call_index)
