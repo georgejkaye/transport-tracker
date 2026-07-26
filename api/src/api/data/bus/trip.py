@@ -29,7 +29,6 @@ from api.utils.request import get_soup
 from api.utils.times import make_timezone_aware
 from bs4 import BeautifulSoup
 from psycopg import Connection
-from selenium import webdriver
 
 
 @dataclass
@@ -63,7 +62,6 @@ class BusJourneyTimetable:
 
 @dataclass
 class BusJourneyIn:
-    id: int
     operator: BusOperatorDetails
     service: BusServiceDetails
     calls: list[BusCallIn]
@@ -71,7 +69,7 @@ class BusJourneyIn:
 
 
 def string_of_bus_journey_in(conn: Connection, bus_journey: BusJourneyIn) -> str:
-    return_string = f"{bus_journey.id}: {bus_journey.service.line} {bus_journey.service.outbound.description} ({bus_journey.service.operator.name})\n============="
+    return_string = f"{bus_journey.service.line} {bus_journey.service.outbound.description} ({bus_journey.service.operator.name})\n============="
     atcos = [str(call.atco) for call in bus_journey.calls]
     atco_bus_stop_dict = get_bus_stops_from_atcos(conn, atcos)
     for call in bus_journey.calls:
@@ -115,11 +113,11 @@ def get_call_datetime(
 
 def get_bus_trip(
     conn: Connection,
-    bustimes_journey_id: int,
+    bustimes_trip_id: int,
     ref_stop: BusStopDetails,
     ref_departure: BusStopDeparture,
 ) -> Optional[tuple[BusJourneyTimetable, int]]:
-    soup = get_bus_trip_page(bustimes_journey_id)
+    soup = get_bus_trip_page(bustimes_trip_id)
     if soup is None:
         print("Could not get journey page")
         return soup
@@ -201,7 +199,7 @@ def get_bus_trip(
         print("Could not get board call")
         return None
     journey = BusJourneyTimetable(
-        bustimes_journey_id, operator, bus_service, service_call_objects
+        bustimes_trip_id, operator, bus_service, service_call_objects
     )
     return (journey, board_call_index)
 
