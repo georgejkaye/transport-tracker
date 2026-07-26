@@ -21,9 +21,23 @@ class BustimesJourneyVehicle:
 
 
 @dataclass
+class BustimesJourneyRoute:
+    name: str
+    slug: str
+    date: datetime
+
+
+@dataclass
+class BustimesJourneyOperator:
+    name: str
+    slug: str
+
+
+@dataclass
 class BustimesJourney:
     journey_id: int
-    trip_id: int
+    operator: BustimesJourneyOperator
+    route: BustimesJourneyRoute
     calls: list[BustimesJourneyCall]
     vehicle: Optional[BustimesJourneyVehicle]
     block: Optional[str]

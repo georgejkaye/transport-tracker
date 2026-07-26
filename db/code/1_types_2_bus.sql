@@ -60,7 +60,6 @@ CREATE TYPE BusCallInData AS (
 );
 
 CREATE TYPE BusJourneyInData AS (
-    bustimes_id TEXT,
     service_id INT,
     journey_calls BusCallInData[],
     vehicle_id INT
