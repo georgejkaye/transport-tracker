@@ -1,16 +1,14 @@
-from api.data.bus.service import register_bus_operator_details
-from api.utils.database import register_type
-
 from dataclasses import dataclass
 from typing import Optional
-from bs4 import BeautifulSoup
-from psycopg import Connection
 
 from api.data.bus.operators import (
     BusOperatorDetails,
     register_bus_operator_details_types,
 )
+from api.utils.database import register_type
 from api.utils.request import get_soup
+from bs4 import BeautifulSoup
+from psycopg import Connection
 
 
 @dataclass
@@ -29,18 +27,18 @@ def string_of_bus_vehicle_in(bus_vehicle: BusVehicleIn) -> str:
     if bus_vehicle.name is not None:
         string_brackets = f"{string_brackets}/{bus_vehicle.name}"
     string_brackets = f"{string_brackets})"
-    return (
-        f"{bus_vehicle.vehicle_number} {string_brackets} - {bus_vehicle.model}"
-    )
+    return f"{bus_vehicle.vehicle_number} {string_brackets} - {bus_vehicle.model}"
 
 
 def insert_bus_vehicles(conn: Connection, bus_vehicles: list[BusVehicleIn]):
-    bus_model_tuples = []
-    bus_vehicle_tuples = []
+    bus_model_tuples: list[tuple[str]] = []
+    bus_vehicle_tuples: list[
+        tuple[int, str, str, str, Optional[str], Optional[str], Optional[str]]
+    ] = []
     for bus_vehicle in bus_vehicles:
         if (
             bus_vehicle.model is not None
-            and bus_vehicle.model not in bus_model_tuples
+            and (bus_vehicle.model,) not in bus_model_tuples
         ):
             bus_model_tuples.append((bus_vehicle.model,))
         bus_vehicle_tuples.append(
@@ -142,15 +140,12 @@ def get_bus_operator_vehicles(
     header_cols = vehicles_soup.select("table.fleet th")
     id_col = 0
     numberplate_col = 1
-    livery_col = None
     model_col = None
     name_col = None
     current_col = 0
     for col in header_cols:
         column_title = col.text
-        if column_title == livery_column_title:
-            livery_col = current_col
-        elif column_title == model_column_title:
+        if column_title == model_column_title:
             model_col = current_col
         elif column_title == name_column_title:
             name_col = current_col
@@ -161,7 +156,7 @@ def get_bus_operator_vehicles(
         else:
             current_col = current_col + 1
     vehicle_rows = vehicles_soup.select("table.fleet tbody tr")
-    vehicles = []
+    vehicles: list[BusVehicleIn] = []
     for vehicle_row in vehicle_rows:
         bustimes_id = str(vehicle_row["id"]).strip()
         vehicle_cols = vehicle_row.select("td")
@@ -208,7 +203,5 @@ def get_bus_vehicles_by_id(
     conn: Connection, vehicle_number: str
 ) -> list[BusVehicleDetails]:
     register_bus_vehicle_details_types(conn)
-    rows = conn.execute(
-        "SELECT GetBusVehicles(NULL, %s)", [vehicle_number]
-    ).fetchall()
+    rows = conn.execute("SELECT GetBusVehicles(NULL, %s)", [vehicle_number]).fetchall()
     return [row[0] for row in rows]
