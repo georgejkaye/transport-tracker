@@ -5,6 +5,8 @@ import selenium.webdriver.support.ui as ui
 from api.data.bus.pages.journey.classes import (
     BustimesJourney,
     BustimesJourneyCall,
+    BustimesJourneyOperator,
+    BustimesJourneyRoute,
     BustimesJourneyVehicle,
 )
 from api.data.selenium.driver import Driver
@@ -239,17 +241,43 @@ def get_bustimes_journey_block(
     return block
 
 
+def get_journey_operator(page_soup: BeautifulSoup) -> BustimesJourneyOperator:
+    operator_a = page_soup.select_one(".breadcrumb li:first-child a")
+    if operator_a is None:
+        raise RuntimeError("Journey page does not contain breadcrumb a")
+    operator_name = operator_a.text
+    operator_a_href = operator_a.get("href")
+    if operator_a_href is None or not isinstance(operator_a_href, str):
+        raise RuntimeError("Journey page does not contain breadcrumb a href")
+    operator_slug = operator_a_href.split("/")[2]
+    return BustimesJourneyOperator(operator_name, operator_slug)
+
+
+def get_journey_route(page_soup: BeautifulSoup) -> BustimesJourneyRoute:
+    route_a = page_soup.select_one(".breadcrumb li:last-child a")
+    if route_a is None:
+        raise RuntimeError("Journey page does not contain breadcrumb a")
+    route_name = route_a.text
+    route_a_href = route_a.get("href")
+    if route_a_href is None or not isinstance(route_a_href, str):
+        raise RuntimeError("Journey page does not contain breadcrumb a href")
+    route_path = route_a_href.split("/")[2]
+    route_path_split = route_path.split("?")
+    route_slug = route_path_split[0]
+    route_date = datetime.strptime(route_path_split[1][5:], "%Y-%m-%d")
+    return BustimesJourneyRoute(route_name, route_slug, route_date)
+
+
 def get_bustimes_journey(
     driver: Driver, board_date: date, board_atco: str, bustimes_journey_id: int
 ) -> Optional[BustimesJourney]:
     page_soup = driver.get_page_html(
         get_bustimes_journey_url(bustimes_journey_id), setup_bustimes_journey_page
     )
+    operator = get_journey_operator(page_soup)
+    route = get_journey_route(page_soup)
     stop_rows = get_call_row_lists(page_soup)
-    trip_id = get_bustimes_trip_id(page_soup)
-    if trip_id is None:
-        return None
     calls = get_bustimes_calls(board_date, board_atco, stop_rows)
     vehicle = get_bustimes_journey_vehicle(page_soup)
     block = get_bustimes_journey_block(page_soup)
-    return BustimesJourney(bustimes_journey_id, trip_id, calls, vehicle, block)
+    return BustimesJourney(bustimes_journey_id, operator, route, calls, vehicle, block)
