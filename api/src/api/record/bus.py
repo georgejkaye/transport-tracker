@@ -4,9 +4,12 @@ from typing import Optional
 from api.data.bus.leg import BusLegIn, insert_leg
 from api.data.bus.operators import (
     BusOperatorDetails,
+    get_bus_operator_from_national_operator_code,
 )
 from api.data.bus.pages.journey.classes import BustimesJourney
 from api.data.bus.pages.journey.reader import get_bustimes_journey
+from api.data.bus.pages.operator.reader import get_bustimes_operator
+from api.data.bus.service import get_service_from_line_and_operator
 from api.data.bus.stop import (
     BusStopDeparture,
     BusStopDetails,
@@ -223,23 +226,39 @@ def get_bus_leg_input(
             )
             for i, call in enumerate(journey.calls)
         ]
-        trip_id = journey.trip_id
+        bustimes_operator = get_bustimes_operator(journey.operator.slug)
+        if bustimes_operator is None:
+            information("Could not get operator")
+            return None
+        operator = get_bus_operator_from_national_operator_code(
+            conn, bustimes_operator.national_operator_code
+        )
+        if operator is None:
+            information("Could not get operator")
+            return None
+        service = get_service_from_line_and_operator(conn, journey.route.name, operator)
+        if service is None:
+            information(
+                f"Could not get service {journey.route.name} and operator {operator.name}"
+            )
+            return None
     else:
         journey = None
         trip_id = departure.bustimes_id
         journey_calls = []
-    trip_and_board_call_index = get_bus_trip(
-        conn,
-        trip_id,
-        board_stop,
-        departure,
-    )
-    if trip_and_board_call_index is None:
-        print(f"Could not get trip {trip_id}")
-        return None
-    (journey_timetable, board_call_index) = trip_and_board_call_index
-    if journey is None:
+        trip_and_board_call_index = get_bus_trip(
+            conn,
+            trip_id,
+            board_stop,
+            departure,
+        )
+        if trip_and_board_call_index is None:
+            print(f"Could not get trip {trip_id}")
+            return None
+        (journey_timetable, board_call_index) = trip_and_board_call_index
         journey_calls = journey_timetable.calls
+        operator = journey_timetable.operator
+        service = journey_timetable.service
 
     alight_call_and_index = get_alight_stop_input(journey_calls, board_call_index)
     if alight_call_and_index is None:
@@ -248,23 +267,22 @@ def get_bus_leg_input(
     (_, alight_call_index) = alight_call_and_index
 
     if journey is None or journey.vehicle is None or journey.vehicle.identifier is None:
-        vehicle = get_bus_vehicle(conn, journey_timetable.operator)
+        vehicle = get_bus_vehicle(conn, operator)
     else:
         vehicle_options = get_bus_vehicles_by_operator_and_id(
-            conn, journey_timetable.operator, journey.vehicle.identifier
+            conn, operator, journey.vehicle.identifier
         )
         if len(vehicle_options) == 0:
             information(
-                f"Could not find vehicle {journey.vehicle.identifier} for {journey_timetable.operator.name}, skipping"
+                f"Could not find vehicle {journey.vehicle.identifier} for {operator.name}, skipping"
             )
             vehicle = None
         else:
             vehicle = vehicle_options[0]
 
     journey = BusJourneyIn(
-        journey_timetable.id,
-        journey_timetable.operator,
-        journey_timetable.service,
+        operator,
+        service,
         journey_calls,
         vehicle,
     )
