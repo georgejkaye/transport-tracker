@@ -14,6 +14,7 @@ from api.data.bus.pages.stop.reader import (
     get_departures_from_bus_stop,
     short_string_of_bus_stop_departure,
 )
+from api.data.bus.pages.trip.reader import get_bus_trip
 from api.data.bus.service import get_service_from_line_and_operator
 from api.data.bus.stop import (
     BusStopDetails,
@@ -24,7 +25,6 @@ from api.data.bus.trip import (
     BusCallIn,
     BusJourneyDetails,
     BusJourneyIn,
-    get_bus_trip,
     string_of_bus_call_in,
 )
 from api.data.bus.vehicle import (
@@ -194,11 +194,12 @@ def get_bus_journey_from_bustimes_journey(
 
 
 def get_bus_journey_from_bustimes_trip(
-    departure: BusStopDeparture, board_stop: BusStopDetails
+    driver: Driver, departure: BusStopDeparture, board_stop: BusStopDetails
 ) -> Optional[BustimesJourneyData]:
     trip_id = departure.bustimes_id
     journey_calls = []
     trip_and_board_call_index = get_bus_trip(
+        driver,
         conn,
         trip_id,
         board_stop,
@@ -300,7 +301,7 @@ def get_bus_leg_input(
         )
     else:
         bustimes_journey_data = get_bus_journey_from_bustimes_trip(
-            departure, board_stop
+            driver, departure, board_stop
         )
     if bustimes_journey_data is None:
         return None
