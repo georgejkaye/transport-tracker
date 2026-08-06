@@ -7,7 +7,7 @@ from api.data.bus.operators import (
     BusOperatorDetails,
     get_bus_operator_from_national_operator_code,
 )
-from api.data.bus.overview import BusCallStopDetails
+from api.data.bus.pages.stop.classes import BusStopDeparture
 from api.data.bus.service import (
     BusJourneyServiceDetails,
     BusServiceDetails,
@@ -15,7 +15,7 @@ from api.data.bus.service import (
     register_bus_journey_service_details_types,
 )
 from api.data.bus.stop import (
-    BusStopDeparture,
+    BusCallStopDetails,
     BusStopDetails,
     get_bus_stops_from_atcos,
     register_bus_call_stop_details_types,
