@@ -1,7 +1,7 @@
 from datetime import date, datetime, time, timedelta
 from typing import Optional
 
-import selenium.webdriver.support.ui as ui
+from api.data.bus.pages.bustimes import accept_bustimes_cookies
 from api.data.bus.pages.journey.classes import (
     BustimesJourney,
     BustimesJourneyCall,
@@ -199,17 +199,7 @@ def get_bustimes_journey_vehicle(
 
 
 def setup_bustimes_journey_page(driver: WebDriver):
-    wait = ui.WebDriverWait(driver, 10)
-
-    while True:
-        try:
-            accept_button = wait.until(
-                lambda driver: driver.find_element(By.ID, "accept-btn")
-            )
-            accept_button.click()
-            break
-        except:
-            pass
+    accept_bustimes_cookies(driver)
     checkboxes = driver.find_elements(By.CSS_SELECTOR, 'input[type="checkbox"]')
     if len(checkboxes) == 1:
         checkboxes[0].click()

@@ -9,20 +9,22 @@ from api.data.bus.operators import (
 from api.data.bus.pages.journey.classes import BustimesJourney
 from api.data.bus.pages.journey.reader import get_bustimes_journey
 from api.data.bus.pages.operator.reader import get_bustimes_operator
+from api.data.bus.pages.stop.classes import BusStopDeparture
+from api.data.bus.pages.stop.reader import (
+    get_departures_from_bus_stop,
+    short_string_of_bus_stop_departure,
+)
+from api.data.bus.pages.trip.reader import get_bus_trip
 from api.data.bus.service import get_service_from_line_and_operator
 from api.data.bus.stop import (
-    BusStopDeparture,
     BusStopDetails,
     get_bus_stops,
-    get_departures_from_bus_stop,
     short_string_of_bus_stop,
-    short_string_of_bus_stop_departure,
 )
 from api.data.bus.trip import (
     BusCallIn,
     BusJourneyDetails,
     BusJourneyIn,
-    get_bus_trip,
     string_of_bus_call_in,
 )
 from api.data.bus.vehicle import (
@@ -31,7 +33,7 @@ from api.data.bus.vehicle import (
     get_bus_vehicles_by_operator_and_id,
     string_of_bus_vehicle_out,
 )
-from api.data.selenium.driver import SeleniumDriver
+from api.data.selenium.driver import Driver, SeleniumDriver
 from api.record.classes import BustimesJourneyData
 from api.user import User, input_user
 from api.utils.database import connect, get_db_connection_data_from_args
@@ -141,10 +143,10 @@ def get_board_call_index_from_bustimes_journey(
 
 
 def get_bus_journey_from_bustimes_journey(
-    departure: BusStopDeparture, board_stop: BusStopDetails
+    driver: Driver, departure: BusStopDeparture, board_stop: BusStopDetails
 ) -> Optional[BustimesJourneyData]:
     journey = get_bustimes_journey(
-        SeleniumDriver(),
+        driver,
         departure.dep_time.date(),
         board_stop.atco,
         departure.bustimes_id,
@@ -192,11 +194,12 @@ def get_bus_journey_from_bustimes_journey(
 
 
 def get_bus_journey_from_bustimes_trip(
-    departure: BusStopDeparture, board_stop: BusStopDetails
+    driver: Driver, departure: BusStopDeparture, board_stop: BusStopDetails
 ) -> Optional[BustimesJourneyData]:
     trip_id = departure.bustimes_id
     journey_calls = []
     trip_and_board_call_index = get_bus_trip(
+        driver,
         conn,
         trip_id,
         board_stop,
@@ -282,8 +285,9 @@ def get_bus_leg_input(
         information("Could not get board datetime")
         return None
     (board_datetime, datetime_offset) = datetime_result
+    driver = SeleniumDriver()
     departures = get_departures_from_bus_stop(
-        board_stop, board_datetime, datetime_offset
+        driver, board_stop, board_datetime, datetime_offset
     )
     if len(departures) == 0:
         information("No departures from bus stop")
@@ -293,11 +297,11 @@ def get_bus_leg_input(
         return None
     if departure.live:
         bustimes_journey_data = get_bus_journey_from_bustimes_journey(
-            departure, board_stop
+            driver, departure, board_stop
         )
     else:
         bustimes_journey_data = get_bus_journey_from_bustimes_trip(
-            departure, board_stop
+            driver, departure, board_stop
         )
     if bustimes_journey_data is None:
         return None
