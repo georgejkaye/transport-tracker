@@ -6,7 +6,7 @@ from api.data.bus.pages.stop.classes import BusStopDeparture
 from api.data.bus.stop import BusStopDetails
 from api.data.selenium.driver import Driver
 from bs4 import BeautifulSoup
-from selenium.webdriver.firefox.webdriver import WebDriver
+from undetected_geckodriver import Firefox
 
 
 def get_bus_stop_page_url(
@@ -19,7 +19,7 @@ def get_bus_stop_page_url(
     )
 
 
-def setup_bustimes_stop_page(driver: WebDriver):
+def setup_bustimes_stop_page(driver: Firefox):
     accept_bustimes_cookies(driver)
 
 

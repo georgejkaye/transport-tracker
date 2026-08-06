@@ -13,7 +13,7 @@ from api.data.selenium.driver import Driver
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.webdriver import WebDriver
+from undetected_geckodriver import Firefox
 
 
 def get_bustimes_journey_url(bustimes_journey_id: int) -> str:
@@ -198,7 +198,7 @@ def get_bustimes_journey_vehicle(
     return BustimesJourneyVehicle(bustimes_id, identifier, numberplate)
 
 
-def setup_bustimes_journey_page(driver: WebDriver):
+def setup_bustimes_journey_page(driver: Firefox):
     accept_bustimes_cookies(driver)
     checkboxes = driver.find_elements(By.CSS_SELECTOR, 'input[type="checkbox"]')
     if len(checkboxes) == 1:

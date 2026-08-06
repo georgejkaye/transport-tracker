@@ -2,26 +2,25 @@ from abc import abstractmethod
 from typing import Callable
 
 from bs4 import BeautifulSoup
-from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.webdriver import WebDriver
+from undetected_geckodriver import Firefox
 
 
 class Driver:
     @abstractmethod
     def get_page_html(
-        self, url: str, action: Callable[[WebDriver], None]
+        self, url: str, action: Callable[[Firefox], None]
     ) -> BeautifulSoup:
         pass
 
 
 class SeleniumDriver(Driver):
     def get_page_html(
-        self, url: str, action: Callable[[WebDriver], None]
+        self, url: str, action: Callable[[Firefox], None]
     ) -> BeautifulSoup:
         options = Options()
         options.add_argument("--headless")
-        driver = webdriver.Firefox(options=options)
+        driver = Firefox(options=options)
         driver.get(url)
         action(driver)
         html = driver.page_source

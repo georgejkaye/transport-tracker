@@ -12,14 +12,14 @@ from api.data.bus.trip import BusCallIn
 from api.data.selenium.driver import Driver
 from bs4 import BeautifulSoup
 from psycopg import Connection
-from selenium.webdriver.firefox.webdriver import WebDriver
+from undetected_geckodriver import Firefox
 
 
 def get_bus_trip_url(bustimes_trip_id: int) -> str:
     return f"https://bustimes.org/trips/{bustimes_trip_id}"
 
 
-def setup_bustimes_trip_page(driver: WebDriver):
+def setup_bustimes_trip_page(driver: Firefox):
     accept_bustimes_cookies(driver)
 
 
