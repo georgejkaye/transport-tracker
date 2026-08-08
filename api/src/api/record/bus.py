@@ -172,7 +172,7 @@ def get_bus_journey_from_bustimes_journey(
         )
         for i, call in enumerate(journey.calls)
     ]
-    bustimes_operator = get_bustimes_operator(journey.operator.slug)
+    bustimes_operator = get_bustimes_operator(driver, journey.operator.slug)
     if bustimes_operator is None:
         information("Could not get operator")
         return None

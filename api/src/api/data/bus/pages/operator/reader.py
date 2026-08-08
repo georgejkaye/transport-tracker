@@ -1,20 +1,23 @@
 from typing import Optional
 
+from api.data.bus.pages.bustimes import accept_bustimes_cookies
 from api.data.bus.pages.operator.classes import BustimesOperator
+from api.data.selenium.driver import Driver
 from api.utils.interactive import information
-from api.utils.request import get_soup
+from undetected_geckodriver import Firefox
 
 
 def get_bustimes_operator_url(slug: str) -> str:
     return f"https://bustimes.org/operators/{slug}"
 
 
-def get_bustimes_operator(slug: str) -> Optional[BustimesOperator]:
+def setup_bustimes_operator_page(driver: Firefox):
+    accept_bustimes_cookies(driver)
+
+
+def get_bustimes_operator(driver: Driver, slug: str) -> Optional[BustimesOperator]:
     url = get_bustimes_operator_url(slug)
-    page_soup = get_soup(url)
-    if page_soup is None:
-        information(f"Could not get operator page {url}")
-        return None
+    page_soup = driver.get_page_html(url, setup_bustimes_operator_page)
     name = page_soup.select_one("h1")
     if name is None:
         information(f"Could not find operator name on {url}")
