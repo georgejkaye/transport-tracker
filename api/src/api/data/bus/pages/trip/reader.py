@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from api.data.bus.operators import get_bus_operator_from_national_operator_code
-from api.data.bus.pages.bustimes import accept_bustimes_cookies
 from api.data.bus.pages.stop.classes import BusStopDeparture
 from api.data.bus.pages.trip.classes import BusJourneyTimetable
 from api.data.bus.service import get_service_from_line_and_operator
@@ -12,20 +11,15 @@ from api.data.bus.trip import BusCallIn
 from api.data.selenium.driver import Driver
 from bs4 import BeautifulSoup
 from psycopg import Connection
-from undetected_geckodriver import Firefox
 
 
 def get_bus_trip_url(bustimes_trip_id: int) -> str:
     return f"https://bustimes.org/trips/{bustimes_trip_id}"
 
 
-def setup_bustimes_trip_page(driver: Firefox):
-    accept_bustimes_cookies(driver)
-
-
 def get_bus_trip_page(driver: Driver, bustimes_trip_id: int) -> Optional[BeautifulSoup]:
     url = get_bus_trip_url(bustimes_trip_id)
-    return driver.get_page_html(url, setup_bustimes_trip_page)
+    return driver.get_page_html(url)
 
 
 def get_bus_trip(

@@ -6,6 +6,7 @@ from api.data.bus.operators import (
     BusOperatorDetails,
     get_bus_operator_from_national_operator_code,
 )
+from api.data.bus.pages.bustimes import accept_bustimes_cookies
 from api.data.bus.pages.journey.classes import BustimesJourney
 from api.data.bus.pages.journey.reader import get_bustimes_journey
 from api.data.bus.pages.operator.reader import get_bustimes_operator
@@ -33,7 +34,7 @@ from api.data.bus.vehicle import (
     get_bus_vehicles_by_operator_and_id,
     string_of_bus_vehicle_out,
 )
-from api.data.selenium.driver import Driver, SeleniumDriver
+from api.data.selenium.driver import Driver, DriverManager
 from api.record.classes import BustimesJourneyData
 from api.user import User, input_user
 from api.utils.database import connect, get_db_connection_data_from_args
@@ -49,6 +50,10 @@ from api.utils.interactive import (
     input_year,
 )
 from psycopg import Connection
+
+
+def get_bustimes_url() -> str:
+    return "https://bustimes.org"
 
 
 def get_bus_stop_input(
@@ -285,41 +290,44 @@ def get_bus_leg_input(
         information("Could not get board datetime")
         return None
     (board_datetime, datetime_offset) = datetime_result
-    driver = SeleniumDriver()
-    departures = get_departures_from_bus_stop(
-        driver, board_stop, board_datetime, datetime_offset
-    )
-    if len(departures) == 0:
-        information("No departures from bus stop")
-        return None
-    departure = get_bus_stop_departure_input(departures)
-    if departure is None:
-        return None
-    if departure.live:
-        bustimes_journey_data = get_bus_journey_from_bustimes_journey(
-            driver, departure, board_stop
+    with DriverManager() as driver:
+        driver.get_page_html(get_bustimes_url(), accept_bustimes_cookies)
+        departures = get_departures_from_bus_stop(
+            driver, board_stop, board_datetime, datetime_offset
         )
-    else:
-        bustimes_journey_data = get_bus_journey_from_bustimes_trip(
-            driver, departure, board_stop
+        if len(departures) == 0:
+            information("No departures from bus stop")
+            return None
+        departure = get_bus_stop_departure_input(departures)
+        if departure is None:
+            return None
+        if departure.live:
+            bustimes_journey_data = get_bus_journey_from_bustimes_journey(
+                driver, departure, board_stop
+            )
+        else:
+            bustimes_journey_data = get_bus_journey_from_bustimes_trip(
+                driver, departure, board_stop
+            )
+        if bustimes_journey_data is None:
+            return None
+        alight_call_and_index = get_alight_stop_input(
+            bustimes_journey_data.calls, bustimes_journey_data.board_call_index
         )
-    if bustimes_journey_data is None:
-        return None
-    alight_call_and_index = get_alight_stop_input(
-        bustimes_journey_data.calls, bustimes_journey_data.board_call_index
-    )
-    if alight_call_and_index is None:
-        return None
-    (_, alight_call_index) = alight_call_and_index
-    vehicle = get_bus_vehicle_from_bustimes_data(bustimes_journey_data)
-    journey = BusJourneyIn(
-        bustimes_journey_data.operator,
-        bustimes_journey_data.service,
-        bustimes_journey_data.calls,
-        vehicle,
-    )
-    leg = BusLegIn(journey, bustimes_journey_data.board_call_index, alight_call_index)
-    insert_leg(conn, users, leg)
+        if alight_call_and_index is None:
+            return None
+        (_, alight_call_index) = alight_call_and_index
+        vehicle = get_bus_vehicle_from_bustimes_data(bustimes_journey_data)
+        journey = BusJourneyIn(
+            bustimes_journey_data.operator,
+            bustimes_journey_data.service,
+            bustimes_journey_data.calls,
+            vehicle,
+        )
+        leg = BusLegIn(
+            journey, bustimes_journey_data.board_call_index, alight_call_index
+        )
+        insert_leg(conn, users, leg)
 
 
 if __name__ == "__main__":

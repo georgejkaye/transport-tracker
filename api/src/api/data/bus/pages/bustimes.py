@@ -1,9 +1,9 @@
 import selenium.webdriver.support.ui as ui
 from selenium.webdriver.common.by import By
-from undetected_geckodriver import Firefox
+from selenium.webdriver.remote.webdriver import WebDriver
 
 
-def accept_bustimes_cookies(driver: Firefox):
+def accept_bustimes_cookies(driver: WebDriver):
     wait = ui.WebDriverWait(driver, 10)
 
     while True:
