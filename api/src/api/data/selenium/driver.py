@@ -3,6 +3,14 @@ from typing import Callable
 
 from bs4 import BeautifulSoup
 from selenium.webdriver.firefox.options import Options
+
+import getpass
+import os
+
+# undetected_geckodriver Firefox calls getlogin on init
+# but this doesn't work in a docker container
+os.getlogin = getpass.getuser
+
 from undetected_geckodriver import Firefox
 
 
