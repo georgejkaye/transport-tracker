@@ -28,6 +28,8 @@ osmnx = "^2.0.1"
 python-slugify = "^8.0.4"
 cssutils = "^2.11.1"
 selenium = "^4.44.0"
+undetected-geckodriver = "^1.0.7"
+onnxruntime = "^1.28.0"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.5.1"

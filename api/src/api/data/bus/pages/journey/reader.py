@@ -1,7 +1,6 @@
 from datetime import date, datetime, time, timedelta
 from typing import Optional
 
-from api.data.bus.pages.bustimes import accept_bustimes_cookies
 from api.data.bus.pages.journey.classes import (
     BustimesJourney,
     BustimesJourneyCall,
@@ -13,7 +12,7 @@ from api.data.selenium.driver import Driver
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.webdriver import WebDriver
+from selenium.webdriver.remote.webdriver import WebDriver
 
 
 def get_bustimes_journey_url(bustimes_journey_id: int) -> str:
@@ -199,7 +198,6 @@ def get_bustimes_journey_vehicle(
 
 
 def setup_bustimes_journey_page(driver: WebDriver):
-    accept_bustimes_cookies(driver)
     checkboxes = driver.find_elements(By.CSS_SELECTOR, 'input[type="checkbox"]')
     if len(checkboxes) == 1:
         checkboxes[0].click()

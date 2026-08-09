@@ -1,6 +1,6 @@
 import selenium.webdriver.support.ui as ui
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.webdriver import WebDriver
+from selenium.webdriver.remote.webdriver import WebDriver
 
 
 def accept_bustimes_cookies(driver: WebDriver):

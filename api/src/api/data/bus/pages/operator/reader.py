@@ -1,20 +1,17 @@
 from typing import Optional
 
 from api.data.bus.pages.operator.classes import BustimesOperator
+from api.data.selenium.driver import Driver
 from api.utils.interactive import information
-from api.utils.request import get_soup
 
 
 def get_bustimes_operator_url(slug: str) -> str:
     return f"https://bustimes.org/operators/{slug}"
 
 
-def get_bustimes_operator(slug: str) -> Optional[BustimesOperator]:
+def get_bustimes_operator(driver: Driver, slug: str) -> Optional[BustimesOperator]:
     url = get_bustimes_operator_url(slug)
-    page_soup = get_soup(url)
-    if page_soup is None:
-        information(f"Could not get operator page {url}")
-        return None
+    page_soup = driver.get_page_html(url)
     name = page_soup.select_one("h1")
     if name is None:
         information(f"Could not find operator name on {url}")
