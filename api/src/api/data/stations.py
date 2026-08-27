@@ -1,19 +1,19 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional
-from psycopg import Connection
 
-from api.utils.request import make_get_request
+from api.data.toc import BrandData, OperatorData
 from api.utils.credentials import get_api_credentials
 from api.utils.database import (
     str_or_null_to_datetime,
 )
+from api.utils.request import make_get_request
 from api.utils.times import (
     get_datetime_route,
     get_hourmin_string,
     make_timezone_aware,
 )
-from api.data.toc import BrandData, OperatorData
+from psycopg import Connection
 
 
 @dataclass
@@ -71,9 +71,7 @@ def string_of_service_at_station(service: TrainServiceAtStation):
     return f"{service.headcode} {get_multiple_short_station_string(service.origins)} to {get_multiple_short_station_string(service.destinations)} plan {get_hourmin_string(service.plan_dep)} act {get_hourmin_string(service.act_dep)} ({service.operator_code})"
 
 
-def select_station_from_crs(
-    conn: Connection, crs: str
-) -> Optional[TrainStation]:
+def select_station_from_crs(conn: Connection, crs: str) -> Optional[TrainStation]:
     query = """
         SELECT
             station_name, operator_id, brand_id FROM Station
@@ -86,9 +84,7 @@ def select_station_from_crs(
     return TrainStation(row[0], crs.upper(), row[1], row[2])
 
 
-def select_station_from_name(
-    conn: Connection, name: str
-) -> Optional[TrainStation]:
+def select_station_from_name(conn: Connection, name: str) -> Optional[TrainStation]:
     query = """
         SELECT station_name, station_crs, operator_id, brand_id
         FROM Station
@@ -101,9 +97,7 @@ def select_station_from_name(
     return TrainStation(row[0], row[1], row[2], row[3])
 
 
-def get_stations_from_substring(
-    conn: Connection, substring: str
-) -> list[TrainStation]:
+def get_stations_from_substring(conn: Connection, substring: str) -> list[TrainStation]:
     query = """
         SELECT station_name, station_crs, operator_id, brand_id
         FROM Station
@@ -118,12 +112,12 @@ station_endpoint = "https://api.rtt.io/api/v1/json/search"
 
 def response_to_short_train_station(
     conn: Connection, data
-) -> ShortTrainStation:
+) -> Optional[ShortTrainStation]:
     name = data["description"]
     station = select_station_from_name(conn, name)
     if station is None:
         print(f"No station with name {name} found. Please update the database.")
-        exit(1)
+        return None
     return ShortTrainStation(name, station.crs.upper())
 
 
@@ -146,13 +140,9 @@ def response_to_datetime(
         minutes = int(datetime_string[2:4])
         next_day = data.get(f"{time_field}NextDay")
         if next_day is not None and next_day:
-            actual_datetime = run_date + timedelta(
-                days=1, hours=hours, minutes=minutes
-            )
+            actual_datetime = run_date + timedelta(days=1, hours=hours, minutes=minutes)
         else:
-            actual_datetime = run_date + timedelta(
-                days=0, hours=hours, minutes=minutes
-            )
+            actual_datetime = run_date + timedelta(days=0, hours=hours, minutes=minutes)
         return make_timezone_aware(actual_datetime)
     else:
         return None
@@ -196,9 +186,7 @@ def response_to_service_at_station(
 def get_services_at_station(
     conn: Connection, station: TrainStation, dt: datetime
 ) -> list[TrainServiceAtStation]:
-    endpoint = (
-        f"{station_endpoint}/{station.crs}/{get_datetime_route(dt, True)}"
-    )
+    endpoint = f"{station_endpoint}/{station.crs}/{get_datetime_route(dt, True)}"
     rtt_credentials = get_api_credentials("RTT")
     response = make_get_request(endpoint, rtt_credentials)
     if not response.status_code == 200:
@@ -472,9 +460,7 @@ def select_stations(
         if brand_id is None:
             brand_data = None
         else:
-            brand_data = BrandData(
-                brand_id, brand_code, brand_name, brand_bg, brand_fg
-            )
+            brand_data = BrandData(brand_id, brand_code, brand_name, brand_bg, brand_fg)
         leg_objects = []
         if legs is not None:
             for leg_row in legs:
@@ -499,9 +485,7 @@ def select_stations(
                 leg_data = LegAtStation(
                     leg_row["leg_id"],
                     leg_row["platform"],
-                    ShortTrainStation(
-                        leg_row["start_name"], leg_row["start_crs"]
-                    ),
+                    ShortTrainStation(leg_row["start_name"], leg_row["start_crs"]),
                     ShortTrainStation(leg_row["end_name"], leg_row["end_crs"]),
                     datetime.fromisoformat(leg_row["stop_time"]),
                     str_or_null_to_datetime(leg_row["plan_arr"]),
