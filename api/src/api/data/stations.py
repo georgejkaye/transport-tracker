@@ -121,13 +121,17 @@ def response_to_short_train_station(
     return ShortTrainStation(name, station.crs.upper())
 
 
-def get_multiple_short_station_string(locs: list[ShortTrainStation]):
+def get_multiple_short_station_string(locs: list[Optional[ShortTrainStation]]):
     string = ""
     for i, loc in enumerate(locs):
-        if i == 0:
-            string = loc.name
+        if loc is None:
+            name = "Unknown"
         else:
-            string = f"{string} and {loc.name}"
+            name = loc.name
+        if i == 0:
+            string = name
+        else:
+            string = f"{string} and {name}"
     return string
 
 
