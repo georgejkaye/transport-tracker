@@ -118,12 +118,12 @@ station_endpoint = "https://api.rtt.io/api/v1/json/search"
 
 def response_to_short_train_station(
     conn: Connection, data
-) -> ShortTrainStation:
+) -> Optional[ShortTrainStation]:
     name = data["description"]
     station = select_station_from_name(conn, name)
     if station is None:
         print(f"No station with name {name} found. Please update the database.")
-        exit(1)
+        return None
     return ShortTrainStation(name, station.crs.upper())
 
 
