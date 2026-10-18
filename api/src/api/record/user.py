@@ -1,7 +1,9 @@
 from psycopg import Connection
 
 from api.classes.interactive import PickMultiple
-from api.db.functions.select.user import select_user_public_data_fetchall
+from api.db.functions.select.user.details import (
+    select_user_public_data_fetchall,
+)
 from api.db.types.user.user import TransportUserPublicOutData
 from api.utils.interactive import get_choices_from_input
 
