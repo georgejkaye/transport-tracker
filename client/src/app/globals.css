@@ -1,9 +1,8 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+@theme {
+  --color-accent: #003366;
+  --width-desktop: 950px;
+  --width-tablet: 550px;
+  --width-mobile: 350px;
 }
