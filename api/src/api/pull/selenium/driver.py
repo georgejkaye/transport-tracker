@@ -14,7 +14,7 @@ os.getlogin = getpass.getuser
 from undetected_geckodriver import Firefox  # type: ignore
 
 
-def do_nothing(driver: WebDriver):
+def do_nothing(_: WebDriver) -> None:
     pass
 
 
@@ -27,7 +27,7 @@ class Driver:
 
 
 class SeleniumDriver(Driver):
-    def __init__(self):
+    def __init__(self) -> None:
         options = Options()
         options.add_argument("--headless")
         self.driver = Firefox(options)
@@ -43,14 +43,17 @@ class SeleniumDriver(Driver):
 
 
 class DriverManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.driver = SeleniumDriver()
         pass
 
-    def __enter__(self):
+    def __enter__(self) -> SeleniumDriver:
         return self.driver
 
     def __exit__(
-        self, exception_type: Any, exception_value: Any, exception_traceback: Any
-    ):
+        self,
+        exception_type: Any,
+        exception_value: Any,
+        exception_traceback: Any,
+    ) -> None:
         self.driver.driver.quit()
