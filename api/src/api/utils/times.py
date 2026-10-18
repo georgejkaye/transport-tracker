@@ -38,9 +38,6 @@ def add(dt: datetime, delta: int) -> datetime:
 
 
 def pad_front(value: Any, length: int) -> str:
-    """
-    Add zeroes to the front of a number string until it is the desired length
-    """
     string = str(value)
     return "0" * (length - len(string)) + string
 
