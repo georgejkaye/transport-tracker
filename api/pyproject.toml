@@ -7,7 +7,8 @@ readme = "README.md"
 packages = [{ include = "api", from = "src" }]
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = "^3.13.3"
+Jinja2 = "^3.1.6"
 termcolor = "^2.3.0"
 beautifulsoup4 = "^4.12.2"
 requests = "^2.32.4"
@@ -19,6 +20,11 @@ fastapi = "^0.128.0"
 psycopg = "^3.3.2"
 folium = "^0.19.3"
 osmnx = "^2.0.6"
+python-slugify = "^8.0.4"
+cssutils = "^2.11.1"
+selenium = "^4.44.0"
+undetected-geckodriver = "^1.0.7"
+onnxruntime = "^1.28.0"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.6.0"
@@ -28,6 +34,10 @@ types-shapely = "^2.1.0.20250512"
 types-geopandas = "^1.0.1.20250601"
 types-networkx = "^3.5.0.20250918"
 ruff = "^0.14.10"
+black = "^26.3.1"
+
+[tool.black]
+line-length = 80
 
 [build-system]
 requires = ["poetry-core"]

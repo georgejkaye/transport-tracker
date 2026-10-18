@@ -25,7 +25,6 @@ CREATE TYPE bus_call_in_data AS (
 CREATE DOMAIN bus_call_in_data_notnull AS bus_call_in_data NOT NULL;
 
 CREATE TYPE bus_journey_in_data AS (
-    bustimes_id INTEGER_NOTNULL,
     service_id INTEGER_NOTNULL,
     journey_calls bus_call_in_data[],
     vehicle_id INTEGER

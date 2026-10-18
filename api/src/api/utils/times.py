@@ -50,15 +50,15 @@ def get_hourmin_string(
 ) -> str:
     if datetime is None:
         return "-"
-    string = pad_front(datetime.hour, 2)
+    string = pad_front(str(datetime.hour), 2)
     if colon:
         string = string + " : "
-    string = string + pad_front(datetime.minute, 2)
+    string = string + pad_front(str(datetime.minute), 2)
     return string
 
 
 def get_duration_string(td: timedelta) -> str:
-    return f"{pad_front(str(td.seconds // 3600), 2)}:{pad_front(str((td.seconds//60) % 60), 2)}"
+    return f"{pad_front(str(td.seconds // 3600), 2)}:{pad_front(str((td.seconds // 60) % 60), 2)}"
 
 
 def get_hour(datetime: datetime) -> str:
@@ -135,3 +135,12 @@ def change_timezone(
     source_time = make_timezone_aware(datetime, source_tz)
     target_time = source_time.astimezone(target_tz)
     return target_time
+
+
+def get_datetime_after_start_datetime(
+    run_date: date, run_datetime: Optional[datetime], current_time: time
+) -> datetime:
+    current_datetime = datetime.combine(run_date, current_time)
+    if run_datetime is not None and current_datetime < run_datetime:
+        return current_datetime + timedelta(days=1)
+    return current_datetime
