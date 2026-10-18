@@ -1,10 +1,12 @@
+from typing import Any, cast
+
 import shapely
 from shapely import Geometry, Point
 
 
 def get_distance(source: Point, target: Point) -> float:
-    return shapely.distance(source, target)  # type: ignore[no-untyped-call]
+    return cast(float, cast(Any, shapely).distance(source, target))
 
 
 def get_length(geometry: Geometry) -> float:
-    return shapely.length(geometry)  # type: ignore[no-untyped-call]
+    return cast(float, cast(Any, shapely).length(geometry))
