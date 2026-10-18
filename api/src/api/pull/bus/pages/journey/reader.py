@@ -1,18 +1,19 @@
 from datetime import date, datetime, time, timedelta
 from typing import Optional
 
-from api.data.bus.pages.journey.classes import (
+from bs4 import BeautifulSoup
+from bs4.element import Tag
+from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webdriver import WebDriver
+
+from api.pull.bus.pages.journey.classes import (
     BustimesJourney,
     BustimesJourneyCall,
     BustimesJourneyOperator,
     BustimesJourneyRoute,
     BustimesJourneyVehicle,
 )
-from api.data.selenium.driver import Driver
-from bs4 import BeautifulSoup
-from bs4.element import Tag
-from selenium.webdriver.common.by import By
-from selenium.webdriver.remote.webdriver import WebDriver
+from api.pull.selenium.driver import Driver
 
 
 def get_bustimes_journey_url(bustimes_journey_id: int) -> str:
@@ -42,7 +43,8 @@ def get_datetime_from_cell(
             return call_time_with_board_date + timedelta(days=1)
         if (
             not boarded
-            and call_time_with_board_date - timedelta(days=1) > previous_datetime
+            and call_time_with_board_date - timedelta(days=1)
+            > previous_datetime
         ):
             return call_time_with_board_date - timedelta(days=1)
     return call_time_with_board_date
@@ -58,20 +60,14 @@ def get_plan_and_act_datetime_from_row(
 ) -> tuple[Optional[datetime], Optional[datetime]]:
     cells = row.find_all("td")
     plan_cell = cells[first_time_cell_index]
-    if not isinstance(plan_cell, Tag):
-        plan_datetime = None
-    else:
-        plan_datetime = get_datetime_from_cell(
-            board_date, boarded, first_plan, plan_cell
-        )
+    plan_datetime = get_datetime_from_cell(
+        board_date, boarded, first_plan, plan_cell
+    )
     if len(cells) == first_time_cell_index + 2:
         act_cell = cells[first_time_cell_index + 1]
-        if not isinstance(act_cell, Tag):
-            act_datetime = None
-        else:
-            act_datetime = get_datetime_from_cell(
-                board_date, boarded, first_act, act_cell
-            )
+        act_datetime = get_datetime_from_cell(
+            board_date, boarded, first_act, act_cell
+        )
     else:
         act_datetime = None
     return (plan_datetime, act_datetime)
@@ -128,15 +124,12 @@ def get_call_row_lists(page_soup: BeautifulSoup) -> list[list[Tag]]:
     call_rows: list[list[Tag]] = []
     current_call_rows: list[Tag] = []
     for row in rows[1:]:
-        if isinstance(row, Tag):
-            current_call_rows.append(row)
-            if (
-                (first_cell := row.find("td")) is not None
-                and isinstance(first_cell, Tag)
-                and first_cell.get("rowspan") is None
-            ):
-                call_rows.append(current_call_rows)
-                current_call_rows = []
+        current_call_rows.append(row)
+        if (first_cell := row.find("td")) is not None and first_cell.get(
+            "rowspan"
+        ) is None:
+            call_rows.append(current_call_rows)
+            current_call_rows = []
     return call_rows
 
 
@@ -180,7 +173,9 @@ def get_bustimes_journey_vehicle(
     if bustimes_vehicle_a is None:
         return None
     bustimes_vehicle_a_href = bustimes_vehicle_a.get("href")
-    if bustimes_vehicle_a_href is None or not isinstance(bustimes_vehicle_a_href, str):
+    if bustimes_vehicle_a_href is None or not isinstance(
+        bustimes_vehicle_a_href, str
+    ):
         return None
     else:
         bustimes_id = bustimes_vehicle_a_href.split("/")[2].split("?")[0]
@@ -197,7 +192,7 @@ def get_bustimes_journey_vehicle(
     return BustimesJourneyVehicle(bustimes_id, identifier, numberplate)
 
 
-def setup_bustimes_journey_page(driver: WebDriver):
+def setup_bustimes_journey_page(driver: WebDriver) -> None:
     checkboxes = driver.find_elements(By.CSS_SELECTOR, 'input[type="checkbox"]')
     if len(checkboxes) == 1:
         checkboxes[0].click()
@@ -260,7 +255,8 @@ def get_bustimes_journey(
     driver: Driver, board_date: date, board_atco: str, bustimes_journey_id: int
 ) -> Optional[BustimesJourney]:
     page_soup = driver.get_page_html(
-        get_bustimes_journey_url(bustimes_journey_id), setup_bustimes_journey_page
+        get_bustimes_journey_url(bustimes_journey_id),
+        setup_bustimes_journey_page,
     )
     operator = get_journey_operator(page_soup)
     route = get_journey_route(page_soup)
@@ -268,4 +264,6 @@ def get_bustimes_journey(
     calls = get_bustimes_calls(board_date, board_atco, stop_rows)
     vehicle = get_bustimes_journey_vehicle(page_soup)
     block = get_bustimes_journey_block(page_soup)
-    return BustimesJourney(bustimes_journey_id, operator, route, calls, vehicle, block)
+    return BustimesJourney(
+        bustimes_journey_id, operator, route, calls, vehicle, block
+    )

@@ -80,7 +80,9 @@ def get_bus_operator_vehicles(
             else:
                 vehicle_model = None
             if name_col is not None:
-                vehicle_name = vehicle_cols[name_col].text.strip()
+                vehicle_name: Optional[str] = vehicle_cols[
+                    name_col
+                ].text.strip()
                 if vehicle_name == "":
                     vehicle_name = None
             else:

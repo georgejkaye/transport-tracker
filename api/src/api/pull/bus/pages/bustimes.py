@@ -3,7 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 
 
-def accept_bustimes_cookies(driver: WebDriver):
+def accept_bustimes_cookies(driver: WebDriver) -> None:
     wait = ui.WebDriverWait(driver, 10)
 
     while True:
