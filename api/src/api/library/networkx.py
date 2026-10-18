@@ -37,7 +37,7 @@ def remove_edge[T](network: MultiDiGraph[T], source: T, target: T) -> None:
 
 
 def load_osmnx_graphml(path: Path | str) -> MultiDiGraph[int]:
-    return cast(MultiDiGraph[int], cast(Any, ox).load_graphml(path))
+    return cast("MultiDiGraph[int]", cast(Any, ox).load_graphml(path))
 
 
 def save_osmnx_graphml(network: MultiDiGraph[int], path: Path | str) -> None:
@@ -46,7 +46,7 @@ def save_osmnx_graphml(network: MultiDiGraph[int], path: Path | str) -> None:
 
 def project_graph[T](network: MultiDiGraph[T], to_crs: str) -> MultiDiGraph[T]:
     return cast(
-        MultiDiGraph[T], cast(Any, ox).project_graph(network, to_crs=to_crs)
+        "MultiDiGraph[T]", cast(Any, ox).project_graph(network, to_crs=to_crs)
     )
 
 
@@ -55,7 +55,7 @@ def graph_from_place(
     custom_filter: Optional[str] = None,
 ) -> MultiDiGraph[int]:
     return cast(
-        MultiDiGraph[int],
+        "MultiDiGraph[int]",
         cast(Any, ox.graph).graph_from_place(
             places, custom_filter=custom_filter
         ),
