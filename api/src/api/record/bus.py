@@ -1,55 +1,57 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
-from api.data.bus.operators import (
-    BusOperatorDetails,
-    get_bus_operator_from_national_operator_code,
-)
-from api.data.bus.service import get_service_from_line_and_operator
-from api.user import User, input_user
 from psycopg import Connection
 
-from api.data.bus.leg import BusLegIn, insert_leg
-from api.data.bus.pages.bustimes import accept_bustimes_cookies
-from api.data.bus.pages.journey.classes import BustimesJourney
-from api.data.bus.pages.journey.reader import get_bustimes_journey
-from api.data.bus.pages.operator.reader import get_bustimes_operator
-from api.data.bus.pages.stop.classes import BusStopDeparture
-from api.data.bus.pages.stop.reader import (
+from api.classes.bus.journey import string_of_bus_call_in
+from api.classes.bus.stop import short_string_of_bus_stop_details
+from api.classes.interactive import PickSingle
+from api.db.functions.insert.bus.leg import insert_bus_leg_fetchone
+from api.db.functions.select.bus.operator import (
+    select_bus_operator_details_by_national_operator_code_fetchone,
+)
+from api.db.functions.select.bus.service import (
+    select_bus_service_details_by_operator_id_and_line_name_fetchone,
+)
+from api.db.functions.select.bus.stop import (
+    select_bus_stop_details_by_name_fetchall,
+)
+from api.db.functions.select.bus.vehicle import (
+    select_bus_vehicle_details_fetchall,
+)
+from api.db.types.bus.journey import (
+    BusCallInData,
+    BusJourneyInData,
+)
+from api.db.types.bus.leg import BusLegInData
+from api.db.types.bus.operator import BusOperatorDetails
+from api.db.types.bus.stop import BusStopDetails
+from api.db.types.bus.vehicle import BusVehicleDetails
+from api.db.types.register import register_types
+from api.db.types.user.user import TransportUserPublicOutData
+from api.pull.bus.pages.bustimes import accept_bustimes_cookies
+from api.pull.bus.pages.journey.classes import BustimesJourney
+from api.pull.bus.pages.journey.reader import get_bustimes_journey
+from api.pull.bus.pages.operator.reader import get_bustimes_operator
+from api.pull.bus.pages.stop.classes import BusStopDeparture
+from api.pull.bus.pages.stop.reader import (
     get_departures_from_bus_stop,
     short_string_of_bus_stop_departure,
 )
-from api.data.bus.pages.trip.reader import get_bus_trip
-from api.data.bus.stop import (
-    BusStopDetails,
-    get_bus_stops,
-    short_string_of_bus_stop,
-)
-from api.data.bus.trip import (
-    BusCallIn,
-    BusJourneyDetails,
-    BusJourneyIn,
-    string_of_bus_call_in,
-)
-from api.data.bus.vehicle import (
-    BusVehicleDetails,
-    get_bus_vehicles_by_id,
-    get_bus_vehicles_by_operator_and_id,
-    string_of_bus_vehicle_out,
-)
-from api.data.selenium.driver import Driver, DriverManager
+from api.pull.bus.pages.trip.reader import get_bus_trip
+from api.pull.selenium.driver import Driver, DriverManager
 from api.record.classes import BustimesJourneyData
-from api.utils.database import connect, get_db_connection_data_from_args
+from api.record.user import input_users
+from api.utils.database import connect_with_env
 from api.utils.interactive import (
-    PickSingle,
-    information,
-    input_day,
-    input_month,
-    input_select,
-    input_select_paginate,
-    input_text,
-    input_time,
-    input_year,
+    get_choice_from_input_paginate,
+    get_day_from_input,
+    get_month_from_input,
+    get_text_from_input,
+    get_time_from_input,
+    get_year_from_input,
+    print_error,
+    print_information,
 )
 
 
@@ -121,13 +123,13 @@ def get_bus_vehicle_from_input(
 def get_bus_vehicle(
     conn: Connection,
     bus_operator: BusOperatorDetails,
-    suggested_vehicle: Optional[str],
+    suggested_vehicle: Optional[str] = None,
 ) -> Optional[BusVehicleDetails]:
     vehicle_id = get_text_from_input("Vehicle id", suggested_vehicle)
     if vehicle_id is None or vehicle_id == "":
         return None
-    vehicles = get_bus_vehicles_by_operator_and_id(
-        conn, bus_operator, vehicle_id
+    vehicles = select_bus_vehicle_details_fetchall(
+        conn, bus_operator.bus_operator_id, vehicle_id
     )
     if len(vehicles) == 1:
         return vehicles[0]
@@ -155,25 +157,28 @@ def get_board_call_index_from_bustimes_journey(
 
 
 def get_bus_journey_from_bustimes_journey(
-    driver: Driver, departure: BusStopDeparture, board_stop: BusStopDetails
+    conn: Connection,
+    driver: Driver,
+    departure: BusStopDeparture,
+    board_stop: BusStopDetails,
 ) -> Optional[BustimesJourneyData]:
     journey = get_bustimes_journey(
         driver,
         departure.dep_time.date(),
-        board_stop.atco,
+        board_stop.atco_code,
         departure.bustimes_id,
     )
     if journey is None:
         print(f"Could not get journey {departure.bustimes_id}")
         return None
     board_call_index = get_board_call_index_from_bustimes_journey(
-        journey, board_stop.atco
+        journey, board_stop.atco_code
     )
     if board_call_index is None:
         print("Could not get board index")
         return None
     journey_calls = [
-        BusCallIn(
+        BusCallInData(
             i,
             call.stop_id,
             call.stop_name,
@@ -186,20 +191,20 @@ def get_bus_journey_from_bustimes_journey(
     ]
     bustimes_operator = get_bustimes_operator(driver, journey.operator.slug)
     if bustimes_operator is None:
-        information("Could not get operator")
+        print_information("Could not get operator")
         return None
-    operator = get_bus_operator_from_national_operator_code(
+    operator = select_bus_operator_details_by_national_operator_code_fetchone(
         conn, bustimes_operator.national_operator_code
     )
     if operator is None:
-        information("Could not get operator")
+        print_information("Could not get operator")
         return None
-    service = get_service_from_line_and_operator(
-        conn, journey.route.name, operator
+    service = select_bus_service_details_by_operator_id_and_line_name_fetchone(
+        conn, operator.bus_operator_id, journey.route.name
     )
     if service is None:
-        information(
-            f"Could not get service {journey.route.name} and operator {operator.name}"
+        print_information(
+            f"Could not get service {journey.route.name} and operator {operator.operator_name}"
         )
         return None
     return BustimesJourneyData(
@@ -208,7 +213,10 @@ def get_bus_journey_from_bustimes_journey(
 
 
 def get_bus_journey_from_bustimes_trip(
-    driver: Driver, departure: BusStopDeparture, board_stop: BusStopDetails
+    conn: Connection,
+    driver: Driver,
+    departure: BusStopDeparture,
+    board_stop: BusStopDetails,
 ) -> Optional[BustimesJourneyData]:
     trip_id = departure.bustimes_id
     journey_calls = []
@@ -232,23 +240,22 @@ def get_bus_journey_from_bustimes_trip(
 
 
 def get_board_datetime() -> Optional[tuple[datetime, timedelta]]:
-    board_year = input_year()
+    board_year = get_year_from_input()
     if board_year is None:
         return None
-    board_month = input_month()
+    board_month = get_month_from_input()
     if board_month is None:
         return None
-    board_day = input_day(board_month, board_year)
+    board_day = get_day_from_input(board_month, board_year)
     if board_day is None:
         return None
-    board_time = input_time()
+    board_time = get_time_from_input()
     if board_time is None:
         return None
     board_datetime = datetime(
         board_year, board_month, board_day, board_time.hour, board_time.minute
     )
     today = datetime.today()
-
     if board_datetime.date() < today.date():
         board_day_of_week = board_datetime.weekday()
         today_day_of_week = today.weekday()
@@ -260,7 +267,7 @@ def get_board_datetime() -> Optional[tuple[datetime, timedelta]]:
         new_board_datetime = datetime.combine(
             new_board_date, board_datetime.time()
         )
-        information(
+        print_information(
             f"{board_datetime.strftime('%d/%m/%Y %H:%M:%S')} is before today, "
             + f"using {new_board_datetime.strftime('%d/%m/%Y %H:%M:%S')} instead"
         )
@@ -268,49 +275,99 @@ def get_board_datetime() -> Optional[tuple[datetime, timedelta]]:
         board_datetime = new_board_datetime
     else:
         datetime_offset = timedelta(0)
+    return (board_datetime, datetime_offset)
 
-    departures = get_departures_from_bus_stop(
-        board_stop, board_datetime, datetime_offset
-    )
-    if len(departures) == 0:
-        information("No departures from bus stop")
-        return None
 
-    departure = get_bus_stop_departure_input(departures)
-    if departure is None:
-        return None
-
-    journey_and_board_call_index = get_bus_journey(
+def get_bus_vehicle_from_bustimes_data(
+    conn: Connection,
+    bustimes_journey_data: BustimesJourneyData,
+) -> Optional[BusVehicleDetails]:
+    if (
+        bustimes_journey_data.vehicle is None
+        or bustimes_journey_data.vehicle.identifier is None
+    ):
+        return get_bus_vehicle(conn, bustimes_journey_data.operator)
+    vehicle_options = select_bus_vehicle_details_fetchall(
         conn,
-        departure.bustimes_journey_id,
-        board_stop,
-        departure,
+        bustimes_journey_data.operator.bus_operator_id,
+        bustimes_journey_data.vehicle.identifier,
     )
-    if journey_and_board_call_index is None:
-        print("Could not get journey")
+    if len(vehicle_options) == 0:
+        print_information(
+            f"Could not find vehicle {bustimes_journey_data.vehicle.identifier} for {bustimes_journey_data.operator.operator_name}, skipping"
+        )
         return None
+    return vehicle_options[0]
 
-    (journey_timetable, board_call_index) = journey_and_board_call_index
 
-    alight_call_and_index = get_alight_stop_input(
-        journey_timetable.calls, board_call_index
-    )
-    if alight_call_and_index is None:
+def get_bus_leg_from_input(
+    conn: Connection, users: list[TransportUserPublicOutData]
+) -> Optional[BusLegInData]:
+    board_stop = get_bus_stop_from_input(conn, prompt="Board stop")
+    if board_stop is None:
+        print_information("Could not get board stop")
         return None
+    datetime_result = get_board_datetime()
+    if datetime_result is None:
+        print_information("Could not get board datetime")
+        return None
+    (board_datetime, datetime_offset) = datetime_result
+    with DriverManager() as driver:
+        driver.get_page_html(get_bustimes_url(), accept_bustimes_cookies)
+        departures = get_departures_from_bus_stop(
+            driver, board_stop, board_datetime, datetime_offset
+        )
+        if len(departures) == 0:
+            print_information("No departures from bus stop")
+            return None
+        departure = get_bus_stop_departure_from_input(departures)
+        if departure is None:
+            return None
+        if departure.live:
+            bustimes_journey_data = get_bus_journey_from_bustimes_journey(
+                conn, driver, departure, board_stop
+            )
+        else:
+            bustimes_journey_data = get_bus_journey_from_bustimes_trip(
+                conn, driver, departure, board_stop
+            )
+        if bustimes_journey_data is None:
+            return None
+        alight_call_and_index = get_alight_call_and_index_from_input(
+            bustimes_journey_data.calls, bustimes_journey_data.board_call_index
+        )
+        if alight_call_and_index is None:
+            return None
+        (_, alight_call_index) = alight_call_and_index
+        vehicle = get_bus_vehicle_from_bustimes_data(
+            conn, bustimes_journey_data
+        )
+        journey = BusJourneyInData(
+            bustimes_journey_data.service.bus_service_id,
+            bustimes_journey_data.calls,
+            vehicle.bus_vehicle_id if vehicle is not None else None,
+        )
+        leg = BusLegInData(
+            journey, bustimes_journey_data.board_call_index, alight_call_index
+        )
+        return leg
 
-    (alight_call, alight_call_index) = alight_call_and_index
 
-    vehicle = get_bus_vehicle(conn, journey_timetable.operator)
-
-    journey = BusJourneyIn(
-        journey_timetable.id,
-        journey_timetable.operator,
-        journey_timetable.service,
-        journey_timetable.calls,
-        vehicle,
+def record_bus_leg(conn: Connection) -> None:
+    users = input_users(conn)
+    if len(users) == 0:
+        return
+    leg = get_bus_leg_from_input(conn, users)
+    if leg is None:
+        print_information("Could not get bus leg")
+        return
+    insert_bus_leg_result = insert_bus_leg_fetchone(
+        conn, [user.user_id for user in users], leg
     )
-    leg = BusLegIn(journey, board_call_index, alight_call_index)
-    insert_leg(conn, users, leg)
+    if insert_bus_leg_result is None:
+        print_information("Could not insert bus leg")
+        return
+    print_information(f"Recorded bus leg {insert_bus_leg_result.bus_leg_id}")
 
 
 if __name__ == "__main__":
