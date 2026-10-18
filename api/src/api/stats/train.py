@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Optional
 
 from psycopg import Connection
@@ -23,6 +24,10 @@ from api.db.functions.select.train.user.vehicle import (
 )
 from api.db.functions.select.user.stats import (
     select_transport_user_details_fetchone,
+    select_transport_user_train_leg_stats_by_user_id_fetchall,
+    select_transport_user_train_leg_stats_by_user_id_fetchone,
+    select_transport_user_train_operator_stats_by_user_id_fetchall,
+    select_transport_user_train_operator_stats_by_user_id_fetchone,
 )
 from api.db.types.user.user import (
     TransportUserDetailsTrainLegOutData,
@@ -143,16 +148,14 @@ def get_train_stats(
             conn, user_id, search_start, search_end, rows_to_return
         )
     )
-    leg_stats = (
-        select_transport_user_train_leg_stats_numbers_by_user_id_fetchone(
-            conn, user_id, search_start, search_end
-        )
+    leg_stats = select_transport_user_train_leg_stats_by_user_id_fetchone(
+        conn, user_id
     )
     if leg_stats is None:
         return None
     operator_stats = (
         select_transport_user_train_operator_stats_by_user_id_fetchone(
-            conn, user_id, operators_by_brands, search_start, search_end
+            conn, user_id
         )
     )
     if operator_stats is None:
@@ -184,23 +187,43 @@ def get_train_stats(
         conn, user_id, search_start, search_end, rows_to_return
     )
     return TrainStats(
-        leg_stats.count,
-        leg_stats.total_distance,
-        leg_stats.longest_distance,
+        leg_stats.overall_leg_stats.count,
+        leg_stats.overall_leg_stats.total_distance,
+        longest_distance.value
+        if (longest_distance := leg_stats.overall_leg_stats.longest_distance)
+        is not None
+        else Decimal(0),
         longest_distance_legs,
-        leg_stats.shortest_distance,
+        shortest_distance.value
+        if (shortest_distance := leg_stats.overall_leg_stats.shortest_distance)
+        is not None
+        else Decimal(0),
         shortest_distance_legs,
-        leg_stats.total_duration,
-        leg_stats.longest_duration,
+        leg_stats.overall_leg_stats.total_duration,
+        longest_duration.value
+        if (longest_duration := leg_stats.overall_leg_stats.longest_duration)
+        is not None
+        else timedelta(0),
         longest_duration_legs,
-        leg_stats.shortest_duration,
+        shortest_duration.value
+        if (shortest_duration := leg_stats.overall_leg_stats.shortest_duration)
+        is not None
+        else timedelta(0),
         shortest_duration_legs,
-        leg_stats.total_delay,
-        leg_stats.longest_delay,
+        total_delay
+        if (total_delay := leg_stats.overall_leg_stats.total_delay) is not None
+        else 0,
+        longest_delay.value
+        if (longest_delay := leg_stats.overall_leg_stats.longest_delay)
+        is not None
+        else 0,
         longest_delay_legs,
-        leg_stats.shortest_delay,
+        shortest_delay.value
+        if (shortest_delay := leg_stats.overall_leg_stats.shortest_delay)
+        is not None
+        else 0,
         shortest_delay_legs,
-        operator_stats.count,
+        operator_stats.overall_operator_stats.operator_count,
         top_operators,
         class_stats.count,
         top_classes,
