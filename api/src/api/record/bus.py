@@ -256,7 +256,7 @@ def get_board_datetime() -> Optional[tuple[datetime, timedelta]]:
         board_year, board_month, board_day, board_time.hour, board_time.minute
     )
     today = datetime.today()
-    if board_datetime.date() < today.date():
+    if board_datetime.date() < today.date() - timedelta(days=28):
         board_day_of_week = board_datetime.weekday()
         today_day_of_week = today.weekday()
         day_of_week_diff = board_day_of_week - today_day_of_week
@@ -268,7 +268,7 @@ def get_board_datetime() -> Optional[tuple[datetime, timedelta]]:
             new_board_date, board_datetime.time()
         )
         print_information(
-            f"{board_datetime.strftime('%d/%m/%Y %H:%M:%S')} is before today, "
+            f"{board_datetime.strftime('%d/%m/%Y %H:%M:%S')} is 28 days before today, "
             + f"using {new_board_datetime.strftime('%d/%m/%Y %H:%M:%S')} instead"
         )
         datetime_offset = new_board_datetime - board_datetime
