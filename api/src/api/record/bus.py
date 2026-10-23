@@ -180,8 +180,8 @@ def get_bus_journey_from_bustimes_journey(
     journey_calls = [
         BusCallInData(
             i,
-            call.stop_id,
             call.stop_name,
+            call.stop_id,
             call.plan_arr,
             call.act_arr,
             call.plan_dep,

@@ -84,20 +84,16 @@ def get_bustimes_journey_call(
 ) -> Optional[BustimesJourneyCall]:
     first_row_cells = first_row.select("td")
     stop_cell = first_row_cells[0]
-
     stop_a = stop_cell.select_one("a")
     if stop_a is None:
         return None
-
     stop_href = stop_a.get("href")
     if stop_href is None or not isinstance(stop_href, str):
         return None
     stop_atco = stop_href[7:]
     stop_name = stop_a.get_text(strip=True)
-
     if stop_atco == board_atco:
         boarded = True
-
     (first_plan, first_act) = get_plan_and_act_datetime_from_row(
         board_date, boarded, first_plan, first_act, first_row, 1
     )
@@ -113,7 +109,6 @@ def get_bustimes_journey_call(
             board_date, boarded, first_plan, first_act, second_row, 0
         )
         act_dep = first_act
-
     return BustimesJourneyCall(
         stop_atco, stop_name, plan_arr, act_arr, plan_dep, act_dep
     )

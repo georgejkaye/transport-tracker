@@ -115,7 +115,7 @@ def get_bus_trip(
                     plan_dep_date = ref_departure_time.date()
             plan_dep = datetime.combine(plan_dep_date, plan_dep.time())
         call_object = BusCallInData(
-            i, call_id, call_name, plan_arr, None, plan_dep, None
+            i, call_name, call_id, plan_arr, None, plan_dep, None
         )
         if call_id == ref_stop.atco_code and not is_after_ref:
             is_after_ref = True
