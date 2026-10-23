@@ -23,7 +23,7 @@
     "js-joda": "^1.11.0",
     "maplibre-gl": "6.4.1",
     "minimatch": "^10.2.6",
-    "next": "16.1.6",
+    "next": "16.4.1",
     "openapi-fetch": "^0.15.0",
     "openapi-react-query": "^0.5.1",
     "postcss-selector-parser": "^7.1.6",
