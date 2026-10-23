@@ -1,40 +1,28 @@
 "use client"
 
-import { getLegsForYear } from "@/app/data"
 import { Loader } from "@/app/loader"
-import { TrainLeg } from "@/app/structs"
-import { useState, useEffect, use } from "react";
 import { TotalLegStats, LegList, LegMap } from "../../core"
-import { useRouter } from "next/navigation"
+import client from "@/app/api/client"
+import { use } from "react"
 
 const Page = (props: { params: Promise<{ userId: string; year: string }> }) => {
-  const params = use(props.params);
+  const params = use(props.params)
   let { userId, year } = params
-  let userIdNumber = parseInt(userId)
-  let yearNumber = parseInt(year)
-  let router = useRouter()
-  const [legs, setLegs] = useState<TrainLeg[] | undefined>(undefined)
-  useEffect(() => {
-    let yearNumber = parseInt(year)
-    if (isNaN(yearNumber) || isNaN(userIdNumber)) {
-      router.push("/")
-    } else {
-      const getLegData = async () => {
-        let legData = await getLegsForYear(userIdNumber, yearNumber)
-        setLegs(legData)
-      }
-      getLegData()
-    }
-  }, [])
+  const { data: legs } = client.useQuery(
+    "get",
+    "/users/{user_id}/train/legs/years/{year}",
+    { params: { path: { user_id: parseInt(userId), year: parseInt(year) } } },
+  )
+
   return (
     <div>
       {legs === undefined ? (
         <Loader />
       ) : (
         <div className="flex flex-col gap-4">
-          <TotalLegStats legs={legs} />
-          <LegMap legs={legs} />
-          <LegList userId={userIdNumber} legs={legs} />
+          <TotalLegStats legs={legs.items ?? []} />
+          <LegMap userId={parseInt(userId)} />
+          <LegList userId={parseInt(userId)} legs={legs.items ?? []} />
         </div>
       )}
     </div>
