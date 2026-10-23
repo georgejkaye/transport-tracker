@@ -1,8 +1,9 @@
 import { Duration } from "js-joda"
 
 import { LegRankingGadget } from "@/app/components/dashboard/RankingGadget"
-import { getDurationString } from "@/app/utils/duration"
+import { getDurationStringFromDuration } from "@/app/utils/duration"
 import { TransportUserTrainLegOutData } from "@/app/utils/train"
+import { legendClasses } from "@mui/x-charts"
 
 interface DurationStatsPaneProps {
   longestDurationLegs: TransportUserTrainLegOutData[]
@@ -21,7 +22,9 @@ export const DurationStatsPane = ({
           title="Longest by duration"
           colour="#166534"
           getStatValue={(leg) =>
-            getDurationString(Duration.parse(leg.duration))
+            !leg.duration
+              ? ""
+              : getDurationStringFromDuration(Duration.parse(leg.duration))
           }
         />
         <LegRankingGadget
@@ -29,7 +32,9 @@ export const DurationStatsPane = ({
           title="Shortest by duration"
           colour="#166534"
           getStatValue={(leg) =>
-            getDurationString(Duration.parse(leg.duration))
+            !leg.duration
+              ? ""
+              : getDurationStringFromDuration(Duration.parse(leg.duration))
           }
         />
       </div>
