@@ -40,7 +40,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -160,3 +159,7 @@ db/scripts/dump.pgdata
 cache
 *.gml
 .populate
+
+# Generated db code
+
+api/src/api/db

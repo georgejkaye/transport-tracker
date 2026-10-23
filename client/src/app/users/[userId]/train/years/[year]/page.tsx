@@ -1,91 +1,82 @@
 "use client"
 
-import { getLegsForYear, getStatsForYear } from "@/app/data"
 import { Loader } from "@/app/loader"
-import { Stats, TrainLeg } from "@/app/structs"
-import { useState, useEffect, use } from "react";
-import {
-  ClassStats,
-  GeneralStats,
-  LegStats,
-  OperatorStats,
-  StationStats,
-  UnitStats,
-} from "../core"
-import { LegMap } from "../map"
-import { useRouter } from "next/navigation"
+import { use } from "react"
+import { notFound, useRouter } from "next/navigation"
+import client from "@/app/api/client"
+import { isNumber } from "@/app/utils/number"
+import TotalStatsPane from "./TotalStatsPane"
+import DistanceStatsPane from "./DistanceStatsPane"
+import OperatorStatsPane from "./OperatorStatsPane"
+import DelayStatsPane from "./DelayStatsPane"
+import UnitStatsPane from "./UnitStatsPane"
+import ClassStatsPane from "./ClassStatsPane"
+import DurationStatsPane from "./DurationStatsPane"
 
-const Page = (props: { params: Promise<{ userId: string; year: string }> }) => {
-  const params = use(props.params);
-  let { userId, year } = params
-  let yearNumber = parseInt(year)
-  let userIdNumber = parseInt(userId)
+interface ContentProps {
+  userId: number
+  year: number
+}
+
+const Content = ({ userId, year }: ContentProps) => {
   let router = useRouter()
-  const [validYear, setValidYear] = useState(false)
-  const [stats, setStats] = useState<Stats | undefined>(undefined)
-  const [legs, setLegs] = useState<TrainLeg[] | undefined>(undefined)
-  useEffect(() => {
-    if (isNaN(yearNumber) || isNaN(userIdNumber)) {
-      router.push("/")
-    } else {
-      setValidYear(true)
-      const getLegData = async () => {
-        let stats = await getStatsForYear(userIdNumber, yearNumber)
-        let legs = await getLegsForYear(userIdNumber, yearNumber)
-        setStats(stats)
-        setLegs(legs)
-      }
-      getLegData()
-    }
-  }, [])
+  const { data: stats, isLoading: isLoadingStats } = client.useQuery(
+    "get",
+    "/users/{user_id}/train/stats/years/{year}",
+    {
+      params: { path: { user_id: userId, year } },
+    },
+  )
+  const { data: legs, isLoading: isLoadingLegs } = client.useQuery(
+    "get",
+    "/users/{user_id}/train/legs/years/{year}",
+    {
+      params: { path: { user_id: userId, year } },
+    },
+  )
   return (
-    <div>
-      {!validYear ? (
+    <div className="flex flex-col gap-4">
+      <h1 className="font-bold text-3xl my-2">{year}</h1>
+      {isLoadingStats || !stats ? (
         <Loader />
       ) : (
-        <div>
-          <h1 className="font-bold text-3xl my-2">
-            Train journey stats for {year}
-          </h1>
-          <div>
-            {stats === undefined ? (
-              <Loader />
-            ) : (
-              <div className="flex flex-col gap-4">
-                <GeneralStats stats={stats} />
-                {stats.legStats.length > 0 && (
-                  <LegStats userId={userIdNumber} stats={stats.legStats} />
-                )}
-                {stats.stationStats.length > 0 && (
-                  <StationStats
-                    userId={userIdNumber}
-                    stats={stats.stationStats}
-                  />
-                )}
-                <OperatorStats stats={stats.operatorStats} />
-                {stats.classStats.length > 0 && (
-                  <div className="flex flex-col lg:flex-row gap-4">
-                    <ClassStats stats={stats.classStats} />
-                    {stats.unitStats.length > 0 && (
-                      <UnitStats stats={stats.unitStats} />
-                    )}
-                  </div>
-                )}
-                {legs === undefined ? (
-                  <Loader />
-                ) : legs.length === 0 ? (
-                  ""
-                ) : (
-                  <div>
-                    <LegMap legs={legs} />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+        <div className="flex flex-col gap-4">
+          <TotalStatsPane
+            count={stats.leg_count}
+            totalDistance={stats.total_distance}
+            totalDuration={stats.total_duration}
+            totalDelay={stats.total_delay}
+            operatorCount={stats.operator_count}
+            classCount={stats.class_count}
+            unitCount={stats.unit_count}
+          />
+          <DistanceStatsPane
+            longestDistanceLegs={stats.longest_distance_legs}
+            shortestDistanceLegs={stats.shortest_distance_legs}
+          />
+          <DurationStatsPane
+            longestDurationLegs={stats.longest_duration_legs}
+            shortestDurationLegs={stats.shortest_duration_legs}
+          />
+          <DelayStatsPane
+            longestDelayLegs={stats.longest_delay_legs}
+            shortestDelayLegs={stats.shortest_delay_legs}
+          />
+          <OperatorStatsPane topOperators={stats.top_operators} />
+          <ClassStatsPane topClasses={stats.top_classes} />
+          <UnitStatsPane topUnits={stats.top_units} />
         </div>
       )}
     </div>
+  )
+}
+
+const Page = (props: { params: Promise<{ userId: string; year: string }> }) => {
+  let { userId, year } = use(props.params)
+  return !isNumber(userId) || !isNumber(year) ? (
+    notFound()
+  ) : (
+    <Content userId={Number(userId)} year={Number(year)} />
   )
 }
 

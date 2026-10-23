@@ -1,56 +1,81 @@
-from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from math import ceil
 from typing import Callable, Optional
-from questionary import Choice, checkbox, confirm, select, text
+
+from questionary import Choice, checkbox, text
 from termcolor import colored
 
+from api.classes.interactive import (
+    PickCancel,
+    PickChoice,
+    PickMultiple,
+    PickSingle,
+    PickUnknown,
+)
+from api.library.questionary import (
+    ask_bool_question,
+    ask_select_question,
+    ask_text_question,
+)
+from api.utils.times import make_timezone_aware
 
-def thick_line(length: int = 80):
+
+def thick_line(length: int = 80) -> None:
     print("=" * length)
 
 
-def thin_line(length: int = 80):
+def thin_line(length: int = 80) -> None:
     print("-" * length)
 
 
-def space():
+def space() -> None:
     print()
 
 
-def message(msg: str):
+def message(msg: str) -> None:
     print(msg)
 
 
-def option(number: int, choice: str):
+def option(number: int, choice: str) -> None:
     print(f"{number}: {choice}")
 
 
-def header(msg: str, length: int = 80):
+def header(msg: str, length: int = 80) -> None:
     thick_line(length)
     message(msg)
     thick_line(length)
     space()
 
 
-def subheader(msg: str, length: int = 80):
+def subheader(msg: str, length: int = 80) -> None:
     thin_line(length)
     message(msg)
     thin_line(length)
     space()
 
 
-def information(msg: str, end: str | None = None):
+def print_information(msg: str, end: str | None = None) -> None:
     exclamation = colored("!", "dark_grey")
     message = colored(msg, attrs=["bold"])
     print(f"{exclamation} {message}", end=end)
 
 
-def input_text(message: str, default: str = "") -> Optional[str]:
-    return text(message=message, default=default).ask()
+def print_error(msg: str, end: str | None = None) -> None:
+    exclamation = colored("!", "dark_grey")
+    message = colored(msg, color="red", attrs=["bold"])
+    print(f"{exclamation} {message}", end=end)
 
 
-def number_in_range(
+def get_text_from_input(
+    message: str, default: Optional[str] = None
+) -> Optional[str]:
+    return ask_text_question(
+        message=message, default=default if default is not None else ""
+    )
+
+
+def get_number_in_range_from_input(
     input: str,
     lower: Optional[int],
     upper: Optional[int],
@@ -68,7 +93,7 @@ def number_in_range(
     return True
 
 
-def input_number(
+def get_int_from_input(
     message: str,
     default: Optional[int] = None,
     default_format: Optional[Callable[[int], str]] = None,
@@ -86,10 +111,11 @@ def input_number(
             default_string = str(default)
         if default_pad:
             default_string = str(default).rjust(default_pad, "0")
+    validation_fn: Callable[[str], bool | str] = (
+        lambda x: get_number_in_range_from_input(x, lower, upper, unknown)
+    )
     result = text(
-        f"{message}",
-        default=default_string,
-        validate=lambda x: number_in_range(x, lower, upper, unknown),
+        f"{message}", default=default_string, validate=validation_fn
     ).ask()
     if result is None:
         return None
@@ -98,7 +124,7 @@ def input_number(
     return int(result)
 
 
-def input_year(
+def get_year_from_input(
     message: str = "Year", default: Optional[int] = None, unknown: bool = False
 ) -> Optional[int]:
     now = datetime.now()
@@ -106,7 +132,7 @@ def input_year(
         default_year = default
     else:
         default_year = now.year
-    return input_number(
+    return get_int_from_input(
         message,
         default=default_year,
         default_pad=4,
@@ -116,7 +142,7 @@ def input_year(
     )
 
 
-def input_month(
+def get_month_from_input(
     message: str = "Month", default: Optional[int] = None, unknown: bool = False
 ) -> Optional[int]:
     now = datetime.now()
@@ -124,7 +150,7 @@ def input_month(
         default_month = default
     else:
         default_month = now.month
-    return input_number(
+    return get_int_from_input(
         message,
         default=default_month,
         default_pad=2,
@@ -134,7 +160,7 @@ def input_month(
     )
 
 
-def get_month_length(month, year):
+def get_month_length(month: int, year: int) -> int:
     """
     Get the length of a month in days, for a given year
     """
@@ -148,7 +174,7 @@ def get_month_length(month, year):
         return 28
 
 
-def input_day(
+def get_day_from_input(
     month: int,
     year: int,
     message: str = "Date",
@@ -161,7 +187,7 @@ def input_day(
         default_day = default
     else:
         default_day = now.day
-    return input_number(
+    return get_int_from_input(
         message,
         default=default_day,
         default_pad=2,
@@ -184,7 +210,7 @@ def string_is_time(x: str) -> bool:
     return True
 
 
-def input_time(
+def get_time_from_input(
     message: str = "Time",
     default: Optional[datetime] = None,
     unknown: bool = False,
@@ -202,31 +228,8 @@ def input_time(
         return time_candidate
 
 
-def input_confirm(message: str, default: bool = True) -> bool:
-    return confirm(message, default=default).ask()
-
-
-@dataclass
-class PickSingle[T]:
-    choice: T
-
-
-@dataclass
-class PickMultiple[T]:
-    choices: list[T]
-
-
-@dataclass
-class PickUnknown:
-    pass
-
-
-@dataclass
-class PickCancel:
-    pass
-
-
-type PickChoice[T] = PickSingle[T] | PickMultiple[T] | PickUnknown | PickCancel
+def get_confirmation_from_input(message: str, default: bool = True) -> bool:
+    return ask_bool_question(message, default)
 
 
 def choice_from_object[T](
@@ -239,7 +242,7 @@ def choice_from_object[T](
     return Choice(title=title, value=PickSingle(object))
 
 
-def input_select[T](
+def get_choice_from_input[T](
     message: str,
     choices: list[T],
     display: Optional[Callable[[T], str]] = None,
@@ -251,19 +254,19 @@ def input_select[T](
         choice_objects.append(Choice(title="Cancel", value=PickCancel()))
     if unknown:
         choice_objects.append(Choice(title="Unknown", value=PickUnknown()))
-    return select(
+    return ask_select_question(
         message, choice_objects, use_shortcuts=True, instruction=""
-    ).ask()
+    )
 
 
-def input_select_paginate[T](
+def get_choice_from_input_paginate[T](
     message: str, choices: list[T], display: Optional[Callable[[T], str]] = None
 ) -> Optional[PickChoice[T]]:
-    partitions = []
+    partitions: list[list[T]] = []
     size_of_partition = 34
     number_of_partitions = ceil(len(choices) / size_of_partition)
     for i in range(0, number_of_partitions):
-        current_partition = []
+        current_partition: list[T] = []
         for j in range(0, size_of_partition):
             choice_index = i * size_of_partition + j
             if choice_index >= len(choices):
@@ -277,10 +280,10 @@ def input_select_paginate[T](
         if i != len(partitions) - 1:
             choice_objects.append(Choice(title="Next", value=PickUnknown()))
         choice_objects.append(Choice(title="Cancel", value=PickCancel()))
-        page_choice = select(
+        page_choice: PickChoice[T] = ask_select_question(
             message, choice_objects, use_shortcuts=True, instruction=""
-        ).ask()
-        match (page_choice):
+        )
+        match page_choice:
             case PickUnknown():
                 continue
             case _:
@@ -288,21 +291,70 @@ def input_select_paginate[T](
     return None
 
 
-def input_checkbox[T](
+def get_choices_from_input[T](
     message: str,
     choices: list[T],
     display: Optional[Callable[[T], str]] = None,
-    allow_none=False,
+    allow_none: bool = False,
 ) -> Optional[PickMultiple[T]]:
     choice_objects = [choice_from_object(choice, display) for choice in choices]
-    result = checkbox(message, choice_objects).ask()
+    result: Optional[list[PickChoice[T]]] = checkbox(
+        message, choice_objects
+    ).ask()
     if result is None:
         return None
-    answers = []
+    answers: list[T] = []
     if not allow_none and len(result) == 0:
         return None
     for res in result:
         match res:
             case PickSingle(choice):
                 answers.append(choice)
+            case _:
+                pass
     return PickMultiple(answers)
+
+
+def get_datetime_from_input(
+    start: Optional[datetime] = None,
+) -> Optional[datetime]:
+    if start is not None:
+        default_year = start.year
+        default_month = start.month
+        default_day = start.day
+        default_time = start
+    else:
+        default_year = None
+        default_month = None
+        default_day = None
+        default_time = None
+    year = get_year_from_input(default=default_year)
+    if year is None:
+        return None
+    month = get_month_from_input(default=default_month)
+    if month is None:
+        return None
+    date = get_day_from_input(month, year, default=default_day)
+    if date is None:
+        return None
+    time = get_time_from_input(default=default_time)
+    if time is None:
+        return None
+    get_datetime_from_input = datetime(
+        year, month, date, time.hour, time.minute
+    )
+    return make_timezone_aware(get_datetime_from_input)
+
+
+def get_price_from_input(prompt: str) -> Decimal:
+    while True:
+        string = input(f"{prompt} ")
+        try:
+            price_text = string.replace("£", "")
+            price = Decimal(price_text)
+            if price < 0:
+                print(f"Expected positive price but got '{price}'")
+            else:
+                return price
+        except InvalidOperation:
+            print(f"Expected price but got '{string}'")

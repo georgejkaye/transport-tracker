@@ -1,8 +1,9 @@
 import zoneinfo
 from datetime import date, datetime, time, timedelta
-from typing import Optional
+from typing import Any, Optional
 
 import pytz
+
 from api.utils.environment import get_env_variable
 
 timezone_variable = get_env_variable("TIMEZONE")
@@ -20,7 +21,7 @@ def get_local_timezone() -> zoneinfo.ZoneInfo:
 very = 5
 
 
-def get_status(diff: int):
+def get_status(diff: int) -> str:
     if diff <= -very:
         return "very-early"
     if diff < 0:
@@ -32,19 +33,18 @@ def get_status(diff: int):
     return "very-late"
 
 
-def add(dt: datetime, delta: int):
+def add(dt: datetime, delta: int) -> datetime:
     return dt + timedelta(minutes=delta)
 
 
-def pad_front(string: str, length: int):
-    """
-    Add zeroes to the front of a number string until it is the desired length
-    """
-    string = str(string)
+def pad_front(value: Any, length: int) -> str:
+    string = str(value)
     return "0" * (length - len(string)) + string
 
 
-def get_hourmin_string(datetime: datetime | time | None, colon: bool = False):
+def get_hourmin_string(
+    datetime: datetime | time | None, colon: bool = False
+) -> str:
     if datetime is None:
         return "-"
     string = pad_front(str(datetime.hour), 2)
@@ -54,32 +54,34 @@ def get_hourmin_string(datetime: datetime | time | None, colon: bool = False):
     return string
 
 
-def get_duration_string(td: timedelta):
+def get_duration_string(td: timedelta) -> str:
     return f"{pad_front(str(td.seconds // 3600), 2)}:{pad_front(str((td.seconds // 60) % 60), 2)}"
 
 
-def get_hour(datetime: datetime):
-    return pad_front(str(datetime.hour), 2)
+def get_hour(datetime: datetime) -> str:
+    return pad_front(datetime.hour, 2)
 
 
-def get_mins(datetime: datetime):
-    return pad_front(str(datetime.minute), 2)
+def get_mins(datetime: datetime) -> str:
+    return pad_front(datetime.minute, 2)
 
 
-def get_year(datetime: datetime | date):
+def get_year(datetime: datetime | date) -> str:
     return str(datetime.year)
 
 
-def get_month(datetime: datetime | date):
-    return pad_front(str(datetime.month), 2)
+def get_month(datetime: datetime | date) -> str:
+    return pad_front(datetime.month, 2)
 
 
-def get_day(datetime: datetime | date):
-    return pad_front(str(datetime.day), 2)
+def get_day(datetime: datetime | date) -> str:
+    return pad_front(datetime.day, 2)
 
 
-def get_url(datetime: datetime, long: bool = True):
-    string = get_year(datetime) + "/" + get_month(datetime) + "/" + get_day(datetime)
+def get_url(datetime: datetime, long: bool = True) -> str:
+    string = (
+        get_year(datetime) + "/" + get_month(datetime) + "/" + get_day(datetime)
+    )
     if long:
         string = string + "/" + get_hourmin_string(datetime)
     return string
@@ -92,18 +94,12 @@ def get_datetime_route(dt: datetime, include_time: bool) -> str:
     return string
 
 
-def get_diff_string(diff: int):
+def get_diff_string(diff: int) -> str:
     if diff > 0:
         return f"+{diff}"
     if diff < 0:
         return f"{diff}"
     return "0"
-
-
-def get_diff_struct(diff: int):
-    string = get_diff_string(diff)
-    status = get_status(diff)
-    return {"diff": string, "status": status}
 
 
 def get_duration(start: time, end: time) -> timedelta:
@@ -116,7 +112,7 @@ def get_duration(start: time, end: time) -> timedelta:
     return end_datetime - start_datetime
 
 
-def to_time(str: str):
+def to_time(str: str) -> time:
     return time(int(str[0:2]), int(str[2:4]))
 
 

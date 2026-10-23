@@ -1,14 +1,14 @@
-from json import JSONDecodeError
-import xml.etree.ElementTree as ET
 import gzip
 import os
 import shutil
+import xml.etree.ElementTree as ET
 import zipfile
-from bs4 import BeautifulSoup
-import requests
-
+from json import JSONDecodeError
 from pathlib import Path
 from typing import Any, Optional
+
+import requests
+from bs4 import BeautifulSoup
 from dotenv import dotenv_values
 from requests import Response
 from requests.auth import HTTPBasicAuth
@@ -36,7 +36,7 @@ data_directory = Path(data_dir)
 
 def extract_zip(
     zip_path: str | Path, output_path: str | Path, delete: bool = False
-):
+) -> None:
     with zipfile.ZipFile(zip_path, "r") as f:
         f.extractall(output_path)
     if delete:
@@ -45,7 +45,7 @@ def extract_zip(
 
 def extract_gz(
     gz_path: str | Path, output_path: str | Path, delete: bool = False
-):
+) -> None:
     with gzip.open(gz_path, "rb") as f:
         with open(output_path, "wb") as out:
             shutil.copyfileobj(f, out)
@@ -55,7 +55,7 @@ def extract_gz(
 
 def download_binary(
     url: str, path: str, credentials: Optional[Credentials] = None
-):
+) -> None:
     response = make_get_request(url, credentials=credentials, stream=True)
     if response.status_code != 200:
         raise RuntimeError(f"Could not get {url}")
@@ -72,7 +72,7 @@ def get_tag_text(
 ) -> str:
     if namespace is not None:
         tag = prefix_namespace(namespace, tag)
-    content: Any = get_or_throw(root.find(tag))
+    content = get_or_throw(root.find(tag))
     return get_or_throw(content.text)
 
 
@@ -88,7 +88,7 @@ def make_get_request(
     url: str,
     credentials: Optional[Credentials] = None,
     stream: bool = False,
-    headers: Optional[dict] = None,
+    headers: Optional[dict[str, str]] = None,
 ) -> Response:
     if credentials is not None:
         auth = HTTPBasicAuth(credentials.user, credentials.password)
@@ -101,8 +101,8 @@ def make_get_request(
 def get_json(
     url: str,
     credentials: Optional[Credentials] = None,
-    headers: Optional[dict] = None,
-) -> Optional[dict]:
+    headers: Optional[dict[str, str]] = None,
+) -> Optional[Any]:
     response = make_get_request(url, credentials=credentials)
     try:
         json = response.json()
@@ -118,15 +118,19 @@ def get_soup(url: str) -> Optional[BeautifulSoup]:
 
 
 def make_post_request(
-    url: str, headers: Optional[dict] = None, data: Optional[dict] = None
+    url: str,
+    headers: Optional[dict[str, str]] = None,
+    data: Optional[dict[str, Any]] = None,
 ) -> Response:
     print(f"Making post request to {url}")
     return requests.post(url, headers=headers, data=data)
 
 
 def get_post_json(
-    url: str, headers: Optional[dict] = None, data: Optional[dict] = None
-) -> dict:
+    url: str,
+    headers: Optional[dict[str, str]] = None,
+    data: Optional[dict[str, Any]] = None,
+) -> Any:
     response = make_post_request(url, headers, data)
     if response.status_code != 200:
         print(f"Error {response.status_code} received")

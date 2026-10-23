@@ -1,66 +1,94 @@
 from datetime import datetime
 from typing import Optional
+
 from fastapi import APIRouter, HTTPException
 
-from api.data.leg import select_legs
-from api.utils.database import connect_with_env
-
-from api.api.network import network
-from api.network.map import (
-    ShortLegWithGeometry,
-    get_short_legs_with_geometries,
-    short_legs_to_short_legs_with_geometries,
+from api.api.lifespan import (
+    get_db_connection,
+    get_network,
 )
+from api.api.pagination import Page
+from api.classes.network.geometry import TrainLegGeometry
+from api.db.functions.select.train.leg import (
+    select_train_leg_points_by_user_id_fetchall,
+)
+from api.db.types.user.train.leg import TransportUserTrainLegOutData
+from api.network.map import get_train_leg_geometries_for_leg_points
+from api.transform.train.legs import get_user_train_legs_in_range
 
 router = APIRouter(prefix="/legs", tags=["users/train/legs"])
 
 
-@router.get("", summary="Get train legs across a time period")
-async def get_legs(
+@router.get("", summary="Get user train legs across a time period")
+async def get_user_legs_by_time_period(
     user_id: int,
+    page_size: int = 10,
+    page_no: int = 0,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
-    fetch_geometries: bool = False,
-) -> list[ShortLegWithGeometry]:
-    with connect_with_env() as conn:
-        legs = select_legs(
-            conn, user_id, search_start=start_date, search_end=end_date
+    descending: bool = True,
+) -> Page[TransportUserTrainLegOutData]:
+    page = get_user_train_legs_in_range(
+        get_db_connection(),
+        user_id,
+        page_size,
+        page_no,
+        start_date,
+        end_date,
+        descending,
+    )
+    if page is None:
+        raise HTTPException(
+            404, f"Could not get page {page_no} for user {user_id}"
         )
-        if fetch_geometries:
-            legs = get_short_legs_with_geometries(conn, network, legs)
-        else:
-            legs = short_legs_to_short_legs_with_geometries(legs)
-        return legs
+    return page
 
 
-@router.get("/years/{year}", summary="Get train legs across a year")
-async def get_legs_from_year(
-    user_id: int, year: int, fetch_geometries: bool = False
-) -> list[ShortLegWithGeometry]:
-    with connect_with_env() as conn:
-        legs = select_legs(
-            conn,
-            user_id,
-            search_start=datetime(year, 1, 1),
-            search_end=datetime(year, 12, 31),
+@router.get("/years/{year}", summary="Get user train legs across a year")
+async def get_user_legs_by_year(
+    user_id: int,
+    year: int,
+    page_size: int = 10,
+    page_no: int = 0,
+    descending: bool = True,
+) -> Page[TransportUserTrainLegOutData]:
+    page = get_user_train_legs_in_range(
+        get_db_connection(),
+        user_id,
+        page_size,
+        page_no,
+        datetime(year, 1, 1),
+        datetime(year + 1, 1, 1),
+        descending,
+    )
+    if page is None:
+        raise HTTPException(
+            404, f"Could not get page {page_no} for user {user_id}"
         )
-        if fetch_geometries:
-            legs = get_short_legs_with_geometries(conn, network, legs)
-        else:
-            legs = short_legs_to_short_legs_with_geometries(legs)
-        return legs
+    return page
 
 
-@router.get("/{leg_id}", summary="Get particular train leg")
-async def get_leg(
-    user_id: int, leg_id: int, fetch_geometries: bool = False
-) -> ShortLegWithGeometry:
-    with connect_with_env() as conn:
-        legs = select_legs(conn, user_id, search_leg_id=leg_id)
-        if fetch_geometries:
-            legs = get_short_legs_with_geometries(conn, network, legs)
-        else:
-            legs = short_legs_to_short_legs_with_geometries(legs)
-        if len(legs) != 1:
-            raise HTTPException(status_code=404, detail="Leg not found")
-        return legs[0]
+@router.get("/geometries", summary="Get train leg geometries for user")
+async def get_train_geometries_for_user(
+    user_id: int, start_date: datetime, end_date: datetime
+) -> list[TrainLegGeometry]:
+    legs = select_train_leg_points_by_user_id_fetchall(
+        get_db_connection(), user_id, start_date, end_date
+    )
+    return get_train_leg_geometries_for_leg_points(get_network(), legs)
+
+
+@router.get(
+    "/geometries/years/{year}",
+    summary="Get train leg geometries for user in a year",
+)
+async def get_train_geometries_for_user_year(
+    user_id: int, year: int
+) -> list[TrainLegGeometry]:
+    legs = select_train_leg_points_by_user_id_fetchall(
+        get_db_connection(),
+        user_id,
+        datetime(year, 1, 1),
+        datetime(year + 1, 1, 1),
+    )
+    return get_train_leg_geometries_for_leg_points(get_network(), legs)

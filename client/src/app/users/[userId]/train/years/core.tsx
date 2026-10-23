@@ -49,7 +49,7 @@ export const GeneralStats = (props: { stats: Stats }) => {
 interface TableColumn<T> {
   style: string
   title: string
-  getValue: (t: T) => JSX.Element | string | number
+  getValue: (t: T) => Element | string | number
   getOrder: (t1: T, t2: T, natural: boolean) => number
   naturalOrderAscending: boolean
   allowSortingBy: boolean
@@ -68,7 +68,7 @@ const SortableTable = <T,>(props: {
   let [sortedValues, setSortedValues] = useState(
     values
       .toSorted((t1, t2) => rankSort(t1, t2, true))
-      .map((val, i) => ({ originalRank: i, value: val }))
+      .map((val, i) => ({ originalRank: i, value: val })),
   )
   let [sortingColumn, setSortingColumn] = useState(-1)
   let [sortingNaturalOrder, setSortingNaturalOrder] = useState(true)
@@ -82,9 +82,9 @@ const SortableTable = <T,>(props: {
           : columns[sortingColumn].getOrder(
               t1.value,
               t2.value,
-              sortingNaturalOrder
-            )
-      )
+              sortingNaturalOrder,
+            ),
+      ),
     )
   }, [sortingColumn, sortingNaturalOrder])
 
@@ -182,7 +182,7 @@ const SortableTable = <T,>(props: {
                 </div>
               ))}
             </div>
-          )
+          ),
       )}
       {values.length > numberToShow && (
         <div
@@ -216,7 +216,7 @@ export const SortableList = <T,>(props: {
   let [sortedValues, setSortedValues] = useState(
     values
       .toSorted((t1, t2) => rankSort(t1, t2, true))
-      .map((val, i) => ({ originalRank: i, value: val }))
+      .map((val, i) => ({ originalRank: i, value: val })),
   )
   let [sortingProperty, setSortingProperty] = useState(-1)
   let [sortingNaturalOrder, setSortingNaturalOrder] = useState(true)
@@ -228,9 +228,9 @@ export const SortableList = <T,>(props: {
           : sortProperties[sortingProperty].getOrder(
               t1.value,
               t2.value,
-              sortingNaturalOrder
-            )
-      )
+              sortingNaturalOrder,
+            ),
+      ),
     )
   }, [sortingProperty, sortingNaturalOrder])
   return (
@@ -287,7 +287,7 @@ export const StationStats = (props: {
         getSorter(StationStatSorter.byBoards, !natural),
         getSorter(StationStatSorter.byAlights, !natural),
         getSorter(StationStatSorter.byCalls, !natural),
-        getSorter(StationStatSorter.byName, natural)
+        getSorter(StationStatSorter.byName, natural),
       ),
     naturalOrderAscending: true,
     allowSortingBy: true,
@@ -303,7 +303,7 @@ export const StationStats = (props: {
         getSorter(StationStatSorter.byBoards, !natural),
         getSorter(StationStatSorter.byAlights, !natural),
         getSorter(StationStatSorter.byCalls, !natural),
-        getSorter(StationStatSorter.byName, true)
+        getSorter(StationStatSorter.byName, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -319,7 +319,7 @@ export const StationStats = (props: {
         getSorter(StationStatSorter.byAlights, !natural),
         getSorter(StationStatSorter.byBoards, !natural),
         getSorter(StationStatSorter.byCalls, !natural),
-        getSorter(StationStatSorter.byName, true)
+        getSorter(StationStatSorter.byName, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -336,7 +336,7 @@ export const StationStats = (props: {
         getSorter(StationStatSorter.byBoards, !natural),
         getSorter(StationStatSorter.byAlights, !natural),
         getSorter(StationStatSorter.byCalls, !natural),
-        getSorter(StationStatSorter.byName, true)
+        getSorter(StationStatSorter.byName, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -352,7 +352,7 @@ export const StationStats = (props: {
         getSorter(StationStatSorter.byCalls, !natural),
         getSorter(StationStatSorter.byBoards, !natural),
         getSorter(StationStatSorter.byAlights, !natural),
-        getSorter(StationStatSorter.byName, true)
+        getSorter(StationStatSorter.byName, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -369,7 +369,7 @@ export const StationStats = (props: {
         getSorter(StationStatSorter.byBoards, !natural),
         getSorter(StationStatSorter.byAlights, !natural),
         getSorter(StationStatSorter.byCalls, !natural),
-        getSorter(StationStatSorter.byName, true)
+        getSorter(StationStatSorter.byName, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -419,7 +419,7 @@ export const StationStats = (props: {
   const stationRankSort = (
     stn1: StationStat,
     stn2: StationStat,
-    natural: boolean
+    natural: boolean,
   ) =>
     sortBy(
       stn1,
@@ -428,7 +428,7 @@ export const StationStats = (props: {
       getSorter(StationStatSorter.byBoards, !natural),
       getSorter(StationStatSorter.byAlights, !natural),
       getSorter(StationStatSorter.byCalls, !natural),
-      getSorter(StationStatSorter.byName, true)
+      getSorter(StationStatSorter.byName, true),
     )
 
   return (
@@ -479,7 +479,7 @@ export const OperatorStats = (props: { stats: OperatorStat[] }) => {
         op1,
         op2,
         getSorter(OperatorStatSorter.byCount, !natural),
-        getSorter(OperatorStatSorter.byName, true)
+        getSorter(OperatorStatSorter.byName, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -493,7 +493,7 @@ export const OperatorStats = (props: { stats: OperatorStat[] }) => {
         op1,
         op2,
         getSorter(OperatorStatSorter.byDistance, !natural),
-        getSorter(OperatorStatSorter.byName, true)
+        getSorter(OperatorStatSorter.byName, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -507,7 +507,7 @@ export const OperatorStats = (props: { stats: OperatorStat[] }) => {
         op1,
         op2,
         getSorter(OperatorStatSorter.byDuration, !natural),
-        getSorter(OperatorStatSorter.byName, true)
+        getSorter(OperatorStatSorter.byName, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -526,7 +526,7 @@ export const OperatorStats = (props: { stats: OperatorStat[] }) => {
         op2,
         getSorter(OperatorStatSorter.byDelay, !natural),
         getSorter(OperatorStatSorter.byDuration, natural),
-        getSorter(OperatorStatSorter.byName, true)
+        getSorter(OperatorStatSorter.byName, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -559,14 +559,14 @@ export const OperatorStats = (props: { stats: OperatorStat[] }) => {
   const operatorRankSort = (
     op1: OperatorStat,
     op2: OperatorStat,
-    natural: boolean
+    natural: boolean,
   ) =>
     sortBy(
       op1,
       op2,
       getSorter(OperatorStatSorter.byCount, !natural),
       getSorter(OperatorStatSorter.byDuration, !natural),
-      getSorter(OperatorStatSorter.byDistance, !natural)
+      getSorter(OperatorStatSorter.byDistance, !natural),
     )
   const getOperatorKey = (op: OperatorStat) =>
     `${op.id}-${op.isBrand ? "B" : "O"}`
@@ -618,7 +618,7 @@ export const ClassStats = (props: { stats: ClassStat[] }) => {
         cls1,
         cls2,
         getSorter(ClassStatSorter.byCount, !natural),
-        getSorter(ClassStatSorter.byClassNumber, true)
+        getSorter(ClassStatSorter.byClassNumber, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -632,7 +632,7 @@ export const ClassStats = (props: { stats: ClassStat[] }) => {
         cls1,
         cls2,
         getSorter(ClassStatSorter.byDistance, !natural),
-        getSorter(ClassStatSorter.byClassNumber, true)
+        getSorter(ClassStatSorter.byClassNumber, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -646,7 +646,7 @@ export const ClassStats = (props: { stats: ClassStat[] }) => {
         cls1,
         cls2,
         getSorter(ClassStatSorter.byDuration, !natural),
-        getSorter(ClassStatSorter.byClassNumber, true)
+        getSorter(ClassStatSorter.byClassNumber, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -676,7 +676,7 @@ export const ClassStats = (props: { stats: ClassStat[] }) => {
       cls2,
       getSorter(ClassStatSorter.byCount, !natural),
       getSorter(ClassStatSorter.byDuration, !natural),
-      getSorter(ClassStatSorter.byDistance, !natural)
+      getSorter(ClassStatSorter.byDistance, !natural),
     )
   return (
     <div>
@@ -730,7 +730,7 @@ export const UnitStats = (props: { stats: UnitStat[] }) => {
         getSorter(UnitStatSorter.byCount, !natural),
         getSorter(UnitStatSorter.byDistance, !natural),
         getSorter(UnitStatSorter.byDuration, !natural),
-        getSorter(UnitStatSorter.byUnitNumber, true)
+        getSorter(UnitStatSorter.byUnitNumber, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -744,7 +744,7 @@ export const UnitStats = (props: { stats: UnitStat[] }) => {
         cls1,
         cls2,
         getSorter(UnitStatSorter.byDistance, !natural),
-        getSorter(UnitStatSorter.byUnitNumber, true)
+        getSorter(UnitStatSorter.byUnitNumber, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -758,7 +758,7 @@ export const UnitStats = (props: { stats: UnitStat[] }) => {
         cls1,
         cls2,
         getSorter(UnitStatSorter.byDuration, !natural),
-        getSorter(UnitStatSorter.byUnitNumber, true)
+        getSorter(UnitStatSorter.byUnitNumber, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -788,7 +788,7 @@ export const UnitStats = (props: { stats: UnitStat[] }) => {
       unit2,
       getSorter(UnitStatSorter.byCount, !natural),
       getSorter(UnitStatSorter.byDuration, !natural),
-      getSorter(UnitStatSorter.byDistance, !natural)
+      getSorter(UnitStatSorter.byDistance, !natural),
     )
   return (
     <div>
@@ -862,7 +862,7 @@ export const LegStats = (props: { userId: number; stats: LegStat[] }) => {
         t1,
         t2,
         getSorter(LegStatSorter.byDistance, !natural),
-        getSorter(LegStatSorter.byDate, true)
+        getSorter(LegStatSorter.byDate, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -876,7 +876,7 @@ export const LegStats = (props: { userId: number; stats: LegStat[] }) => {
         t1,
         t2,
         getSorter(LegStatSorter.byDuration, !natural),
-        getSorter(LegStatSorter.byDate, true)
+        getSorter(LegStatSorter.byDate, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
@@ -894,7 +894,7 @@ export const LegStats = (props: { userId: number; stats: LegStat[] }) => {
         t1,
         t2,
         getSorter(LegStatSorter.byDelay, !natural),
-        getSorter(LegStatSorter.byDate, true)
+        getSorter(LegStatSorter.byDate, true),
       ),
     naturalOrderAscending: false,
     allowSortingBy: true,
