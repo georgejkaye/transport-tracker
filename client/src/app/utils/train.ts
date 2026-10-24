@@ -40,3 +40,9 @@ export type TrainStationHighOutData =
 
 export type TrainStockReportOutData =
   components["schemas"]["TrainLegStockReportOutData"]
+
+export type TransportUserTrainStationLegOutData =
+  components["schemas"]["TransportUserTrainStationLegOutData"]
+
+export type TransportUserTrainStationOutData =
+  components["schemas"]["TransportUserTrainStationOutData"]
