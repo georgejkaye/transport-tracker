@@ -16,7 +16,6 @@ from api.classes.interactive import (
 from api.library.questionary import (
     ask_bool_question,
     ask_select_question,
-    ask_text_question,
 )
 from api.utils.times import make_timezone_aware
 
@@ -68,11 +67,18 @@ def print_error(msg: str, end: str | None = None) -> None:
 
 
 def get_text_from_input(
-    message: str, default: Optional[str] = None
+    message: str,
+    default: Optional[str] = None,
+    min_length: Optional[int] = None,
 ) -> Optional[str]:
-    return ask_text_question(
-        message=message, default=default if default is not None else ""
+    length_validation_fn: Callable[[str], bool] = lambda text: (
+        (len(text) > min_length) if min_length is not None else True
     )
+    return text(
+        message=message,
+        default=default if default is not None else "",
+        validate=length_validation_fn,
+    ).ask()
 
 
 def get_number_in_range_from_input(
