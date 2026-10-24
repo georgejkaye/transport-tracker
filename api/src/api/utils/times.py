@@ -147,3 +147,10 @@ def get_datetime_after_start_datetime(
     if run_datetime is not None and current_datetime < run_datetime:
         return current_datetime + timedelta(days=1)
     return current_datetime
+
+
+def timedelta_from_string(string: str) -> timedelta:
+    parts = string.split(":")
+    hour = int(parts[0])
+    minutes = int(parts[1])
+    return timedelta(hours=hour, minutes=minutes)
