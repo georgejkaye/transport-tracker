@@ -1,139 +1,55 @@
-import gzip
-import os
-import shutil
-import xml.etree.ElementTree as ET
-import zipfile
-from json import JSONDecodeError
-from pathlib import Path
 from typing import Any, Optional
 
 import requests
 from bs4 import BeautifulSoup
-from dotenv import dotenv_values
 from requests import Response
-from requests.auth import HTTPBasicAuth
 
-from api.utils.credentials import Credentials
 from api.utils.debug import debug_msg
 
 
-def get_or_throw[T](t: Optional[T]) -> T:
-    if t is None:
-        raise RuntimeError("Expected Some but got None")
-    return t
-
-
-def get_or_default[T](t: Optional[T], default: T) -> T:
-    if t is None:
-        return default
-    return t
-
-
-env_values = dotenv_values()
-data_dir = get_or_default(env_values.get("DATA_DIR"), "data")
-data_directory = Path(data_dir)
-
-
-def extract_zip(
-    zip_path: str | Path, output_path: str | Path, delete: bool = False
-) -> None:
-    with zipfile.ZipFile(zip_path, "r") as f:
-        f.extractall(output_path)
-    if delete:
-        os.remove(zip_path)
-
-
-def extract_gz(
-    gz_path: str | Path, output_path: str | Path, delete: bool = False
-) -> None:
-    with gzip.open(gz_path, "rb") as f:
-        with open(output_path, "wb") as out:
-            shutil.copyfileobj(f, out)
-    if delete:
-        os.remove(gz_path)
-
-
-def download_binary(
-    url: str, path: str, credentials: Optional[Credentials] = None
-) -> None:
-    response = make_get_request(url, credentials=credentials, stream=True)
-    if response.status_code != 200:
-        raise RuntimeError(f"Could not get {url}")
-    with open(path, "wb+") as f:
-        f.write(response.raw.read())
-
-
-def prefix_namespace(namespace: str, tag: str) -> str:
-    return f"{{{namespace}}}{tag}"
-
-
-def get_tag_text(
-    root: ET.Element, tag: str, namespace: Optional[str] = None
-) -> str:
-    if namespace is not None:
-        tag = prefix_namespace(namespace, tag)
-    content = get_or_throw(root.find(tag))
-    return get_or_throw(content.text)
-
-
-def soupify(doc: str) -> Optional[BeautifulSoup]:
-    try:
-        soup = BeautifulSoup(doc, "html.parser")
-    except:
-        return None
-    return soup
+def _add_bearer_token_to_headers(
+    headers: dict[str, str], token: Optional[str]
+) -> dict[str, str]:
+    if token is None:
+        return headers
+    return {**headers, "Authorization": f"Bearer {token}"}
 
 
 def make_get_request(
     url: str,
-    credentials: Optional[Credentials] = None,
+    token: Optional[str] = None,
     stream: bool = False,
-    headers: Optional[dict[str, str]] = None,
+    headers: dict[str, str] = {},
 ) -> Response:
-    if credentials is not None:
-        auth = HTTPBasicAuth(credentials.user, credentials.password)
-    else:
-        auth = None
     debug_msg(f"Making request to {url}")
-    return requests.get(url, auth=auth, stream=stream, headers=headers)
+    headers = _add_bearer_token_to_headers(headers, token)
+    return requests.get(url, stream=stream, headers=headers)
 
 
-def get_json(
+def make_post_request(
     url: str,
-    credentials: Optional[Credentials] = None,
-    headers: Optional[dict[str, str]] = None,
-) -> Optional[Any]:
-    response = make_get_request(url, credentials=credentials)
-    try:
-        json = response.json()
-    except JSONDecodeError:
-        return None
-    return json
+    token: Optional[str] = None,
+    headers: dict[str, str] = {},
+    data: Optional[dict[str, Any]] = None,
+) -> Response:
+    print(f"Making post request to {url}")
+    headers = _add_bearer_token_to_headers(headers, token)
+    return requests.post(url, headers=headers, data=data)
 
 
 def get_soup(url: str) -> Optional[BeautifulSoup]:
     response = make_get_request(url)
     html = response.text
-    return soupify(html)
+    try:
+        soup = BeautifulSoup(html, "html.parser")
+    except:
+        return None
+    return soup
 
 
-def make_post_request(
-    url: str,
-    headers: Optional[dict[str, str]] = None,
-    data: Optional[dict[str, Any]] = None,
-) -> Response:
-    print(f"Making post request to {url}")
-    return requests.post(url, headers=headers, data=data)
-
-
-def get_post_json(
-    url: str,
-    headers: Optional[dict[str, str]] = None,
-    data: Optional[dict[str, Any]] = None,
-) -> Any:
-    response = make_post_request(url, headers, data)
+def get_binary(url: str, path: str) -> None:
+    response = make_get_request(url, stream=True)
     if response.status_code != 200:
-        print(f"Error {response.status_code} received")
-        exit(1)
-    else:
-        return response.json()
+        raise RuntimeError(f"Could not get {url}")
+    with open(path, "wb+") as f:
+        f.write(response.raw.read())
