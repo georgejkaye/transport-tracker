@@ -1,11 +1,7 @@
-import { LegIconLink, EndpointSection, TotalStat } from "@/app/leg"
+import { LegIconLink, StationLink, TotalStat } from "@/app/leg"
 import {
-  TrainLeg,
   getMilesAndChainsString,
-  getLegOrigin,
-  getLegDestination,
   dateToShortString,
-  getMaybeDurationString,
   getDurationString,
   getLegColour,
 } from "@/app/structs"
@@ -16,7 +12,6 @@ import {
   Map,
   Source,
   ViewState,
-  Marker,
   FullscreenControl,
   NavigationControl,
   ScaleControl,
@@ -25,36 +20,41 @@ import {
 import { Feature, FeatureCollection } from "geojson"
 import bbox from "@turf/bbox"
 import { Duration } from "js-joda"
+import { TransportUserTrainLegOutData } from "@/app/utils/train"
+import { TrainLegGeometry } from "../years/map"
+import client from "@/app/api/client"
 
-const LegRow = (props: { userId: number; leg: TrainLeg }) => {
+const LegRow = (props: {
+  userId: number
+  leg: TransportUserTrainLegOutData
+}) => {
   let { userId, leg } = props
-  let mileString = !leg.distance ? "" : getMilesAndChainsString(leg.distance)
-  let origin = getLegOrigin(leg)
-  let destination = getLegDestination(leg)
   return (
     <div className="flex flex-row gap-4 justify-center">
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex flex-row gap-2 lg:w-80 items-center">
-          <LegIconLink userId={userId} legId={leg.id} />
+          <LegIconLink userId={userId} legId={leg.leg_id} />
           <div className="text-xs lg:hidden">•</div>
-          <div className="lg:px-2">{dateToShortString(leg.start)}</div>
+          <div className="lg:px-2">
+            {dateToShortString(new Date(Date.parse(leg.start_datetime)))}
+          </div>
           <div className="text-xs lg:hidden">•</div>
-          <div className="lg:w-28">{getMaybeDurationString(leg.duration)}</div>
+          <div className="lg:w-28">
+            {leg.duration ? getDurationString(Duration.parse(leg.duration)) : ""}
+          </div>
           <div className="text-xs lg:hidden">•</div>
-          <div className="lg:w-32">{mileString}</div>
+          <div className="lg:w-32">
+            {leg.distance ? getMilesAndChainsString(Number(leg.distance)) : ""}
+          </div>
         </div>
         <div className="flex flex-col md:flex-row gap-2">
           <div className="flex flex-row gap-2 items-center">
             <div className="text-right w-10 text-xs lg:hidden">from</div>
-            <EndpointSection userId={userId} call={origin} origin={true} />
+            <StationLink userId={userId} station={leg.board_station} />
           </div>
           <div className="flex flex-row gap-2 items-center">
             <div className="text-right w-10 text-xs lg:hidden">to</div>
-            <EndpointSection
-              userId={userId}
-              call={destination}
-              origin={false}
-            />
+            <StationLink userId={userId} station={leg.alight_station} />
           </div>
         </div>
       </div>
@@ -62,14 +62,20 @@ const LegRow = (props: { userId: number; leg: TrainLeg }) => {
   )
 }
 
-const getLinesAndBoundingBox = (legs: TrainLeg[]) => {
+const getLinesAndBoundingBox = (legs: TrainLegGeometry[]) => {
   let features: Feature[] = []
   for (const leg of legs) {
     if (leg.geometry) {
       features.push({
         type: "Feature",
-        geometry: { type: "LineString", coordinates: leg.geometry },
-        properties: { color: getLegColour(leg), width: 5 },
+        geometry: {
+          type: "LineString",
+          coordinates: leg.geometry.map((coords) => [
+            parseInt(coords[0]),
+            parseInt(coords[1]),
+          ]),
+        },
+        properties: { color: getLegColour(), width: 5 },
       })
     }
   }
@@ -96,9 +102,19 @@ const getLineLayer = (): LineLayer => ({
 
 const boundingBoxPadding = 0.05
 
-export const LegMap = (props: { legs: TrainLeg[] }) => {
-  let { legs } = props
-  let data = getLinesAndBoundingBox(legs)
+export const LegMap = (props: { userId: number }) => {
+  let { userId } = props
+  let { data: geometries } = client.useQuery(
+    "get",
+    "/users/{user_id}/train/legs/geometries",
+    {
+      params: {
+        path: { user_id: userId },
+        query: { start_date: "", end_date: "" },
+      },
+    },
+  )
+  let data = getLinesAndBoundingBox(geometries ?? [])
   let initialViewState: Partial<ViewState> & { bounds?: LngLatBoundsLike } = {
     bounds: [
       data.minLng - boundingBoxPadding,
@@ -126,18 +142,21 @@ export const LegMap = (props: { legs: TrainLeg[] }) => {
   )
 }
 
-export const TotalLegStats = (props: { legs: TrainLeg[] }) => {
+export const TotalLegStats = (props: {
+  legs: TransportUserTrainLegOutData[]
+}) => {
   let { legs } = props
   let { distance, duration } = legs.reduce(
     ({ distance, duration }, cur) => {
-      let newDistance = !cur.distance ? 0 : cur.distance
-      let newDuration = !cur.duration ? Duration.ZERO : cur.duration
+      let newDistance = cur.distance === null ? 0 : Number(cur.distance)
+      let newDuration =
+        cur.duration === null ? Duration.ZERO : Duration.parse(cur.duration)
       return {
         distance: distance + newDistance,
         duration: duration.plusDuration(newDuration),
       }
     },
-    { distance: 0, duration: Duration.ZERO }
+    { distance: 0, duration: Duration.ZERO },
   )
   return (
     <div className="flex flex-row flex-wrap gap-4 justify-center">
@@ -148,10 +167,13 @@ export const TotalLegStats = (props: { legs: TrainLeg[] }) => {
   )
 }
 
-export const LegList = (props: { userId: number; legs: TrainLeg[] }) =>
+export const LegList = (props: {
+  userId: number
+  legs: TransportUserTrainLegOutData[]
+}) =>
   props.legs.map((leg, i) => (
     <div className="flex flex-col gap-2" key={i}>
       <hr className="h-px border-0 bg-gray-600" />
-      <LegRow userId={props.userId} key={leg.id} leg={leg} />
+      <LegRow userId={props.userId} key={leg.leg_id} leg={leg} />
     </div>
   ))

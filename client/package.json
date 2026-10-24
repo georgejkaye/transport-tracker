@@ -23,7 +23,7 @@
     "js-joda": "^1.11.0",
     "maplibre-gl": "6.4.1",
     "minimatch": "^10.2.6",
-    "next": "16.4.1",
+    "next": "16.4.3",
     "openapi-fetch": "^0.15.0",
     "openapi-react-query": "^0.5.1",
     "postcss-selector-parser": "^7.1.6",
@@ -40,10 +40,9 @@
     "@types/react-dom": "19.2.3",
     "eslint": "^8",
     "eslint-config-next": "16.1.6",
-    "openapi-typescript": "^7.10.1",
     "postcss": "^8.5.31",
     "tailwindcss": "^4.3.3",
-    "typescript": "^7.0.2"
+    "typescript": "7.0.2"
   },
   "resolutions": {
     "@types/react": "19.2.14",

@@ -1,6 +1,5 @@
 import axios from "axios"
 import {
-  responseToLeg,
   responseToStats,
   responseToTrainStationData,
   Stats,
@@ -11,39 +10,9 @@ import { Dispatch, SetStateAction } from "react"
 
 const getYearString = (year: number) => year.toString().padStart(4, "0")
 
-export const getLegs = async (userId: number): Promise<TrainLeg[]> => {
-  let endpoint = `/api/users/${userId}/train/legs/`
-  try {
-    let response = await axios.get(endpoint)
-    let data = response.data
-    let legs = data.map(responseToLeg)
-    return legs
-  } catch (e) {
-    console.error(e)
-    return []
-  }
-}
-
-export const getLegsForYear = async (
-  userId: number,
-  year: number
-): Promise<TrainLeg[]> => {
-  let yearString = year.toString().padStart(4, "0")
-  let endpoint = `/api/users/${userId}/train/legs/years/${yearString}?fetch_geometries=true`
-  try {
-    let response = await axios.get(endpoint)
-    let data = response.data
-    let legs = data.map(responseToLeg)
-    return legs
-  } catch (e) {
-    console.error(e)
-    return []
-  }
-}
-
 export const getStatsForYear = async (
   userId: number,
-  year: number
+  year: number,
 ): Promise<Stats | undefined> => {
   let yearString = getYearString(year)
   let endpoint = `/api/users/${userId}/train/stats/years/${yearString}?fetch_geometries=false`
@@ -58,25 +27,9 @@ export const getStatsForYear = async (
   }
 }
 
-export const getTrainLeg = async (
-  userId: number,
-  legId: number
-): Promise<TrainLeg | undefined> => {
-  let endpoint = `/api/users/${userId}/train/legs/${legId}?fetch_geometries=true`
-  try {
-    let response = await axios.get(endpoint)
-    let data = response.data
-    let leg = responseToLeg(data)
-    return leg
-  } catch (e) {
-    console.error(e)
-    return undefined
-  }
-}
-
 export const getTrainStationData = async (
   userId: number,
-  stationCrs: string
+  stationCrs: string,
 ): Promise<TrainStationData | undefined> => {
   let endpoint = `/api/users/${userId}/train/stations/${stationCrs}`
   try {
@@ -91,7 +44,7 @@ export const getTrainStationData = async (
 }
 
 export const getTrainStations = async (
-  userId: number
+  userId: number,
 ): Promise<TrainStationData[] | undefined> => {
   let endpoint = `/api/users/${userId}/train/stations`
   try {

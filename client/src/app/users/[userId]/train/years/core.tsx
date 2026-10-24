@@ -28,8 +28,9 @@ import {
   LegStat,
   LegStatSorter,
 } from "@/app/structs"
+import { TrainLegOutData } from "@/app/utils/train"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { ReactNode, useEffect, useState } from "react"
 import { FaAngleUp, FaAngleDown } from "react-icons/fa6"
 
 export const GeneralStats = (props: { stats: Stats }) => {
@@ -49,7 +50,7 @@ export const GeneralStats = (props: { stats: Stats }) => {
 interface TableColumn<T> {
   style: string
   title: string
-  getValue: (t: T) => Element | string | number
+  getValue: (t: T) => ReactNode | string | number
   getOrder: (t1: T, t2: T, natural: boolean) => number
   naturalOrderAscending: boolean
   allowSortingBy: boolean
@@ -79,11 +80,13 @@ const SortableTable = <T,>(props: {
       values.toSorted((t1, t2) =>
         sortingColumn == -1
           ? (t1.originalRank - t2.originalRank) * (sortingNaturalOrder ? 1 : -1)
-          : columns[sortingColumn].getOrder(
-              t1.value,
-              t2.value,
-              sortingNaturalOrder,
-            ),
+          : !columns[sortingColumn]
+            ? 0
+            : columns[sortingColumn].getOrder(
+                t1.value,
+                t2.value,
+                sortingNaturalOrder,
+              ),
       ),
     )
   }, [sortingColumn, sortingNaturalOrder])
@@ -206,7 +209,7 @@ export const SortableList = <T,>(props: {
   title: string
   colour: string
   values: T[]
-  getItem: (t: T, i: number) => JSX.Element
+  getItem: (t: T, i: number) => ReactNode
   sortProperties: SortProperty<T>[]
   getKey: (t: T) => string
   rankSort: (t1: T, t2: T, natural: boolean) => number
@@ -225,11 +228,13 @@ export const SortableList = <T,>(props: {
       values.toSorted((t1, t2) =>
         sortingProperty == -1
           ? (t1.originalRank - t2.originalRank) * (sortingNaturalOrder ? 1 : -1)
-          : sortProperties[sortingProperty].getOrder(
-              t1.value,
-              t2.value,
-              sortingNaturalOrder,
-            ),
+          : !sortProperties[sortingProperty]
+            ? 0
+            : sortProperties[sortingProperty].getOrder(
+                t1.value,
+                t2.value,
+                sortingNaturalOrder,
+              ),
       ),
     )
   }, [sortingProperty, sortingNaturalOrder])
@@ -955,46 +960,49 @@ export const LegStats = (props: { userId: number; stats: LegStat[] }) => {
   )
 }
 
-const LegRow = (props: { userId: number; leg: TrainLeg }) => {
+const LegRow = (props: { userId: number; leg: TrainLegOutData }) => {
   let { leg, userId } = props
-  let mileString = !leg.distance ? "" : getMilesAndChainsString(leg.distance)
   let origin = getLegOrigin(leg)
   let destination = getLegDestination(leg)
   return (
     <div className="flex flex-row gap-4 justify-center">
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex flex-row gap-2 lg:w-80 items-center">
-          <LegIconLink userId={userId} legId={leg.id} />
+          <LegIconLink userId={userId} legId={leg.leg_id} />
           <div className="text-xs lg:hidden">•</div>
-          <div className="lg:px-2">{dateToShortString(leg.start)}</div>
-          <div className="text-xs lg:hidden">•</div>
-          <div className="lg:w-28">{getMaybeDurationString(leg.duration)}</div>
-          <div className="text-xs lg:hidden">•</div>
-          <div className="lg:w-32">{mileString}</div>
+          <div className="lg:px-2">
+            {!leg.calls[0]?.plan_dep
+              ? null
+              : dateToShortString(new Date(Date.parse(leg.calls[0].plan_dep)))}
+          </div>
         </div>
         <div className="flex flex-col md:flex-row gap-2">
-          <div className="flex flex-row gap-2 items-center">
-            <div className="text-right w-10 text-xs lg:hidden">from</div>
-            <EndpointSection userId={userId} call={origin} origin={true} />
-          </div>
-          <div className="flex flex-row gap-2 items-center">
-            <div className="text-right w-10 text-xs lg:hidden">to</div>
-            <EndpointSection
-              userId={userId}
-              call={destination}
-              origin={false}
-            />
-          </div>
+          {origin && (
+            <div className="flex flex-row gap-2 items-center">
+              <div className="text-right w-10 text-xs lg:hidden">from</div>
+              <EndpointSection userId={userId} call={origin} origin={true} />
+            </div>
+          )}
+          {destination && (
+            <div className="flex flex-row gap-2 items-center">
+              <div className="text-right w-10 text-xs lg:hidden">to</div>
+              <EndpointSection
+                userId={userId}
+                call={destination}
+                origin={false}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
   )
 }
 
-export const LegList = (props: { userId: number; legs: TrainLeg[] }) =>
+export const LegList = (props: { userId: number; legs: TrainLegOutData[] }) =>
   props.legs.map((leg, i) => (
     <div className="flex flex-col gap-2" key={i}>
       <hr className="h-px border-0 bg-gray-600" />
-      <LegRow key={leg.id} userId={props.userId} leg={leg} />
+      <LegRow key={leg.leg_id} userId={props.userId} leg={leg} />
     </div>
   ))

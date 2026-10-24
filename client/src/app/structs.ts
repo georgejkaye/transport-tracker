@@ -1,5 +1,10 @@
 import { Duration } from "js-joda"
-import { TrainLegOutData, TransportUserTrainLegOutData } from "./utils/train"
+import {
+  TrainLegOutData,
+  TrainLegServiceOutData,
+  TrainStationHighOutData,
+  TransportUserTrainLegOutData,
+} from "./utils/train"
 
 export const getSorter = <T>(
   sortFn: (t1: T, t2: T) => number,
@@ -76,8 +81,12 @@ export const dateToTimeString = (date: Date) =>
     .toString()
     .padStart(2, "0")}`
 
-export const maybeDateToTimeString = (date: Date | undefined) =>
+export const maybeDateToTimeString = (date: Date | undefined | null) =>
   !date ? "" : dateToTimeString(date)
+
+export const maybeDateToTimeStringFromString = (
+  date: string | undefined | null,
+) => (!date ? "" : dateToTimeString(new Date(Date.parse(date))))
 
 export interface TrainStation {
   crs: string
@@ -258,11 +267,11 @@ export const responseToTrainService = (data: any) => ({
   assocs: !data.assocs ? [] : data.assocs.map(responseToAssociatedTrainService),
 })
 
-const getServiceEndpointString = (stations: TrainStation[]) => {
+const getServiceEndpointString = (stations: TrainStationHighOutData[]) => {
   var returnString = ""
   for (let i = 0; i < stations.length; i++) {
     let station = stations[i]
-    let stationName = station.name
+    let stationName = station?.station_name ?? "Unknown"
     if (i == 0) {
       returnString = stationName
     } else if (i == stations.length - 1) {
@@ -274,9 +283,9 @@ const getServiceEndpointString = (stations: TrainStation[]) => {
   return returnString
 }
 
-export const getTrainServiceString = (service: TrainService) =>
-  `${service.headcode} ${dateToTimeString(
-    service.serviceStart,
+export const getTrainServiceString = (service: TrainLegServiceOutData) =>
+  `${service.headcode} ${maybeDateToTimeString(
+    new Date(Date.parse(service.run_date)),
   )} ${getServiceEndpointString(service.origins)} to ${getServiceEndpointString(
     service.destinations,
   )}`
@@ -359,39 +368,12 @@ export interface TrainLeg {
   geometry?: [number, number][]
 }
 
-export const getLegOrigin = (leg: TrainLeg) => leg.calls[0]
-export const getLegDestination = (leg: TrainLeg) =>
+export const getLegOrigin = (leg: TrainLegOutData) => leg.calls[0]
+export const getLegDestination = (leg: TrainLegOutData) =>
   leg.calls[leg.calls.length - 1]
 
-const responseToGeometry = (data: [string, string][]): [number, number][] =>
-  data.map((point) => [parseFloat(point[0]), parseFloat(point[1])])
-
-export const responseToLeg = (data: any): TrainLeg => {
-  let services = []
-  for (const id in data.services) {
-    let service = data.services[id]
-    services.push(responseToTrainService(service))
-  }
-  let duration = Duration.parse(data.duration)
-  const geometry = !data.geometry
-    ? undefined
-    : responseToGeometry(data.geometry)
-  return {
-    id: data.id,
-    userId: data.user_id,
-    start: new Date(data.leg_start),
-    services,
-    calls: data.calls.map(responseToTrainLegCall),
-    stock: data.stocks.map(responseToTrainLegSegment),
-    distance: !data.distance ? undefined : parseFloat(data["distance"]),
-    duration,
-    geometry,
-  }
-}
-
-export const getLegColour = (leg: TrainLegGeometry) => {
-  const service = leg.services[0]
-  return service.brand ? service.brand.bg : service.operator.bg
+export const getLegColour = () => {
+  return "#000000"
 }
 
 export const getLegOperator = (leg: TrainLegOutData) => {

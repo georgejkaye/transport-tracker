@@ -13,10 +13,15 @@ import {
   TrainStationLegData,
 } from "@/app/structs"
 import { useRouter } from "next/navigation"
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use } from "react"
 import { Delay, delayWidth, LegIconLink, PlanActTime } from "@/app/leg"
 import { linkStyle } from "@/app/styles"
 import Link from "next/link"
+import {
+  TransportUserTrainStationLegOutData,
+  TransportUserTrainStationOutData,
+} from "@/app/utils/train"
+import client from "@/app/api/client"
 
 const StationLegEndpoint = (props: {
   userId: number
@@ -72,7 +77,7 @@ const StationLegPlanActTime = (props: { plan?: Date; act?: Date }) => {
 
 interface StationLegProps {
   userId: number
-  leg: TrainStationLegData
+  leg: TransportUserTrainStationLegOutData
   originStyle: string
   destinationStyle: string
   operatorText: string
@@ -95,31 +100,40 @@ const StationLegMobile = ({
     className={`flex flex-col mx-4 gap-1 border-2 border-gray-400 rounded-xl overflow-hidden ${passStyle}`}
   >
     <div className="flex flex-row gap-4 m-2 p-1 align-center">
-      <LegIconLink userId={userId} legId={leg.id} />
+      <LegIconLink userId={userId} legId={leg.leg_id} />
       <div className="flex flex-col md:flex-row flex-1">
         <div>
           <div className="flex flex-row gap-2 items-center pb-2">
             <div className="w-28 text-left flex-1">
-              {dateToShortString(leg.stopTime)}
+              {!leg.plan_arr
+                ? null
+                : dateToShortString(new Date(Date.parse(leg.plan_arr)))}
             </div>
-            {!leg.actArr ? "" : <div>{`${dateToTimeString(leg.actArr)}`}</div>}
-            {!leg.actDep ? "" : <div>{`${dateToTimeString(leg.actDep)}`}</div>}
-            <div>{!leg.platform ? "" : `P${leg.platform}`}</div>
+            {!leg.act_arr ? (
+              ""
+            ) : (
+              <div>{`${dateToTimeString(new Date(Date.parse(leg.act_arr)))}`}</div>
+            )}
+            {!leg.act_dep ? (
+              ""
+            ) : (
+              <div>{`${dateToTimeString(new Date(Date.parse(leg.act_dep)))}`}</div>
+            )}
           </div>
           <div className="flex flex-col md:flex-row w-full">
             <div className="flex flex-row gap-1">
               <Link
                 className={`${originStyle} ${linkStyle}`}
-                href={`/users/${userId}/train/station/${leg.origin.crs}`}
+                href={`/users/${userId}/train/station/${leg.board_station.station_crs}`}
               >
-                {leg.origin.name}
+                {leg.board_station.station_name}
               </Link>
               <div>to</div>
               <Link
                 className={`${destinationStyle} ${linkStyle}`}
-                href={`/users/${userId}/train/station/${leg.destination.crs}`}
+                href={`/users/${userId}/train/station/${leg.alight_station.station_crs}`}
               >
-                {leg.destination.name}
+                {leg.alight_station.station_name}
               </Link>
             </div>
           </div>
@@ -148,22 +162,32 @@ const StationLegWide = ({
   <div className="flex flex-row rounded-xl border-2 border-gray-300 mx-2 gap-2 overflow-hidden">
     <div className="flex flex-row p-2">
       {" "}
-      <LegIconLink userId={userId} legId={leg.id} />
-      <div className="w-28">{dateToShortString(leg.stopTime)}</div>
+      <LegIconLink userId={userId} legId={leg.leg_id} />
+      <div className="w-28">
+        {!leg.act_arr
+          ? ""
+          : dateToShortString(new Date(Date.parse(leg.act_arr)))}
+      </div>
       <Link
         className={`${originStyle} ${linkStyle}`}
-        href={`/users/${userId}/train/station/${leg.origin.crs}`}
+        href={`/users/${userId}/train/station/${leg.board_station.station_crs}`}
       >
-        {leg.origin.name}
+        {leg.board_station.station_name}
       </Link>
-      <PlanActTime plan={leg.planArr} act={leg.actArr} />
+      <PlanActTime
+        plan={!leg.plan_arr ? null : new Date(Date.parse(leg.plan_arr))}
+        act={!leg.act_arr ? null : new Date(Date.parse(leg.act_arr))}
+      />
       <Link
         className={`${destinationStyle} ${linkStyle}`}
-        href={`/users/${userId}/train/station/${leg.destination.crs}`}
+        href={`/users/${userId}/train/station/${leg.alight_station.station_crs}`}
       >
-        {leg.destination.name}
+        {leg.board_station.station_name}
       </Link>
-      <PlanActTime plan={leg.planDep} act={leg.actDep} />
+      <PlanActTime
+        plan={!leg.plan_dep ? null : new Date(Date.parse(leg.plan_dep))}
+        act={!leg.act_dep ? null : new Date(Date.parse(leg.act_dep))}
+      />
     </div>
     <div
       className="align-end p-2"
@@ -176,15 +200,17 @@ const StationLegWide = ({
 
 const StationLeg = (props: {
   userId: number
-  station: TrainStation
-  leg: TrainStationLegData
+  station: TransportUserTrainStationOutData
+  leg: TransportUserTrainStationLegOutData
 }) => {
   let { userId, station, leg } = props
-  let boardsAtThisStation = leg.origin.crs === station.crs
-  let alightsAtThisStation = leg.destination.crs === station.crs
-  let operatorText = leg.brand ? leg.brand.name : leg.operator.name
-  let operatorBg = leg.brand ? leg.brand.bg : leg.operator.bg
-  let operatorFg = leg.brand ? leg.brand.fg : leg.operator.fg
+  let boardsAtThisStation =
+    leg.board_station.station_crs === station.station_crs
+  let alightsAtThisStation =
+    leg.alight_station.station_crs === station.station_crs
+  let operatorText = leg.brand
+    ? leg.brand.operator_name
+    : leg.operator.operator_name
   let passStyle =
     boardsAtThisStation || alightsAtThisStation ? "" : "bg-gray-300"
   let originStyle = boardsAtThisStation ? "font-bold" : ""
@@ -198,8 +224,8 @@ const StationLeg = (props: {
           originStyle={originStyle}
           destinationStyle={destinationStyle}
           operatorText={operatorText}
-          operatorBg={operatorBg}
-          operatorFg={operatorFg}
+          operatorBg={"#000000"}
+          operatorFg={"#fffffff"}
           passStyle={passStyle}
         />
       </div>
@@ -210,8 +236,8 @@ const StationLeg = (props: {
           originStyle={originStyle}
           destinationStyle={destinationStyle}
           operatorText={operatorText}
-          operatorBg={operatorBg}
-          operatorFg={operatorFg}
+          operatorBg={"#000000"}
+          operatorFg={"#fffffff"}
           passStyle={passStyle}
         />
       </div>
@@ -221,14 +247,14 @@ const StationLeg = (props: {
 
 const StationLegs = (props: {
   userId: number
-  station: TrainStation
-  legs: TrainStationLegData[]
+  station: TransportUserTrainStationOutData
+  legs: TransportUserTrainStationLegOutData[]
 }) => {
   let { userId, station, legs } = props
   return (
     <div className="flex flex-col gap-4">
       {legs.map((leg) => (
-        <div key={leg.id} className="flex flex-col">
+        <div key={leg.leg_id} className="flex flex-col">
           <StationLeg userId={userId} station={station} leg={leg} />{" "}
         </div>
       ))}
@@ -237,49 +263,40 @@ const StationLegs = (props: {
 }
 
 const Page = (props: { params: Promise<{ userId: string; crs: string }> }) => {
-  const params = use(props.params);
+  const params = use(props.params)
   let { userId, crs } = params
   let router = useRouter()
-  let [station, setStation] = useState<TrainStationData | undefined>(undefined)
-  useEffect(() => {
-    const getStationData = async () => {
-      let stationData = await getTrainStationData(parseInt(userId), crs)
-      if (!stationData) {
-        router.push("/")
-      } else {
-        setStation(stationData)
-      }
-    }
-    getStationData()
-  }, [])
+  const { data: station } = client.useQuery(
+    "get",
+    "/users/{user_id}/train/stations/crs/{station_crs}",
+    {
+      params: {
+        path: {
+          user_id: parseInt(userId),
+          station_crs: crs,
+        },
+      },
+    },
+  )
   return !station ? (
     <Loader />
   ) : (
     <div className="flex flex-col gap-2 w-full">
       <div className="px-4">
         <h1 className="text-3xl font-bold flex gap-2">
-          <span className="text-gray-700">{station.crs}</span>
-          <span>{station.name}</span>
+          <span className="text-gray-700">{station.station_crs}</span>
+          <span>{station.station_name}</span>
         </h1>
-        <div>{station.brand ? station.brand.name : station.operator.name}</div>
-        {!station.img ? (
-          ""
-        ) : (
-          <>
-            <Image
-              className="my-2 rounded"
-              src={station.img}
-              height={500}
-              width={500}
-              alt={`Station sign for ${station.name}`}
-            />
-          </>
-        )}
+        <div>
+          {station.station_brand
+            ? station.station_brand.operator_name
+            : station.station_operator.operator_name}
+        </div>
       </div>
       <StationLegs
         userId={parseInt(userId)}
         station={station}
-        legs={station.legs}
+        legs={station.station_legs}
       />
     </div>
   )

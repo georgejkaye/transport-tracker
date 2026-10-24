@@ -25,6 +25,8 @@ import {
   getLegOperator,
   getMilesAndChainsString,
   getTrainServiceString,
+  maybeDateToTimeString,
+  maybeDateToTimeStringFromString,
   TrainLeg,
   TrainLegCall,
   TrainLegSegment,
@@ -34,6 +36,7 @@ import {
 import {
   Delay,
   getDelayOrUndefined,
+  getDelayOrUndefinedString,
   getDelayStyle,
   PlanActTime,
   ShortStationLink,
@@ -44,17 +47,26 @@ import { linkStyle } from "@/app/styles"
 import { isNumber } from "@/app/utils/number"
 import client from "@/app/api/client"
 import { getLongDate } from "@/app/utils/datetime"
-import { TrainLegOutData } from "@/app/utils/train"
+import {
+  TrainLegCallOutData,
+  TrainLegOutData,
+  TrainLegServiceOutData,
+  TrainLegStockSegmentOutData,
+  TrainStockReportOutData,
+} from "@/app/utils/train"
 import { notFound, useRouter } from "next/navigation"
-import { getFeatureCollection } from "@/app/utils/map"
+import {
+  getBoundingBoxForFeatureCollection,
+  getFeatureCollection,
+} from "@/app/utils/map"
 
-const getLineLayer = (leg: TrainLeg): LineLayer => ({
+const getLineLayer = (leg: TrainLegOutData): LineLayer => ({
   id: "line",
   source: "geometry",
   type: "line",
   paint: {
     "line-width": 5,
-    "line-color": getLegColour(leg),
+    "line-color": getLegColour(),
   },
   layout: {
     "line-cap": "round",
@@ -99,16 +111,16 @@ const Pin = (props: {
 )
 
 const LegCallMarker = (props: {
-  leg: TrainLeg
-  call: TrainLegCall
-  setCurrentLegCall: Dispatch<SetStateAction<TrainLegCall | undefined>>
+  leg: TrainLegOutData
+  call: TrainLegCallOutData
+  setCurrentLegCall: Dispatch<SetStateAction<TrainLegCallOutData | undefined>>
 }) => {
   let { leg, call, setCurrentLegCall } = props
   let { delay, text } =
-    call.planDep && call.actDep
-      ? getDelayOrUndefined(call.planDep, call.actDep)
-      : call.planArr && call.actArr
-        ? getDelayOrUndefined(call.planArr, call.actArr)
+    call.plan_dep && call.act_dep
+      ? getDelayOrUndefinedString(call.plan_dep, call.act_dep)
+      : call.plan_arr && call.act_arr
+        ? getDelayOrUndefinedString(call.plan_arr, call.act_arr)
         : {
             delay: 0,
             text: "",
@@ -124,15 +136,15 @@ const LegCallMarker = (props: {
   const onMouseLeaveMarker = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation()
   }
-  return !call.point ? (
+  return !call ? (
     ""
   ) : (
-    <Marker longitude={call.point[0]} latitude={call.point[1]} anchor="center">
+    <Marker longitude={0} latitude={0} anchor="center">
       <div onMouseEnter={onMouseEnterMarker} onClick={onClickMarker}>
         <Pin
           size={28}
           fillColour={getDelayStyle(delay)}
-          strokeColour={getLegColour(leg)}
+          strokeColour={getLegColour()}
         />
       </div>
     </Marker>
@@ -140,9 +152,9 @@ const LegCallMarker = (props: {
 }
 
 const LegCallPopup = (props: {
-  currentLegCall: TrainLegCall
+  currentLegCall: TrainLegCallOutData
   stationPoint: [number, number]
-  setCurrentLegCall: Dispatch<SetStateAction<TrainLegCall | undefined>>
+  setCurrentLegCall: Dispatch<SetStateAction<TrainLegCallOutData | undefined>>
 }) => {
   let { currentLegCall, stationPoint, setCurrentLegCall } = props
   return (
@@ -159,8 +171,11 @@ const LegCallPopup = (props: {
         <div>
           <div>
             <b className={`text-lg mb-2 ${linkStyle}`}>
-              <Link href={`/train/stations/${currentLegCall.station.crs}`}>
-                {currentLegCall.station.name} [{currentLegCall.station.crs}]
+              <Link
+                href={`/train/stations/${currentLegCall.station.station_crs}`}
+              >
+                {currentLegCall.station.station_name} [
+                {currentLegCall.station.station_crs}]
               </Link>
             </b>
           </div>
@@ -168,40 +183,62 @@ const LegCallPopup = (props: {
             <div>platform {currentLegCall.platform}</div>
           )}
         </div>
-        {(currentLegCall.planArr || currentLegCall.actArr) && (
+        {(currentLegCall.plan_arr || currentLegCall.act_arr) && (
           <div className="flex flex-row gap-2">
             <div className="w-5 text-left mr-2">arr</div>
             <div>
-              {currentLegCall.planArr
-                ? dateToTimeString(currentLegCall.planArr)
+              {currentLegCall.plan_arr
+                ? maybeDateToTimeStringFromString(currentLegCall.plan_arr)
                 : ""}
             </div>
             <div>
               <b>
-                {currentLegCall.actArr
-                  ? dateToTimeString(currentLegCall.actArr)
+                {currentLegCall.act_arr
+                  ? maybeDateToTimeStringFromString(currentLegCall.act_arr)
                   : ""}
               </b>
             </div>
-            <Delay plan={currentLegCall.planArr} act={currentLegCall.actArr} />
+            <Delay
+              plan={
+                !currentLegCall.plan_arr
+                  ? null
+                  : new Date(Date.parse(currentLegCall.plan_arr))
+              }
+              act={
+                !currentLegCall.act_arr
+                  ? null
+                  : new Date(Date.parse(currentLegCall.act_arr))
+              }
+            />
           </div>
         )}
-        {(currentLegCall.planDep || currentLegCall.actDep) && (
+        {(currentLegCall.plan_dep || currentLegCall.act_dep) && (
           <div className="flex flex-row gap-2">
             <div className="w-5 text-left mr-2">dep</div>
             <div>
-              {currentLegCall.planDep
-                ? dateToTimeString(currentLegCall.planDep)
+              {currentLegCall.plan_dep
+                ? maybeDateToTimeStringFromString(currentLegCall.plan_dep)
                 : ""}
             </div>
             <div>
               <b>
-                {currentLegCall.actDep
-                  ? dateToTimeString(currentLegCall.actDep)
+                {currentLegCall.act_dep
+                  ? maybeDateToTimeStringFromString(currentLegCall.act_dep)
                   : ""}
               </b>
             </div>
-            <Delay plan={currentLegCall.planDep} act={currentLegCall.actDep} />
+            <Delay
+              plan={
+                !currentLegCall.plan_dep
+                  ? null
+                  : new Date(Date.parse(currentLegCall.plan_dep))
+              }
+              act={
+                !currentLegCall.act_dep
+                  ? null
+                  : new Date(Date.parse(currentLegCall.act_dep))
+              }
+            />
           </div>
         )}
       </div>
@@ -212,13 +249,29 @@ const LegCallPopup = (props: {
 const TrainLegMap = (props: { leg: TrainLegOutData }) => {
   let { leg } = props
   const [currentStation, setCurrentStation] = useState<
-    TrainLegCall | undefined
+    TrainLegCallOutData | undefined
   >(undefined)
-  let featureCollection = getFeatureCollection(leg)
-  let data = getLineAndBoundingBox(leg)
+  let {
+    data: geometries,
+    isLoading,
+    error,
+  } = client.useQuery("get", "/train/legs/geometries/{leg_id}", {
+    params: {
+      path: {
+        leg_id: leg.leg_id,
+      },
+    },
+  })
+  let featureCollection = getFeatureCollection(
+    geometries?.geometry ?? [],
+    "#000000",
+  )
+  let bounds = featureCollection
+    ? getBoundingBoxForFeatureCollection(featureCollection)
+    : undefined
   let layerStyle = getLineLayer(leg)
   let initialViewState: Partial<ViewState> & { bounds?: LngLatBoundsLike } =
-    !data
+    !geometries
       ? {
           longitude: gbMidpointLng,
           latitude: gbMidpointLat,
@@ -226,10 +279,10 @@ const TrainLegMap = (props: { leg: TrainLegOutData }) => {
         }
       : {
           bounds: [
-            data.minLng - boundingBoxPadding,
-            data.minLat - boundingBoxPadding,
-            data.maxLng + boundingBoxPadding,
-            data.maxLat + boundingBoxPadding,
+            bounds?.minLng ?? 0 - boundingBoxPadding,
+            bounds?.minLat ?? 0 - boundingBoxPadding,
+            bounds?.maxLng ?? 0 + boundingBoxPadding,
+            bounds?.maxLat ?? 0 + boundingBoxPadding,
           ],
         }
   let markers = useMemo(
@@ -254,18 +307,18 @@ const TrainLegMap = (props: { leg: TrainLegOutData }) => {
         <FullscreenControl position="top-left" />
         <NavigationControl position="top-left" />
         <ScaleControl />
-        {!data ? (
+        {!geometries ? (
           ""
         ) : (
-          <Source id="geometry" type="geojson" data={data.line}>
+          <Source id="geometry" type="geojson" data={geometries}>
             <Layer {...layerStyle} />
           </Source>
         )}
         {markers}
-        {currentStation && currentStation.point && (
+        {currentStation && (
           <LegCallPopup
             currentLegCall={currentStation}
-            stationPoint={currentStation.point}
+            stationPoint={[0, 0]}
             setCurrentLegCall={setCurrentStation}
           />
         )}
@@ -274,7 +327,7 @@ const TrainLegMap = (props: { leg: TrainLegOutData }) => {
   )
 }
 
-const TrainLegService = (props: { service: TrainService }) => {
+const TrainLegService = (props: { service: TrainLegServiceOutData }) => {
   let { service } = props
   return (
     <div>
@@ -283,31 +336,37 @@ const TrainLegService = (props: { service: TrainService }) => {
   )
 }
 
-const TrainLegServices = (props: { services: TrainService[] }) => {
+const TrainLegServices = (props: { services: TrainLegServiceOutData[] }) => {
   let { services } = props
   return (
     <div className="flex-1">
       <div className="font-bold text-xl mb-2">Services</div>
       <div className="flex flex-row">
         {services.map((service) => (
-          <TrainLegService key={service.id} service={service} />
+          <TrainLegService key={service.service_id} service={service} />
         ))}
       </div>
     </div>
   )
 }
 
-const LegCallRow = (props: { call: TrainLegCall }) => {
+const LegCallRow = (props: { call: TrainLegCallOutData }) => {
   let { call } = props
   let platformString = !call.platform ? "-" : call.platform
   return (
     <div className="flex flex-row gap-2 items-center">
-      <div className="w-14 hidden md:block">{call.station.crs}</div>
+      <div className="w-14 hidden md:block">{call.station.station_crs}</div>
       <ShortStationLink station={call.station} />
       <div className="w-6 text-center">{platformString}</div>
       <div className="flex flex-col md:flex-row">
-        <PlanActTime act={call.actArr} />
-        <PlanActTime plan={call.planDep} act={call.actDep} />
+        <PlanActTime
+          act={!call.act_arr ? null : new Date(Date.parse(call.act_arr))}
+          plan={!call.plan_arr ? null : new Date(Date.parse(call.plan_arr))}
+        />
+        <PlanActTime
+          act={!call.act_dep ? null : new Date(Date.parse(call.act_dep))}
+          plan={!call.plan_dep ? null : new Date(Date.parse(call.plan_dep))}
+        />
       </div>
     </div>
   )
@@ -317,7 +376,7 @@ const TrainLegStats = (props: { leg: TrainLegOutData }) => {
   let { leg } = props
   return (
     <div className="flex flex-row gap-2">
-      <div>
+      {/* <div>
         {!leg.distance ? (
           ""
         ) : (
@@ -327,12 +386,12 @@ const TrainLegStats = (props: { leg: TrainLegOutData }) => {
       <div>•</div>
       <div>
         {!leg.duration ? "" : <div>{getDurationString(leg.duration)}</div>}
-      </div>
+      </div> */}
     </div>
   )
 }
 
-const TrainLegCalls = (props: { calls: TrainLegCall[] }) => {
+const TrainLegCalls = (props: { calls: TrainLegCallOutData[] }) => {
   let { calls } = props
   return (
     <div>
@@ -351,31 +410,33 @@ const TrainLegCalls = (props: { calls: TrainLegCall[] }) => {
   )
 }
 
-const TrainStockReportLine = (props: { stock: TrainStockReport }) => {
+const TrainStockReportLine = (props: { stock: TrainStockReportOutData }) => {
   let { stock } = props
-  let stockDescription = !stock.classNo ? (
+  let stockDescription = !stock.stock_class ? (
     ""
   ) : (
-    <Link href={`/train/stock/${stock.classNo}`}>
-      {`Class ${stock.classNo}${
-        !stock.subclassNo ? "" : `/${stock.subclassNo}`
+    <Link href={`/train/stock/${stock.stock_class}`}>
+      {`Class ${stock.stock_class}${
+        !stock.stock_subclass ? "" : `/${stock.stock_subclass}`
       }`}
     </Link>
   )
-  let stockNumber = !stock.stockNo ? (
+  let stockNumber = !stock.stock_class ? (
     ""
   ) : (
-    <Link href={`/train/stock/unit/${stock.stockNo}`}>{stock.stockNo}</Link>
+    <Link href={`/train/stock/unit/${stock.stock_class}`}>
+      {stock.stock_number}
+    </Link>
   )
-  let stockDescriptionElements = stock.stockNo ? (
+  let stockDescriptionElements = stock.stock_number ? (
     <div className="flex flex-row gap-2">
       {stockNumber}
-      {!stock.classNo ? "" : stockDescription}
+      {!stock.stock_class ? "" : stockDescription}
     </div>
   ) : (
     stockDescription
   )
-  let stockCarsText = !stock.cars ? "" : `${stock.cars} cars`
+  let stockCarsText = !stock.stock_cars ? "" : `${stock.stock_cars} cars`
   return (
     <li className="flex flex-row gap-2">
       <div className="">{stockDescriptionElements}</div>
@@ -390,18 +451,18 @@ const TrainStockReportLine = (props: { stock: TrainStockReport }) => {
 
 const TrainLegStockSegment = (props: {
   isOnlySegment: boolean
-  segment: TrainLegSegment
+  segment: TrainLegStockSegmentOutData
 }) => {
   let { isOnlySegment, segment } = props
   return (
     <div>
       {!isOnlySegment && (
         <h3 className="font-bold text-lg pb-2">
-          {segment.start.name} to {segment.end.name}
+          {segment.stock_start.station_name} to {segment.stock_end.station_name}
         </h3>
       )}
       <ul className="flex flex-col gap-2 list-disc">
-        {segment.stocks.map((stock, i) => (
+        {segment.stock_reports.map((stock, i) => (
           <TrainStockReportLine key={i} stock={stock} />
         ))}
       </ul>
@@ -409,7 +470,9 @@ const TrainLegStockSegment = (props: {
   )
 }
 
-const TrainLegStockSegments = (props: { segments: TrainLegSegment[] }) => {
+const TrainLegStockSegments = (props: {
+  segments: TrainLegStockSegmentOutData[]
+}) => {
   let { segments } = props
   return (
     <div className="flex-1">

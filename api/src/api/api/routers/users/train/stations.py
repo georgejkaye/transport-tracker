@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 
@@ -46,7 +47,10 @@ async def get_train_stations_by_year(
     summary="Get train station data for a user and a particular station",
 )
 async def get_train_station(
-    user_id: int, station_id: int, search_start: datetime, search_end: datetime
+    user_id: int,
+    station_id: int,
+    search_start: Optional[datetime] = None,
+    search_end: Optional[datetime] = None,
 ) -> TransportUserTrainStationOutData:
     station = (
         select_transport_user_train_station_by_user_id_and_station_id_fetchone(
@@ -87,7 +91,10 @@ async def get_train_station_by_year(
 
 @router.get("/crs/{station_crs}", summary="Get train station")
 async def get_train_station_by_crs(
-    user_id: int, station_crs: str, search_start: datetime, search_end: datetime
+    user_id: int,
+    station_crs: str,
+    search_start: Optional[datetime] = None,
+    search_end: Optional[datetime] = None,
 ) -> TransportUserTrainStationOutData:
     station = (
         select_transport_user_train_station_by_user_id_and_station_crs_fetchone(
