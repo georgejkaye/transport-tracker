@@ -42,6 +42,12 @@ def pad_front(value: Any, length: int) -> str:
     return "0" * (length - len(string)) + string
 
 
+def get_hourmin_string_from_isoformat(iso_string: Optional[str]) -> str:
+    if iso_string is None:
+        return "-"
+    return iso_string[11:16]
+
+
 def get_hourmin_string(
     datetime: datetime | time | None, colon: bool = False
 ) -> str:
