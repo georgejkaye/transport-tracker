@@ -11,6 +11,13 @@ def get_env_variable(key: str) -> Optional[str]:
     return val
 
 
+def get_mandatory_env_variable(key: str) -> str:
+    value = get_env_variable(key)
+    if value is None:
+        raise RuntimeError(f"Environment variable {key} not set")
+    return value
+
+
 def get_secret_file_contents(file: str) -> str:
     with open(file, "r") as f:
         return f.readline().rstrip()
