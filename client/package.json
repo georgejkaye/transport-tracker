@@ -40,7 +40,6 @@
     "@types/react-dom": "19.2.3",
     "eslint": "^8",
     "eslint-config-next": "16.1.6",
-    "openapi-typescript": "^7.10.1",
     "postcss": "^8.5.31",
     "tailwindcss": "^4.3.3",
     "typescript": "7.0.2"
