@@ -1,8 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
-from urllib.parse import urlencode
 
-from api.pull.train.classes.location import RttLocationResponse
 from api.pull.train.classes.tokens import AccessToken
 from api.utils.request import make_get_request
 
@@ -20,6 +17,8 @@ class RttApiClient(RttApiClientInterface):
         endpoint = f"{self.base_url}/get_access_token"
         result = make_get_request(endpoint, token=refresh_token)
         json = result.json()
+        if result.status_code != 200:
+            raise RuntimeError(f"Could not get token: {json['error']}")
         return AccessToken(
             json["token"], json["entitlements"], json["validUntil"]
         )
