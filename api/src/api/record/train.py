@@ -1,22 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, time
 from decimal import Decimal
-from enum import Enum
 from typing import Optional, Tuple
 
-from api.pull.train.types import (
-    RttService,
-    RttServiceCall,
-    RttStationService,
-    RttStationServiceToDestination,
-    TrainStationIdentifiers,
-)
 from psycopg import Connection
 
 from api.classes.interactive import PickMultiple, PickSingle, PickUnknown
-from api.classes.train.association import (
-    AssociationType,
-    int_of_association_type,
-)
 from api.classes.train.stock import (
     StockReport,
     StockSegment,
@@ -27,6 +15,9 @@ from api.classes.train.stock import (
     string_of_stock_report,
 )
 from api.db.functions.insert.train.leg import insert_train_leg_fetchone
+from api.db.functions.select.train.operator import (
+    select_train_operator_by_operator_code_fetchone,
+)
 from api.db.functions.select.train.station import (
     select_train_station_by_crs_fetchone,
     select_train_stations_by_name_substring_fetchall,
@@ -45,25 +36,30 @@ from api.db.types.train.leg import (
     TrainLegServiceInData,
     TrainLegStockSegmentInData,
 )
+from api.db.types.train.operator import TrainBrandOutData, TrainOperatorOutData
 from api.db.types.train.station import TrainStationOutData
 from api.db.types.train.stock import (
     TrainStockOutData,
     TrainStockSubclassOutData,
 )
 from api.pull.train.api import RttApiManager
+from api.pull.train.classes.gbnr.location import RttGbnrLocationService
+from api.pull.train.classes.gbnr.service import (
+    RttGbnrServiceData,
+    RttGbnrServiceLocation,
+)
 from api.pull.train.classes.location import (
     RttLocationPair,
-    RttLocationResponse,
-    RttLocationService,
-    RttScheduleMetadata,
 )
+from api.pull.train.classes.service import (
+    RttAssociationType,
+    get_rtt_association_type_db_int,
+)
+from api.pull.train.classes.stock import StockChange
 from api.pull.train.clients.api import RttApiClient
-from api.pull.train.clients.rtt import RttRttClient
-from api.pull.train.service import get_service_from_id
-from api.pull.train.station import get_services_at_station
-from api.record.user import input_users
+from api.pull.train.clients.gbnr import RttGbnrClient
+from api.record.user import get_users_from_input
 from api.utils.database import connect_with_env
-from api.utils.environment import get_env_variable
 from api.utils.interactive import (
     get_choice_from_input,
     get_choice_from_input_paginate,
@@ -82,7 +78,6 @@ from api.utils.mileage import (
 from api.utils.times import (
     add,
     get_hourmin_string,
-    get_hourmin_string_from_isoformat,
     make_timezone_aware,
 )
 
@@ -91,12 +86,12 @@ class TrainRecorder:
     def __init__(
         self,
         db_conn: Connection,
-        rtt_rtt_client: RttRttClient,
+        rtt_rtt_client: RttGbnrClient,
     ):
         self.db_conn = db_conn
-        self.rtt_rtt_client = rtt_rtt_client
+        self.rtt_gbnr_client = rtt_rtt_client
 
-    def get_station_from_input(
+    def _get_station_from_input(
         self, prompt: str, default_station: TrainStationOutData | None = None
     ) -> Optional[TrainStationOutData]:
         if default_station is not None:
@@ -149,16 +144,29 @@ class TrainRecorder:
                     case _:
                         return None
 
-    def get_service_at_station(
+    def _get_service_at_station_string(
+        self, service: RttGbnrLocationService
+    ) -> str:
+        origin_string = self._get_multiple_short_station_string(service.origin)
+        destination_string = self._get_multiple_short_station_string(
+            service.destination
+        )
+        plan_string = get_hourmin_string(service.get_plan_dep())
+        act_string = get_hourmin_string(service.get_act_dep())
+        operator = service.get_operator()
+        operator_string = operator.name
+        return f"{origin_string} to {destination_string} plan {plan_string} act {act_string} ({operator_string})"
+
+    def _get_service_at_station_from_input(
         self,
         origin: TrainStationOutData,
         search_datetime: datetime,
         destination: TrainStationOutData,
-    ) -> Optional[RttScheduleMetadata]:
+    ) -> Optional[RttGbnrLocationService]:
         timeframe = 15
         earliest_time = add(search_datetime, -timeframe)
         latest_time = add(search_datetime, timeframe)
-        services = self.rtt_rtt_client.get_location(
+        services = self.rtt_gbnr_client.get_location(
             origin.station_crs,
             time_from=earliest_time.isoformat(),
             time_to=latest_time.isoformat(),
@@ -169,7 +177,7 @@ class TrainRecorder:
         choice = get_choice_from_input_paginate(
             "Pick a service",
             services,
-            display=lambda service: f"{get_multiple_short_station_string(service.origins)} to {get_multiple_short_station_string(service.destinations)} plan {get_hourmin_string(service.plan_dep)} act {get_hourmin_string(service.act_dep)} ({service.operator_code})",
+            display=self._get_service_at_station_string,
         )
         match choice:
             case PickSingle(service):
@@ -177,7 +185,8 @@ class TrainRecorder:
             case _:
                 return None
 
-    def get_unit_class(
+    def _get_unit_class_from_input(
+        self,
         operator_stock: list[TrainStockOutData],
     ) -> Optional[PickUnknown | PickSingle[TrainStockOutData]]:
         chosen_class = get_choice_from_input(
@@ -196,7 +205,8 @@ class TrainRecorder:
             case _:
                 return None
 
-    def get_unit_subclass(
+    def _get_unit_subclass_from_input(
+        self,
         stock: TrainStockOutData,
     ) -> Optional[PickUnknown | PickSingle[TrainStockSubclassOutData]]:
         if len(stock.stock_subclasses) == 1:
@@ -219,9 +229,9 @@ class TrainRecorder:
                 case _:
                     return None
 
-    def get_unit_no(
+    def _get_unit_no_from_input(
+        self,
         stock_class: TrainStockOutData,
-        stock_subclass: TrainStockSubclassOutData,
     ) -> Optional[int]:
         while True:
             unit_no_opt = get_int_from_input(
@@ -232,7 +242,8 @@ class TrainRecorder:
             )
             return unit_no_opt
 
-    def get_unit_cars(
+    def _get_unit_cars_from_input(
+        self,
         stock_class: TrainStockOutData,
         stock_subclass: TrainStockSubclassOutData,
     ) -> PickUnknown | PickSingle[int] | None:
@@ -257,7 +268,8 @@ class TrainRecorder:
             case _:
                 return None
 
-    def get_station_from_input_choice(
+    def _get_call_from_input(
+        self,
         current: TrainLegCallInData,
         calls: list[TrainLegCallInData],
     ) -> Optional[Tuple[TrainLegCallInData, int, list[TrainLegCallInData]]]:
@@ -274,22 +286,14 @@ class TrainRecorder:
             case _:
                 raise RuntimeError()
 
-    StockChange = Enum("StockChange", ["GAIN", "LOSE"])
-
-    def string_of_stock_change(change: StockChange) -> str:
-        match change:
-            case StockChange.GAIN:
-                return "Gain units"
-            case StockChange.LOSE:
-                return "Lose units"
-
-    def get_unit_report(
+    def _get_unit_report_from_input(
+        self,
         stock_list: list[TrainStockOutData],
     ) -> Optional[StockReport]:
-        stock_class_res = get_unit_class(stock_list)
+        stock_class_input = self._get_unit_class_from_input(stock_list)
         stock_class: Optional[TrainStockOutData] = None
         stock_subclass: Optional[TrainStockSubclassOutData] = None
-        match stock_class_res:
+        match stock_class_input:
             case None:
                 return None
             case PickSingle(stock_class_choice):
@@ -298,8 +302,10 @@ class TrainRecorder:
                 stock_class = None
                 stock_subclass = None
         if stock_class is not None:
-            stock_subclass_res = get_unit_subclass(stock_class)
-            match stock_subclass_res:
+            stock_subclass_input = self._get_unit_subclass_from_input(
+                stock_class
+            )
+            match stock_subclass_input:
                 case None:
                     return None
                 case PickUnknown():
@@ -309,9 +315,11 @@ class TrainRecorder:
         else:
             stock_subclass = None
         if stock_class is not None and stock_subclass is not None:
-            stock_unit_no = get_unit_no(stock_class, stock_subclass)
-            stock_cars_res = get_unit_cars(stock_class, stock_subclass)
-            match stock_cars_res:
+            stock_unit_no = self._get_unit_no_from_input(stock_class)
+            stock_cars_input = self._get_unit_cars_from_input(
+                stock_class, stock_subclass
+            )
+            match stock_cars_input:
                 case None:
                     return None
                 case PickUnknown():
@@ -332,7 +340,15 @@ class TrainRecorder:
             stock_cars,
         )
 
-    def get_stock_change_reason(
+    def _get_stock_change_input_reason_string(self, change: StockChange) -> str:
+        match change:
+            case StockChange.GAIN:
+                return "Gain units"
+            case StockChange.LOSE:
+                return "Lose units"
+
+    def _get_stock_change_reason_from_input(
+        self,
         previous_stock_segment: Optional[StockSegment],
     ) -> StockChange:
         if previous_stock_segment is None:
@@ -340,7 +356,7 @@ class TrainRecorder:
         result = get_choice_from_input(
             "Pick reason for stock change",
             [StockChange.GAIN, StockChange.LOSE],
-            display=string_of_stock_change,
+            display=self._get_stock_change_input_reason_string,
         )
         match result:
             case PickSingle(stock_change):
@@ -348,7 +364,8 @@ class TrainRecorder:
             case _:
                 raise RuntimeError()
 
-    def get_stock_from_previous_stock_segment(
+    def _get_stock_from_previous_stock_segment(
+        self,
         previous_stock_segment: Optional[StockSegment],
     ) -> list[StockReport]:
         return (
@@ -357,18 +374,51 @@ class TrainRecorder:
             else []
         )
 
-    def get_stock(
-        conn: Connection,
+    def _get_operator_from_service(
+        self, service: RttGbnrServiceData
+    ) -> Optional[TrainOperatorOutData]:
+        operator_code = service.get_operator().code
+        if operator_code is None:
+            return None
+        return select_train_operator_by_operator_code_fetchone(
+            self.db_conn,
+            operator_code,
+            datetime.combine(service.get_run_date(), time(0, 0, 0)),
+        )
+
+    def _get_brand_from_input(
+        self, operator: TrainOperatorOutData
+    ) -> Optional[TrainBrandOutData]:
+        if len(operator.operator_brands) == 0:
+            return None
+        if len(operator.operator_brands) == 1:
+            return operator.operator_brands[0]
+        match get_choice_from_input(
+            "Select brand",
+            operator.operator_brands,
+            lambda b: f"{b.brand_name} ({b.brand_code})",
+        ):
+            case PickSingle(brand):
+                return brand
+            case _:
+                return None
+
+    def _get_stock_from_input(
+        self,
         calls: list[TrainLegCallInData],
-        service: RttService,
+        service: RttGbnrServiceData,
+        operator: TrainOperatorOutData,
+        brand: Optional[TrainBrandOutData],
         stock_number: int = 0,
     ) -> list[StockSegment]:
         print_information("Recording stock formations")
         stock_segments: list[StockSegment] = []
         previous_stock_segment: Optional[StockSegment] = None
-        # Currently getting this automatically isn't implemented
         stock_list = select_train_operator_stock_fetchall(
-            conn, service.operator_id, service.brand_id, service.run_date
+            self.db_conn,
+            operator.operator_id,
+            brand.brand_id if brand is not None else None,
+            datetime.combine(service.get_run_date(), time(0, 0, 0)),
         )
         current_call = calls[0]
         remaining_calls = calls[1:]
@@ -378,7 +428,7 @@ class TrainRecorder:
             )
             segment_start = current_call
             next_remaining_calls: list[TrainLegCallInData] = []
-            stock_end_opt = get_station_from_input_choice(
+            stock_end_opt = self._get_call_from_input(
                 segment_start, remaining_calls
             )
             if stock_end_opt is None:
@@ -391,9 +441,13 @@ class TrainRecorder:
             ]
             remaining_calls = next_remaining_calls
             segment_end = stock_calls[-1]
-            stock_change = get_stock_change_reason(previous_stock_segment)
+            stock_change = self._get_stock_change_reason_from_input(
+                previous_stock_segment
+            )
             previous_stock_segment_stock = (
-                get_stock_from_previous_stock_segment(previous_stock_segment)
+                self._get_stock_from_previous_stock_segment(
+                    previous_stock_segment
+                )
             )
             current_segment_stock: list[StockReport] = []
             match stock_change:
@@ -404,7 +458,9 @@ class TrainRecorder:
                     current_segment_stock = previous_stock_segment_stock.copy()
                     for i in range(0, number_of_units):
                         print_information(f"Selecting unit {i + 1}")
-                        stock_report = get_unit_report(stock_list)
+                        stock_report = self._get_unit_report_from_input(
+                            stock_list
+                        )
                         if stock_report is None:
                             return []
                         current_segment_stock.append(stock_report)
@@ -419,7 +475,7 @@ class TrainRecorder:
                             return []
                         case PickMultiple(choices):
                             current_segment_stock = choices
-            stock_mileage = get_mileage(stock_calls)
+            stock_mileage = self._get_mileage_from_input(stock_calls)
             segment_start_call = stock_calls[0]
             segment_end_call = stock_calls[-1]
             if (
@@ -429,8 +485,8 @@ class TrainRecorder:
                 raise RuntimeError("Could not get segment endpoints")
             segment = StockSegment(
                 current_segment_stock,
-                service.service_uid,
-                service.run_date,
+                service.get_identity(),
+                datetime.combine(service.get_run_date(), time(0, 0, 0)),
                 segment_start_call,
                 segment_end_call,
                 stock_mileage,
@@ -443,177 +499,156 @@ class TrainRecorder:
             current_call = segment_end
         return stock_segments
 
-    def input_mileage(calls: list[TrainLegCallInData]) -> Decimal:
+    def _get_mileage_from_input(
+        self, calls: list[TrainLegCallInData]
+    ) -> Decimal:
+        end_mileage = calls[-1].mileage
+        if end_mileage is not None:
+            return end_mileage
         print_information(
             f"Manual mileage input between {calls[0].station_name} and {calls[-1].station_name} required"
         )
-        # If we can get a good distance set this could be automated
         miles = get_int_from_input("Miles")
         chains = get_int_from_input("Chains", upper=79)
         if miles is None or chains is None:
             raise RuntimeError("Cannot be None")
         return miles_and_chains_to_miles(miles, chains)
 
-    def get_mileage(calls: list[TrainLegCallInData]) -> Decimal:
-        end_mileage = calls[-1].mileage
-        if end_mileage is None:
-            return input_mileage(calls)
-        return end_mileage
-
-    def filter_services_by_time(
-        earliest: datetime, latest: datetime, services: list[RttStationService]
-    ) -> list[RttStationService]:
-        filtered_services: list[RttStationService] = []
-        for service in services:
-            if (
-                service.plan_dep
-                and service.plan_dep >= earliest
-                and service.plan_dep <= latest
-            ) or (
-                service.act_dep
-                and service.act_dep >= earliest
-                and service.act_dep <= latest
-            ):
-                filtered_services.append(service)
-        return filtered_services
-
-    def get_calls_at_station(
-        service: RttService, station_crs: str
-    ) -> list[RttServiceCall]:
-        matching_calls: list[RttServiceCall] = []
-        for call in service.calls:
-            if call.station_crs == station_crs:
-                matching_calls.append(call)
+    def _get_calls_at_station(
+        self, service: RttGbnrServiceData, station_crs: str
+    ) -> list[RttGbnrServiceLocation]:
+        matching_calls: list[RttGbnrServiceLocation] = []
+        for location in service.locations:
+            if location.get_crs() == station_crs:
+                matching_calls.append(location)
         return matching_calls
 
-    def get_leg_calls_between_calls(
-        service: RttService,
+    def _get_leg_calls_between_calls(
+        self,
+        service: RttGbnrServiceData,
         start_station_crs: str,
         start_dep_time: datetime,
         end_station_crs: str,
-        mileage_at_board_call: Optional[Decimal] = None,
-    ) -> Optional[list[TrainLegCallInData]]:
+    ) -> Optional[tuple[list[TrainLegCallInData], list[RttGbnrServiceData]]]:
         start_dep_time = make_timezone_aware(start_dep_time)
         leg_calls: list[TrainLegCallInData] = []
+        associated_services: list[RttGbnrServiceData] = []
         boarded = False
-        for call in service.calls:
+        for location in service.locations:
             if not boarded:
                 arr_call = None
                 if (
-                    call.station_crs == start_station_crs
-                    and call.plan_dep == start_dep_time
+                    location.get_crs() == start_station_crs
+                    and location.get_plan_dep() == start_dep_time
                 ):
                     boarded = True
-                    mileage_at_board_call = (
-                        call.mileage if call.mileage is not None else None
-                    )
             else:
                 arr_call = TrainLegCallCallInData(
-                    service.service_uid,
-                    service.run_date,
-                    call.plan_arr,
-                    call.act_arr,
-                    call.plan_dep,
-                    call.act_dep,
+                    service.get_identity(),
+                    datetime.combine(service.get_run_date(), time(0, 0, 0)),
+                    location.get_plan_arr(),
+                    location.get_act_arr(),
+                    location.get_plan_dep(),
+                    location.get_act_dep(),
                 )
-            for call_association in call.associated_services:
-                if call_association.association not in [
-                    AssociationType.OTHER_DIVIDES,
-                    AssociationType.THIS_JOINS,
+            for associated_service in location.associatedServices:
+                if associated_service.get_association_type() not in [
+                    RttAssociationType.DIVIDE_INTO,
+                    RttAssociationType.JOIN_INTO,
                 ]:
                     continue
-                associated_service = call_association.service
-                if (
-                    associated_service is None
-                    or associated_service.calls[0].plan_dep is None
-                ):
-                    continue
-                associated_leg_calls = (
-                    get_leg_calls_from_service_association_to_other_call(
-                        associated_service,
+                associated_service_data = self.rtt_gbnr_client.get_service_by_identity_and_departure_date(
+                    associated_service.get_identity(),
+                    associated_service.get_run_date(),
+                ).service
+                association_result = (
+                    self._get_leg_calls_from_service_association_to_other_call(
                         service,
+                        associated_service_data,
                         end_station_crs,
-                        mileage_at_board_call,
                     )
                 )
-                if associated_leg_calls is None:
+                if association_result is None:
                     continue
+                associated_leg_calls, new_associated_services = (
+                    association_result
+                )
                 if boarded:
                     associated_leg_calls[0].arr_call = arr_call
                     if (
-                        call_association.association
-                        == AssociationType.OTHER_DIVIDES
+                        associated_service.get_association_type()
+                        == RttAssociationType.DIVIDE_INTO
                     ):
-                        association_type = AssociationType.THIS_DIVIDES
+                        association_type = RttAssociationType.DIVIDE_INTO
                     else:
-                        association_type = AssociationType.THIS_JOINS
+                        association_type = RttAssociationType.JOIN_INTO
                     associated_leg_calls[0].associated_type_id = (
-                        int_of_association_type(association_type)
+                        get_rtt_association_type_db_int(association_type)
                     )
                 leg_calls.extend(associated_leg_calls)
-                return leg_calls
+                associated_services.extend(new_associated_services)
+                return (leg_calls, associated_services)
             if boarded:
-                if call.station_crs == end_station_crs:
+                identity = service.get_identity()
+                run_date = datetime.combine(
+                    service.get_run_date(), time(0, 0, 0)
+                )
+                if location.get_crs() == end_station_crs:
                     arr_call = TrainLegCallCallInData(
-                        service.service_uid,
-                        service.run_date,
-                        call.plan_arr,
-                        call.act_arr,
+                        identity,
+                        run_date,
+                        location.get_plan_arr(),
+                        location.get_act_arr(),
                         None,
                         None,
                     )
                     dep_call = None
                 elif arr_call is None:
                     dep_call = TrainLegCallCallInData(
-                        service.service_uid,
-                        service.run_date,
+                        identity,
+                        run_date,
                         None,
                         None,
-                        call.plan_dep,
-                        call.act_dep,
+                        location.get_plan_dep(),
+                        location.get_act_dep(),
                     )
                 else:
                     dep_call = arr_call
                 leg_call = TrainLegCallInData(
-                    call.station_crs,
-                    call.station_name,
+                    location.get_crs(),
+                    location.get_description(),
                     arr_call,
                     dep_call,
-                    (
-                        call.mileage - mileage_at_board_call
-                        if call.mileage is not None
-                        and mileage_at_board_call is not None
-                        else None
-                    ),
+                    None,
                     None,
                 )
                 leg_calls.append(leg_call)
-                if call.station_crs == end_station_crs:
-                    return leg_calls
+                if location.get_crs() == end_station_crs:
+                    return (leg_calls, associated_services)
         return None
 
-    def get_leg_calls_from_service_association_to_other_call(
-        service: RttService,
-        associated_service: RttService,
+    def _get_leg_calls_from_service_association_to_other_call(
+        self,
+        current_service: RttGbnrServiceData,
+        associated_service: RttGbnrServiceData,
         destination_crs: str,
-        mileage_at_board_call: Optional[Decimal],
-    ) -> Optional[list[TrainLegCallInData]]:
-        for call in service.calls:
-            for call_associated_service in call.associated_services:
+    ) -> Optional[tuple[list[TrainLegCallInData], list[RttGbnrServiceData]]]:
+        current_service_identity = current_service.get_identity()
+        current_service_run_date = current_service.get_run_date()
+        for location in associated_service.locations:
+            for call_associated_service in location.associatedServices:
                 if (
-                    call_associated_service.service_uid
-                    == associated_service.service_uid
-                    and call_associated_service.service_run_date
-                    == associated_service.run_date
+                    call_associated_service.get_identity()
+                    == current_service_identity
+                    and call_associated_service.get_run_date()
+                    == current_service_run_date
+                    and (plan_dep := location.get_plan_dep()) is not None
                 ):
-                    if call.plan_dep is None:
-                        continue
-                    return get_leg_calls_between_calls(
-                        service,
-                        call.station_crs,
-                        call.plan_dep,
+                    return self._get_leg_calls_between_calls(
+                        associated_service,
+                        location.get_crs(),
+                        plan_dep,
                         destination_crs,
-                        mileage_at_board_call,
                     )
         return None
 
@@ -635,153 +670,156 @@ class TrainRecorder:
                 string = f"{string} and {station_name}"
         return string
 
-    def _short_string_of_service_at_station(
-        self, service: RttLocationService
-    ) -> str:
-        return f"{self._get_multiple_short_station_string(service.origin)} to {self._get_multiple_short_station_string(service.destination)}"
-
-    def string_of_service_at_station(self, service: RttLocationService) -> str:
-        origin_string = self._get_multiple_short_station_string(service.origin)
-        destination_string = self._get_multiple_short_station_string(
-            service.destination
-        )
-        temporal_data = service.temporalData
-        departure = (
-            temporal_data.departure if temporal_data is not None else None
-        )
-        plan_dep_string = get_hourmin_string_from_isoformat(
-            departure.scheduleAdvertised if departure is not None else None
-        )
-        act_dep_string = get_hourmin_string_from_isoformat(
-            departure.realtimeActual if departure is not None else None
-        )
-        schedule_metadata = service.scheduleMetadata
-        operator = (
-            schedule_metadata.operator
-            if schedule_metadata is not None
-            else None
-        )
-        operator_string = (
-            operator.name
-            if operator is not None and operator.name is not None
-            else "Unknown"
-        )
-        return f"{origin_string} to {destination_string} plan {plan_dep_string} act {act_dep_string} ({operator_string})"
-
-    def get_service_from_service_id_input(
-        conn: Connection,
-        run_date: datetime,
-    ) -> Optional[RttService]:
+    def _get_service_from_service_id_input(
+        self,
+        run_date: date,
+    ) -> Optional[RttGbnrServiceData]:
         result = None
         while result is None:
             service_id = get_text_from_input("Service id")
             if service_id is None:
                 return None
-            result = get_service_from_id(
-                conn, service_id, run_date, scrape_html=True, query_brand=True
+            result = (
+                self.rtt_gbnr_client.get_service_by_identity_and_departure_date(
+                    service_id, run_date
+                )
             )
-            if result is None:
-                print_information("Invalid service id, try again")
-            else:
-                return result
+            return result.service
         return None
 
-    def get_service_from_service_at_station_input(
-        conn: Connection,
-        service_at_station: RttStationServiceToDestination,
-        run_date: datetime,
-    ) -> Optional[RttService]:
-        service_id = service_at_station.id
-        return get_service_from_id(
-            conn, service_id, run_date, scrape_html=True, query_brand=True
-        )
+    def _get_service_from_service_at_station_input(
+        self,
+        service_at_station: RttGbnrLocationService,
+        run_date: date,
+    ) -> Optional[RttGbnrServiceData]:
+        identity = service_at_station.get_identity()
+        run_date = service_at_station.get_run_date()
+        return self.rtt_gbnr_client.get_service_by_identity_and_departure_date(
+            identity, run_date
+        ).service
 
-    def string_of_departure(call: RttServiceCall) -> str:
+    def _string_of_departure(self, location: RttGbnrServiceLocation) -> str:
         dep_time = None
-        if call.plan_dep is not None:
-            dep_time = call.plan_dep
+        if (plan_dep := location.get_plan_dep()) is not None:
+            dep_time = plan_dep
         else:
-            dep_time = call.act_dep
+            dep_time = location.get_act_dep()
         if dep_time is not None:
             time_string = dep_time.strftime("%H:%M")
         else:
             time_string = ""
-        if call.platform is not None:
+        if location.get_platform() is not None:
             platform_string = " - Platform {call.platform}"
         else:
             platform_string = ""
 
         return f"{time_string}{platform_string}"
 
-    def get_train_leg_service_from_rtt_service(
-        service: RttService,
+    def _get_train_leg_service_from_rtt_service(
+        self,
+        service: RttGbnrServiceData,
+        operator: TrainOperatorOutData,
+        brand: Optional[TrainBrandOutData],
     ) -> TrainLegServiceInData:
         return TrainLegServiceInData(
-            service.service_uid,
-            service.run_date,
-            service.headcode,
-            service.operator_id,
-            service.brand_id,
-            service.power,
+            service.get_identity(),
+            datetime.combine(service.get_run_date(), time(0, 0, 0)),
+            service.get_headcode(),
+            operator.operator_id,
+            brand.brand_id if brand is not None else None,
+            None,
         )
 
-    def get_train_leg_service_endpoints_from_rtt_service(
-        service: RttService,
+    def _get_train_leg_service_endpoints_from_rtt_service(
+        self,
+        service: RttGbnrServiceData,
     ) -> list[TrainLegServiceEndpointInData]:
         train_leg_service_endpoints: list[TrainLegServiceEndpointInData] = []
-        for origin in service.origins:
+        service_identity = service.get_identity()
+        service_run_date = datetime.combine(
+            service.get_run_date(), time(0, 0, 0)
+        )
+        for origin in service.origin:
             train_leg_service_endpoints.append(
                 TrainLegServiceEndpointInData(
-                    service.service_uid, service.run_date, origin, True
+                    service_identity,
+                    service_run_date,
+                    origin.get_description(),
+                    True,
                 )
             )
-        for destination in service.destinations:
+        for destination in service.destination:
             train_leg_service_endpoints.append(
                 TrainLegServiceEndpointInData(
-                    service.service_uid, service.run_date, destination, False
+                    service_identity,
+                    service_run_date,
+                    destination.get_description(),
+                    False,
                 )
             )
         return train_leg_service_endpoints
 
-    def get_train_leg_service_calls_from_rtt_service(
-        service: RttService,
+    def _get_train_leg_service_calls_from_rtt_service(
+        self,
+        service: RttGbnrServiceData,
     ) -> list[TrainLegServiceCallInData]:
+        service_identity = service.get_identity()
+        service_run_date = datetime.combine(
+            service.get_run_date(), time(0, 0, 0)
+        )
         return [
             TrainLegServiceCallInData(
-                service.service_uid,
-                service.run_date,
-                call.station_crs,
-                call.platform,
-                call.plan_arr,
-                call.act_arr,
-                call.plan_dep,
-                call.act_dep,
-                call.mileage,
+                service_identity,
+                service_run_date,
+                location.get_crs(),
+                location.get_platform(),
+                location.get_plan_arr(),
+                location.get_act_arr(),
+                location.get_plan_dep(),
+                location.get_act_dep(),
+                None,
             )
-            for call in service.calls
+            for location in service.locations
         ]
 
-    def get_train_leg_service_associations_from_rtt_service(
-        service: RttService,
+    def _get_train_leg_service_associations_from_rtt_service(
+        self,
+        service: RttGbnrServiceData,
     ) -> list[TrainLegAssociatedServiceInData]:
-        return [
-            TrainLegAssociatedServiceInData(
-                service.service_uid,
-                service.run_date,
-                associated_service.call.station_crs,
-                associated_service.call.plan_arr,
-                associated_service.call.act_arr,
-                associated_service.call.plan_dep,
-                associated_service.call.act_dep,
-                associated_service.service.service_uid,
-                associated_service.service.run_date,
-                int_of_association_type(associated_service.association),
-            )
-            for associated_service in service.associated_services
-        ]
+        service_identity = service.get_identity()
+        service_run_date = datetime.combine(
+            service.get_run_date(), time(0, 0, 0)
+        )
+        train_leg_service_associations: list[
+            TrainLegAssociatedServiceInData
+        ] = []
+        for location in service.locations:
+            for associated_service in location.associatedServices:
+                train_leg_service_associations.append(
+                    TrainLegAssociatedServiceInData(
+                        service_identity,
+                        service_run_date,
+                        location.get_crs(),
+                        location.get_plan_arr(),
+                        location.get_act_arr(),
+                        location.get_plan_dep(),
+                        location.get_act_dep(),
+                        associated_service.get_identity(),
+                        datetime.combine(
+                            associated_service.get_run_date(), time(0, 0, 0)
+                        ),
+                        get_rtt_association_type_db_int(
+                            associated_service.get_association_type()
+                        ),
+                    )
+                )
+        return train_leg_service_associations
 
-    def get_all_train_leg_service_in_data_from_root_rtt_service(
-        root_service: RttService,
+    def _get_train_in_data_from_rtt_services(
+        self,
+        services: list[RttGbnrServiceData],
+        operator: TrainOperatorOutData,
+        brand: Optional[TrainBrandOutData],
     ) -> tuple[
         list[TrainLegServiceInData],
         list[TrainLegServiceEndpointInData],
@@ -789,38 +827,32 @@ class TrainRecorder:
         list[TrainLegAssociatedServiceInData],
     ]:
         train_leg_services = [
-            get_train_leg_service_from_rtt_service(root_service)
+            self._get_train_leg_service_from_rtt_service(
+                service, operator, brand
+            )
+            for service in services
         ]
-        train_leg_service_endpoints = (
-            get_train_leg_service_endpoints_from_rtt_service(root_service)
-        )
-        train_leg_service_calls = get_train_leg_service_calls_from_rtt_service(
-            root_service
-        )
-        train_leg_service_associations = (
-            get_train_leg_service_associations_from_rtt_service(root_service)
-        )
-        for associated_service in root_service.associated_services:
-            train_leg_services.append(
-                get_train_leg_service_from_rtt_service(
-                    associated_service.service
-                )
+        train_leg_service_endpoints = [
+            endpoint
+            for service in services
+            for endpoint in self._get_train_leg_service_endpoints_from_rtt_service(
+                service
             )
-            train_leg_service_endpoints.extend(
-                get_train_leg_service_endpoints_from_rtt_service(
-                    associated_service.service
-                )
+        ]
+        train_leg_service_calls = [
+            call
+            for service in services
+            for call in self._get_train_leg_service_calls_from_rtt_service(
+                service
             )
-            train_leg_service_calls.extend(
-                get_train_leg_service_calls_from_rtt_service(
-                    associated_service.service
-                )
+        ]
+        train_leg_service_associations = [
+            assoc
+            for service in services
+            for assoc in self._get_train_leg_service_associations_from_rtt_service(
+                service
             )
-            train_leg_service_associations.extend(
-                get_train_leg_service_associations_from_rtt_service(
-                    associated_service.service
-                )
-            )
+        ]
         return (
             train_leg_services,
             train_leg_service_endpoints,
@@ -828,7 +860,8 @@ class TrainRecorder:
             train_leg_service_associations,
         )
 
-    def get_train_stock_segment_in_data_from_stock_segments(
+    def _get_train_stock_segment_in_data_from_stock_segments(
+        self,
         stock_segments: list[StockSegment],
     ) -> list[TrainLegStockSegmentInData]:
         train_stock_segments: list[TrainLegStockSegmentInData] = []
@@ -860,16 +893,16 @@ class TrainRecorder:
                 )
         return train_stock_segments
 
-    def get_train_leg_from_input(
-        conn: Connection,
+    def _get_train_leg_from_input(
+        self,
         start: datetime | None = None,
         default_station: TrainStationOutData | None = None,
     ) -> TrainLegInData | None:
-        board_station = get_station_from_input(conn, "Board", default_station)
+        board_station = self._get_station_from_input("Board", default_station)
         if board_station is None:
             print_error("Could not get board station")
             return None
-        alight_station = get_station_from_input(conn, "Destination")
+        alight_station = self._get_station_from_input("Destination")
         if alight_station is None:
             print_error("Could not get destination station")
             return None
@@ -877,14 +910,14 @@ class TrainRecorder:
         if search_datetime is None:
             print_error("Could not get search datetime")
             return None
-        service_at_station = get_service_at_station(
-            conn, board_station, search_datetime, alight_station
+        service_at_station = self._get_service_at_station_from_input(
+            board_station, search_datetime, alight_station
         )
         if service_at_station is None:
-            service = get_service_from_service_id_input(conn, search_datetime)
+            service = self._get_service_from_service_id_input(search_datetime)
             if service is None:
                 return None
-            service_calls_at_origin = get_calls_at_station(
+            service_calls_at_origin = self._get_calls_at_station(
                 service, board_station.station_crs
             )
             if len(service_calls_at_origin) == 0:
@@ -896,7 +929,7 @@ class TrainRecorder:
                 origin_call_result = get_choice_from_input(
                     "Select boarding call",
                     service_calls_at_origin,
-                    string_of_departure,
+                    self._string_of_departure,
                 )
                 match origin_call_result:
                     case PickSingle(call):
@@ -905,33 +938,42 @@ class TrainRecorder:
                         return None
             else:
                 origin_call = service_calls_at_origin[0]
-            if origin_call.plan_dep is None:
-                return None
-            leg_plan_dep = origin_call.plan_dep
-        else:
-            if service_at_station.plan_dep is None:
+            if (plan_dep := origin_call.get_plan_dep()) is None:
                 print_error("Could not get planned departure time for service")
                 return None
-            service = get_service_from_service_at_station_input(
-                conn, service_at_station, search_datetime
+            leg_plan_dep = plan_dep
+        else:
+            if (plan_dep := service_at_station.get_plan_dep()) is None:
+                print_error("Could not get planned departure time for service")
+                return None
+            service = self._get_service_from_service_at_station_input(
+                service_at_station, search_datetime
             )
             if service is None:
                 print_error("Could not get service")
                 return None
-            leg_plan_dep = service_at_station.plan_dep
-        leg_calls = get_leg_calls_between_calls(
+            leg_plan_dep = plan_dep
+        leg_calls_result = self._get_leg_calls_between_calls(
             service,
             board_station.station_crs,
             leg_plan_dep,
             alight_station.station_crs,
         )
-        if leg_calls is None:
+        if leg_calls_result is None:
             print_error(
                 f"Could not find route between {board_station.station_name} and {alight_station.station_crs}"
             )
             return None
-        stock_segments = get_stock(conn, leg_calls, service)
-        mileage = get_mileage(leg_calls)
+        leg_calls, associated_services = leg_calls_result
+        operator = self._get_operator_from_service(service)
+        if operator is None:
+            print_error(f"Could not get operator")
+            return None
+        brand = self._get_brand_from_input(operator)
+        stock_segments = self._get_stock_from_input(
+            leg_calls, service, operator, brand
+        )
+        mileage = self._get_mileage_from_input(leg_calls)
         print_information(
             f"Computed mileage as {string_of_miles_and_chains(mileage)}"
         )
@@ -944,9 +986,13 @@ class TrainRecorder:
             train_leg_service_endpoints,
             train_leg_service_calls,
             train_leg_service_associations,
-        ) = get_all_train_leg_service_in_data_from_root_rtt_service(service)
+        ) = self._get_train_in_data_from_rtt_services(
+            [service] + associated_services, operator, brand
+        )
         train_leg_stock_segments = (
-            get_train_stock_segment_in_data_from_stock_segments(stock_segments)
+            self._get_train_stock_segment_in_data_from_stock_segments(
+                stock_segments
+            )
         )
         leg = TrainLegInData(
             train_leg_services,
@@ -959,16 +1005,16 @@ class TrainRecorder:
         )
         return leg
 
-    def record_train_leg(conn: Connection) -> None:
-        users = input_users(conn)
+    def record_train_leg(self) -> None:
+        users = get_users_from_input(self.db_conn)
         if len(users) == 0:
             return None
-        leg = get_train_leg_from_input(conn)
+        leg = self._get_train_leg_from_input()
         if leg is None:
             print_error("Could not get train leg")
             return
         result = insert_train_leg_fetchone(
-            conn, [user.user_id for user in users], leg
+            self.db_conn, [user.user_id for user in users], leg
         )
         if result is None:
             print_error(f"Could not insert train leg")
@@ -977,9 +1023,12 @@ class TrainRecorder:
 
 
 if __name__ == "__main__":
-    with connect_with_env() as conn:
-        register_types(conn)
+    with connect_with_env() as db_conn:
+        register_types(db_conn)
         rtt_client = RttApiClient()
-        rtt_api_access = RttApiManager(rtt_client)
-        recorder = TrainRecorder(db_conn, rtt_api_access)
+        rtt_api_manager = RttApiManager(rtt_client)
+        rtt_gbnr_client = RttGbnrClient(
+            rtt_api_manager.get_access_token().token
+        )
+        recorder = TrainRecorder(db_conn, rtt_gbnr_client)
         recorder.record_train_leg()
