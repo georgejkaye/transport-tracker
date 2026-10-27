@@ -170,7 +170,7 @@ class TrainRecorder:
             origin.station_crs,
             time_from=earliest_time.isoformat(),
             time_to=latest_time.isoformat(),
-            filter_to=f"gb-nr:{destination.station_crs}",
+            filter_to=destination.station_crs,
         ).services
         if len(services) == 0:
             return None
