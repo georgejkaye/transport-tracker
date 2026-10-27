@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from api.pull.train.classes.temporal import RttIndividualTemporalData
+from api.utils.times import make_timezone_aware
 
 
 @dataclass
@@ -59,7 +60,7 @@ class HasLocationTemporalData(ABC):
             return None
         time_string = data.realtimeActual if actual else data.scheduleAdvertised
         return (
-            datetime.fromisoformat(time_string)
+            make_timezone_aware(datetime.fromisoformat(time_string))
             if time_string is not None
             else None
         )
