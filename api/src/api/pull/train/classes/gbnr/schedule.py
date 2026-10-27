@@ -26,6 +26,13 @@ class HasGbnrScheduleMetadata(ABC):
     def get_schedule_metadata(self) -> RttGbnrScheduleMetadata:
         pass
 
+    def get_unique_identity(self) -> str:
+        if (
+            unique_identity := self.get_schedule_metadata().uniqueIdentity
+        ) is None:
+            raise RuntimeError("scheduleMetadata.identity field missing")
+        return unique_identity
+
     def get_identity(self) -> str:
         if (identity := self.get_schedule_metadata().identity) is None:
             raise RuntimeError("scheduleMetadata.identity field missing")
