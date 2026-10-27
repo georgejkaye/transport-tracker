@@ -34,8 +34,8 @@ def get_mandatory_secret(key: str) -> str:
     try:
         file = get_mandatory_env_variable(key)
     except KeyError as e:
-        raise KeyError(f"Could not get secret {key}: {e.args[0]}")
+        raise KeyError(f"Could not get secret {key}: {e.args[1]}")
     try:
         return get_secret_file_contents(file)
     except FileNotFoundError as e:
-        raise FileNotFoundError(f"Could not get secret {key}: {e.args[0]}")
+        raise FileNotFoundError(f"Could not get secret {key}: {e.args[1]}")
