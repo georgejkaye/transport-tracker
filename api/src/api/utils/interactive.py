@@ -72,7 +72,7 @@ def get_text_from_input(
     min_length: Optional[int] = None,
 ) -> Optional[str]:
     length_validation_fn: Callable[[str], bool] = lambda text: (
-        (len(text) > min_length) if min_length is not None else True
+        (len(text) >= min_length) if min_length is not None else True
     )
     return text(
         message=message,
