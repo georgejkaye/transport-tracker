@@ -96,6 +96,7 @@ services:
       RTT_PASSWORD: /run/secrets/rtt_secret
       NATRAIL_USER: ${NATRAIL_USER}
       NATRAIL_PASSWORD: /run/secrets/natrail_secret
+      RTT_REFRESH_TOKEN_SECRET_FILE: /run/secrets/rtt_refresh_secret
       DB_HOST: db
       DB_USER: transport
       DB_PASSWORD: /run/secrets/db_secret
@@ -108,6 +109,7 @@ services:
     secrets:
       - rtt_secret
       - natrail_secret
+      - rtt_refresh_secret
     networks:
       - internal
     healthcheck:
@@ -147,5 +149,7 @@ secrets:
     file: natrail.secret
   db_local_secret:
     file: db_local.secret
+  rtt_refresh_secret:
+    file: rtt_refresh.secret
 volumes:
   pgdata:
