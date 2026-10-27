@@ -41,7 +41,7 @@ from api.pull.bus.pages.stop.reader import (
 from api.pull.bus.pages.trip.reader import get_bus_trip
 from api.pull.selenium.driver import Driver, DriverManager
 from api.record.classes import BustimesJourneyData
-from api.record.user import input_users
+from api.record.user import get_users_from_input
 from api.utils.database import connect_with_env
 from api.utils.interactive import (
     get_choice_from_input_paginate,
@@ -230,7 +230,7 @@ def get_bus_journey_from_bustimes_trip(
     if trip_and_board_call_index is None:
         print(f"Could not get trip {trip_id}")
         return None
-    (journey_timetable, board_call_index) = trip_and_board_call_index
+    journey_timetable, board_call_index = trip_and_board_call_index
     journey_calls = journey_timetable.calls
     operator = journey_timetable.operator
     service = journey_timetable.service
@@ -311,7 +311,7 @@ def get_bus_leg_from_input(
     if datetime_result is None:
         print_information("Could not get board datetime")
         return None
-    (board_datetime, datetime_offset) = datetime_result
+    board_datetime, datetime_offset = datetime_result
     with DriverManager() as driver:
         driver.get_page_html(get_bustimes_url(), accept_bustimes_cookies)
         departures = get_departures_from_bus_stop(
@@ -338,7 +338,7 @@ def get_bus_leg_from_input(
         )
         if alight_call_and_index is None:
             return None
-        (_, alight_call_index) = alight_call_and_index
+        _, alight_call_index = alight_call_and_index
         vehicle = get_bus_vehicle_from_bustimes_data(
             conn, bustimes_journey_data
         )
@@ -354,7 +354,7 @@ def get_bus_leg_from_input(
 
 
 def record_bus_leg(conn: Connection) -> None:
-    users = input_users(conn)
+    users = get_users_from_input(conn)
     if len(users) == 0:
         return
     leg = get_bus_leg_from_input(conn, users)
