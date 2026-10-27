@@ -119,7 +119,9 @@ class RttGbnrLocationResponse:
                     else None
                 ),
             ),
-            reasons=[RttLocationReason(**reason) for reason in data["reasons"]],
+            reasons=[
+                RttLocationReason(**reason) for reason in data.get("reasons", [])
+            ],
             services=[
                 _location_service_from_dict(service)
                 for service in data["services"]
