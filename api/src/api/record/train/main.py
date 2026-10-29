@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Optional, Tuple
@@ -55,7 +54,6 @@ from api.pull.train.classes.location import (
     RttLocationPair,
 )
 from api.pull.train.classes.service import (
-    RttAssociationType,
     get_rtt_association_type_db_int,
 )
 from api.pull.train.classes.stock import StockChange
@@ -83,19 +81,6 @@ from api.utils.times import (
     get_hourmin_string,
     make_timezone_aware,
 )
-
-
-@dataclass
-class _TrainCallTreeNode:
-    service: RttGbnrServiceData
-    location: RttGbnrServiceLocation
-    association_type: Optional[RttAssociationType] = None
-    parents: list[_TrainCallTreeNode] = field(
-        default_factory=lambda: list[_TrainCallTreeNode]()
-    )
-    children: list[_TrainCallTreeNode] = field(
-        default_factory=lambda: list[_TrainCallTreeNode]()
-    )
 
 
 class TrainRecorder:
@@ -559,152 +544,6 @@ class TrainRecorder:
                     services[service_key] = associated_service_data
                     services_to_visit.append(associated_service_data)
         return services
-
-    def _get_call_tree(
-        self,
-        root_service: RttGbnrServiceData,
-        services: dict[str, RttGbnrServiceData],
-    ) -> Optional[_TrainCallTreeNode]:
-        reciprocal_association_types = {
-            RttAssociationType.JOIN_INTO: RttAssociationType.JOIN_FROM,
-            RttAssociationType.JOIN_FROM: RttAssociationType.JOIN_INTO,
-            RttAssociationType.DIVIDE_INTO: RttAssociationType.DIVIDE_FROM,
-            RttAssociationType.DIVIDE_FROM: RttAssociationType.DIVIDE_INTO,
-        }
-        parent_association_types = {
-            RttAssociationType.JOIN_FROM,
-            RttAssociationType.DIVIDE_FROM,
-        }
-
-        def find_associated_location(
-            current_service: RttGbnrServiceData,
-            associated_service: RttGbnrServiceData,
-            association_type: RttAssociationType,
-        ) -> Optional[int]:
-            current_unique_identity = current_service.get_unique_identity()
-            reciprocal_type = reciprocal_association_types[association_type]
-            for index, location in enumerate(associated_service.locations):
-                for call_associated_service in location.associatedServices:
-                    if (
-                        call_associated_service.get_unique_identity()
-                        == current_unique_identity
-                        and call_associated_service.get_association_type()
-                        == reciprocal_type
-                    ):
-                        return index
-            return None
-
-        def find_service_location_node(
-            tree: _TrainCallTreeNode,
-            service: RttGbnrServiceData,
-            location: RttGbnrServiceLocation,
-        ) -> Optional[_TrainCallTreeNode]:
-            nodes_to_visit = [tree]
-            visited_nodes: set[int] = set()
-            while nodes_to_visit:
-                node = nodes_to_visit.pop()
-                if id(node) in visited_nodes:
-                    continue
-                visited_nodes.add(id(node))
-                if node.service is service and node.location is location:
-                    return node
-                nodes_to_visit.extend(node.children)
-            return None
-
-        def build_service_tree(
-            current_service: RttGbnrServiceData,
-            first_location_index: int,
-            visited_services: set[str],
-            incoming_association_type: Optional[RttAssociationType] = None,
-            last_location_index: Optional[int] = None,
-        ) -> Optional[_TrainCallTreeNode]:
-            service_key = current_service.get_unique_identity()
-            if service_key in visited_services:
-                return None
-            visited_services = visited_services | {service_key}
-            if last_location_index is None:
-                last_location_index = len(current_service.locations) - 1
-            next_call: Optional[_TrainCallTreeNode] = None
-            for location_index in range(
-                last_location_index,
-                first_location_index - 1,
-                -1,
-            ):
-                location = current_service.locations[location_index]
-                association_location_index = (
-                    last_location_index
-                    if incoming_association_type in parent_association_types
-                    else first_location_index
-                )
-                this_call_association_type = (
-                    incoming_association_type
-                    if location_index == association_location_index
-                    else None
-                )
-                call_node = _TrainCallTreeNode(
-                    current_service, location, this_call_association_type
-                )
-                for associated_service in location.associatedServices:
-                    association_type = associated_service.get_association_type()
-                    if association_type not in reciprocal_association_types:
-                        continue
-                    associated_service_key = (
-                        associated_service.get_unique_identity()
-                    )
-                    associated_service_data = services.get(
-                        associated_service_key
-                    )
-                    if associated_service_data is None:
-                        continue
-                    associated_location_index = find_associated_location(
-                        current_service,
-                        associated_service_data,
-                        association_type,
-                    )
-                    if associated_location_index is None:
-                        continue
-                    if association_type in parent_association_types:
-                        associated_first_location_index = 0
-                        associated_last_location_index = (
-                            associated_location_index
-                        )
-                    else:
-                        associated_first_location_index = (
-                            associated_location_index
-                        )
-                        associated_last_location_index = None
-                    associated_tree = build_service_tree(
-                        associated_service_data,
-                        associated_first_location_index,
-                        visited_services,
-                        association_type,
-                        associated_last_location_index,
-                    )
-                    if associated_tree is not None:
-                        if association_type in parent_association_types:
-                            joining_call = find_service_location_node(
-                                associated_tree,
-                                associated_service_data,
-                                associated_service_data.locations[
-                                    associated_location_index
-                                ],
-                            )
-                            if joining_call is None:
-                                raise RuntimeError(
-                                    "Could not find join call in associated service tree"
-                                )
-                            joining_call.children.append(call_node)
-                            call_node.parents.append(joining_call)
-                        else:
-                            call_node.children.append(associated_tree)
-                            associated_tree.parents.append(call_node)
-                if next_call is not None:
-                    call_node.children.append(next_call)
-                    next_call.parents.append(call_node)
-                next_call = call_node
-            return next_call
-
-        return build_service_tree(root_service, 0, set())
 
     def _get_call_tree_segment(
         self,
