@@ -4,11 +4,17 @@ from typing import Optional
 
 
 class RttAssociationType(str, Enum):
+    # this service is joined by this associated service
     JOIN_FROM = "JOIN_FROM"
+    # this service joins the associated service
     JOIN_INTO = "JOIN_INTO"
+    # service divides from this to the associated service
     DIVIDE_INTO = "DIVIDE_INTO"
+    # the associated service divides to form this service
     DIVIDE_FROM = "DIVIDE_FROM"
+    # this service froms this associated service
     FORM_INTO = "FORM_INTO"
+    # this service is formed by this associated service
     FORM_FROM = "FORM_FROM"
 
 
