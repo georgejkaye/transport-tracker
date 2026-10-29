@@ -104,8 +104,10 @@ def _build_service_tree(
                 joining_call.children.append(call_node)
                 call_node.parents.append(joining_call)
             else:
-                call_node.children.append(associated_tree)
-                associated_tree.parents.append(call_node)
+                call_node.children.extend(associated_tree.children)
+                for _, child in associated_tree.children:
+                    child.parents.append((location.get_plan_arr(), call_node))
+                associated_tree.children.parents.append(call_node)
             if next_call is not None:
                 call_node.children.append(next_call)
                 next_call.children.append(call_node)
