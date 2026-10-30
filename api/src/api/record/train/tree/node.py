@@ -4,24 +4,33 @@ from typing import Optional
 
 from api.pull.train.classes.gbnr.service import (
     RttGbnrServiceData,
-    RttGbnrServiceLocation,
 )
+from api.pull.train.classes.location import RttGeographicLocation
 
 
 @dataclass
-class TrainCallTreeNodeRelation:
-    plan: Optional[datetime]
-    act: Optional[datetime]
+class TrainCallTreeChildRelation:
+    service: RttGbnrServiceData
+    plan_dep: Optional[datetime]
+    act_dep: Optional[datetime]
+    node: "TrainCallTreeNode"
+
+
+@dataclass
+class TrainCallTreeParentRelation:
+    service: RttGbnrServiceData
+    plan_arr: Optional[datetime]
+    act_arr: Optional[datetime]
     node: "TrainCallTreeNode"
 
 
 @dataclass
 class TrainCallTreeNode:
-    service: RttGbnrServiceData
-    location: RttGbnrServiceLocation
-    parents: list[TrainCallTreeNodeRelation] = field(
-        default_factory=lambda: list[TrainCallTreeNodeRelation]()
+    location: RttGeographicLocation
+    services: set[str]
+    parents: list[TrainCallTreeParentRelation] = field(
+        default_factory=lambda: list[TrainCallTreeParentRelation]()
     )
-    children: list[TrainCallTreeNodeRelation] = field(
-        default_factory=lambda: list[TrainCallTreeNodeRelation]()
+    children: list[TrainCallTreeChildRelation] = field(
+        default_factory=lambda: list[TrainCallTreeChildRelation]()
     )
