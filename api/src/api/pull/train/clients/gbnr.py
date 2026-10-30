@@ -71,9 +71,7 @@ class RttGbnrClient(RttGbnrClientInterface):
         unique_identity: str,
         detailed: bool = False,
     ) -> RttGbnrServiceResponse:
-        return self._get_service(
-            {"uniqueIdentity": unique_identity}, detailed
-        )
+        return self._get_service({"uniqueIdentity": unique_identity}, detailed)
 
     def get_service_by_identity_and_departure_date(
         self,
