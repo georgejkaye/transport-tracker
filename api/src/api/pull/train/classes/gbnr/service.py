@@ -12,6 +12,7 @@ from api.pull.train.classes.gbnr.schedule import (
     RttGbnrScheduleMetadata,
 )
 from api.pull.train.classes.location import (
+    HasGeographicLocation,
     HasLocationTemporalData,
     RttGeographicLocation,
     RttLocationPair,
@@ -56,7 +57,9 @@ class RttGbnrAssociatedService(HasGbnrScheduleMetadata):
 
 
 @dataclass
-class RttGbnrServiceLocation(HasLocationTemporalData, HasGbnrLocationMetadata):
+class RttGbnrServiceLocation(
+    HasLocationTemporalData, HasGbnrLocationMetadata, HasGeographicLocation
+):
     temporalData: Optional[RttLocationTemporalData] = None
     locationMetadata: Optional[RttGbnrLocationMetadata] = None
     location: Optional[RttGeographicLocation] = None
@@ -74,26 +77,10 @@ class RttGbnrServiceLocation(HasLocationTemporalData, HasGbnrLocationMetadata):
             raise RuntimeError("locationData missing from service location")
         return self.locationMetadata
 
-    def get_crs(self) -> str:
+    def get_geographic_location(self) -> RttGeographicLocation:
         if self.location is None:
             raise RuntimeError("location field missing from service location")
-        if (
-            self.location.shortCodes is None
-            or len(self.location.shortCodes) == 0
-        ):
-            raise RuntimeError(
-                "location.shortCodes field missing from service location"
-            )
-        return self.location.shortCodes[0]
-
-    def get_description(self) -> str:
-        if self.location is None:
-            raise RuntimeError("location field missing from service location")
-        if self.location.description is None:
-            raise RuntimeError(
-                "location.description field missing from service location"
-            )
-        return self.location.description
+        return self.location
 
 
 @dataclass

@@ -26,6 +26,17 @@ class HasGeographicLocation(ABC):
             raise RuntimeError("description missing from geographic location")
         return description
 
+    def get_crs(self) -> str:
+        geographic_location = self.get_geographic_location()
+        if (
+            geographic_location.shortCodes is None
+            or len(geographic_location.shortCodes) == 0
+        ):
+            raise RuntimeError(
+                "location.shortCodes field missing from service location"
+            )
+        return geographic_location.shortCodes[0]
+
 
 @dataclass
 class RttLocationReason:
