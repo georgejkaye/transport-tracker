@@ -151,22 +151,50 @@ def _get_all_services_from_root_service(
     return services
 
 
-def print_node_in_current_service(level: int, node: TrainCallTreeNode):
+def print_node_in_current_service(
+    level: int, node: TrainCallTreeNode, visited: set[int]
+) -> tuple[list[str], set[int]]:
+    if node in visited:
+        return ([], visited)
+    visited.add(id(node))
+    lines: list[str] = []
     indents = "| " * (level + 1)
-    print(f"{indents}{node.location.description}")
+    lines.append(f"{indents}{node.location.description}")
+    for i, parent in enumerate(node.parents):
+        j = len(node.parents) - 1 - i
+        if j >= 1:
+            parent_lines, visited = print_node_in_new_service(
+                level + j, parent.node, visited
+            )
+            lines = parent_lines + lines
+        else:
+            parent_lines, visited = print_node_in_current_service(
+                level, parent.node, visited
+            )
+
     for i, child in enumerate(node.children):
         j = len(node.children) - 1 - i
         if j >= 1:
-            print_node_in_new_service(level + j, child.node)
+            new_lines, visited = print_node_in_new_service(
+                level + j, child.node, visited
+            )
+            lines.extend(new_lines)
         else:
-            print_node_in_current_service(level, child.node)
+            new_lines, visited = print_node_in_current_service(
+                level, child.node, visited
+            )
+            lines.extend(new_lines)
+    return lines, visited
 
 
-def print_node_in_new_service(level: int, node: TrainCallTreeNode):
+def print_node_in_new_service(
+    level: int, node: TrainCallTreeNode, visited: set[int]
+) -> tuple[list[str], set[int]]:
     indents = "| " * level
     print(f"{indents}\\")
-    print_node_in_current_service(level, node)
+    new_lines, visited = print_node_in_current_service(level, node, visited)
     print(f"{indents}*")
+    return new_lines, visited
 
 
 if __name__ == "__main__":
@@ -174,10 +202,11 @@ if __name__ == "__main__":
     rtt_api_manager = RttApiManager(rtt_client)
     rtt_gbnr_client = RttGbnrClient(rtt_api_manager.get_access_token().token)
     service = rtt_gbnr_client.get_service_by_identity_and_departure_date(
-        "G26252", date(2026, 10, 30)
+        "C82490", date(2026, 10, 30)
     ).service
     services = _get_all_services_from_root_service(service)
     tree = get_call_tree(service, services)
     if tree is None:
         exit(1)
-    print_node_in_new_service(0, tree)
+    lines, _ = print_node_in_new_service(0, tree, set())
+    print("\n".join(lines))
