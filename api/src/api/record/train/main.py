@@ -79,7 +79,6 @@ from api.utils.mileage import (
 from api.utils.times import (
     add,
     get_hourmin_string,
-    make_timezone_aware,
 )
 
 
@@ -524,68 +523,7 @@ class TrainRecorder:
                 matching_calls.append(location)
         return matching_calls
 
-    def _get_all_services_from_root_service(
-        self, root_service: RttGbnrServiceData
-    ) -> dict[str, RttGbnrServiceData]:
-        services = {root_service.get_unique_identity(): root_service}
-        services_to_visit = [root_service]
-        while services_to_visit:
-            current_service = services_to_visit.pop(0)
-            for location in current_service.locations:
-                for associated_service in location.associatedServices:
-                    service_key = associated_service.get_unique_identity()
-                    if service_key in services:
-                        continue
-                    associated_service_data = (
-                        self.rtt_gbnr_client.get_service_by_unique_identity(
-                            service_key
-                        ).service
-                    )
-                    services[service_key] = associated_service_data
-                    services_to_visit.append(associated_service_data)
-        return services
-
-    def _get_call_tree_segment(
-        self,
-        call_tree: _TrainCallTreeNode,
-        start_station_crs: str,
-        start_dep_time: datetime,
-        end_station_crs: str,
-    ) -> Optional[list[_TrainCallTreeNode]]:
-        start_dep_time = make_timezone_aware(start_dep_time)
-
-        def find_end(
-            node: _TrainCallTreeNode,
-            path: list[_TrainCallTreeNode],
-        ) -> Optional[list[_TrainCallTreeNode]]:
-            current_path = [*path, node]
-            if node.location.get_crs() == end_station_crs:
-                return current_path
-            for child in node.children:
-                segment = find_end(child, current_path)
-                if segment is not None:
-                    return segment
-            return None
-
-        nodes_to_visit = [call_tree]
-        visited_nodes: set[int] = set()
-        while nodes_to_visit:
-            node = nodes_to_visit.pop()
-            if id(node) in visited_nodes:
-                continue
-            visited_nodes.add(id(node))
-            if (
-                node.location.get_crs() == start_station_crs
-                and node.location.get_plan_dep() == start_dep_time
-            ):
-                segment = find_end(node, [])
-                if segment is not None:
-                    return segment
-            nodes_to_visit.extend(node.children)
-            nodes_to_visit.extend(node.parents)
-        return None
-
-    def _get_leg_calls_from_call_tree_segment(
+   def _get_leg_calls_from_call_tree_segment(
         self, call_tree_segment: list[_TrainCallTreeNode]
     ) -> list[TrainLegCallInData]:
         leg_calls: list[TrainLegCallInData] = []
