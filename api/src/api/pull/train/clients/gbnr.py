@@ -8,6 +8,10 @@ from api.pull.train.classes.gbnr.service import RttGbnrServiceResponse
 from api.utils.request import make_get_request
 
 
+class RttGbnrServiceNotFoundError(Exception):
+    pass
+
+
 class RttGbnrClientInterface(ABC):
     @abstractmethod
     def get_location(
@@ -95,4 +99,16 @@ class RttGbnrClient(RttGbnrClientInterface):
         query = urlencode(parameters)
         endpoint = f"{self.base_url}/service?{query}"
         result = make_get_request(endpoint, token=self.access_token)
+        if result.status_code == 404:
+            service_identity = parameters.get(
+                "identity", parameters.get("uniqueIdentity", "unknown")
+            )
+            departure_date = parameters.get("departureDate")
+            date_suffix = (
+                f" on {departure_date}" if departure_date is not None else ""
+            )
+            raise RttGbnrServiceNotFoundError(
+                f"Service {service_identity}{date_suffix} was not found"
+            )
+        result.raise_for_status()
         return RttGbnrServiceResponse.from_dict(result.json())
