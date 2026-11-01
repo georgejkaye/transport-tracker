@@ -118,8 +118,11 @@ const getGraphLayout = (tree: ServiceGraphData): GraphLayout => {
     laneServices.splice(laneServices.indexOf(rootService), 1)
     laneServices.splice(Math.floor(laneServices.length / 2), 0, rootService)
   }
+  const rootLaneOffset = hasJunction && laneServices.length === 2 ? 1 : 0
   const serviceRows = new Map<string, number>(
-    laneServices.map((service, index): [string, number] => [service, index]),
+    laneServices.map(
+      (service, index): [string, number] => [service, index + rootLaneOffset],
+    ),
   )
 
   const ranks = new Map<string, number>([[rootId, 0]])
