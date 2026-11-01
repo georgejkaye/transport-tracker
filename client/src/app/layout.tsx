@@ -12,9 +12,17 @@ export const metadata: Metadata = {
 }
 
 const TopBar = () => (
-  <div className="bg-accent p-4">
+  <div className="bg-accent flex items-center justify-between p-4">
     <Link href={"/"}>
-      <h1 className="font-bold text-2xl text-white">Transport Tracker</h1>
+      <h1 className="font-bold text-xl text-white sm:text-2xl">
+        Transport Tracker
+      </h1>
+    </Link>
+    <Link
+      href="/tree"
+      className="whitespace-nowrap rounded border border-white/50 px-2 py-2 text-xs text-white hover:bg-white/10 sm:px-3 sm:text-sm"
+    >
+      Service graph explorer
     </Link>
   </div>
 )
