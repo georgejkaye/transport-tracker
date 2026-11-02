@@ -103,6 +103,7 @@ class RttGbnrLocationResponse:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "RttGbnrLocationResponse":
         query_data = data["query"]
+        services_data: list[dict[str, Any]] = data.get("services", [])
         return RttGbnrLocationResponse(
             systemStatus=RttSystemStatus(**data["systemStatus"]),
             query=RttGbnrLocationQuery(
@@ -120,11 +121,12 @@ class RttGbnrLocationResponse:
                 ),
             ),
             reasons=[
-                RttLocationReason(**reason) for reason in data.get("reasons", [])
+                RttLocationReason(**reason)
+                for reason in data.get("reasons", [])
             ],
             services=[
                 _location_service_from_dict(service)
-                for service in data["services"]
+                for service in services_data
             ],
         )
 
