@@ -16,6 +16,7 @@ class ServiceGraphChildRelation:
     plan_dep: Optional[datetime]
     act_dep: Optional[datetime]
     node: "ServiceGraphNode"
+    association_type: Optional[RttAssociationType] = None
 
 
 @dataclass
@@ -24,6 +25,7 @@ class ServiceGraphParentRelation:
     plan_arr: Optional[datetime]
     act_arr: Optional[datetime]
     node: "ServiceGraphNode"
+    association_type: Optional[RttAssociationType] = None
 
 
 @dataclass

@@ -1,5 +1,5 @@
 from collections import deque
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
 from api.pull.train.classes.gbnr.service import (
@@ -32,11 +32,81 @@ def get_service_graph(
     root_service = rtt_gbnr_client.get_service_by_identity_and_departure_date(
         identity, departure_date
     ).service
-    services = get_all_services_from_root_service(root_service, rtt_gbnr_client)
-    return _build_service_graph(root_service, services)
+    services = get_services_dict_from_service(root_service, rtt_gbnr_client)
+    return build_service_graph(root_service, services)
 
 
-def get_all_services_from_root_service(
+def build_service_graph(
+    root_service: RttGbnrServiceData,
+    services_dict: dict[str, RttGbnrServiceData],
+) -> Optional[ServiceGraphNode]:
+    root_key = root_service.get_unique_identity()
+    if not root_service.locations:
+        return None
+    reachable_services, associations = _get_service_associations(
+        root_service, services_dict
+    )
+    raw_graph_nodes = _get_raw_graph_nodes(reachable_services)
+    node_representatives = _get_node_representatives(
+        raw_graph_nodes, associations, reachable_services
+    )
+    call_nodes = _resolve_call_nodes(raw_graph_nodes, node_representatives)
+    call_nodes_with_relations = _add_node_relations(
+        reachable_services, call_nodes
+    )
+    return call_nodes_with_relations[ServiceGraphBuilderDataKey(root_key, 0)]
+
+
+def get_service_graph_segments(
+    service_graph: ServiceGraphNode,
+    board_station_crs: str,
+    board_station_plan_dep: datetime,
+    alight_station_crs: str,
+) -> list[list[ServiceGraphNode]]:
+    segments: list[list[ServiceGraphNode]] = []
+    seen_segments: set[tuple[int, ...]] = set()
+    nodes_to_visit = deque([service_graph])
+    visited: set[int] = set()
+    board_departures: list[tuple[ServiceGraphNode, ServiceGraphNode]] = []
+
+    while nodes_to_visit:
+        node = nodes_to_visit.popleft()
+        node_identity = id(node)
+        if node_identity in visited:
+            continue
+        visited.add(node_identity)
+        short_codes = node.location.shortCodes
+        if short_codes and short_codes[0] == board_station_crs:
+            board_departures.extend(
+                (node, child.node)
+                for child in node.children
+                if child.plan_dep == board_station_plan_dep
+            )
+        nodes_to_visit.extend(child.node for child in node.children)
+
+    for board_node, first_node in board_departures:
+        paths_to_visit = deque([(first_node, [board_node], {id(board_node)})])
+        while paths_to_visit:
+            node, path, ancestors = paths_to_visit.popleft()
+            node_identity = id(node)
+            if node_identity in ancestors:
+                continue
+            path = path + [node]
+            path_ancestors = ancestors | {node_identity}
+            short_codes = node.location.shortCodes
+            if short_codes and short_codes[0] == alight_station_crs:
+                segment_identity = tuple(id(item) for item in path)
+                if segment_identity not in seen_segments:
+                    seen_segments.add(segment_identity)
+                    segments.append(path)
+            for child in node.children:
+                if id(child.node) not in path_ancestors:
+                    paths_to_visit.append((child.node, path, path_ancestors))
+
+    return segments
+
+
+def get_services_dict_from_service(
     root_service: RttGbnrServiceData,
     rtt_gbnr_client: RttGbnrClient,
 ) -> dict[str, RttGbnrServiceData]:
@@ -58,27 +128,6 @@ def get_all_services_from_root_service(
                 services[service_key] = associated_service_data
                 services_to_visit.append(associated_service_data)
     return services
-
-
-def _build_service_graph(
-    root_service: RttGbnrServiceData,
-    services_dict: dict[str, RttGbnrServiceData],
-) -> Optional[ServiceGraphNode]:
-    root_key = root_service.get_unique_identity()
-    if not root_service.locations:
-        return None
-    reachable_services, associations = _get_service_associations(
-        root_service, services_dict
-    )
-    raw_graph_nodes = _get_raw_graph_nodes(reachable_services)
-    node_representatives = _get_node_representatives(
-        raw_graph_nodes, associations, reachable_services
-    )
-    call_nodes = _resolve_call_nodes(raw_graph_nodes, node_representatives)
-    call_nodes_with_relations = _add_node_relations(
-        reachable_services, call_nodes
-    )
-    return call_nodes_with_relations[ServiceGraphBuilderDataKey(root_key, 0)]
 
 
 def _resolve_call_nodes(
@@ -265,6 +314,7 @@ def _add_node_relations(
             source_node = call_nodes[
                 ServiceGraphBuilderDataKey(service_identity, location_index)
             ]
+            target_location = service.locations[location_index + 1]
             target_node = call_nodes[
                 ServiceGraphBuilderDataKey(service_identity, location_index + 1)
             ]
@@ -274,15 +324,33 @@ def _add_node_relations(
                     location.get_plan_dep(),
                     location.get_act_dep(),
                     target_node,
+                    _get_location_association_type(location),
                 )
             )
-            target_location = service.locations[location_index + 1]
             target_node.parents.append(
                 ServiceGraphParentRelation(
                     service,
                     target_location.get_plan_arr(),
                     target_location.get_act_arr(),
                     source_node,
+                    _get_location_association_type(target_location),
                 )
             )
     return call_nodes
+
+
+def _get_location_association_type(
+    location: RttGbnrServiceLocation,
+) -> Optional[RttAssociationType]:
+    association_types = {
+        associated_service.get_association_type()
+        for associated_service in location.associatedServices
+        if associated_service.get_association_type()
+        in reciprocal_association_types
+    }
+    if len(association_types) > 1:
+        raise RuntimeError(
+            "Multiple association types found at "
+            f"{location.get_geographic_location().description}"
+        )
+    return next(iter(association_types), None)

@@ -2,8 +2,18 @@ from __future__ import annotations
 
 from datetime import date, datetime, time
 from decimal import Decimal
-from typing import Optional, Tuple
+from typing import Optional, Sequence, Tuple
 
+from api.train.service.graph.builder import (
+    build_service_graph,
+    get_service_graph_segments,
+    get_services_dict_from_service,
+)
+from api.train.service.graph.classes import (
+    ServiceGraphChildRelation,
+    ServiceGraphNode,
+    ServiceGraphParentRelation,
+)
 from psycopg import Connection
 
 from api.classes.interactive import PickMultiple, PickSingle, PickUnknown
@@ -90,6 +100,22 @@ class TrainRecorder:
     ):
         self.db_conn = db_conn
         self.rtt_gbnr_client = rtt_rtt_client
+
+    def record_train_leg(self) -> None:
+        users = get_users_from_input(self.db_conn)
+        if len(users) == 0:
+            return None
+        leg = self._get_train_leg_from_input()
+        if leg is None:
+            print_error("Could not get train leg")
+            return
+        result = insert_train_leg_fetchone(
+            self.db_conn, [user.user_id for user in users], leg
+        )
+        if result is None:
+            print_error("Could not insert train leg")
+            return
+        print_information(f"Recorded train leg {result.train_leg_id}")
 
     def _get_station_from_input(
         self, prompt: str, default_station: TrainStationOutData | None = None
@@ -291,54 +317,72 @@ class TrainRecorder:
         stock_list: list[TrainStockOutData],
     ) -> Optional[StockReport]:
         stock_class_input = self._get_unit_class_from_input(stock_list)
-        stock_class: Optional[TrainStockOutData] = None
-        stock_subclass: Optional[TrainStockSubclassOutData] = None
-        match stock_class_input:
-            case None:
-                return None
-            case PickSingle(stock_class_choice):
-                stock_class = stock_class_choice
-            case _:
-                stock_class = None
-                stock_subclass = None
-        if stock_class is not None:
-            stock_subclass_input = self._get_unit_subclass_from_input(
-                stock_class
-            )
-            match stock_subclass_input:
-                case None:
-                    return None
-                case PickUnknown():
-                    stock_subclass = None
-                case PickSingle(stock_subclass_choice):
-                    stock_subclass = stock_subclass_choice
-        else:
-            stock_subclass = None
-        if stock_class is not None and stock_subclass is not None:
-            stock_unit_no = self._get_unit_no_from_input(stock_class)
-            stock_cars_input = self._get_unit_cars_from_input(
-                stock_class, stock_subclass
-            )
-            match stock_cars_input:
-                case None:
-                    return None
-                case PickUnknown():
-                    stock_cars = None
-                case PickSingle(form):
-                    stock_cars = form
-        else:
-            stock_unit_no = None
-            stock_cars = None
+        stock_data = self._get_stock_data(stock_class_input)
+        stock_subclass_data = self._get_stock_subclass_data(stock_data)
+        stock_unit_no = self._get_stock_no(stock_data, stock_subclass_data)
+        stock_cars = self._get_stock_cars(stock_data, stock_subclass_data)
         return StockReport(
-            stock_class.stock_class if stock_class is not None else None,
+            stock_data.stock_class if stock_data is not None else None,
             (
-                stock_subclass.stock_subclass
-                if stock_subclass is not None
+                stock_subclass_data.stock_subclass
+                if stock_subclass_data is not None
                 else None
             ),
             stock_unit_no,
             stock_cars,
         )
+
+    def _get_stock_data(
+        self,
+        stock_class_input: Optional[
+            PickUnknown | PickSingle[TrainStockOutData]
+        ],
+    ) -> Optional[TrainStockOutData]:
+        match stock_class_input:
+            case PickSingle(stock_class_choice):
+                return stock_class_choice
+            case _:
+                return None
+
+    def _get_stock_subclass_data(
+        self, stock_data: Optional[TrainStockOutData]
+    ) -> Optional[TrainStockSubclassOutData]:
+        if stock_data is not None:
+            stock_subclass_input = self._get_unit_subclass_from_input(
+                stock_data
+            )
+            match stock_subclass_input:
+                case PickSingle(stock_subclass_choice):
+                    return stock_subclass_choice
+                case _:
+                    return None
+        else:
+            return None
+
+    def _get_stock_no(
+        self,
+        stock_data: Optional[TrainStockOutData],
+        stock_subclass_data: Optional[TrainStockSubclassOutData],
+    ) -> Optional[int]:
+        if stock_data is not None and stock_subclass_data is not None:
+            return self._get_unit_no_from_input(stock_data)
+        return None
+
+    def _get_stock_cars(
+        self,
+        stock_data: Optional[TrainStockOutData],
+        stock_subclass_data: Optional[TrainStockSubclassOutData],
+    ) -> Optional[int]:
+        if stock_data is not None and stock_subclass_data is not None:
+            stock_cars_input = self._get_unit_cars_from_input(
+                stock_data, stock_subclass_data
+            )
+            match stock_cars_input:
+                case PickSingle(form):
+                    return form
+                case _:
+                    return None
+        return None
 
     def _get_stock_change_input_reason_string(self, change: StockChange) -> str:
         match change:
@@ -523,62 +567,178 @@ class TrainRecorder:
                 matching_calls.append(location)
         return matching_calls
 
-   def _get_leg_calls_from_call_tree_segment(
-        self, call_tree_segment: list[_TrainCallTreeNode]
+    def _get_service_graph_segment_from_input(
+        self,
+        service_graph: ServiceGraphNode,
+        board_station_crs: str,
+        board_station_plan_dep: datetime,
+        alight_station_crs: str,
+    ) -> Optional[list[ServiceGraphNode]]:
+        service_graph_segments = get_service_graph_segments(
+            service_graph,
+            board_station_crs,
+            board_station_plan_dep,
+            alight_station_crs,
+        )
+        if not service_graph_segments:
+            return None
+        if len(service_graph_segments) == 1:
+            return service_graph_segments[0]
+        choices = list(enumerate(service_graph_segments, start=1))
+        result = get_choice_from_input(
+            "Select alighting call",
+            choices,
+            display=self._display_service_graph_segment,
+        )
+        match result:
+            case PickSingle((_, segment)):
+                return segment
+            case _:
+                return None
+
+    def _display_service_graph_segment(
+        self,
+        choice: tuple[int, list[ServiceGraphNode]],
+    ) -> str:
+        index, segment = choice
+        station_codes = [
+            (
+                node.location.shortCodes[0]
+                if node.location.shortCodes
+                else node.location.description or "Unknown"
+            )
+            for node in segment
+        ]
+        previous_node = segment[-2]
+        arrival = next(
+            (
+                parent.plan_arr
+                for parent in segment[-1].parents
+                if parent.node is previous_node
+            ),
+            None,
+        )
+        arrival_string = (
+            arrival.strftime("%H:%M") if arrival is not None else "unknown"
+        )
+        return (
+            f"Call {index}: {' to '.join(station_codes)} "
+            f"(arrives {arrival_string})"
+        )
+
+    def _get_leg_calls_from_service_graph_segment(
+        self, service_graph_segment: list[ServiceGraphNode]
     ) -> list[TrainLegCallInData]:
         leg_calls: list[TrainLegCallInData] = []
-        for index, node in enumerate(call_tree_segment):
-            if (
-                index + 1 < len(call_tree_segment)
-                and call_tree_segment[index + 1].association_type is not None
-            ):
-                continue
-            service = node.service
-            location = node.location
-            service_call = TrainLegCallCallInData(
-                service.get_identity(),
-                datetime.combine(service.get_run_date(), time(0, 0, 0)),
-                location.get_plan_arr(),
-                location.get_act_arr(),
-                location.get_plan_dep(),
-                location.get_act_dep(),
+        for index, node in enumerate(service_graph_segment):
+            previous_node = (
+                service_graph_segment[index - 1] if index > 0 else None
             )
-            if node.association_type is not None:
-                previous_node = call_tree_segment[index - 1]
-                if previous_node is call_tree_segment[0]:
-                    arr_call = None
-                else:
-                    previous_service = previous_node.service
-                    previous_location = previous_node.location
-                    arr_call = TrainLegCallCallInData(
-                        previous_service.get_identity(),
-                        datetime.combine(
-                            previous_service.get_run_date(),
-                            time(0, 0, 0),
-                        ),
-                        previous_location.get_plan_arr(),
-                        previous_location.get_act_arr(),
-                        previous_location.get_plan_dep(),
-                        previous_location.get_act_dep(),
-                    )
-            elif not leg_calls and len(call_tree_segment) > 1:
-                arr_call = None
-            else:
-                arr_call = service_call
+            next_node = (
+                service_graph_segment[index + 1]
+                if index + 1 < len(service_graph_segment)
+                else None
+            )
+            incoming_relation = self._get_relation_for_graph_node(
+                node.parents, previous_node, "incoming"
+            )
+            outgoing_relation = self._get_relation_for_graph_node(
+                node.children, next_node, "outgoing"
+            )
+            arr_call = (
+                self._get_service_call_at_graph_node(
+                    node, incoming_relation.service
+                )
+                if incoming_relation is not None
+                else None
+            )
+            dep_call = (
+                self._get_service_call_at_graph_node(
+                    node, outgoing_relation.service
+                )
+                if outgoing_relation is not None
+                else None
+            )
+            short_codes = node.location.shortCodes
+            if not short_codes:
+                raise RuntimeError("shortCodes missing from graph location")
+            if node.location.description is None:
+                raise RuntimeError("description missing from graph location")
+            association_type = (
+                outgoing_relation.association_type
+                if outgoing_relation is not None
+                and outgoing_relation.association_type is not None
+                else (
+                    incoming_relation.association_type
+                    if incoming_relation is not None
+                    else None
+                )
+            )
             leg_call = TrainLegCallInData(
-                location.get_crs(),
-                location.get_description(),
+                short_codes[0],
+                node.location.description,
                 arr_call,
-                (None if node is call_tree_segment[-1] else service_call),
+                dep_call,
                 None,
                 (
-                    get_rtt_association_type_db_int(node.association_type)
-                    if node.association_type is not None
+                    get_rtt_association_type_db_int(association_type)
+                    if association_type is not None
                     else None
                 ),
             )
             leg_calls.append(leg_call)
         return leg_calls
+
+    def _get_relation_for_graph_node(
+        self,
+        relations: Sequence[
+            ServiceGraphParentRelation | ServiceGraphChildRelation
+        ],
+        adjacent_node: Optional[ServiceGraphNode],
+        direction: str,
+    ) -> Optional[ServiceGraphParentRelation | ServiceGraphChildRelation]:
+        if adjacent_node is None:
+            return None
+        matching_relations = [
+            relation for relation in relations if relation.node is adjacent_node
+        ]
+        if not matching_relations:
+            raise RuntimeError(
+                f"Call tree segment is missing an {direction} relation"
+            )
+        if len(matching_relations) > 1:
+            raise RuntimeError(f"Ambiguous {direction} relations")
+        return matching_relations[0]
+
+    def _get_service_call_at_graph_node(
+        self, node: ServiceGraphNode, service: RttGbnrServiceData
+    ) -> TrainLegCallCallInData:
+        service_identity = service.get_unique_identity()
+        parent_relations = [
+            parent
+            for parent in node.parents
+            if parent.service.get_unique_identity() == service_identity
+        ]
+        child_relations = [
+            child
+            for child in node.children
+            if child.service.get_unique_identity() == service_identity
+        ]
+        if len(parent_relations) > 1 or len(child_relations) > 1:
+            raise RuntimeError(
+                f"Ambiguous {service_identity} call at "
+                f"{node.location.description}"
+            )
+        parent = parent_relations[0] if parent_relations else None
+        child = child_relations[0] if child_relations else None
+        return TrainLegCallCallInData(
+            service.get_identity(),
+            datetime.combine(service.get_run_date(), time(0, 0, 0)),
+            parent.plan_arr if parent is not None else None,
+            parent.act_arr if parent is not None else None,
+            child.plan_dep if child is not None else None,
+            child.act_dep if child is not None else None,
+        )
 
     @staticmethod
     def _get_multiple_short_station_string(
@@ -881,38 +1041,32 @@ class TrainRecorder:
                 print_error("Could not get service")
                 return None
             leg_plan_dep = plan_dep
-        services = self._get_all_services_from_root_service(service)
-        call_tree = self._get_call_tree(
-            service,
-            services,
+        services_dict = get_services_dict_from_service(
+            service, self.rtt_gbnr_client
         )
-        if call_tree is None:
+        service_graph = build_service_graph(service, services_dict)
+        if service_graph is None:
             print_error(
                 f"Could not find route between {board_station.station_name} and {alight_station.station_name}"
             )
             return None
-        call_tree_segment = self._get_call_tree_segment(
-            call_tree,
+        service_graph_segment = self._get_service_graph_segment_from_input(
+            service_graph,
             board_station.station_crs,
             leg_plan_dep,
             alight_station.station_crs,
         )
-        if call_tree_segment is None:
+        if service_graph_segment is None:
             print_error(
                 f"Could not find route between {board_station.station_name} and {alight_station.station_name}"
             )
             return None
-        leg_calls = self._get_leg_calls_from_call_tree_segment(
-            call_tree_segment
+        leg_calls = self._get_leg_calls_from_service_graph_segment(
+            service_graph_segment
         )
-        associated_services = [
-            associated_service
-            for key, associated_service in services.items()
-            if key != service.get_unique_identity()
-        ]
         operator = self._get_operator_from_service(service)
         if operator is None:
-            print_error(f"Could not get operator")
+            print_error("Could not get operator")
             return None
         brand = self._get_brand_from_input(operator)
         stock_segments = self._get_stock_from_input(
@@ -932,7 +1086,7 @@ class TrainRecorder:
             train_leg_service_calls,
             train_leg_service_associations,
         ) = self._get_train_in_data_from_rtt_services(
-            [service] + associated_services, operator, brand
+            list(services_dict.values()), operator, brand
         )
         train_leg_stock_segments = (
             self._get_train_stock_segment_in_data_from_stock_segments(
@@ -949,22 +1103,6 @@ class TrainRecorder:
             mileage,
         )
         return leg
-
-    def record_train_leg(self) -> None:
-        users = get_users_from_input(self.db_conn)
-        if len(users) == 0:
-            return None
-        leg = self._get_train_leg_from_input()
-        if leg is None:
-            print_error("Could not get train leg")
-            return
-        result = insert_train_leg_fetchone(
-            self.db_conn, [user.user_id for user in users], leg
-        )
-        if result is None:
-            print_error(f"Could not insert train leg")
-            return
-        print_information(f"Recorded train leg {result.train_leg_id}")
 
 
 if __name__ == "__main__":
