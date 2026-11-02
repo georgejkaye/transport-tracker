@@ -16,6 +16,7 @@ from api.db.types.train.operator import (
     TrainOperatorDetailsOutData,
 )
 from api.library.networkx import load_osmnx_graphml
+from api.pull.train.clients.api import RttApiClient
 from api.utils.environment import get_env_variable, get_secret
 
 network_path = get_env_variable("NETWORK_PATH")
@@ -23,6 +24,7 @@ network_path = get_env_variable("NETWORK_PATH")
 conn: Optional[Connection] = None
 network: Optional[MultiDiGraph[int]] = None
 operator_brand_lookup: Optional[OperatorBrandLookup] = None
+rtt_api_client: Optional[RttApiClient] = None
 
 
 @asynccontextmanager
@@ -44,6 +46,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     global operator_brand_lookup
     operator_brand_lookup = initialise_train_operator_brand_lookup(conn)
     print("Initialised train operator brand lookup")
+    global rtt_api_client
+    rtt_api_client = RttApiClient()
+    print("Initialised RTT API client")
     yield
     print("Shutting down db connectionn")
     conn.close()
@@ -65,6 +70,12 @@ def get_operator_brand_lookup() -> OperatorBrandLookup:
     if operator_brand_lookup is None:
         raise RuntimeError("Operator brand lookup not initialised")
     return operator_brand_lookup
+
+
+def get_rtt_api_client() -> RttApiClient:
+    if rtt_api_client is None:
+        raise RuntimeError("RTT API client not initialised")
+    return rtt_api_client
 
 
 def get_train_operator_brand_colour_by_lookup(

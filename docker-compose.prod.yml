@@ -43,6 +43,7 @@ services:
       - rtt_secret
       - db_secret
       - natrail_secret
+      - rtt_refresh_secret
   client:
     build:
       context: client
@@ -77,3 +78,5 @@ secrets:
     file: db.secret
   natrail_secret:
     file: natrail.secret
+  rtt_refresh_secret:
+    file: rtt_refresh.secret

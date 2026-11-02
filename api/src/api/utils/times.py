@@ -42,6 +42,16 @@ def pad_front(value: Any, length: int) -> str:
     return "0" * (length - len(string)) + string
 
 
+def optional_isoformat(value: datetime | None) -> str | None:
+    return value.isoformat() if value is not None else None
+
+
+def get_hourmin_string_from_isoformat(iso_string: Optional[str]) -> str:
+    if iso_string is None:
+        return "-"
+    return iso_string[11:16]
+
+
 def get_hourmin_string(
     datetime: datetime | time | None, colon: bool = False
 ) -> str:
@@ -141,3 +151,10 @@ def get_datetime_after_start_datetime(
     if run_datetime is not None and current_datetime < run_datetime:
         return current_datetime + timedelta(days=1)
     return current_datetime
+
+
+def timedelta_from_string(string: str) -> timedelta:
+    parts = string.split(":")
+    hour = int(parts[0])
+    minutes = int(parts[1])
+    return timedelta(hours=hour, minutes=minutes)
