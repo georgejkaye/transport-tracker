@@ -12,10 +12,13 @@ $$
 SELECT
     train_stock.stock_class,
     train_stock.name AS stock_class_name,
-    ARRAY_AGG(
-        train_stock_subclass_subtable.stock_subclass
-        ORDER BY
-            (train_stock_subclass_subtable.stock_subclass).stock_subclass ASC
+    COALESCE(
+        ARRAY_AGG(
+            train_stock_subclass_subtable.stock_subclass
+            ORDER BY
+                (train_stock_subclass_subtable.stock_subclass).stock_subclass ASC)
+            FILTER (WHERE train_stock_subclass_subtable.stock_class IS NOT NULL),
+        ARRAY[]::train_stock_subclass_out_data_notnull[]
     )
 FROM train_stock
 LEFT JOIN (
