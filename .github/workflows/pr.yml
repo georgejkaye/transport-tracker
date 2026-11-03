@@ -14,6 +14,20 @@ jobs:
       - name: Up docker containers
         id: up
         run: docker compose -f docker-compose.prod.yml up --build --wait
+        env:
+          DATA_DIR: .
+          DB_HOST: example.com
+          DB_USER: transport
+          DB_NAME: transport
+          API_PORT: 8000
+          API_PROTOCOL: http
+          TIMEZONE: Europe/London
+          NETWORK_FILE: network.gml
+          POETRY_VERSION: 1.5.1
+          CLIENT_PORT: 3000
+          CLIENT_PROTOCOL: http
+          CLIENT_HOST: example.com
+          MAPTILER_KEY: key
       - name: Print logs on error
         if: ${{ failure() && steps.up.conclusion == 'failure' }}
         run: docker compose -f docker-compose.prod.yml logs
