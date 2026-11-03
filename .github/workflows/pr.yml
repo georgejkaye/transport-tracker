@@ -19,6 +19,7 @@ jobs:
           DB_HOST: example.com
           DB_USER: transport
           DB_NAME: transport
+          API_HOST: example.com
           API_PORT: 8000
           API_PROTOCOL: http
           TIMEZONE: Europe/London
