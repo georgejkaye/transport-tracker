@@ -1,0 +1,25 @@
+name: PR build check
+
+on:
+  pull_request:
+
+jobs:
+  deploy:
+    continue-on-error: true
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v6
+      - name: Up docker containers
+        id: up
+        run: docker compose -f docker-compose.test.yml up --build --wait
+      - name: Print logs on error
+        if: ${{ failure() && steps.up.conclusion == 'failure' }}
+        run: docker compose -f docker-compose.test.yml logs
+      - name: Down docker containers
+        run: docker compose -f docker-compose.test.yml down
+      - name: Fail if error
+        if: ${{ failure() && steps.up.conclusion == 'failure' }}
+        run: exit 1
+        continue-on-error: false
