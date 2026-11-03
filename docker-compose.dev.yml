@@ -103,7 +103,6 @@ services:
       - ./api/src:/app/src
       - ./api/data:/app/data
     secrets:
-      - natrail_secret
       - rtt_refresh_secret
     networks:
       - internal
