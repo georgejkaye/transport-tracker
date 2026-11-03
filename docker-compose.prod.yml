@@ -28,12 +28,6 @@ services:
       NETWORK_PATH: /app/data/${NETWORK_FILE}
     volumes:
       - ${DATA_DIR}:/app/data
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.trains_api.rule=Host(`${API_HOST}`)"
-      - "traefik.http.routers.trains_api.tls=true"
-      - "traefik.http.routers.trains_api.tls.certresolver=lets-encrypt"
-      - "traefik.http.services.trains_api.loadbalancer.server.port=${API_PORT}"
     networks:
       - internal
     secrets:
@@ -57,12 +51,6 @@ services:
     environment:
       API_URL: ${SERVER_PROTOCOL}://${API_HOST}
       CLIENT_PORT: ${CLIENT_PORT}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.trains_client.rule=Host(`${CLIENT_HOST}`)"
-      - "traefik.http.routers.trains_client.tls=true"
-      - "traefik.http.routers.trains_client.tls.certresolver=lets-encrypt"
-      - "traefik.http.services.trains_client.loadbalancer.server.port=${CLIENT_PORT}"
     networks:
       - internal
     depends_on:
