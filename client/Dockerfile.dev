@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM oven/bun:1-alpine
 
 ARG CLIENT_PORT
 ENV CLIENT_PORT=${CLIENT_PORT}
@@ -10,11 +10,14 @@ ARG API_PROTOCOL
 ENV API_PROTOCOL=${API_PROTOCOL}
 
 WORKDIR /app
+
 COPY ./package.json .
-COPY ./yarn.lock .
+COPY ./bun.lock .
 COPY ./next.config.mjs .
 COPY ./postcss.config.mjs .
 COPY ./tailwind.config.ts .
 COPY ./tsconfig.json .
-RUN yarn
-CMD yarn dev -p ${CLIENT_PORT}
+
+RUN bun install
+
+ENTRYPOINT ["sh", "-c", "exec bun run dev -p \"$CLIENT_PORT\""]
