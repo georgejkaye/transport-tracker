@@ -36,15 +36,15 @@ services:
       dockerfile: Dockerfile.prod
       args:
         CLIENT_PORT: ${CLIENT_PORT}
-        SERVER_HOST: ${API_HOST}
-        SERVER_PROTOCOL: ${SERVER_PROTOCOL}
+        API_HOST: ${API_HOST}
+        API_PROTOCOL: ${API_PROTOCOL}
         CLIENT_HOST: ${CLIENT_HOST}
-        CLIENT_PROTOCOL: ${SERVER_PROTOCOL}
+        CLIENT_PROTOCOL: ${API_PROTOCOL}
         MAPTILER_KEY: ${MAPTILER_KEY}
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
-      API_URL: ${SERVER_PROTOCOL}://${API_HOST}
+      API_URL: ${API_PROTOCOL}://${API_HOST}
       CLIENT_PORT: ${CLIENT_PORT}
     networks:
       - internal
