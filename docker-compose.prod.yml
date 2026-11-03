@@ -1,6 +1,4 @@
 networks:
-  web:
-    external: true
   internal:
     external: false
 services:
@@ -38,7 +36,6 @@ services:
       - "traefik.http.services.trains_api.loadbalancer.server.port=${API_PORT}"
     networks:
       - internal
-      - web
     secrets:
       - rtt_secret
       - db_secret
@@ -68,7 +65,6 @@ services:
       - "traefik.http.services.trains_client.loadbalancer.server.port=${CLIENT_PORT}"
     networks:
       - internal
-      - web
     depends_on:
       - api
 secrets:
