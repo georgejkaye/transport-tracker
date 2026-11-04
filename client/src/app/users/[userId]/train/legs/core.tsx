@@ -7,7 +7,6 @@ import {
 } from "@/app/structs"
 import {
   Layer,
-  LineLayer,
   LngLatBoundsLike,
   Map,
   Source,
@@ -20,8 +19,7 @@ import {
 import { Feature, FeatureCollection } from "geojson"
 import bbox from "@turf/bbox"
 import { Duration } from "js-joda"
-import { TransportUserTrainLegOutData } from "@/app/utils/train"
-import { TrainLegGeometry } from "../years/map"
+import { TrainLegGeometry, TransportUserTrainLegOutData } from "@/app/utils/train"
 import client from "@/app/api/client"
 
 const LegRow = (props: {
@@ -87,10 +85,9 @@ const getLinesAndBoundingBox = (legs: TrainLegGeometry[]) => {
   return { featureCollection, minLng, minLat, maxLng, maxLat }
 }
 
-const getLineLayer = (): LineLayer => ({
+const getLineLayer = () => ({
   id: "line",
   source: "geometry",
-  type: "line",
   paint: {
     "line-width": 5,
     "line-color": ["get", "color"],

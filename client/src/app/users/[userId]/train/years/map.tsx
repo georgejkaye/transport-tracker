@@ -1,6 +1,5 @@
 import {
   Layer,
-  LineLayer,
   LngLatBoundsLike,
   Map,
   Source,
@@ -12,10 +11,8 @@ import {
 import { Feature, FeatureCollection } from "geojson"
 import bbox from "@turf/bbox"
 
-import { paths } from "@/app/api/api"
+import { TrainLegGeometry } from "@/app/utils/train"
 
-export type TrainLegGeometry =
-  paths["/train/legs/geometries/{leg_id}"]["get"]["responses"][200]["content"]["application/json"]
 
 const getLinesAndBoundingBox = (legs: TrainLegGeometry[]) => {
   let features: Feature[] = []
@@ -41,7 +38,7 @@ const getLinesAndBoundingBox = (legs: TrainLegGeometry[]) => {
   return { featureCollection, minLng, minLat, maxLng, maxLat }
 }
 
-const getLineLayer = (): LineLayer => ({
+const getLineLayer = () => ({
   id: "line",
   source: "geometry",
   type: "line",

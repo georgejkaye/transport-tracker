@@ -46,3 +46,5 @@ export type TransportUserTrainStationLegOutData =
 
 export type TransportUserTrainStationOutData =
   components["schemas"]["TransportUserTrainStationOutData"]
+
+export type TrainLegGeometry = components["schemas"]["TrainLegGeometry"]
