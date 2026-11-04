@@ -33,9 +33,9 @@ const getServiceGraphErrorMessage = (error: unknown) => {
   if (Array.isArray(error.detail)) {
     const messages = error.detail.flatMap((item) =>
       typeof item === "object" &&
-      item !== null &&
-      "msg" in item &&
-      typeof item.msg === "string"
+        item !== null &&
+        "msg" in item &&
+        typeof item.msg === "string"
         ? [item.msg]
         : [],
     )
@@ -100,7 +100,7 @@ const getGraphLayout = (tree: ServiceGraphData): GraphLayout => {
   const orderedServices = [...services].sort(
     (serviceA, serviceB) =>
       (serviceTimes.get(serviceA) ?? Infinity) -
-        (serviceTimes.get(serviceB) ?? Infinity) ||
+      (serviceTimes.get(serviceB) ?? Infinity) ||
       serviceA.localeCompare(serviceB),
   )
   const rootService = outgoingEdgesByNode.get(rootId)?.[0]?.service
@@ -160,7 +160,7 @@ const getGraphLayout = (tree: ServiceGraphData): GraphLayout => {
         ([serviceA, countA], [serviceB, countB]) =>
           countB - countA ||
           (serviceRows.get(serviceA) ?? 0) -
-            (serviceRows.get(serviceB) ?? 0),
+          (serviceRows.get(serviceB) ?? 0),
       )[0]?.[0] ?? node.services[0]
     const incomingEdges = incomingEdgesByNode.get(node.id) ?? []
     const incomingRows = incomingEdges.map(
@@ -188,7 +188,7 @@ const getGraphLayout = (tree: ServiceGraphData): GraphLayout => {
     const row =
       junctionRows.length > 0
         ? (Math.min(...junctionRows) + Math.max(...junctionRows)) /
-          2
+        2
         : service
           ? (serviceRowsAtNode.get(node.id)?.get(service) ??
             serviceRows.get(service) ??
@@ -208,8 +208,8 @@ const getGraphLayout = (tree: ServiceGraphData): GraphLayout => {
         isJoin
           ? row
           : (serviceRowsAtNode.get(node.id)?.get(edge.service) ??
-              serviceRows.get(edge.service) ??
-              row),
+            serviceRows.get(edge.service) ??
+            row),
       )
       serviceRowsAtNode.set(edge.target, targetRows)
     }
@@ -231,23 +231,23 @@ const getGraphLayout = (tree: ServiceGraphData): GraphLayout => {
 const formatTime = (time: string | null) =>
   time
     ? new Date(time).toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+      hour: "2-digit",
+      minute: "2-digit",
+    })
     : "—"
 
 const getCallTime = (nodeId: string, edges: ServiceGraphEdge[]) => {
   const times = edges
-      .filter((edge) => edge.source === nodeId || edge.target === nodeId)
-      .flatMap((edge) => [
-        edge.plan_arr,
-        edge.act_arr,
-        edge.plan_dep,
-        edge.act_dep,
-      ])
-      .filter((time): time is string => time !== null)
-      .map((time) => Date.parse(time))
-      .filter(Number.isFinite)
+    .filter((edge) => edge.source === nodeId || edge.target === nodeId)
+    .flatMap((edge) => [
+      edge.plan_arr,
+      edge.act_arr,
+      edge.plan_dep,
+      edge.act_dep,
+    ])
+    .filter((time): time is string => time !== null)
+    .map((time) => Date.parse(time))
+    .filter(Number.isFinite)
   return times.length ? Math.min(...times) : Number.POSITIVE_INFINITY
 }
 
@@ -273,9 +273,9 @@ const sortRelationsByTime = (
 
 const sortCallsByTime = (nodes: ServiceGraphNode[], edges: ServiceGraphEdge[]) =>
   [...nodes].sort(
-      (left, right) =>
-        getCallTime(left.id, edges) - getCallTime(right.id, edges) ||
-        left.id.localeCompare(right.id),
+    (left, right) =>
+      getCallTime(left.id, edges) - getCallTime(right.id, edges) ||
+      left.id.localeCompare(right.id),
   )
 
 const nodeName = (node: ServiceGraphNode | undefined) =>
@@ -335,7 +335,6 @@ export default function TrainServiceGraphPage({
   const router = useRouter()
   const [identity, setIdentity] = useState(initialIdentity)
   const [departureDate, setDepartureDate] = useState(initialDepartureDate)
-  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([])
   const [search, setSearch] = useState("")
   const {
     data: tree,
@@ -354,32 +353,24 @@ export default function TrainServiceGraphPage({
     },
     { enabled: Boolean(initialIdentity && initialDepartureDate) },
   )
-
-  useEffect(() => {
-    setIdentity(initialIdentity)
-    setDepartureDate(initialDepartureDate)
-  }, [initialDepartureDate, initialIdentity])
-
-  useEffect(() => {
+  const getInitialSelectedNodes = () => {
     if (!tree) {
-      setSelectedNodeIds([])
-      return
+      return []
     }
     const rootNode = tree.nodes.find((node) => node.id === tree.root)
     const rootStation = rootNode
       ? nodeName(rootNode).trim().toLocaleLowerCase()
       : undefined
-    setSelectedNodeIds(
-      rootStation
-        ? tree.nodes
-            .filter(
-              (node) =>
-                nodeName(node).trim().toLocaleLowerCase() === rootStation,
-            )
-            .map((node) => node.id)
-        : [tree.root],
-    )
-  }, [tree])
+    return rootStation
+      ? tree.nodes
+        .filter(
+          (node) =>
+            nodeName(node).trim().toLocaleLowerCase() === rootStation,
+        )
+        .map((node) => node.id)
+      : [tree.root]
+  }
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>(getInitialSelectedNodes())
 
   const nodesById = useMemo(
     () =>
@@ -819,13 +810,12 @@ export default function TrainServiceGraphPage({
                         selectedNodeIds.includes(node.id),
                       )}
                       aria-label={`Select ${group.location} station with all ${group.nodes.length} calls`}
-                      className={`block w-full px-4 py-3 text-left transition ${
-                        group.nodes.every((node) =>
-                          selectedNodeIds.includes(node.id),
-                        )
-                          ? "bg-blue-50"
-                          : "hover:bg-slate-50"
-                      }`}
+                      className={`block w-full px-4 py-3 text-left transition ${group.nodes.every((node) =>
+                        selectedNodeIds.includes(node.id),
+                      )
+                        ? "bg-blue-50"
+                        : "hover:bg-slate-50"
+                        }`}
                     >
                       <span className="block font-semibold text-slate-900">
                         {group.location}

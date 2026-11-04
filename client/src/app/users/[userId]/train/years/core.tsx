@@ -56,6 +56,49 @@ interface TableColumn<T> {
   allowSortingBy: boolean
 }
 
+const SortingArrow = (props: { i: number, sortingColumn: number, sortingNaturalOrder: boolean, naturalOrderAscending: boolean }) =>
+  props.sortingColumn == props.i &&
+  (props.sortingNaturalOrder === props.naturalOrderAscending ? (
+    <FaAngleUp />
+  ) : (
+    <FaAngleDown />
+  ))
+
+const ColumnHeader = (props: {
+  i: number
+  title: string
+  style: string
+  naturalOrderAscending: boolean
+  allowSortingBy: boolean,
+  setSortingNaturalOrder: (f: (prev: boolean) => boolean) => void,
+  setSortingColumn: (f: (prev: number) => number) => void
+  sortingColumn: number,
+  sortingNaturalOrder: boolean
+}) => {
+  let { i, title, style, naturalOrderAscending, allowSortingBy, sortingColumn, setSortingNaturalOrder, setSortingColumn, sortingNaturalOrder } = props
+  const onClickHeader = (_e: React.MouseEvent<HTMLDivElement>) => {
+    if (allowSortingBy) {
+      if (sortingColumn == i) {
+        setSortingNaturalOrder((prev) => !prev)
+      } else {
+        setSortingColumn(_ => i)
+        setSortingNaturalOrder(_ => true)
+      }
+    }
+  }
+  return (
+    <div
+      className={`flex flex-row gap-1 items-center font-bold ${style} ${allowSortingBy ? "cursor-pointer" : ""
+        }`}
+      onClick={onClickHeader}
+    >
+      <div>{title}</div>
+      <SortingArrow i={i} naturalOrderAscending={naturalOrderAscending} sortingColumn={sortingColumn} sortingNaturalOrder={sortingNaturalOrder} />
+    </div>
+  )
+}
+
+
 const SortableTable = <T,>(props: {
   title: string
   colour: string
@@ -66,71 +109,29 @@ const SortableTable = <T,>(props: {
   rankSort: (t1: T, t2: T, natural: boolean) => number
 }) => {
   let { title, colour, columns, values, numberToShow, getKey, rankSort } = props
-  let [sortedValues, setSortedValues] = useState(
+  let rankEnrichedValues =
     values
-      .toSorted((t1, t2) => rankSort(t1, t2, true))
-      .map((val, i) => ({ originalRank: i, value: val })),
-  )
+      .map((val, i) => ({ originalRank: i, value: val }))
+  const getSortedValues = () => {
+    return rankEnrichedValues.toSorted((t1, t2) =>
+      sortingColumn == -1
+        ? (t1.originalRank - t2.originalRank) * (sortingNaturalOrder ? 1 : -1)
+        : !columns[sortingColumn]
+          ? 0
+          : columns[sortingColumn].getOrder(
+            t1.value,
+            t2.value,
+            sortingNaturalOrder,
+          )
+    )
+  }
+  let sortedValues = getSortedValues()
   let [sortingColumn, setSortingColumn] = useState(-1)
   let [sortingNaturalOrder, setSortingNaturalOrder] = useState(true)
   let [extended, setExtended] = useState(false)
 
-  useEffect(() => {
-    setSortedValues((values) =>
-      values.toSorted((t1, t2) =>
-        sortingColumn == -1
-          ? (t1.originalRank - t2.originalRank) * (sortingNaturalOrder ? 1 : -1)
-          : !columns[sortingColumn]
-            ? 0
-            : columns[sortingColumn].getOrder(
-                t1.value,
-                t2.value,
-                sortingNaturalOrder,
-              ),
-      ),
-    )
-  }, [sortingColumn, sortingNaturalOrder])
-
   const onClickToggleExtended = (_e: React.MouseEvent<HTMLDivElement>) =>
     setExtended((prev) => !prev)
-
-  const ColumnHeader = (props: {
-    i: number
-    title: string
-    style: string
-    naturalOrderAscending: boolean
-    allowSortingBy: boolean
-  }) => {
-    let { i, title, style, naturalOrderAscending, allowSortingBy } = props
-    const onClickHeader = (_e: React.MouseEvent<HTMLDivElement>) => {
-      if (allowSortingBy) {
-        if (sortingColumn == i) {
-          setSortingNaturalOrder((prev) => !prev)
-        } else {
-          setSortingColumn(i)
-          setSortingNaturalOrder(true)
-        }
-      }
-    }
-    const SortingArrow = (props: { i: number }) =>
-      sortingColumn == props.i &&
-      (sortingNaturalOrder === naturalOrderAscending ? (
-        <FaAngleUp />
-      ) : (
-        <FaAngleDown />
-      ))
-    return (
-      <div
-        className={`flex flex-row gap-1 items-center font-bold ${style} ${
-          allowSortingBy ? "cursor-pointer" : ""
-        }`}
-        onClick={onClickHeader}
-      >
-        <div>{title}</div>
-        <SortingArrow i={i} />
-      </div>
-    )
-  }
 
   return (
     <div
@@ -144,15 +145,17 @@ const SortableTable = <T,>(props: {
         {title}
       </div>
       <div className="flex flex-row p-2 gap-2 px-4">
-        {
-          <ColumnHeader
-            i={-1}
-            title="#"
-            style="w-10"
-            naturalOrderAscending={true}
-            allowSortingBy={true}
-          />
-        }
+        <ColumnHeader
+          i={-1}
+          title="#"
+          style="w-10"
+          naturalOrderAscending={true}
+          allowSortingBy={true}
+          setSortingColumn={setSortingColumn}
+          sortingColumn={sortingColumn}
+          setSortingNaturalOrder={setSortingNaturalOrder}
+          sortingNaturalOrder={sortingNaturalOrder}
+        />
         {columns.map((col, i) => (
           <ColumnHeader
             key={col.title}
@@ -161,6 +164,10 @@ const SortableTable = <T,>(props: {
             style={col.style}
             naturalOrderAscending={col.naturalOrderAscending}
             allowSortingBy={col.allowSortingBy}
+            setSortingColumn={setSortingColumn}
+            sortingColumn={sortingColumn}
+            setSortingNaturalOrder={setSortingNaturalOrder}
+            sortingNaturalOrder={sortingNaturalOrder}
           />
         ))}
       </div>
@@ -214,30 +221,8 @@ export const SortableList = <T,>(props: {
   getKey: (t: T) => string
   rankSort: (t1: T, t2: T, natural: boolean) => number
 }) => {
-  let { title, colour, values, getItem, sortProperties, rankSort, getKey } =
+  let { title, colour, values, getItem, getKey } =
     props
-  let [sortedValues, setSortedValues] = useState(
-    values
-      .toSorted((t1, t2) => rankSort(t1, t2, true))
-      .map((val, i) => ({ originalRank: i, value: val })),
-  )
-  let [sortingProperty, setSortingProperty] = useState(-1)
-  let [sortingNaturalOrder, setSortingNaturalOrder] = useState(true)
-  useEffect(() => {
-    setSortedValues((values) =>
-      values.toSorted((t1, t2) =>
-        sortingProperty == -1
-          ? (t1.originalRank - t2.originalRank) * (sortingNaturalOrder ? 1 : -1)
-          : !sortProperties[sortingProperty]
-            ? 0
-            : sortProperties[sortingProperty].getOrder(
-                t1.value,
-                t2.value,
-                sortingNaturalOrder,
-              ),
-      ),
-    )
-  }, [sortingProperty, sortingNaturalOrder])
   return (
     <div
       className="flex rounded flex-col border-2 pb-2 flex-1"

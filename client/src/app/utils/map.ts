@@ -2,7 +2,7 @@ import bbox from "@turf/bbox"
 import { Feature, FeatureCollection } from "geojson"
 
 export const getFeatureCollection = (
-  points: [string, string][],
+  points: string[][],
   colour: string,
 ): FeatureCollection => {
   let features: Feature[] = []
