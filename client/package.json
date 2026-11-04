@@ -34,14 +34,17 @@
     "yaml": "^2.9.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
+    "@eslint/js": "^10.0.1",
     "@types/node": "^20",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "eslint": "^10",
-    "eslint-config-next": "16.1.6",
+    "eslint": "^10.14.0",
+    "eslint-config-next": "^16.4.5",
     "postcss": "^8.5.31",
     "tailwindcss": "^4.3.3",
-    "typescript": "7.0.2"
+    "typescript": "npm:@typescript/typescript6@^6.0.0",
+    "typescript-7": "npm:typescript@^7.0.0"
   },
   "resolutions": {
     "@types/react": "19.2.14",
