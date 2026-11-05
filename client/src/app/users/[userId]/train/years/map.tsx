@@ -41,13 +41,8 @@ const getLinesAndBoundingBox = (legs: TrainLegGeometry[]) => {
 const getLineLayer = () => ({
   id: "line",
   source: "geometry",
-  type: "line",
   paint: {
     "line-width": 5,
-    "line-color": ["get", "color"],
-  },
-  layout: {
-    "line-cap": "round",
   },
 })
 
@@ -76,7 +71,7 @@ export const LegMap = (props: { legs: TrainLegGeometry[] }) => {
         <NavigationControl position="top-left" />
         <ScaleControl />
         <Source id="lines" type="geojson" data={data.featureCollection}>
-          <Layer {...layerStyle} />
+          <Layer type="line" {...layerStyle} />
         </Source>
       </Map>
     </div>
