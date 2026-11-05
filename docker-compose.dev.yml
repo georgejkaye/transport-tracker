@@ -92,10 +92,6 @@ services:
       API_ENV: dev
       API_PORT: ${API_PORT}
       DATA_DIR: ${DATA_DIR}
-      RTT_USER: ${RTT_USER}
-      RTT_PASSWORD: /run/secrets/rtt_secret
-      NATRAIL_USER: ${NATRAIL_USER}
-      NATRAIL_PASSWORD: /run/secrets/natrail_secret
       RTT_REFRESH_TOKEN_SECRET_FILE: /run/secrets/rtt_refresh_secret
       DB_HOST: db
       DB_USER: transport
@@ -107,8 +103,6 @@ services:
       - ./api/src:/app/src
       - ./api/data:/app/data
     secrets:
-      - rtt_secret
-      - natrail_secret
       - rtt_refresh_secret
     networks:
       - internal
@@ -128,8 +122,8 @@ services:
       dockerfile: Dockerfile.dev
       args:
         CLIENT_PORT: ${CLIENT_PORT}
-        SERVER_HOST: api:${API_PORT}
-        SERVER_PROTOCOL: http
+        API_HOST: api:${API_PORT}
+        API_PROTOCOL: http
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
@@ -141,12 +135,8 @@ services:
     networks:
       - internal
 secrets:
-  rtt_secret:
-    file: rtt.secret
   db_secret:
     file: db.secret
-  natrail_secret:
-    file: natrail.secret
   db_local_secret:
     file: db_local.secret
   rtt_refresh_secret:

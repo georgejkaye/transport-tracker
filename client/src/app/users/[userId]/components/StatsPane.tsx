@@ -296,6 +296,7 @@ const YearlyStatsTable = ({ stats }: YearlyStatsTableProps) => {
             <div className="flex flex-col gap-4">
               {sortedStats.map((yearlyStats) => (
                 <button
+                  key={yearlyStats.year}
                   className="text-right"
                   onClick={() => onClickYear(yearlyStats)}
                 >

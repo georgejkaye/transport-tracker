@@ -7,7 +7,6 @@ import {
 } from "@/app/structs"
 import {
   Layer,
-  LineLayer,
   LngLatBoundsLike,
   Map,
   Source,
@@ -20,8 +19,7 @@ import {
 import { Feature, FeatureCollection } from "geojson"
 import bbox from "@turf/bbox"
 import { Duration } from "js-joda"
-import { TransportUserTrainLegOutData } from "@/app/utils/train"
-import { TrainLegGeometry } from "../years/map"
+import { TrainLegGeometry, TransportUserTrainLegOutData } from "@/app/utils/train"
 import client from "@/app/api/client"
 
 const LegRow = (props: {
@@ -87,16 +85,24 @@ const getLinesAndBoundingBox = (legs: TrainLegGeometry[]) => {
   return { featureCollection, minLng, minLat, maxLng, maxLat }
 }
 
-const getLineLayer = (): LineLayer => ({
+const normalizeTrainLegGeometries = (
+  geometries: (Omit<TrainLegGeometry, "geometry"> & {
+    geometry: string[][] | null
+  })[],
+): TrainLegGeometry[] =>
+  geometries.map(({ geometry, ...leg }) => ({
+    ...leg,
+    geometry:
+      geometry?.filter(
+        (coords): coords is [string, string] => coords.length === 2,
+      ) ?? null,
+  }))
+
+const getLineLayer = () => ({
   id: "line",
   source: "geometry",
-  type: "line",
   paint: {
     "line-width": 5,
-    "line-color": ["get", "color"],
-  },
-  layout: {
-    "line-cap": "round",
   },
 })
 
@@ -114,7 +120,9 @@ export const LegMap = (props: { userId: number }) => {
       },
     },
   )
-  let data = getLinesAndBoundingBox(geometries ?? [])
+  let data = getLinesAndBoundingBox(
+    normalizeTrainLegGeometries(geometries ?? []),
+  )
   let initialViewState: Partial<ViewState> & { bounds?: LngLatBoundsLike } = {
     bounds: [
       data.minLng - boundingBoxPadding,
@@ -135,7 +143,7 @@ export const LegMap = (props: { userId: number }) => {
         <NavigationControl position="top-left" />
         <ScaleControl />
         <Source id="lines" type="geojson" data={data.featureCollection}>
-          <Layer {...layerStyle} />
+          <Layer type="line" {...layerStyle} />
         </Source>
       </Map>
     </div>

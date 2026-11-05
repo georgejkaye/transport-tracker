@@ -3,7 +3,6 @@ import client from "@/app/api/client"
 import {
   AttributionControl,
   Layer,
-  LineLayer,
   Map,
   Source,
 } from "react-map-gl/maplibre"
@@ -24,16 +23,12 @@ interface LegFeedItemMapProps {
   leg: TransportUserTrainLegOutData
 }
 
-const lineLayer: LineLayer = {
+const lineLayer = {
   id: "line",
   source: "geometry",
-  type: "line",
   paint: {
     "line-width": 5,
     "line-color": "#003366",
-  },
-  layout: {
-    "line-cap": "round",
   },
 }
 
@@ -81,9 +76,10 @@ const LegFeedItemMap = ({ leg }: LegFeedItemMapProps) => {
           {...viewState}
           mapStyle={"https://tiles.openfreemap.org/styles/bright"}
         >
-          <Source id="lines" type="geojson" data={featureCollection}>
-            <Layer {...lineLayer} />
-          </Source>
+          {featureCollection &&
+            <Source id="lines" type="geojson" data={featureCollection}>
+              <Layer type="line" {...lineLayer} />
+            </Source>}
           <AttributionControl compact={true} />
         </Map>
       )}

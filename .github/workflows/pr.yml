@@ -1,0 +1,40 @@
+name: PR build check
+
+on:
+  pull_request:
+
+jobs:
+  deploy:
+    continue-on-error: true
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v6
+      - name: Up docker containers
+        id: up
+        run: docker compose -f docker-compose.prod.yml up --build --wait
+        env:
+          DATA_DIR: .
+          DB_HOST: example.com
+          DB_USER: transport
+          DB_NAME: transport
+          API_HOST: example.com
+          API_PORT: 8000
+          API_PROTOCOL: http
+          TIMEZONE: Europe/London
+          NETWORK_FILE: network.gml
+          POETRY_VERSION: 1.5.1
+          CLIENT_PORT: 3000
+          CLIENT_PROTOCOL: http
+          CLIENT_HOST: example.com
+          MAPTILER_KEY: key
+      - name: Print logs on error
+        if: ${{ failure() && steps.up.conclusion == 'failure' }}
+        run: docker compose -f docker-compose.prod.yml logs
+      - name: Down docker containers
+        run: docker compose -f docker-compose.prod.yml down
+      - name: Fail if error
+        if: ${{ failure() && steps.up.conclusion == 'failure' }}
+        run: exit 1
+        continue-on-error: false

@@ -1,33 +1,32 @@
-# Based on https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile
-FROM node:22-alpine AS base
+FROM oven/bun:1-alpine AS base
 
-# Install dependencies only when needed
 FROM base AS deps
-# See https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine
+
 RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-# Install dependencies
-COPY package.json yarn.lock ./
-RUN yarn --frozen-lockfile
+COPY package.json bun.lock ./
 
-# Rebuild source only when needed
+RUN bun install --frozen-lockfile
+
 FROM base AS builder
+
 WORKDIR /app
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ARG SERVER_HOST
-ENV SERVER_HOST=${SERVER_HOST}
+ARG API_HOST
+ENV API_HOST=${API_HOST}
 
-ARG SERVER_PROTOCOL
-ENV SERVER_PROTOCOL=${SERVER_PROTOCOL}
+ARG API_PROTOCOL
+ENV API_PROTOCOL=${API_PROTOCOL}
 
 ARG MAPTILER_KEY
 ENV NEXT_PUBLIC_MAPTILER_KEY=${MAPTILER_KEY}
 
-RUN yarn build
+RUN bun run build
 
 FROM base AS runner
 
@@ -40,8 +39,6 @@ RUN adduser --system --uid 1001 nextjs
 
 # COPY --from=builder /app/public ./public
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
