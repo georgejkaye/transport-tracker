@@ -61,7 +61,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY client/package.json .
 COPY client/next.config.mjs .
-COPY client/next-env.d.ts .
 COPY client/postcss.config.mjs .
 COPY client/tailwind.config.ts .
 COPY client/tsconfig.json .
