@@ -114,6 +114,20 @@ services:
       timeout: 1s
       retries: 100
       start_period: 0s
+  openapi:
+    depends_on:
+      api:
+        condition: service_healthy
+    build:
+      context: openapi
+      dockerfile: Dockerfile.dev
+    environment:
+      OPENAPI_JSON_PATH: /app/input/openapi.json
+      OPENAPI_TS_PATH: /app/output/api.d.ts
+    volumes:
+      - ./api/openapi:/app/input
+      - ./client/src/app/api:/app/output
+
   client:
     depends_on:
       api:
