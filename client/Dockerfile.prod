@@ -1,3 +1,5 @@
+# Run with repo root as context
+
 FROM oven/bun:1-alpine AS base
 
 FROM base AS deps
@@ -6,16 +8,65 @@ RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
-COPY package.json bun.lock ./
+COPY client/package.json client/bun.lock ./
 
 RUN bun install --frozen-lockfile
+
+FROM georgejkaye/postgres-codegen:latest AS codegen
+
+WORKDIR /app
+
+COPY db/code code
+
+RUN poetry run python src/postgrescodegen/main.py code output api.db
+
+FROM python:3.13-bookworm AS openapi-py
+
+RUN wget https://github.com/GitTools/GitVersion/releases/download/6.8.2/gitversion-linux-x64-6.8.2.tar.gz
+RUN tar -xvf gitversion-linux-x64-6.8.2.tar.gz
+RUN mv gitversion /usr/bin/
+
+ARG POETRY_VERSION
+
+RUN pip install poetry==${POETRY_VERSION}
+
+WORKDIR /app
+
+COPY api/pyproject.toml api/poetry.lock ./
+RUN touch README.md
+
+RUN poetry install --without dev --no-root
+
+COPY api/src /app/src
+COPY --from=codegen /app/output/db /app/src/api/db
+
+RUN poetry install
+
+ARG VERSION
+
+RUN poetry run python src/api/api/openapi.py /app/openapi.json
+
+FROM base AS openapi-ts
+
+WORKDIR /app
+
+COPY --from=openapi-py /app/openapi.json /app/openapi.json
+
+RUN bunx openapi-typescript /app/openapi.json -o /app/api.d.ts
 
 FROM base AS builder
 
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY client/package.json .
+COPY client/next.config.mjs .
+COPY client/next-env.d.ts .
+COPY client/postcss.config.mjs .
+COPY client/tailwind.config.ts .
+COPY client/tsconfig.json .
+COPY client/src ./src
+COPY --from=openapi-ts /app/api.d.ts src/app/api/
 
 ARG API_HOST
 ENV API_HOST=${API_HOST}
