@@ -19,4 +19,4 @@ jobs:
           script: |
             cd ${{ vars.PROJECT_ROOT }}
             git pull
-            VERSION=$(gitversion -showvariable FullSemVer) docker compose -f docker-compose.prod.yml up --build -d
+            VERSION=$(gitversion -showvariable FullSemVer) docker compose -f docker-compose.deploy.yml up --build -d
