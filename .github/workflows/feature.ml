@@ -2,8 +2,6 @@ name: PR build check
 
 on:
   push:
-    branches:
-      - !main
 
 jobs:
   deploy:
