@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from api.data.bus.pages.journey.classes import BustimesJourneyVehicle
 from api.db.types.bus.journey import BusCallInData
 from api.db.types.bus.operator import BusOperatorDetails
 from api.db.types.bus.service import BusServiceDetails
-from api.pull.bus.pages.journey.classes import BustimesJourneyVehicle
 
 
 @dataclass

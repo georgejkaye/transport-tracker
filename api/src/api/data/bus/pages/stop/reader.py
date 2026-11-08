@@ -3,9 +3,9 @@ from typing import Optional
 
 from bs4 import BeautifulSoup
 
+from api.data.bus.pages.stop.classes import BusStopDeparture
+from api.data.selenium.driver import Driver
 from api.db.types.bus.stop import BusStopDetails
-from api.pull.bus.pages.stop.classes import BusStopDeparture
-from api.pull.selenium.driver import Driver
 
 
 def get_bus_stop_page_url(

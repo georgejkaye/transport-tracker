@@ -1,5 +1,5 @@
-from api.pull.train.classes.tokens import AccessToken
-from api.pull.train.clients.api import RttApiClientInterface
+from api.data.train.classes.tokens import AccessToken
+from api.data.train.clients.api import RttApiClientInterface
 from api.utils.environment import get_mandatory_secret
 
 

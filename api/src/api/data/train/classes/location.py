@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from api.pull.train.classes.temporal import RttIndividualTemporalData
+from api.data.train.classes.temporal import RttIndividualTemporalData
 from api.utils.times import make_timezone_aware
 
 

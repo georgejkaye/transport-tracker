@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from api.pull.train.classes.tokens import AccessToken
+from api.data.train.classes.tokens import AccessToken
 from api.utils.request import make_get_request
 
 

@@ -2,16 +2,16 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Optional
 
-from api.pull.train.classes.gbnr.location import (
+from api.data.train.classes.gbnr.location import (
     HasGbnrLocationMetadata,
     RttGbnrLocationAllowances,
     RttGbnrLocationMetadata,
 )
-from api.pull.train.classes.gbnr.schedule import (
+from api.data.train.classes.gbnr.schedule import (
     HasGbnrScheduleMetadata,
     RttGbnrScheduleMetadata,
 )
-from api.pull.train.classes.location import (
+from api.data.train.classes.location import (
     HasGeographicLocation,
     HasLocationTemporalData,
     RttGeographicLocation,
@@ -19,15 +19,15 @@ from api.pull.train.classes.location import (
     RttLocationReason,
     RttLocationTemporalData,
 )
-from api.pull.train.classes.planact import RttPlannedActualData
-from api.pull.train.classes.schedule import RttScheduleOperator
-from api.pull.train.classes.service import (
+from api.data.train.classes.planact import RttPlannedActualData
+from api.data.train.classes.schedule import RttScheduleOperator
+from api.data.train.classes.service import (
     RttAssociationData,
     RttAssociationType,
     RttServiceQuery,
 )
-from api.pull.train.classes.system import RttSystemStatus
-from api.pull.train.classes.temporal import (
+from api.data.train.classes.system import RttSystemStatus
+from api.data.train.classes.temporal import (
     RttIndividualTemporalData,
 )
 

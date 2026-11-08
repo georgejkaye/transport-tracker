@@ -5,6 +5,9 @@ from typing import Optional
 from bs4 import BeautifulSoup
 from psycopg import Connection
 
+from api.data.bus.pages.stop.classes import BusStopDeparture
+from api.data.bus.pages.trip.classes import BusJourneyTimetable
+from api.data.selenium.driver import Driver
 from api.db.functions.select.bus.operator import (
     select_bus_operator_details_by_national_operator_code_fetchone,
 )
@@ -13,9 +16,6 @@ from api.db.functions.select.bus.service import (
 )
 from api.db.types.bus.journey import BusCallInData
 from api.db.types.bus.stop import BusStopDetails
-from api.pull.bus.pages.stop.classes import BusStopDeparture
-from api.pull.bus.pages.trip.classes import BusJourneyTimetable
-from api.pull.selenium.driver import Driver
 
 
 def get_bus_trip_url(bustimes_trip_id: int) -> str:

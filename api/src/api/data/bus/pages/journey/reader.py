@@ -8,14 +8,14 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from api.pull.bus.pages.journey.classes import (
+from api.data.bus.pages.journey.classes import (
     BustimesJourney,
     BustimesJourneyCall,
     BustimesJourneyOperator,
     BustimesJourneyRoute,
     BustimesJourneyVehicle,
 )
-from api.pull.selenium.driver import Driver
+from api.data.selenium.driver import Driver
 
 
 def get_bustimes_journey_url(bustimes_journey_id: int) -> str:
@@ -96,7 +96,7 @@ def get_bustimes_journey_call(
     stop_name = stop_a.get_text(strip=True)
     if stop_atco == board_atco:
         boarded = True
-    (first_plan, first_act) = get_plan_and_act_datetime_from_row(
+    first_plan, first_act = get_plan_and_act_datetime_from_row(
         board_date, boarded, first_plan, first_act, first_row, 1
     )
     if second_row is None:
@@ -107,7 +107,7 @@ def get_bustimes_journey_call(
     else:
         plan_arr = first_plan
         act_arr = None
-        (plan_dep, _) = get_plan_and_act_datetime_from_row(
+        plan_dep, _ = get_plan_and_act_datetime_from_row(
             board_date, boarded, first_plan, first_act, second_row, 0
         )
         act_dep = first_act

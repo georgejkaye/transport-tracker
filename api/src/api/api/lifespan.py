@@ -8,6 +8,7 @@ from networkx import MultiDiGraph
 from psycopg import Connection
 
 from api.classes.train.operators import OperatorBrandLookup
+from api.data.train.clients.api import RttApiClient
 from api.db.functions.select.train.operator import (
     select_train_operator_details_fetchall,
 )
@@ -16,7 +17,6 @@ from api.db.types.train.operator import (
     TrainOperatorDetailsOutData,
 )
 from api.library.networkx import load_osmnx_graphml
-from api.pull.train.clients.api import RttApiClient
 from api.utils.environment import get_env_variable, get_secret
 
 network_path = get_env_variable("NETWORK_PATH")

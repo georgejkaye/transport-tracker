@@ -3,8 +3,8 @@ from datetime import date
 from typing import Optional
 from urllib.parse import urlencode
 
-from api.pull.train.classes.gbnr.location import RttGbnrLocationResponse
-from api.pull.train.classes.gbnr.service import RttGbnrServiceResponse
+from api.data.train.classes.gbnr.location import RttGbnrLocationResponse
+from api.data.train.classes.gbnr.service import RttGbnrServiceResponse
 from api.utils.request import make_get_request
 
 
