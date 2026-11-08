@@ -22,10 +22,6 @@ RUN poetry run python src/postgrescodegen/main.py code output api.db
 
 FROM python:3.13-bookworm AS openapi-py
 
-RUN wget https://github.com/GitTools/GitVersion/releases/download/6.8.2/gitversion-linux-x64-6.8.2.tar.gz
-RUN tar -xvf gitversion-linux-x64-6.8.2.tar.gz
-RUN mv gitversion /usr/bin/
-
 ARG POETRY_VERSION
 
 RUN pip install poetry==${POETRY_VERSION}
