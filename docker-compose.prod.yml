@@ -22,6 +22,7 @@ services:
       TIMEZONE: ${TIMEZONE}
       VERSION: ${VERSION}
       NETWORK_PATH: /app/data/${NETWORK_FILE}
+      RTT_REFRESH_TOKEN_SECRET_FILE: /run/secrets/rtt_refresh_secret
     volumes:
       - ${DATA_DIR}:/app/data
     networks:
