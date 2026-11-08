@@ -1,0 +1,14 @@
+name: Check dependencies
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v7
+
+      - name: Submit bun lock dependencies
+        uses: charpeni/bun-lock-submission@v1
