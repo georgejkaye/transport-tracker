@@ -1,3 +1,8 @@
+DROP FUNCTION IF EXISTS insert_bus_models CASCADE;
+DROP FUNCTION IF EXISTS insert_bus_vehicles CASCADE;
+DROP FUNCTION IF EXISTS insert_bus_models_and_vehicles CASCADE;
+DROP FUNCTION IF EXISTS insert_bus_vehicle CASCADE;
+
 CREATE OR REPLACE FUNCTION insert_bus_models (
     p_models bus_model_in_data_notnull[]
 ) RETURNS VOID
@@ -54,4 +59,38 @@ BEGIN
     PERFORM insert_bus_models(p_models);
     PERFORM insert_bus_vehicles(p_vehicles);
 END;
+$$;
+
+CREATE OR REPLACE FUNCTION insert_bus_vehicle (
+    p_bus_operator_id INTEGER_NOTNULL,
+    p_vehicle_identifier TEXT,
+    p_bustimes_id TEXT_NOTNULL,
+    p_numberplate TEXT_NOTNULL,
+    p_bus_model_id INTEGER_NOTNULL,
+    p_livery_style TEXT,
+    p_vehicle_name TEXT
+)
+RETURNS insert_bus_vehicle_result
+LANGUAGE sql
+AS
+$$
+INSERT INTO busvehicle (
+    bus_operator_id,
+    vehicle_identifier,
+    bustimes_id,
+    numberplate,
+    bus_model_id,
+    livery_style,
+    vehicle_name
+)
+VALUES (
+    p_bus_operator_id,
+    p_vehicle_identifier,
+    p_bustimes_id,
+    p_numberplate,
+    p_bus_model_id,
+    p_livery_style,
+    p_vehicle_name
+)
+RETURNING bus_vehicle_id;
 $$;

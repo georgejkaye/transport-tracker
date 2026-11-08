@@ -16,6 +16,7 @@ DROP TYPE IF EXISTS transport_user_train_unit_high_out_data CASCADE;
 DROP DOMAIN IF EXISTS transport_user_train_unit_high_out_data_notnull CASCADE;
 DROP TYPE IF EXISTS transport_user_train_class_stats CASCADE;
 DROP TYPE IF EXISTS transport_user_train_unit_stats CASCADE;
+DROP TYPE IF EXISTS insert_bus_vehicle_result CASCADE;
 
 CREATE TYPE transport_user_train_leg_unit_segment_out_data AS (
     start_station train_station_high_out_data_notnull,
@@ -125,4 +126,8 @@ CREATE TYPE transport_user_train_class_stats AS (
 
 CREATE TYPE transport_user_train_unit_stats AS (
     count BIGINT_NOTNULL
+);
+
+CREATE TYPE insert_bus_vehicle_result AS (
+    bus_vehicle_id INTEGER_NOTNULL
 );
