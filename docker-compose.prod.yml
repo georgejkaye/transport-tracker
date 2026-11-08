@@ -28,7 +28,6 @@ services:
       - internal
     secrets:
       - db_secret
-      - natrail_secret
       - rtt_refresh_secret
   client:
     build:
@@ -55,7 +54,5 @@ services:
 secrets:
   db_secret:
     file: db.secret
-  natrail_secret:
-    file: natrail.secret
   rtt_refresh_secret:
     file: rtt_refresh.secret

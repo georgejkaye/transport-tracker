@@ -43,6 +43,12 @@ jobs:
           echo MAPTILER_KEY=key >> .env
           echo VERSION=${{ steps.version.outputs.fullSemVer }} >> .env
 
+      - name: Make dummy 'secrets'
+        run: |
+          echo "transport" > db.secret
+          echo "rtt" > rtt_refresh.secret
+          echo "natrail" > natrail.secret
+
       - name: Up docker containers
         id: up
         run: docker compose -f docker-compose.prod.yml up --build --wait
