@@ -78,13 +78,16 @@ def get_departures_from_bus_stop_soup(
                 continue
             if "trips" in departure_time_date_a_href:
                 live = False
-            elif "journeys" in departure_time_date_a_href:
+                departure_bustimes_id = int(
+                    departure_time_date_a_href.split("/")[2]
+                )
+            elif "journey" in departure_time_date_a_href:
                 live = True
+                departure_bustimes_id = int(
+                    departure_time_date_a_href.split("=")[1]
+                )
             else:
                 continue
-            departure_bustimes_id = int(
-                departure_time_date_a_href.split("/")[2]
-            )
             departure = BusStopDeparture(
                 live,
                 departure_service,
