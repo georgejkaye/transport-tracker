@@ -152,6 +152,9 @@ def get_bus_vehicle(
     )
     if len(vehicles) == 0:
         print_error(f"No vehicles found with id {vehicle_identifier}")
+        confirmation = get_confirmation_from_input("Add new vehicle")
+        if not confirmation:
+            return None
         return get_and_insert_new_bus_vehicle_from_input(
             conn, bus_operator.bus_operator_id, vehicle_identifier
         )
@@ -298,9 +301,6 @@ def get_and_insert_new_bus_vehicle_from_input(
     bus_operator_id: int,
     vehicle_identifier: Optional[str] = None,
 ) -> Optional[BusVehicleDetails]:
-    confirmation = get_confirmation_from_input("Add new vehicle")
-    if not confirmation:
-        return None
     model_search_string = get_text_from_input("Search for model", min_length=1)
     if model_search_string is None:
         print_error("No model search string provided")
@@ -367,6 +367,9 @@ def get_bus_vehicle_from_bustimes_data(
         print_information(
             f"Could not find vehicle {bustimes_journey_data.vehicle.identifier} for {bustimes_journey_data.operator.operator_name}, skipping"
         )
+        confirmation = get_confirmation_from_input("Add new vehicle")
+        if not confirmation:
+            return None
         return get_and_insert_new_bus_vehicle_from_input(
             conn, bus_operator_id, bustimes_journey_data.vehicle.identifier
         )
