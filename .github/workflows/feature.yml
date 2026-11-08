@@ -22,25 +22,28 @@ jobs:
         id: version
         uses: gittools/actions/gitversion/execute@v4.7.0
 
+      - name: Make .env file
+        run: |
+          touch .env
+          echo DATA_DIR=. >> .env
+          echo DB_HOST=example.com >> .env
+          echo DB_USER=transport >> .env
+          echo DB_NAME=transport >> .env
+          echo API_HOST=example.com >> .env
+          echo API_PORT=8000 >> .env
+          echo API_PROTOCOL=http >> .env
+          echo TIMEZONE=Europe/London >> .env
+          echo NETWORK_FILE=network.gml >> .env
+          echo POETRY_VERSION=1.5.1 >> .env
+          echo CLIENT_PORT=3000 >> .env
+          echo CLIENT_PROTOCOL=http >> .env
+          echo CLIENT_HOST=example.com >> .env
+          echo MAPTILER_KEY=key >> .env
+          echo VERSION=${{ steps.version.outputs.fullSemVer }} >> .env
+
       - name: Up docker containers
         id: up
         run: docker compose -f docker-compose.prod.yml up --build --wait
-        env:
-          DATA_DIR: .
-          DB_HOST: example.com
-          DB_USER: transport
-          DB_NAME: transport
-          API_HOST: example.com
-          API_PORT: 8000
-          API_PROTOCOL: http
-          TIMEZONE: Europe/London
-          NETWORK_FILE: network.gml
-          POETRY_VERSION: 1.5.1
-          CLIENT_PORT: 3000
-          CLIENT_PROTOCOL: http
-          CLIENT_HOST: example.com
-          MAPTILER_KEY: key
-          VERSION: ${{ steps.version.outputs.fullSemVer }}
 
       - name: Print logs on error
         if: failure()
