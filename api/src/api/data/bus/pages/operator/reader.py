@@ -1,7 +1,7 @@
 from typing import Optional
 
-from api.pull.bus.pages.operator.classes import BustimesOperator
-from api.pull.selenium.driver import Driver
+from api.data.bus.pages.operator.classes import BustimesOperator
+from api.data.selenium.driver import Driver
 from api.utils.interactive import print_information
 
 

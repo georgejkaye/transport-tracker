@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, Optional
 
-from api.pull.train.classes.schedule import RttScheduleOperator
+from api.data.train.classes.schedule import RttScheduleOperator
 
 
 @dataclass

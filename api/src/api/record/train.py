@@ -4,16 +4,6 @@ from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Optional, Sequence, Tuple
 
-from api.train.service.graph.builder import (
-    build_service_graph,
-    get_service_graph_segments,
-    get_services_dict_from_service,
-)
-from api.train.service.graph.classes import (
-    ServiceGraphChildRelation,
-    ServiceGraphNode,
-    ServiceGraphParentRelation,
-)
 from psycopg import Connection
 
 from api.classes.interactive import PickMultiple, PickSingle, PickUnknown
@@ -26,6 +16,21 @@ from api.classes.train.stock import (
     string_of_class_and_subclass,
     string_of_stock_report,
 )
+from api.data.train.api import RttApiManager
+from api.data.train.classes.gbnr.location import RttGbnrLocationService
+from api.data.train.classes.gbnr.service import (
+    RttGbnrServiceData,
+    RttGbnrServiceLocation,
+)
+from api.data.train.classes.location import (
+    RttLocationPair,
+)
+from api.data.train.classes.service import (
+    get_rtt_association_type_db_int,
+)
+from api.data.train.classes.stock import StockChange
+from api.data.train.clients.api import RttApiClient
+from api.data.train.clients.gbnr import RttGbnrClient
 from api.db.functions.insert.train.leg import insert_train_leg_fetchone
 from api.db.functions.select.train.operator import (
     select_train_operator_by_operator_code_fetchone,
@@ -54,22 +59,17 @@ from api.db.types.train.stock import (
     TrainStockOutData,
     TrainStockSubclassOutData,
 )
-from api.pull.train.api import RttApiManager
-from api.pull.train.classes.gbnr.location import RttGbnrLocationService
-from api.pull.train.classes.gbnr.service import (
-    RttGbnrServiceData,
-    RttGbnrServiceLocation,
-)
-from api.pull.train.classes.location import (
-    RttLocationPair,
-)
-from api.pull.train.classes.service import (
-    get_rtt_association_type_db_int,
-)
-from api.pull.train.classes.stock import StockChange
-from api.pull.train.clients.api import RttApiClient
-from api.pull.train.clients.gbnr import RttGbnrClient
 from api.record.user import get_users_from_input
+from api.train.service.graph.builder import (
+    build_service_graph,
+    get_service_graph_segments,
+    get_services_dict_from_service,
+)
+from api.train.service.graph.classes import (
+    ServiceGraphChildRelation,
+    ServiceGraphNode,
+    ServiceGraphParentRelation,
+)
 from api.utils.database import connect_with_env
 from api.utils.interactive import (
     get_choice_from_input,

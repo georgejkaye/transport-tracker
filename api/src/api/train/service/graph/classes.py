@@ -2,12 +2,12 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, TypedDict
 
-from api.pull.train.classes.gbnr.service import (
+from api.data.train.classes.gbnr.service import (
     RttGbnrAssociatedService,
     RttGbnrServiceData,
 )
-from api.pull.train.classes.location import RttGeographicLocation
-from api.pull.train.classes.service import RttAssociationType
+from api.data.train.classes.location import RttGeographicLocation
+from api.data.train.classes.service import RttAssociationType
 
 
 @dataclass

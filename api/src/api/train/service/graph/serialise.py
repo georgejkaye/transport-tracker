@@ -1,7 +1,7 @@
 from collections import deque
 from datetime import datetime
 
-from api.pull.train.classes.gbnr.service import RttGbnrServiceData
+from api.data.train.classes.gbnr.service import RttGbnrServiceData
 from api.train.service.graph.classes import (
     ServiceGraphData,
     ServiceGraphEdgeData,

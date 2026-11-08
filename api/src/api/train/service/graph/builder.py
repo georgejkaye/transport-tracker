@@ -2,12 +2,12 @@ from collections import deque
 from datetime import date, datetime
 from typing import Optional
 
-from api.pull.train.classes.gbnr.service import (
+from api.data.train.classes.gbnr.service import (
     RttGbnrServiceData,
     RttGbnrServiceLocation,
 )
-from api.pull.train.classes.service import RttAssociationType
-from api.pull.train.clients.gbnr import RttGbnrClient
+from api.data.train.classes.service import RttAssociationType
+from api.data.train.clients.gbnr import RttGbnrClient
 from api.train.service.graph.classes import (
     ServiceGraphAssociation,
     ServiceGraphBuilderDataKey,
