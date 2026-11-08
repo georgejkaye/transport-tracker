@@ -1,0 +1,9 @@
+{
+  "name": "openapi",
+  "version": "1.0.0",
+  "description": "Daemon to generate openapi ts files when openapi json updates",
+  "license": "GPL-3.0-or-later",
+  "author": "",
+  "type": "module",
+  "main": "openapi.js"
+}
