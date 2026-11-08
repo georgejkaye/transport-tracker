@@ -29,6 +29,7 @@ class Driver:
 class SeleniumDriver(Driver):
     def __init__(self) -> None:
         options = Options()
+        options.page_load_strategy = "eager"
         options.add_argument("--headless")
         self.driver = Firefox(options)
 
