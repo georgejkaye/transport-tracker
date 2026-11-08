@@ -1,6 +1,4 @@
 networks:
-  web:
-    external: true
   internal:
     external: false
 services:
@@ -9,74 +7,52 @@ services:
       context: api
       dockerfile: Dockerfile.prod
       args:
+        VERSION: ${VERSION}
         POETRY_VERSION: ${POETRY_VERSION}
     ports:
       - "${API_PORT}:${API_PORT}"
-    env_file:
-      - ./.env
     environment:
       API_ENV: prod
       API_PORT: ${API_PORT}
       DATA_DIR: ${DATA_DIR}
-      RTT_USER: ${RTT_USER}
-      RTT_PASSWORD: /run/secrets/rtt_secret
-      NATRAIL_USER: ${NATRAIL_USER}
-      NATRAIL_PASSWORD: /run/secrets/natrail_secret
       DB_HOST: ${DB_HOST}
       DB_USER: ${DB_USER}
       DB_PASSWORD: /run/secrets/db_secret
       DB_NAME: ${DB_NAME}
       TIMEZONE: ${TIMEZONE}
+      VERSION: ${VERSION}
       NETWORK_PATH: /app/data/${NETWORK_FILE}
     volumes:
       - ${DATA_DIR}:/app/data
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.trains_api.rule=Host(`${API_HOST}`)"
-      - "traefik.http.routers.trains_api.tls=true"
-      - "traefik.http.routers.trains_api.tls.certresolver=lets-encrypt"
-      - "traefik.http.services.trains_api.loadbalancer.server.port=${API_PORT}"
     networks:
       - internal
-      - web
     secrets:
-      - rtt_secret
       - db_secret
-      - natrail_secret
       - rtt_refresh_secret
   client:
     build:
-      context: client
-      dockerfile: Dockerfile.prod
+      context: .
+      dockerfile: client/Dockerfile.prod
       args:
+        VERSION: ${VERSION}
         CLIENT_PORT: ${CLIENT_PORT}
-        SERVER_HOST: ${API_HOST}
-        SERVER_PROTOCOL: ${SERVER_PROTOCOL}
+        API_HOST: ${API_HOST}
+        API_PROTOCOL: ${API_PROTOCOL}
         CLIENT_HOST: ${CLIENT_HOST}
-        CLIENT_PROTOCOL: ${SERVER_PROTOCOL}
+        CLIENT_PROTOCOL: ${API_PROTOCOL}
         MAPTILER_KEY: ${MAPTILER_KEY}
+        POETRY_VERSION: ${POETRY_VERSION}
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
-      API_URL: ${SERVER_PROTOCOL}://${API_HOST}
+      API_URL: ${API_PROTOCOL}://${API_HOST}
       CLIENT_PORT: ${CLIENT_PORT}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.trains_client.rule=Host(`${CLIENT_HOST}`)"
-      - "traefik.http.routers.trains_client.tls=true"
-      - "traefik.http.routers.trains_client.tls.certresolver=lets-encrypt"
-      - "traefik.http.services.trains_client.loadbalancer.server.port=${CLIENT_PORT}"
     networks:
       - internal
-      - web
     depends_on:
       - api
 secrets:
-  rtt_secret:
-    file: rtt.secret
   db_secret:
     file: db.secret
-  natrail_secret:
-    file: natrail.secret
   rtt_refresh_secret:
     file: rtt_refresh.secret

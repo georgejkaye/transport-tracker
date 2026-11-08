@@ -58,7 +58,7 @@ const Page = (props: { params: Promise<{ userId: string }> }) => {
       }
     }
     getStationData()
-  }, [])
+  }, [router, userIdNumber])
   return !stations ? (
     <Loader />
   ) : (

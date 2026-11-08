@@ -5,7 +5,6 @@ import Link from "next/link"
 import { Dispatch, SetStateAction, useMemo, useState, use } from "react"
 import {
   Layer,
-  LineLayer,
   LngLatBoundsLike,
   Map,
   Source,
@@ -60,16 +59,12 @@ import {
   getFeatureCollection,
 } from "@/app/utils/map"
 
-const getLineLayer = (leg: TrainLegOutData): LineLayer => ({
+const getLineLayer = (leg: TrainLegOutData) => ({
   id: "line",
   source: "geometry",
-  type: "line",
   paint: {
     "line-width": 5,
     "line-color": getLegColour(),
-  },
-  layout: {
-    "line-cap": "round",
   },
 })
 
@@ -122,9 +117,9 @@ const LegCallMarker = (props: {
       : call.plan_arr && call.act_arr
         ? getDelayOrUndefinedString(call.plan_arr, call.act_arr)
         : {
-            delay: 0,
-            text: "",
-          }
+          delay: 0,
+          text: "",
+        }
   const onClickMarker = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation()
     setCurrentLegCall(call)
@@ -273,18 +268,18 @@ const TrainLegMap = (props: { leg: TrainLegOutData }) => {
   let initialViewState: Partial<ViewState> & { bounds?: LngLatBoundsLike } =
     !geometries
       ? {
-          longitude: gbMidpointLng,
-          latitude: gbMidpointLat,
-          zoom: 8,
-        }
+        longitude: gbMidpointLng,
+        latitude: gbMidpointLat,
+        zoom: 8,
+      }
       : {
-          bounds: [
-            bounds?.minLng ?? 0 - boundingBoxPadding,
-            bounds?.minLat ?? 0 - boundingBoxPadding,
-            bounds?.maxLng ?? 0 + boundingBoxPadding,
-            bounds?.maxLat ?? 0 + boundingBoxPadding,
-          ],
-        }
+        bounds: [
+          bounds?.minLng ?? 0 - boundingBoxPadding,
+          bounds?.minLat ?? 0 - boundingBoxPadding,
+          bounds?.maxLng ?? 0 + boundingBoxPadding,
+          bounds?.maxLat ?? 0 + boundingBoxPadding,
+        ],
+      }
   let markers = useMemo(
     () =>
       leg.calls.map((call, i) => (
@@ -295,7 +290,7 @@ const TrainLegMap = (props: { leg: TrainLegOutData }) => {
           setCurrentLegCall={setCurrentStation}
         />
       )),
-    [],
+    [leg],
   )
   return (
     <div className="overflow-hidden">
@@ -310,8 +305,8 @@ const TrainLegMap = (props: { leg: TrainLegOutData }) => {
         {!geometries ? (
           ""
         ) : (
-          <Source id="geometry" type="geojson" data={geometries}>
-            <Layer {...layerStyle} />
+          <Source id="geometry" type="geojson" data={featureCollection}>
+            <Layer type="line" {...layerStyle} />
           </Source>
         )}
         {markers}
@@ -416,9 +411,8 @@ const TrainStockReportLine = (props: { stock: TrainStockReportOutData }) => {
     ""
   ) : (
     <Link href={`/train/stock/${stock.stock_class}`}>
-      {`Class ${stock.stock_class}${
-        !stock.stock_subclass ? "" : `/${stock.stock_subclass}`
-      }`}
+      {`Class ${stock.stock_class}${!stock.stock_subclass ? "" : `/${stock.stock_subclass}`
+        }`}
     </Link>
   )
   let stockNumber = !stock.stock_class ? (
@@ -508,9 +502,8 @@ const Content = ({ legId }: ContentProps) => {
   ) : (
     <div className="flex flex-col gap-4 mx-4 my-2">
       <h1 className="text-3xl font-bold">
-        {`${leg.calls[0]?.station.station_name} to ${
-          leg.calls[leg?.calls.length - 1]?.station.station_name
-        }`}
+        {`${leg.calls[0]?.station.station_name} to ${leg.calls[leg?.calls.length - 1]?.station.station_name
+          }`}
       </h1>
       <div className="flex flex-col lg:flex-row gap-2 items-baseline">
         <div className="text-xl">
