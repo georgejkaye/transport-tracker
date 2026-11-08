@@ -5,6 +5,8 @@ from bs4 import BeautifulSoup
 from bs4.element import Tag
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 from api.pull.bus.pages.journey.classes import (
     BustimesJourney,
@@ -188,6 +190,9 @@ def get_bustimes_journey_vehicle(
 
 
 def setup_bustimes_journey_page(driver: WebDriver) -> None:
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CLASS_NAME, "breadcrumb"))
+    )
     checkboxes = driver.find_elements(By.CSS_SELECTOR, 'input[type="checkbox"]')
     if len(checkboxes) == 1:
         checkboxes[0].click()
