@@ -2,8 +2,8 @@ name: Feature branch build check
 
 on:
   push:
-    branches:
-      - 184-pr-build-task
+    branches-ignore:
+      - main
 
 jobs:
   deploy:
