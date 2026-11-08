@@ -32,7 +32,10 @@ from api.db.types.user.user import TransportUserPublicOutData
 from api.pull.bus.pages.bustimes import accept_bustimes_cookies
 from api.pull.bus.pages.journey.classes import BustimesJourney
 from api.pull.bus.pages.journey.reader import get_bustimes_journey
-from api.pull.bus.pages.operator.reader import get_bustimes_operator
+from api.pull.bus.pages.operator.reader import (
+    get_bustimes_operator,
+    get_bustimes_operator_url,
+)
 from api.pull.bus.pages.stop.classes import BusStopDeparture
 from api.pull.bus.pages.stop.reader import (
     get_departures_from_bus_stop,
@@ -191,20 +194,24 @@ def get_bus_journey_from_bustimes_journey(
     ]
     bustimes_operator = get_bustimes_operator(driver, journey.operator.slug)
     if bustimes_operator is None:
-        print_information("Could not get operator")
+        print_error(
+            f"Could not get operator: could not parse bustimes page {get_bustimes_operator_url(journey.operator.slug)}"
+        )
         return None
     operator = select_bus_operator_details_by_national_operator_code_fetchone(
         conn, bustimes_operator.national_operator_code
     )
     if operator is None:
-        print_information("Could not get operator")
+        print_error(
+            f"Could not get operator: {bustimes_operator.national_operator_code} not found in db"
+        )
         return None
     service = select_bus_service_details_by_operator_id_and_line_name_fetchone(
         conn, operator.bus_operator_id, journey.route.name
     )
     if service is None:
-        print_information(
-            f"Could not get service {journey.route.name} and operator {operator.operator_name}"
+        print_error(
+            f"Could not get service {journey.route.name} for operator {operator.operator_name}"
         )
         return None
     return BustimesJourneyData(

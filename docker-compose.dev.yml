@@ -120,7 +120,7 @@ services:
         condition: service_healthy
     build:
       context: openapi
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     environment:
       OPENAPI_JSON_PATH: /app/input/openapi.json
       OPENAPI_TS_PATH: /app/output/api.d.ts
