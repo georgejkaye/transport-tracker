@@ -21,6 +21,8 @@ from api.data.bus.pages.stop.reader import (
 from api.data.bus.pages.trip.reader import get_bus_trip
 from api.data.selenium.driver import Driver, DriverManager
 from api.db.functions.insert.bus.leg import insert_bus_leg_fetchone
+from api.db.functions.insert.bus.vehicle import insert_bus_vehicle_fetchone
+from api.db.functions.select.bus.model import select_bus_models_by_name_fetchall
 from api.db.functions.select.bus.operator import (
     select_bus_operator_details_by_national_operator_code_fetchone,
 )
@@ -31,6 +33,7 @@ from api.db.functions.select.bus.stop import (
     select_bus_stop_details_by_name_fetchall,
 )
 from api.db.functions.select.bus.vehicle import (
+    select_bus_vehicle_details_by_bus_vehicle_id_fetchone,
     select_bus_vehicle_details_fetchall,
 )
 from api.db.types.bus.journey import (
@@ -48,6 +51,7 @@ from api.record.user import get_users_from_input
 from api.utils.database import connect_with_env
 from api.utils.interactive import (
     get_choice_from_input_paginate,
+    get_confirmation_from_input,
     get_day_from_input,
     get_month_from_input,
     get_text_from_input,
@@ -128,11 +132,11 @@ def get_bus_vehicle(
     bus_operator: BusOperatorDetails,
     suggested_vehicle: Optional[str] = None,
 ) -> Optional[BusVehicleDetails]:
-    vehicle_id = get_text_from_input("Vehicle id", suggested_vehicle)
-    if vehicle_id is None or vehicle_id == "":
+    vehicle_identifier = get_text_from_input("Vehicle id", suggested_vehicle)
+    if vehicle_identifier is None or vehicle_identifier == "":
         return None
     vehicles = select_bus_vehicle_details_fetchall(
-        conn, bus_operator.bus_operator_id, vehicle_id
+        conn, bus_operator.bus_operator_id, vehicle_identifier
     )
     if len(vehicles) == 1:
         return vehicles[0]
@@ -141,12 +145,16 @@ def get_bus_vehicle(
         if vehicle is not None:
             return vehicle
     print_information(
-        f"Vehicle {vehicle_id} not found for operator {bus_operator.operator_name}, falling back to all operators"
+        f"Vehicle {vehicle_identifier} not found for operator {bus_operator.operator_name}, falling back to all operators"
     )
-    vehicles = select_bus_vehicle_details_fetchall(conn, None, vehicle_id)
+    vehicles = select_bus_vehicle_details_fetchall(
+        conn, None, vehicle_identifier
+    )
     if len(vehicles) == 0:
-        print_error(f"No vehicles found with id {vehicle_id}")
-        return None
+        print_error(f"No vehicles found with id {vehicle_identifier}")
+        return get_and_insert_new_bus_vehicle_from_input(
+            conn, bus_operator.bus_operator_id, vehicle_identifier
+        )
     return get_bus_vehicle_from_input(vehicles)
 
 
@@ -285,9 +293,65 @@ def get_board_datetime() -> Optional[tuple[datetime, timedelta]]:
     return (board_datetime, datetime_offset)
 
 
+def get_and_insert_new_bus_vehicle_from_input(
+    conn: Connection,
+    bus_operator_id: int,
+    vehicle_identifier: Optional[str] = None,
+) -> Optional[BusVehicleDetails]:
+    confirmation = get_confirmation_from_input("Add new vehicle")
+    if not confirmation:
+        return None
+    model_search_string = get_text_from_input("Search for model", min_length=1)
+    if model_search_string is None:
+        print_error("No model search string provided")
+        return None
+    models = select_bus_models_by_name_fetchall(conn, model_search_string)
+    model_choice = get_choice_from_input_paginate(
+        "Model", models, lambda model: model.model_name
+    )
+    match model_choice:
+        case PickSingle(model):
+            pass
+        case _:
+            print_error("Could not get model")
+            return None
+    vehicle_identifier = get_text_from_input(
+        "Vehicle identifier", default=vehicle_identifier
+    )
+    numberplate = get_text_from_input("Numberplate", min_length=1)
+    if numberplate is None:
+        print_error("Numberplate is required")
+        return None
+    vehicle_name = get_text_from_input("Vehicle name")
+    bustimes_id = get_text_from_input("Bustimes id", min_length=1)
+    if bustimes_id is None:
+        print_error("Bustimes id is required")
+        return None
+    insert_bus_vehicle_result = insert_bus_vehicle_fetchone(
+        conn,
+        bus_operator_id,
+        vehicle_identifier,
+        bustimes_id,
+        numberplate,
+        model.bus_model_id,
+        None,
+        vehicle_name,
+    )
+    if insert_bus_vehicle_result is None:
+        print_error("Could not insert bus vehicle")
+        return None
+    print_information(
+        f"Inserted bus vehicle {insert_bus_vehicle_result.bus_vehicle_id}"
+    )
+    return select_bus_vehicle_details_by_bus_vehicle_id_fetchone(
+        conn, insert_bus_vehicle_result.bus_vehicle_id
+    )
+
+
 def get_bus_vehicle_from_bustimes_data(
     conn: Connection,
     bustimes_journey_data: BustimesJourneyData,
+    bus_operator_id: int,
 ) -> Optional[BusVehicleDetails]:
     if (
         bustimes_journey_data.vehicle is None
@@ -303,7 +367,9 @@ def get_bus_vehicle_from_bustimes_data(
         print_information(
             f"Could not find vehicle {bustimes_journey_data.vehicle.identifier} for {bustimes_journey_data.operator.operator_name}, skipping"
         )
-        return None
+        return get_and_insert_new_bus_vehicle_from_input(
+            conn, bus_operator_id, bustimes_journey_data.vehicle.identifier
+        )
     return vehicle_options[0]
 
 
@@ -347,7 +413,9 @@ def get_bus_leg_from_input(
             return None
         _, alight_call_index = alight_call_and_index
         vehicle = get_bus_vehicle_from_bustimes_data(
-            conn, bustimes_journey_data
+            conn,
+            bustimes_journey_data,
+            bustimes_journey_data.operator.bus_operator_id,
         )
         journey = BusJourneyInData(
             bustimes_journey_data.service.bus_service_id,
