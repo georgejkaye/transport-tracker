@@ -12,6 +12,16 @@ jobs:
     steps:
       - name: Check out repo
         uses: actions/checkout@v6
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v4.7.0
+        with:
+          versionSpec: '6.8.x'
+
+      - name: Get current version
+        id: version
+        uses: gittools/actions/gitversion/execute@v4.7.0
+
       - name: Up docker containers
         id: up
         run: docker compose -f docker-compose.prod.yml up --build --wait
@@ -30,9 +40,12 @@ jobs:
           CLIENT_PROTOCOL: http
           CLIENT_HOST: example.com
           MAPTILER_KEY: key
+          VERSION: ${{ steps.version.outputs.fullSemVer }}
+
       - name: Print logs on error
         if: failure()
         run: docker compose -f docker-compose.prod.yml logs
+
       - name: Down docker containers
         if: always()
         run: docker compose -f docker-compose.prod.yml down
