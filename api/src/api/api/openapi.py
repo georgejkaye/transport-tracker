@@ -13,7 +13,6 @@ def generate_openapi_file(openapi_json_file: str):
         version=get_mandatory_env_variable("VERSION"),
         routes=app.routes,
     )
-    print(openapi)
     with open(openapi_json_file, "w") as f:
         json.dump(openapi, f)
 
