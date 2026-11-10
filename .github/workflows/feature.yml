@@ -1,6 +1,7 @@
 name: Feature branch build check
 
 on:
+  pull_request:
   push:
     branches-ignore:
       - main
@@ -9,6 +10,12 @@ jobs:
   deploy:
     name: Build
     runs-on: ubuntu-latest
+    env:
+      CI_DB_HOST: ${{ secrets.CI_DB_HOST }}
+      CI_DB_NAME: ${{ secrets.CI_DB_NAME }}
+      CI_DB_USER: ${{ secrets.CI_DB_USER }}
+      CI_DB_PORT: ${{ secrets.CI_DB_PORT }}
+      CI_DB_PASSWORD_FILE: ${{ runner.temp }}/ci-db-source.secret
     steps:
       - name: Check out repo
         uses: actions/checkout@v6
@@ -28,9 +35,6 @@ jobs:
         run: |
           touch .env
           echo DATA_DIR=. >> .env
-          echo DB_HOST=example.com >> .env
-          echo DB_USER=transport >> .env
-          echo DB_NAME=transport >> .env
           echo API_HOST=example.com >> .env
           echo API_PORT=8000 >> .env
           echo API_PROTOCOL=http >> .env
@@ -43,20 +47,34 @@ jobs:
           echo MAPTILER_KEY=key >> .env
           echo VERSION=${{ steps.version.outputs.fullSemVer }} >> .env
 
-      - name: Make dummy 'secrets'
+      - name: Prepare CI database credentials
+        env:
+          CI_DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
         run: |
+          : "${CI_DB_HOST:?Set the CI_DB_HOST GitHub secret}"
+          : "${CI_DB_NAME:?Set the CI_DB_NAME GitHub secret}"
+          : "${CI_DB_USER:?Set the CI_DB_USER GitHub secret}"
+          : "${CI_DB_PASSWORD:?Set the CI_DB_PASSWORD GitHub secret}"
+          mkdir -p db/.volume
           echo "transport" > db.secret
+          printf '%s' "$CI_DB_PASSWORD" > "$CI_DB_PASSWORD_FILE"
           echo "rtt" > rtt_refresh.secret
           echo "natrail" > natrail.secret
 
       - name: Up docker containers
         id: up
-        run: docker compose -f docker-compose.prod.yml up --build --wait
+        run: docker compose -f docker-compose.prod.yml -f docker-compose.ci.yml up --build --wait
 
       - name: Print logs on error
         if: failure()
-        run: docker compose -f docker-compose.prod.yml logs
+        run: docker compose -f docker-compose.prod.yml -f docker-compose.ci.yml logs
 
       - name: Down docker containers
+        if: always() && steps.up.outcome != 'skipped'
+        run: docker compose -f docker-compose.prod.yml -f docker-compose.ci.yml down --volumes
+
+      - name: Remove CI secret files
         if: always()
-        run: docker compose -f docker-compose.prod.yml down
+        run: |
+          rm -f db.secret rtt_refresh.secret natrail.secret
+          rm -f "$CI_DB_PASSWORD_FILE"
