@@ -15,7 +15,6 @@ jobs:
       CI_DB_NAME: ${{ secrets.CI_DB_NAME }}
       CI_DB_USER: ${{ secrets.CI_DB_USER }}
       CI_DB_PORT: ${{ secrets.CI_DB_PORT }}
-      CI_DB_PASSWORD_FILE: ${{ runner.temp }}/ci-db-source.secret
     steps:
       - name: Check out repo
         uses: actions/checkout@v6
@@ -55,6 +54,8 @@ jobs:
           : "${CI_DB_NAME:?Set the CI_DB_NAME GitHub secret}"
           : "${CI_DB_USER:?Set the CI_DB_USER GitHub secret}"
           : "${CI_DB_PASSWORD:?Set the CI_DB_PASSWORD GitHub secret}"
+          CI_DB_PASSWORD_FILE="$RUNNER_TEMP/ci-db-source.secret"
+          echo "CI_DB_PASSWORD_FILE=$CI_DB_PASSWORD_FILE" >> "$GITHUB_ENV"
           mkdir -p db/.volume
           echo "transport" > db.secret
           printf '%s' "$CI_DB_PASSWORD" > "$CI_DB_PASSWORD_FILE"
