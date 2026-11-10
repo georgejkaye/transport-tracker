@@ -9,6 +9,18 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     steps:
+      - name: Check out repo
+        uses: actions/checkout@v6
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v4.7.0
+        with:
+            versionSpec: 6.8.x
+
+      - name: Get version
+        id: version
+        uses: gittools/actions/gitversion/execute@v4.7.0
+
       - name: Rebuild the docker image
         uses: appleboy/ssh-action@v1.0.0
         with:
