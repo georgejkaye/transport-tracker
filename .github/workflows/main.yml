@@ -31,4 +31,26 @@ jobs:
           script: |
             cd ${{ vars.PROJECT_ROOT }}
             git pull
+            ./deploy/db.sql
             VERSION=$(gitversion -showvariable FullSemVer) docker compose -f docker-compose.deploy.yml up --build -d
+
+      - name: Delete db data scripts
+        run: rm db/data/*sql
+
+      - name: Commit data script removal
+        uses: EndBug/add-and-commit@v11.1.1
+        with:
+          add: db/data
+          message: "ci: remove rolled data scripts"
+          commit: "--cleanup=verbatim"
+          tag: v${{ steps.version.outputs.fullSemVer }}
+          author_name: "github-actions[bot]"
+          author_email: "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.fullSemVer }}
+          release_name: v${{ steps.version.outputs.fullSemVer }}
