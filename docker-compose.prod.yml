@@ -17,7 +17,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile.prod
+      dockerfile: api/Dockerfile.prod
       args:
         VERSION: ${VERSION}
         POETRY_VERSION: ${POETRY_VERSION}
