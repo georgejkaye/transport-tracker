@@ -1,4 +1,3 @@
-# Build image
 FROM python:3.13-bookworm AS builder
 
 ARG POETRY_VERSION
@@ -12,13 +11,19 @@ RUN pip install poetry==${POETRY_VERSION}
 
 WORKDIR /app
 
-COPY pyproject.toml poetry.lock ./
-# Poetry complains without a readme
-RUN touch README.md
+COPY api/pyproject.toml api/poetry.lock ./
 
+RUN touch README.md
 RUN poetry install --without dev --no-root && rm -rf ${POETRY_CACHE_DIR}
 
-# Runtime image
+FROM georgejkaye/postgres-codegen:latest AS codegen
+
+WORKDIR /app
+
+COPY db/code code
+
+RUN poetry run python src/postgrescodegen code output api.db
+
 FROM python:3.13-slim-bookworm AS runtime
 
 RUN apt update
@@ -39,7 +44,8 @@ COPY --from=builder /app/pyproject.toml ./app/pyproject.toml
 
 ENV PYTHONPATH=/app/src
 
-COPY src ./app/src
+COPY api/src ./app/src
+COPY --from=codegen /app/output/db src/api/db
 
 WORKDIR /app
 
