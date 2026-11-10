@@ -2,7 +2,10 @@ source ./.env
 
 roll_script() {
     file=$1
+    echo "Rolling in $file..."
+    echo
     psql -P pager=off -h $DB_HOST -d $DB_NAME -U $DB_USER -f $file
+    echo
 }
 
 roll_scripts_in_directory() {
