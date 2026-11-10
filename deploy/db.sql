@@ -7,12 +7,13 @@ roll_script() {
     echo "Rolling in $file..."
     echo
     psql -v ON_ERROR_STOP=1 -P pager=off -h $DB_HOST -d $DB_NAME -U $DB_USER -f $file
-    echo
 
     if [[ $? -ne 0 ]]; then
 	echo "Failed to roll in script $file"
 	exit 1
     fi
+
+    echo
 }
 
 roll_scripts_in_directory() {
