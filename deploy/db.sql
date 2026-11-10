@@ -1,11 +1,18 @@
+#!/bin/bash
+
 source ./.env
 
 roll_script() {
     file=$1
     echo "Rolling in $file..."
     echo
-    psql -P pager=off -h $DB_HOST -d $DB_NAME -U $DB_USER -f $file
+    psql -v ON_ERROR_STOP=1 -P pager=off -h $DB_HOST -d $DB_NAME -U $DB_USER -f $file
     echo
+
+    if [[ $? -ne 0 ]]; then
+	echo "Failed to roll in script $file"
+	exit 1
+    fi
 }
 
 roll_scripts_in_directory() {
