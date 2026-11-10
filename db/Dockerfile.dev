@@ -1,0 +1,13 @@
+FROM postgres:latest
+
+ARG TARGET_DB_PASSWORD
+
+RUN echo $LOCAL_DB_PASSWORD > /run/secrets/local_db_secret
+
+COPY dump_source_db.sh .
+COPY roll_scripts_into_target_db.sh .
+COPY main_dev.sh .
+
+RUN chmod +x ./gen-data.sh
+
+ENTRYPOINT [ "/main.sh" ]

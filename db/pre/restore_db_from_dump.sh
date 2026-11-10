@@ -1,3 +1,5 @@
+#!/bin/sh
+
 echo "Initialising db..."
 
 PGPASSWORD=$POSTGRES_PASSWORD pg_restore \

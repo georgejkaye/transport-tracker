@@ -2,20 +2,6 @@ networks:
   internal:
     external: false
 services:
-  data:
-    build:
-      context: db
-      dockerfile: Dockerfile
-    volumes:
-      - ./db:/db
-    environment:
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT:-5432}
-      DATA_PASSWORD: /run/secrets/db_secret
-    secrets:
-      - db_secret
   codegen_init:
     image: georgejkaye/postgres-codegen:latest
     environment:
@@ -31,13 +17,26 @@ services:
       - ./api/src/api:/app/output
     secrets:
       - db_local_secret
+  db_pre:
+    build:
+      context: db/pre
+      dockerfile: Dockerfile
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PORT: ${DB_PORT:-5432}
+    volumes:
+      - ./db/.volume:/volume
+    secrets:
+      - db_secret
   db:
+    depends_on:
+      db_pre:
+        condition: service_completed_successfully
     build:
       context: db/server
       dockerfile: Dockerfile
-    depends_on:
-      data:
-        condition: service_completed_successfully
     environment:
       POSTGRES_USER: transport
       POSTGRES_DB: transport
@@ -46,41 +45,54 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql
-      - ./db/.populate/:/docker-entrypoint-initdb.d/
+      - ./db/.volume:/docker-entrypoint-initdb.d
     networks:
       - internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
       interval: 1s
       timeout: 1s
       retries: 500
       start_period: 0s
-  codegen:
-    image: georgejkaye/postgres-codegen:latest
+  db_post:
     depends_on:
       db:
         condition: service_healthy
+    build:
+      context: db
+      dockerfile: post/Dockerfile.dev
     environment:
-      OUTPUT_MODULE_NAME: api.db
-      WATCH_FILES: 1
-      ROLL_SCRIPTS: 1
       DB_HOST: db
-      DB_USER: transport
       DB_NAME: transport
-      DB_PASSWORD_FILE: /run/secrets/db_local_secret
-    volumes:
-      - ./db/code:/app/input
-      - ./api/src/api:/app/output
+      DB_USER: transport
+      DB_PORT: 5432
+      DB_PASSWORD_SECRET_FILE: /run/secrets/db_secret
     networks:
       - internal
-    secrets:
-      - db_local_secret
+ codegen:
+  image: georgejkaye/postgres-codegen:latest
+  depends_on:
+    data:
+      condition: service_healthy
+  environment:
+    OUTPUT_MODULE_NAME: api.db
+    WATCH_FILES: 1
+    ROLL_SCRIPTS: 1
+    DB_HOST: db
+    DB_USER: transport
+    DB_NAME: transport
+    DB_PASSWORD_FILE: /run/secrets/db_local_secret
+  volumes:
+    - ./db/code:/app/input
+    - ./api/src/api:/app/output
+  networks:
+    - internal
+  secrets:
+    - db_local_secret
   api:
     depends_on:
-      codegen_init:
+      db_post:
         condition: service_completed_successfully
-      db:
-        condition: service_healthy
     build:
       context: api
       dockerfile: Dockerfile.dev
@@ -98,7 +110,7 @@ services:
       DB_PASSWORD: /run/secrets/db_secret
       DB_NAME: transport
       TIMEZONE: ${TIMEZONE}
-      VERSION: ${VERSION}
+      VERSION: ${VERSION:-0.0.1}
       NETWORK_PATH: /app/data/${NETWORK_FILE}
     volumes:
       - ./api/src:/app/src
