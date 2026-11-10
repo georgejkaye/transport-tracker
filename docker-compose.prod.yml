@@ -16,7 +16,7 @@ services:
       - db_secret
   api:
     build:
-      context: api
+      context: .
       dockerfile: Dockerfile.prod
       args:
         VERSION: ${VERSION}
