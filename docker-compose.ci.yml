@@ -1,0 +1,68 @@
+services:
+  db_pre:
+    build:
+      context: db/pre
+      dockerfile: Dockerfile
+    environment:
+      DB_HOST: ${CI_DB_HOST:?CI_DB_HOST must be set}
+      DB_NAME: ${CI_DB_NAME:?CI_DB_NAME must be set}
+      DB_USER: ${CI_DB_USER:?CI_DB_USER must be set}
+      DB_PORT: ${CI_DB_PORT:-5432}
+      DB_PASSWORD_SECRET_FILE: /run/secrets/db_source_secret
+    volumes:
+      - ./db/.volume:/volume
+    secrets:
+      - db_source_secret
+
+  db:
+    depends_on:
+      db_pre:
+        condition: service_completed_successfully
+    build:
+      context: db/server
+      dockerfile: Dockerfile
+    environment:
+      POSTGRES_USER: transport
+      POSTGRES_DB: transport
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_secret
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./db/.volume:/docker-entrypoint-initdb.d
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      interval: 1s
+      timeout: 1s
+      retries: 500
+      start_period: 0s
+    secrets:
+      - db_secret
+
+  db_migrate:
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_NAME: transport
+      DB_USER: transport
+      DB_PORT: 5432
+    networks:
+      - internal
+
+  api:
+    depends_on:
+      db_migrate:
+        condition: service_completed_successfully
+    environment:
+      DB_HOST: db
+      DB_NAME: transport
+      DB_USER: transport
+
+secrets:
+  db_source_secret:
+    file: ${CI_DB_PASSWORD_FILE:?CI_DB_PASSWORD_FILE must be set}
+
+volumes:
+  pgdata:
