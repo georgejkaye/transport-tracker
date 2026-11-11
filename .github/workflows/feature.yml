@@ -65,9 +65,9 @@ jobs:
         id: up
         run: docker compose -f docker-compose.prod.yml -f docker-compose.ci.yml up --build --wait
 
-      - name: Pirnt
-        if: failure()
-        run: docker compose -f docker-compose.prod.yml -f docker-compose.ci.yml logs
+      - name: Print logs
+        if: always()
+        run: ./ci/logs.sh
 
       - name: Down docker containers
         if: always() && steps.up.outcome != 'skipped'
