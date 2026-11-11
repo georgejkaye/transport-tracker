@@ -15,7 +15,8 @@ jobs:
       CI_DB_NAME: ${{ secrets.CI_DB_NAME }}
       CI_DB_USER: ${{ secrets.CI_DB_USER }}
       CI_DB_PORT: ${{ secrets.CI_DB_PORT }}
-      CI_DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
+      CI_LOCAL_DB_PASSWORD: ${{ secrets.CI_LOCAL_DB_PASSWORD }}
+      CI_REMOTE_DB_PASSWORD: ${{ secrets.CI_REMOTE_DB_PASSWORD }}
     steps:
       - name: Check out repo
         uses: actions/checkout@v6
@@ -51,8 +52,6 @@ jobs:
           echo DB_USER=transport >> .env
 
       - name: Prepare CI database credentials
-        env:
-          CI_DB_PASSWORD: ${{ secrets.CI_DB_PASSWORD }}
         run: |
           : "${CI_DB_HOST:?Set the CI_DB_HOST GitHub secret}"
           : "${CI_DB_NAME:?Set the CI_DB_NAME GitHub secret}"
@@ -60,7 +59,7 @@ jobs:
           : "${CI_LOCAL_DB_PASSWORD:?Set the CI_LOCAL_DB_PASSWORD GitHub secret}"
           : "${CI_REMOTE_DB_PASSWORD:?Set the CI_REMOTE_DB_PASSWORD GitHub secret}"
           printf '%s' "$CI_LOCAL_DB_PASSWORD" > local_db.secret
-          printt '%s' "$CI_REMOTE_DB_PASSWORD" > remote_db.secret
+          printf '%s' "$CI_REMOTE_DB_PASSWORD" > remote_db.secret
           printf '%s' "$CI_RTT_REFRESH_TOKEN" > rtt_refresh.secret
 
       - name: Up docker containers
