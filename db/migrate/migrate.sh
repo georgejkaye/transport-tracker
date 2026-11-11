@@ -15,7 +15,7 @@ roll_script() {
 
 roll_scripts_in_directory() {
     directory=$1
-    for file in $(find $directory -name *sql); do
+    for file in $(find $directory -name *sql | sort); do
         roll_script $file
     done
 }
