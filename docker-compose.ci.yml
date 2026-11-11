@@ -24,7 +24,7 @@ services:
     environment:
       POSTGRES_USER: transport
       POSTGRES_DB: transport
-      POSTGRES_PASSWORD: ${CI_DB_PASSWORD:?CI_DB_PASSWORD must be set}
+      POSTGRES_PASSWORD_FILE: /run/secrets/local_db_secret
     volumes:
       - pgdata:/var/lib/postgresql
       - ./db/.volume:/docker-entrypoint-initdb.d
@@ -36,6 +36,8 @@ services:
       timeout: 1s
       retries: 500
       start_period: 0s
+    secrets:
+      - local_db_secret
 
   db_migrate:
     depends_on:
