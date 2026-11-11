@@ -1,7 +1,7 @@
 #!/bin/sh
 
 DATA_FILE=$1
-PASSWORD=$(cat /run/secrets/db_secret)
+PASSWORD=$(cat $DB_PASSWORD_SECRET_FILE)
 
 if [ -f "$DATA_FILE" ] && [ -s "$DATA_FILE" ]
 then
