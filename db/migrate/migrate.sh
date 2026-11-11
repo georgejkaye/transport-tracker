@@ -1,13 +1,11 @@
 #!/bin/bash
 
-echo "Waiting for db to come up"
-
 PASSWORD=$(cat $DB_PASSWORD_SECRET_FILE)
 
 roll_script() {
     file=$1
     echo "Rolling in $file..."
-    PGPASSWORD=$PASSWORD psql -v ON_ERROR_STOP=1 -P pager=off -h $DB_HOST -d $DB_NAME -U $DB_USER -f $file > /dev/null 2>&1
+    PGPASSWORD=$PASSWORD psql -v ON_ERROR_STOP=1 -P pager=off -h $DB_HOST -d $DB_NAME -U $DB_USER -f $file
 
     if [[ $? -ne 0 ]]; then
         echo "Failed to roll in script $file"
