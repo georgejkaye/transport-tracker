@@ -15,7 +15,6 @@ jobs:
       CI_DB_NAME: ${{ secrets.CI_DB_NAME }}
       CI_DB_USER: ${{ secrets.CI_DB_USER }}
       CI_DB_PORT: ${{ secrets.CI_DB_PORT }}
-      CI_DB_PASSWORD_FILE: ${{ runner.temp }}/ci-db-source.secret
     steps:
       - name: Check out repo
         uses: actions/checkout@v6
@@ -76,5 +75,4 @@ jobs:
       - name: Remove CI secret files
         if: always()
         run: |
-          rm -f db.secret rtt_refresh.secret natrail.secret
-          rm -f "$CI_DB_PASSWORD_FILE"
+          rm -f *.secret
