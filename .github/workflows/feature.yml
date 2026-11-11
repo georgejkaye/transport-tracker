@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  deploy:
+  build:
     name: Build
     runs-on: ubuntu-latest
     env:
@@ -15,6 +15,7 @@ jobs:
       CI_DB_NAME: ${{ secrets.CI_DB_NAME }}
       CI_DB_USER: ${{ secrets.CI_DB_USER }}
       CI_DB_PORT: ${{ secrets.CI_DB_PORT }}
+      CI_DB_PASSWORD_FILE: ${{ runner.temp }}/ci-db-source.secret
     steps:
       - name: Check out repo
         uses: actions/checkout@v6
@@ -45,6 +46,9 @@ jobs:
           echo CLIENT_HOST=example.com >> .env
           echo MAPTILER_KEY=key >> .env
           echo VERSION=${{ steps.version.outputs.fullSemVer }} >> .env
+          echo DB_HOST=db >> .env
+          echo DB_NAME=transport >> .env
+          echo DB_USER=transport >> .env
 
       - name: Prepare CI database credentials
         env:
@@ -54,19 +58,14 @@ jobs:
           : "${CI_DB_NAME:?Set the CI_DB_NAME GitHub secret}"
           : "${CI_DB_USER:?Set the CI_DB_USER GitHub secret}"
           : "${CI_DB_PASSWORD:?Set the CI_DB_PASSWORD GitHub secret}"
-          CI_DB_PASSWORD_FILE="$RUNNER_TEMP/ci-db-source.secret"
-          echo "CI_DB_PASSWORD_FILE=$CI_DB_PASSWORD_FILE" >> "$GITHUB_ENV"
-          mkdir -p db/.volume
-          echo "transport" > db.secret
-          printf '%s' "$CI_DB_PASSWORD" > "$CI_DB_PASSWORD_FILE"
-          echo "rtt" > rtt_refresh.secret
-          echo "natrail" > natrail.secret
+          printf '%s' "$CI_DB_PASSWORD" > remote_db.secret
+          echo "transport" > local_db.secret
 
       - name: Up docker containers
         id: up
         run: docker compose -f docker-compose.prod.yml -f docker-compose.ci.yml up --build --wait
 
-      - name: Print logs on error
+      - name: Pirnt
         if: failure()
         run: docker compose -f docker-compose.prod.yml -f docker-compose.ci.yml logs
 
