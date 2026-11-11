@@ -1,30 +1,30 @@
 services:
-  db_pre:
+  db_setup:
     build:
-      context: db/pre
+      context: db/setup
       dockerfile: Dockerfile
     environment:
       DB_HOST: ${CI_DB_HOST:?CI_DB_HOST must be set}
       DB_NAME: ${CI_DB_NAME:?CI_DB_NAME must be set}
       DB_USER: ${CI_DB_USER:?CI_DB_USER must be set}
       DB_PORT: ${CI_DB_PORT:-5432}
-      DB_PASSWORD_SECRET_FILE: /run/secrets/db_source_secret
+      DB_PASSWORD_SECRET_FILE: /run/secrets/remote_db_secret
     volumes:
       - ./db/.volume:/volume
     secrets:
-      - db_source_secret
+      - remote_db_secret
 
   db:
     depends_on:
-      db_pre:
+      db_setup:
         condition: service_completed_successfully
     build:
-      context: db/server
+      context: db/db
       dockerfile: Dockerfile
     environment:
       POSTGRES_USER: transport
       POSTGRES_DB: transport
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_secret
+      POSTGRES_PASSWORD: ${CI_DB_PASSWORD:?CI_DB_PASSWORD must be set}
     volumes:
       - pgdata:/var/lib/postgresql
       - ./db/.volume:/docker-entrypoint-initdb.d
@@ -36,33 +36,35 @@ services:
       timeout: 1s
       retries: 500
       start_period: 0s
-    secrets:
-      - db_secret
 
   db_migrate:
     depends_on:
       db:
         condition: service_healthy
+    build:
+      context: db
+      dockerfile: migrate/Dockerfile
     environment:
-      DB_HOST: db
-      DB_NAME: transport
-      DB_USER: transport
-      DB_PORT: 5432
+      DB_PASSWORD_SECRET_FILE: /run/secrets/local_db_secret
     networks:
       - internal
+    secrets:
+      - local_db_secret
 
   api:
     depends_on:
       db_migrate:
         condition: service_completed_successfully
     environment:
-      DB_HOST: db
-      DB_NAME: transport
-      DB_USER: transport
+      DB_PASSWORD: /run/secrets/local_db_secret
+    secrets:
+      - local_db_secret
 
 secrets:
-  db_source_secret:
-    file: ${CI_DB_PASSWORD_FILE:?CI_DB_PASSWORD_FILE must be set}
+  remote_db_secret:
+    file: remote_db.secret
+  local_db_secret:
+    file: local_db.secret
 
 volumes:
   pgdata:

@@ -2,45 +2,32 @@ networks:
   internal:
     external: false
 services:
-  codegen_init:
-    image: georgejkaye/postgres-codegen:latest
-    environment:
-      OUTPUT_MODULE_NAME: api.db
-      WATCH_FILES: 0
-      ROLL_SCRIPTS: 0
-      DB_HOST: db
-      DB_USER: transport
-      DB_NAME: transport
-      DB_PASSWORD_FILE: /run/secrets/db_local_secret
-    volumes:
-      - ./db/code:/app/input
-      - ./api/src/api:/app/output
-    secrets:
-      - db_local_secret
-  db_pre:
+  db_setup:
     build:
-      context: db/pre
+      context: db/setup
       dockerfile: Dockerfile
     environment:
       DB_HOST: ${DB_HOST}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PORT: ${DB_PORT:-5432}
+      DB_PASSWORD_SECRET_FILE: /run/secrets/remote_db_secret
     volumes:
       - ./db/.volume:/volume
     secrets:
-      - db_secret
+      - remote_db_secret
+
   db:
     depends_on:
-      db_pre:
+      db_setup:
         condition: service_completed_successfully
     build:
-      context: db/server
+      context: db/db
       dockerfile: Dockerfile
     environment:
       POSTGRES_USER: transport
       POSTGRES_DB: transport
-      POSTGRES_PASSWORD: transport
+      POSTGRES_PASSWORD_FILE: /run/secrets/local_db_secret
     ports:
       - "5432:5432"
     volumes:
@@ -54,48 +41,55 @@ services:
       timeout: 1s
       retries: 500
       start_period: 0s
-  db_post:
+    secrets:
+      - local_db_secret
+
+  db_migrate:
     depends_on:
       db:
         condition: service_healthy
     build:
       context: db
-      dockerfile: post/Dockerfile.dev
+      dockerfile: migrate/Dockerfile
     environment:
       DB_HOST: db
       DB_NAME: transport
       DB_USER: transport
       DB_PORT: 5432
-      DB_PASSWORD_SECRET_FILE: /run/secrets/db_secret
+      DB_PASSWORD_SECRET_FILE: /run/secrets/local_db_secret
     networks:
       - internal
- codegen:
-  image: georgejkaye/postgres-codegen:latest
-  depends_on:
-    data:
-      condition: service_healthy
-  environment:
-    OUTPUT_MODULE_NAME: api.db
-    WATCH_FILES: 1
-    ROLL_SCRIPTS: 1
-    DB_HOST: db
-    DB_USER: transport
-    DB_NAME: transport
-    DB_PASSWORD_FILE: /run/secrets/db_local_secret
-  volumes:
-    - ./db/code:/app/input
-    - ./api/src/api:/app/output
-  networks:
-    - internal
-  secrets:
-    - db_local_secret
+    secrets:
+      - local_db_secret
+
+  codegen:
+    image: georgejkaye/postgres-codegen:latest
+    depends_on:
+      db_migrate:
+        condition: service_completed_successfully
+    environment:
+      OUTPUT_MODULE_NAME: api.db
+      WATCH_FILES: 1
+      ROLL_SCRIPTS: 1
+      DB_HOST: db
+      DB_USER: transport
+      DB_NAME: transport
+      DB_PASSWORD_FILE: /run/secrets/local_db_secret
+    volumes:
+      - ./db/code:/app/input
+      - ./api/src/api:/app/output
+    networks:
+      - internal
+    secrets:
+      - local_db_secret
+
   api:
     depends_on:
-      db_post:
+      db_migrate:
         condition: service_completed_successfully
     build:
-      context: api
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: api/Dockerfile
       args:
         POETRY_VERSION: 2.1.1
     ports:
@@ -107,7 +101,7 @@ services:
       RTT_REFRESH_TOKEN_SECRET_FILE: /run/secrets/rtt_refresh_secret
       DB_HOST: db
       DB_USER: transport
-      DB_PASSWORD: /run/secrets/db_secret
+      DB_PASSWORD: /run/secrets/local_db_secret
       DB_NAME: transport
       TIMEZONE: ${TIMEZONE}
       VERSION: ${VERSION:-0.0.1}
@@ -117,6 +111,7 @@ services:
       - ./api/data:/app/data
     secrets:
       - rtt_refresh_secret
+      - local_db_secret
     networks:
       - internal
     healthcheck:
@@ -126,6 +121,7 @@ services:
       timeout: 1s
       retries: 100
       start_period: 0s
+
   openapi:
     depends_on:
       api:
@@ -161,12 +157,14 @@ services:
       - ./client/src:/app/src
     networks:
       - internal
+
 secrets:
-  db_secret:
-    file: db.secret
-  db_local_secret:
-    file: db_local.secret
+  remote_db_secret:
+    file: remote_db.secret
+  local_db_secret:
+    file: local_db.secret
   rtt_refresh_secret:
     file: rtt_refresh.secret
+
 volumes:
   pgdata:
