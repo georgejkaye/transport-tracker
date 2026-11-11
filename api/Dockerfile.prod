@@ -22,7 +22,7 @@ WORKDIR /app
 
 COPY db/code code
 
-RUN poetry run python src/postgrescodegen code output api.db
+RUN python src/postgrescodegen code output api.db
 
 FROM python:3.13-slim-bookworm AS runtime
 
