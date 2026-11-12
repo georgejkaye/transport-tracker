@@ -10,10 +10,10 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     env:
-      CI_DB_HOST: ${{ secrets.CI_DB_HOST }}
-      CI_DB_NAME: ${{ secrets.CI_DB_NAME }}
-      CI_DB_USER: ${{ secrets.CI_DB_USER }}
-      CI_DB_PORT: ${{ secrets.CI_DB_PORT }}
+      CI_DB_HOST: ${{ vars.CI_REMOTE_DB_HOST }}
+      CI_DB_NAME: ${{ vars.CI_REMOTE_DB_NAME }}
+      CI_DB_USER: ${{ vars.CI_REMOTE_DB_USER }}
+      CI_DB_PORT: ${{ vars.CI_REMOTE_DB_PORT }}
       CI_LOCAL_DB_PASSWORD: ${{ secrets.CI_LOCAL_DB_PASSWORD }}
       CI_REMOTE_DB_PASSWORD: ${{ secrets.CI_REMOTE_DB_PASSWORD }}
     steps:
