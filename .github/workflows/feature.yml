@@ -6,9 +6,16 @@ on:
       - main
 
 jobs:
-  deploy:
+  build:
     name: Build
     runs-on: ubuntu-latest
+    env:
+      CI_DB_HOST: ${{ vars.CI_REMOTE_DB_HOST }}
+      CI_DB_NAME: ${{ vars.CI_REMOTE_DB_NAME }}
+      CI_DB_USER: ${{ vars.CI_REMOTE_DB_USER }}
+      CI_DB_PORT: ${{ vars.CI_REMOTE_DB_PORT }}
+      CI_LOCAL_DB_PASSWORD: ${{ secrets.CI_LOCAL_DB_PASSWORD }}
+      CI_REMOTE_DB_PASSWORD: ${{ secrets.CI_REMOTE_DB_PASSWORD }}
     steps:
       - name: Check out repo
         uses: actions/checkout@v6
@@ -18,7 +25,7 @@ jobs:
       - name: Install GitVersion
         uses: gittools/actions/gitversion/setup@v4.7.0
         with:
-          versionSpec: '6.8.x'
+          versionSpec: "6.8.x"
 
       - name: Get current version
         id: version
@@ -27,10 +34,7 @@ jobs:
       - name: Make .env file
         run: |
           touch .env
-          echo DATA_DIR=. >> .env
-          echo DB_HOST=example.com >> .env
-          echo DB_USER=transport >> .env
-          echo DB_NAME=transport >> .env
+          echo DATA_DIR=./api/data >> .env
           echo API_HOST=example.com >> .env
           echo API_PORT=8000 >> .env
           echo API_PROTOCOL=http >> .env
@@ -42,21 +46,39 @@ jobs:
           echo CLIENT_HOST=example.com >> .env
           echo MAPTILER_KEY=key >> .env
           echo VERSION=${{ steps.version.outputs.fullSemVer }} >> .env
+          echo DB_HOST=db >> .env
+          echo DB_NAME=transport >> .env
+          echo DB_USER=transport >> .env
 
-      - name: Make dummy 'secrets'
+      - name: Copy dummy network file
         run: |
-          echo "transport" > db.secret
-          echo "rtt" > rtt_refresh.secret
-          echo "natrail" > natrail.secret
+          mkdir api/data
+          cp ci/network.gml api/data/network.gml
+
+      - name: Prepare CI database credentials
+        run: |
+          : "${CI_DB_HOST:?Set the CI_DB_HOST GitHub secret}"
+          : "${CI_DB_NAME:?Set the CI_DB_NAME GitHub secret}"
+          : "${CI_DB_USER:?Set the CI_DB_USER GitHub secret}"
+          : "${CI_LOCAL_DB_PASSWORD:?Set the CI_LOCAL_DB_PASSWORD GitHub secret}"
+          : "${CI_REMOTE_DB_PASSWORD:?Set the CI_REMOTE_DB_PASSWORD GitHub secret}"
+          printf '%s' "$CI_LOCAL_DB_PASSWORD" > local_db.secret
+          printf '%s' "$CI_REMOTE_DB_PASSWORD" > remote_db.secret
+          printf '%s' "$CI_RTT_REFRESH_TOKEN" > rtt_refresh.secret
 
       - name: Up docker containers
         id: up
-        run: docker compose -f docker-compose.prod.yml up --build --wait
+        run: docker compose -f docker-compose.prod.yml -f docker-compose.ci.yml up --build --wait
 
-      - name: Print logs on error
-        if: failure()
-        run: docker compose -f docker-compose.prod.yml logs
+      - name: Print logs
+        if: always()
+        run: ./ci/logs.sh
 
       - name: Down docker containers
+        if: always() && steps.up.outcome != 'skipped'
+        run: docker compose -f docker-compose.prod.yml -f docker-compose.ci.yml down --volumes
+
+      - name: Remove CI secret files
         if: always()
-        run: docker compose -f docker-compose.prod.yml down
+        run: |
+          rm -f *.secret
