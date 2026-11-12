@@ -10,12 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ssh-key: ${{ secrets.DEPLOY_TOKEN }}
 
       - name: Install GitVersion
         uses: gittools/actions/gitversion/setup@v4.7.0
         with:
-            versionSpec: 6.8.x
+          versionSpec: 6.8.x
 
       - name: Get version
         id: version
