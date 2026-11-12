@@ -44,9 +44,9 @@ COPY --from=builder /app/pyproject.toml ./app/pyproject.toml
 
 ENV PYTHONPATH=/app/src
 
-COPY api/src ./app/src
-COPY --from=codegen /app/output/db src/api/db
-
 WORKDIR /app
+
+COPY api/src src
+COPY --from=codegen /app/output/db src/api/db
 
 ENTRYPOINT ["python", "src/api/api/main.py"]
