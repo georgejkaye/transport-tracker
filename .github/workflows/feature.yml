@@ -35,7 +35,7 @@ jobs:
       - name: Make .env file
         run: |
           touch .env
-          echo DATA_DIR=. >> .env
+          echo DATA_DIR=api/data >> .env
           echo API_HOST=example.com >> .env
           echo API_PORT=8000 >> .env
           echo API_PROTOCOL=http >> .env
