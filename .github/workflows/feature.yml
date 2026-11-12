@@ -1,7 +1,6 @@
 name: Feature branch build check
 
 on:
-  pull_request:
   push:
     branches-ignore:
       - main
