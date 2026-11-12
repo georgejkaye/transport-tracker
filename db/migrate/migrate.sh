@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ -z "${DB_PASSWORD_SECRET_FILE}" ]; then
+    echo "$DB_PASSWORD_SECRET_FILE variable must be set"
+    exit 1
+fi
+
 PASSWORD=$(cat $DB_PASSWORD_SECRET_FILE)
 
 roll_script() {
@@ -15,6 +20,7 @@ roll_script() {
 
 roll_scripts_in_directory() {
     directory=$1
+    echo $directory
     for file in $(find $directory -name *sql | sort); do
         roll_script $file
     done
