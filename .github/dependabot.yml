@@ -1,6 +1,10 @@
 version: 2
 updates:
+  - package-ecosystem: "poetry"
+    directory: "/api"
+    schedule:
+      interval: "daily"
   - package-ecosystem: "bun"
-    directory: "/"
+    directory: "/client"
     schedule:
       interval: "daily"
