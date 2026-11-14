@@ -3,7 +3,7 @@ import sys
 from api.db.functions.select.train.station import (
     select_train_station_points_fetchall,
 )
-from api.library.networkx import (
+from api.network.libraries.networkx import (
     get_nodes,
     load_osmnx_graphml,
     project_graph,

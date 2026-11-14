@@ -8,7 +8,7 @@ from api.api.lifespan import (
     initialise_train_operator_brand_lookup,
 )
 from api.db.types.register import register_types
-from api.library.networkx import load_osmnx_graphml
+from api.network.libraries.networkx import load_osmnx_graphml
 from api.network.map import get_leg_map_page_by_leg_id
 
 conn = Connection.connect(

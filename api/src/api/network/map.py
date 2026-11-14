@@ -23,7 +23,7 @@ from api.db.functions.select.train.station import (
 )
 from api.db.types.train.leg import TrainLegPointsOutData
 from api.db.types.train.station import TrainStationLegNamesInData
-from api.library.folium import create_polyline, render_map
+from api.network.libraries.folium import create_polyline, render_map
 from api.network.classes import (
     AlightCount,
     BoardCount,

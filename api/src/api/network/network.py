@@ -15,7 +15,7 @@ from shapely import LineString, Point, geometry, ops
 from api.db.types.train.station import (
     TrainStationPointsOutData,
 )
-from api.library.networkx import (
+from api.network.libraries.networkx import (
     add_edge,
     add_node,
     graph_from_place,
@@ -24,7 +24,7 @@ from api.library.networkx import (
     nearest_edges,
     project_graph,
 )
-from api.library.shapely import get_distance
+from api.network.libraries.shapely import get_distance
 from api.network.train import StationPoint
 
 coordinate_precision = 0.000001

@@ -16,7 +16,7 @@ from api.db.types.register import register_types
 from api.db.types.train.operator import (
     TrainOperatorDetailsOutData,
 )
-from api.library.networkx import load_osmnx_graphml
+from api.network.libraries.networkx import load_osmnx_graphml
 from api.utils.environment import get_env_variable, get_secret
 
 

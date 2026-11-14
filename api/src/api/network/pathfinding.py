@@ -6,8 +6,8 @@ from typing import Any, Optional, Sequence
 from networkx import MultiDiGraph
 from shapely import LineString, Point
 
-from api.library.networkx import shortest_path
-from api.library.shapely import get_length
+from api.network.libraries.networkx import shortest_path
+from api.network.libraries.shapely import get_length
 from api.network.classes import (
     LegLineCall,
     LegLineGeometry,
