@@ -6,16 +6,17 @@ from typing import Callable, Optional
 from questionary import Choice, checkbox, text
 from termcolor import colored
 
-from api.classes.interactive import (
+from api.utils.interactive.classes import (
     PickCancel,
     PickChoice,
     PickMultiple,
     PickSingle,
     PickUnknown,
 )
-from api.library.questionary import (
+from api.utils.interactive.questionary import (
     ask_bool_question,
     ask_select_question,
+    ask_text_question,
 )
 from api.utils.times import make_timezone_aware
 
@@ -74,11 +75,11 @@ def get_text_from_input(
     length_validation_fn: Callable[[str], bool] = lambda text: (
         (len(text) >= min_length) if min_length is not None else True
     )
-    return text(
+    return ask_text_question(
         message=message,
         default=default if default is not None else "",
         validate=length_validation_fn,
-    ).ask()
+    )
 
 
 def get_number_in_range_from_input(

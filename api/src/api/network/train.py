@@ -1,19 +1,44 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from api.network.nodes import get_node_id_from_crs_and_platform
 from shapely import Point
 
-from api.classes.network.map import (
+from api.db.types.train.station import (
+    TrainStationPointOutData,
+    TrainStationPointsOutData,
+)
+from api.network.classes import (
     LegLineCall,
     MarkerTextParams,
     MarkerTextValues,
     NetworkNode,
 )
-from api.classes.train.network import get_node_id_from_crs_and_platform
-from api.db.types.train.station import (
-    TrainStationPointOutData,
-    TrainStationPointsOutData,
-)
+
+
+def get_crs_and_platform_from_node_id(node_id: int) -> str:
+    node_id_str = str(node_id)
+    station_crs_str = node_id_str[1:7]
+    station_platform_ind = node_id_str[7]
+    station_platform_str = node_id_str[8:]
+    station_crs_first_char = chr(int(station_crs_str[0:2]) + 64)
+    station_crs_second_char = chr(int(station_crs_str[2:4]) + 64)
+    station_crs_third_char = chr(int(station_crs_str[4:]) + 64)
+    station_crs = f"{station_crs_first_char}{station_crs_second_char}{station_crs_third_char}"
+    has_platform = station_platform_ind == "1"
+    if not has_platform:
+        platform = ""
+    else:
+        platform = " pl"
+        is_platform_number = station_platform_str[0] == "0"
+        if is_platform_number:
+            platform = f"{platform} {str(int(station_platform_str[1:3]))}"
+        else:
+            platform = f"{platform} {chr(int(station_platform_str[1:3]) + 64)}"
+        platform_suffix_str = station_platform_str[3:]
+        if platform_suffix_str != "00":
+            platform = f"{platform}{chr(int(platform_suffix_str) + 64)}"
+    return f"{station_crs}{platform}"
 
 
 @dataclass

@@ -2,7 +2,7 @@ from typing import Optional
 
 from api.data.bus.pages.operator.classes import BustimesOperator
 from api.data.selenium.driver import Driver
-from api.utils.interactive import print_information
+from api.utils.interactive.input import print_information
 
 
 def get_bustimes_operator_url(slug: str) -> str:

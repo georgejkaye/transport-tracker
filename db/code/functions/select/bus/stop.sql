@@ -20,7 +20,7 @@ SELECT
     suburb_name,
     latitude,
     longitude
-FROM BusStop
+FROM bus_stop
 ORDER BY stop_name ASC, locality_name ASC, indicator ASC;
 $$;
 
@@ -47,7 +47,7 @@ SELECT
     suburb_name,
     latitude,
     longitude
-FROM BusStop
+FROM bus_stop
 WHERE LOWER(stop_name) LIKE '%' || LOWER(p_name) || '%'
 ORDER BY stop_name ASC, locality_name ASC, indicator ASC;
 $$;
@@ -75,7 +75,7 @@ SELECT
     suburb_name,
     latitude,
     longitude
-FROM BusStop
+FROM bus_stop
 WHERE atco_code = ANY(p_atcos)
 ORDER BY stop_name ASC, locality_name ASC, indicator ASC;
 $$;
@@ -88,7 +88,7 @@ LANGUAGE sql
 AS
 $$
 SELECT
-    BusStop.bus_stop_id,
+    bus_stop.bus_stop_id,
     atco_code,
     naptan_code,
     stop_name,
@@ -104,9 +104,9 @@ SELECT
     suburb_name,
     latitude,
     longitude
-FROM BusStop
-INNER JOIN BusCall
-ON BusStop.bus_stop_id = BusCall.bus_stop_id
-WHERE BusCall.bus_journey_id = p_journey_id
+FROM bus_stop
+INNER JOIN bus_call
+ON bus_stop.bus_stop_id = bus_call.bus_stop_id
+WHERE bus_call.bus_journey_id = p_journey_id
 ORDER BY stop_name ASC, locality_name ASC, indicator ASC;
 $$;

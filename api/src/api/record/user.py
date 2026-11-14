@@ -1,11 +1,11 @@
 from psycopg import Connection
 
-from api.classes.interactive import PickMultiple
 from api.db.functions.select.user.details import (
     select_user_public_data_fetchall,
 )
 from api.db.types.user.user import TransportUserPublicOutData
-from api.utils.interactive import get_choices_from_input
+from api.utils.interactive.classes import PickMultiple
+from api.utils.interactive.input import get_choices_from_input
 
 
 def string_of_user_for_input_select(user: TransportUserPublicOutData) -> str:

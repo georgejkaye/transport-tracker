@@ -9,7 +9,7 @@ SELECT
     national_operator_code,
     bg_colour,
     fg_colour
-FROM BusOperator
+FROM bus_operator
 ORDER BY operator_name ASC;
 $$;
 
@@ -25,7 +25,7 @@ SELECT
     national_operator_code,
     bg_colour,
     fg_colour
-FROM BusOperator
+FROM bus_operator
 WHERE LOWER(operator_name) LIKE '%' || LOWER(p_name) || '%'
 ORDER BY operator_name ASC;
 $$;
@@ -42,7 +42,7 @@ SELECT
     national_operator_code,
     bg_colour,
     fg_colour
-FROM BusOperator
+FROM bus_operator
 WHERE LOWER(national_operator_code) = LOWER(p_noc)
 ORDER BY operator_name ASC;
 $$;

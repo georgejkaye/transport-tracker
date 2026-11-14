@@ -1,7 +1,7 @@
 import sys
 from typing import Any
 
-from api.library.networkx import graph_from_place, save_osmnx_graphml
+from api.network.libraries.networkx import graph_from_place, save_osmnx_graphml
 
 
 def generate_network(

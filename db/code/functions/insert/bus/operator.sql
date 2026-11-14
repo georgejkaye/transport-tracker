@@ -5,7 +5,7 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    INSERT INTO BusOperator (
+    INSERT INTO bus_operator (
         operator_name,
         national_operator_code
     ) SELECT

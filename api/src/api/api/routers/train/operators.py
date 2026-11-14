@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
-from api.api.lifespan import get_operator_brand_lookup
-from api.classes.train.operators import OperatorBrandLookup
+from api.api.lifespan import OperatorBrandLookup, get_operator_brand_lookup
 
 router = APIRouter(prefix="/operators", tags=["train/operators"])
 

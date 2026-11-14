@@ -7,31 +7,31 @@ LANGUAGE sql
 AS
 $$
 SELECT
-    BusStop.bus_stop_id,
-    BusStop.atco_code,
-    BusStop.naptan_code,
-    BusStop.stop_name,
-    BusStop.landmark_name,
-    BusStop.street_name,
-    BusStop.crossing_name,
-    BusStop.indicator,
-    BusStop.bearing,
-    BusStop.locality_name,
-    BusStop.parent_locality_name,
-    BusStop.grandparent_locality_name,
-    BusStop.town_name,
-    BusStop.suburb_name,
-    BusStop.latitude,
-    BusStop.longitude,
+    bus_stop.bus_stop_id,
+    bus_stop.atco_code,
+    bus_stop.naptan_code,
+    bus_stop.stop_name,
+    bus_stop.landmark_name,
+    bus_stop.street_name,
+    bus_stop.crossing_name,
+    bus_stop.indicator,
+    bus_stop.bearing,
+    bus_stop.locality_name,
+    bus_stop.parent_locality_name,
+    bus_stop.grandparent_locality_name,
+    bus_stop.town_name,
+    bus_stop.suburb_name,
+    bus_stop.latitude,
+    bus_stop.longitude,
     COALESCE(
         bus_stop_leg_details_view.stop_user_legs,
         ARRAY[]::bus_stop_leg_details[]
     )
-FROM BusStop
+FROM bus_stop
 LEFT JOIN bus_stop_leg_details_view
-ON BusStop.bus_stop_id = bus_stop_leg_details_view.bus_stop_id
+ON bus_stop.bus_stop_id = bus_stop_leg_details_view.bus_stop_id
 AND bus_stop_leg_details_view.user_id = p_user_id
-WHERE BusStop.bus_stop_id = p_stop_id;
+WHERE bus_stop.bus_stop_id = p_stop_id;
 $$;
 
 CREATE OR REPLACE FUNCTION select_bus_stop_user_details_by_user_id_and_atco (
@@ -43,31 +43,31 @@ LANGUAGE sql
 AS
 $$
 SELECT
-    BusStop.bus_stop_id,
-    BusStop.atco_code,
-    BusStop.naptan_code,
-    BusStop.stop_name,
-    BusStop.landmark_name,
-    BusStop.street_name,
-    BusStop.crossing_name,
-    BusStop.indicator,
-    BusStop.bearing,
-    BusStop.locality_name,
-    BusStop.parent_locality_name,
-    BusStop.grandparent_locality_name,
-    BusStop.town_name,
-    BusStop.suburb_name,
-    BusStop.latitude,
-    BusStop.longitude,
+    bus_stop.bus_stop_id,
+    bus_stop.atco_code,
+    bus_stop.naptan_code,
+    bus_stop.stop_name,
+    bus_stop.landmark_name,
+    bus_stop.street_name,
+    bus_stop.crossing_name,
+    bus_stop.indicator,
+    bus_stop.bearing,
+    bus_stop.locality_name,
+    bus_stop.parent_locality_name,
+    bus_stop.grandparent_locality_name,
+    bus_stop.town_name,
+    bus_stop.suburb_name,
+    bus_stop.latitude,
+    bus_stop.longitude,
     COALESCE(
         bus_stop_leg_details_view.stop_user_legs,
         ARRAY[]::bus_stop_leg_details[]
     )
-FROM BusStop
+FROM bus_stop
 LEFT JOIN bus_stop_leg_details_view
-ON BusStop.bus_stop_id = bus_stop_leg_details_view.bus_stop_id
+ON bus_stop.bus_stop_id = bus_stop_leg_details_view.bus_stop_id
 AND bus_stop_leg_details_view.user_id = p_user_id
-WHERE BusStop.atco_code = p_atco;
+WHERE bus_stop.atco_code = p_atco;
 $$;
 
 CREATE OR REPLACE FUNCTION select_bus_stop_user_details_by_user_id (
@@ -78,29 +78,29 @@ LANGUAGE sql
 AS
 $$
 SELECT
-    BusStop.bus_stop_id,
-    BusStop.atco_code,
-    BusStop.naptan_code,
-    BusStop.stop_name,
-    BusStop.landmark_name,
-    BusStop.street_name,
-    BusStop.crossing_name,
-    BusStop.indicator,
-    BusStop.bearing,
-    BusStop.locality_name,
-    BusStop.parent_locality_name,
-    BusStop.grandparent_locality_name,
-    BusStop.town_name,
-    BusStop.suburb_name,
-    BusStop.latitude,
-    BusStop.longitude,
+    bus_stop.bus_stop_id,
+    bus_stop.atco_code,
+    bus_stop.naptan_code,
+    bus_stop.stop_name,
+    bus_stop.landmark_name,
+    bus_stop.street_name,
+    bus_stop.crossing_name,
+    bus_stop.indicator,
+    bus_stop.bearing,
+    bus_stop.locality_name,
+    bus_stop.parent_locality_name,
+    bus_stop.grandparent_locality_name,
+    bus_stop.town_name,
+    bus_stop.suburb_name,
+    bus_stop.latitude,
+    bus_stop.longitude,
     COALESCE(
         bus_stop_leg_details_view.stop_user_legs,
         ARRAY[]::bus_stop_leg_details[]
     )
-FROM BusStop
+FROM bus_stop
 INNER JOIN bus_stop_leg_details_view
-ON BusStop.bus_stop_id = bus_stop_leg_details_view.bus_stop_id
+ON bus_stop.bus_stop_id = bus_stop_leg_details_view.bus_stop_id
 AND bus_stop_leg_details_view.user_id = p_user_id
-ORDER BY BusStop.stop_name, BusStop.locality_name, BusStop.indicator;
+ORDER BY bus_stop.stop_name, bus_stop.locality_name, bus_stop.indicator;
 $$;

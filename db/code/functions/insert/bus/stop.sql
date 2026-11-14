@@ -5,7 +5,7 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    INSERT INTO BusStop (
+    INSERT INTO bus_stop (
         atco_code,
         naptan_code,
         stop_name,

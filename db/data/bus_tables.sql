@@ -1,0 +1,9 @@
+ALTER TABLE BusStop RENAME TO bus_stop;
+ALTER TABLE BusOperator RENAME TO bus_operator;
+ALTER TABLE BusService RENAME TO bus_service;
+ALTER TABLE BusServiceVia RENAME TO bus_service_via;
+ALTER TABLE BusModel RENAME TO bus_model;
+ALTER TABLE BusVehicle RENAME TO bus_vehicle;
+ALTER TABLE BusJourney RENAME TO bus_journey;
+ALTER TABLE BusCall RENAME TO bus_call;
+ALTER TABLE BusLeg RENAME TO bus_leg;

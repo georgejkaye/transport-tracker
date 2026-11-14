@@ -13,8 +13,18 @@ from psycopg import Connection
 from pydantic import Field
 from shapely import LineString, Point
 
-from api.classes.network.geometry import TrainLegCallGeometry, TrainLegGeometry
-from api.classes.network.map import (
+from api.db.functions.select.train.leg import (
+    select_train_leg_points_by_leg_id_fetchone,
+    select_train_leg_points_by_leg_ids_fetchall,
+    select_train_leg_points_by_user_id_fetchall,
+)
+from api.db.functions.select.train.station import (
+    select_train_station_leg_points_by_name_lists_fetchall,
+)
+from api.db.types.train.leg import TrainLegPointsOutData
+from api.db.types.train.station import TrainStationLegNamesInData
+from api.network.libraries.folium import create_polyline, render_map
+from api.network.classes import (
     AlightCount,
     BoardCount,
     CallCount,
@@ -27,23 +37,12 @@ from api.classes.network.map import (
     MarkerTextValues,
     StationCount,
     StationCountDict,
-)
-from api.classes.train.legs import (
+    TrainLegCallGeometry,
     TrainLegCallPointPointsOutData,
+    TrainLegGeometry,
 )
-from api.classes.train.station import DbTrainStationPointPointsOutData
-from api.db.functions.select.train.leg import (
-    select_train_leg_points_by_leg_id_fetchone,
-    select_train_leg_points_by_leg_ids_fetchall,
-    select_train_leg_points_by_user_id_fetchall,
-)
-from api.db.functions.select.train.station import (
-    select_train_station_leg_points_by_name_lists_fetchall,
-)
-from api.db.types.train.leg import TrainLegPointsOutData
-from api.db.types.train.station import TrainStationLegNamesInData
-from api.library.folium import create_polyline, render_map
 from api.network.pathfinding import get_leg_line_geometry_for_leg
+from api.network.train import DbTrainStationPointPointsOutData
 
 
 def add_call_marker(
@@ -71,9 +70,7 @@ def update_call_marker_dict[T: LegLineCall](
     if current_station is None:
         current_station_count = StationCount(0, 0, 0)
     else:
-        (_, current_station_count) = call_marker_dict[
-            call.get_call_identifier()
-        ]
+        _, current_station_count = call_marker_dict[call.get_call_identifier()]
     current_board = current_station_count.board
     current_call = current_station_count.call
     current_alight = current_station_count.alight
@@ -148,7 +145,7 @@ def get_leg_map[T: LegLineCall](
     endpoint_group = folium.FeatureGroup(name="Endpoints")
     call_group = folium.FeatureGroup(name="Calls")
     for station_count_key in call_marker_dict.keys():
-        (call_marker, call_count) = call_marker_dict[station_count_key]
+        call_marker, call_count = call_marker_dict[station_count_key]
         boards = call_count.board
         calls = call_count.call
         alights = call_count.alight
@@ -214,8 +211,8 @@ def get_leg_map_from_gml(gml_data: BeautifulSoup) -> Optional[str]:
         ):
             return None
 
-        (source_lat, source_lon) = node_dict[edge_source]
-        (target_lat, target_lon) = node_dict[edge_target]
+        source_lat, source_lon = node_dict[edge_source]
+        target_lat, target_lon = node_dict[edge_target]
 
         edge_nodes = [Point(float(source_lon), float(source_lat))]
 
@@ -286,14 +283,16 @@ def get_leg_lines_for_leg_points(
             leg.call_points[-1].station_name,
             leg_line_geometry.calls,
             leg_line_geometry.line,
-            colour
-            if (
-                colour := get_train_operator_brand_colour(
-                    leg.operator_id, leg.brand_id
+            (
+                colour
+                if (
+                    colour := get_train_operator_brand_colour(
+                        leg.operator_id, leg.brand_id
+                    )
                 )
-            )
-            is not None
-            else "#000000",
+                is not None
+                else "#000000"
+            ),
             1,
             0,
         )

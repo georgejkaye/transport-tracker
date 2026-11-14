@@ -14,7 +14,9 @@ class ApiClient:
     ) -> requests.Response:
         return requests.get(f"{self.base_url}{endpoint}", params)
 
-    def get_user_train_legs_for_year(self, user_id: int, year: int) -> list[TrainLeg]:
+    def get_user_train_legs_for_year(
+        self, user_id: int, year: int
+    ) -> list[TrainLeg]:
         response = self.invoke_transport_api_get(
             f"/users/{user_id}/train/legs/years/{year}"
         )
@@ -27,12 +29,16 @@ class ApiClient:
                 leg["alight_station"]["station_name"],
                 leg["alight_station"]["station_crs"],
                 pd.Timestamp(leg["start_datetime"]),
-                leg["brand"]["operator_name"]
-                if leg.get("brand") is not None
-                else leg["operator"]["operator_name"],
-                leg["brand"]["operator_code"]
-                if leg.get("brand") is not None
-                else leg["operator"]["operator_code"],
+                (
+                    leg["brand"]["operator_name"]
+                    if leg.get("brand") is not None
+                    else leg["operator"]["operator_name"]
+                ),
+                (
+                    leg["brand"]["operator_code"]
+                    if leg.get("brand") is not None
+                    else leg["operator"]["operator_code"]
+                ),
                 float(leg["distance"]),
                 pd.Timedelta(leg["duration"]),
                 leg["delay"],
@@ -40,7 +46,9 @@ class ApiClient:
             for leg in json
         ]
 
-    def get_user_bus_legs_for_year(self, user_id: int, year: int) -> list[BusLeg]:
+    def get_user_bus_legs_for_year(
+        self, user_id: int, year: int
+    ) -> list[BusLeg]:
         response = self.invoke_transport_api_get(
             f"/users/{user_id}/bus/legs/years/{year}"
         )

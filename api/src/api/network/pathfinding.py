@@ -6,14 +6,14 @@ from typing import Any, Optional, Sequence
 from networkx import MultiDiGraph
 from shapely import LineString, Point
 
-from api.classes.network.map import (
+from api.network.libraries.networkx import shortest_path
+from api.network.libraries.shapely import get_length
+from api.network.classes import (
     LegLineCall,
     LegLineGeometry,
     NetworkNode,
     NetworkNodePath,
 )
-from api.library.networkx import shortest_path
-from api.library.shapely import get_length
 from api.network.network import (
     get_edge_from_endpoints,
     merge_linestrings,
@@ -151,7 +151,7 @@ def get_leg_line_geometry_for_leg[T: LegLineCall](
             get_length(result[1]) if result[1] is not None else float("inf")
         ),
     )
-    (station_path, line_path) = shortest_path
+    station_path, line_path = shortest_path
     if line_path is None:
         return None
     return LegLineGeometry(station_path, line_path)

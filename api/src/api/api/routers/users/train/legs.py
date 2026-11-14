@@ -8,11 +8,11 @@ from api.api.lifespan import (
     get_network,
 )
 from api.api.pagination import Page
-from api.classes.network.geometry import TrainLegGeometry
 from api.db.functions.select.train.leg import (
     select_train_leg_points_by_user_id_fetchall,
 )
 from api.db.types.user.train.leg import TransportUserTrainLegOutData
+from api.network.classes import TrainLegGeometry
 from api.network.map import get_train_leg_geometries_for_leg_points
 from api.transform.train.legs import get_user_train_legs_in_range
 

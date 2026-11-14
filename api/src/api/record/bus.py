@@ -3,9 +3,6 @@ from typing import Optional
 
 from psycopg import Connection
 
-from api.classes.bus.journey import string_of_bus_call_in
-from api.classes.bus.stop import short_string_of_bus_stop_details
-from api.classes.interactive import PickSingle
 from api.data.bus.pages.bustimes import accept_bustimes_cookies
 from api.data.bus.pages.journey.classes import BustimesJourney
 from api.data.bus.pages.journey.reader import get_bustimes_journey
@@ -49,7 +46,8 @@ from api.db.types.user.user import TransportUserPublicOutData
 from api.record.classes import BustimesJourneyData
 from api.record.user import get_users_from_input
 from api.utils.database import connect_with_env
-from api.utils.interactive import (
+from api.utils.interactive.classes import PickSingle
+from api.utils.interactive.input import (
     get_choice_from_input_paginate,
     get_confirmation_from_input,
     get_day_from_input,
@@ -64,6 +62,14 @@ from api.utils.interactive import (
 
 def get_bustimes_url() -> str:
     return "https://bustimes.org"
+
+
+def short_string_of_bus_stop_details(bus_stop: BusStopDetails) -> str:
+    if bus_stop.indicator is None:
+        indicator_text = ""
+    else:
+        indicator_text = f" ({bus_stop.indicator})"
+    return f"{bus_stop.stop_name}{indicator_text}, {bus_stop.locality_name} ({bus_stop.atco_code})"
 
 
 def get_bus_stop_from_input(
@@ -96,6 +102,16 @@ def get_bus_stop_departure_from_input(
             return departure
         case _:
             return None
+
+
+def string_of_bus_call_in(bus_call: BusCallInData) -> str:
+    if bus_call.plan_arr is not None:
+        time_string = f" arr {bus_call.plan_arr.strftime('%H:%M')}"
+    else:
+        time_string = ""
+    if bus_call.plan_dep is not None:
+        time_string = f"{time_string} dep {bus_call.plan_dep.strftime('%H:%M')}"
+    return f"{bus_call.stop_name}{time_string}"
 
 
 def get_alight_call_and_index_from_input(

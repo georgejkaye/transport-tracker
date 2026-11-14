@@ -8,9 +8,9 @@ LANGUAGE sql
 AS
 $$
 SELECT
-    busmodel.bus_model_id,
-    busmodel.bus_model_name
-FROM busmodel
-WHERE LOWER(busmodel.bus_model_name)
+    bus_model.bus_model_id,
+    bus_model.bus_model_name
+FROM bus_model
+WHERE LOWER(bus_model.bus_model_name)
 LIKE '%' || LOWER(p_substring) || '%';
 $$;

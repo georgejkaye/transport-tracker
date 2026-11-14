@@ -7,7 +7,7 @@ from api.api.app import app
 from api.utils.environment import get_mandatory_env_variable
 
 
-def generate_openapi_file(openapi_json_file: str):
+def generate_openapi_file(openapi_json_file: str) -> None:
     openapi = get_openapi(
         title="Transport tracker",
         version=get_mandatory_env_variable("VERSION"),

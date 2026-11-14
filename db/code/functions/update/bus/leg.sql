@@ -8,11 +8,11 @@ RETURNS VOID
 LANGUAGE sql
 AS
 $$
-UPDATE busjourney
+UPDATE bus_journey
 SET bus_vehicle_id = p_bus_vehicle_id
 WHERE bus_journey_id = (
     SELECT bus_journey_id
-    FROM busleg
+    FROM bus_leg
     WHERE bus_leg_id = p_bus_leg_id
 );
 $$;

@@ -6,7 +6,7 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    INSERT INTO BusCall (
+    INSERT INTO bus_call (
         bus_journey_id,
         call_index,
         bus_stop_id,
@@ -18,8 +18,8 @@ BEGIN
         p_journey_id,
         v_call.call_index,
         (SELECT bus_stop_id
-        FROM BusStop
-        WHERE v_call.stop_atco = BusStop.atco_code),
+        FROM bus_stop
+        WHERE v_call.stop_atco = bus_stop.atco_code),
         v_call.plan_arr,
         v_call.act_arr,
         v_call.plan_dep,
@@ -37,7 +37,7 @@ $$
 DECLARE
     v_bus_journey_id INT;
 BEGIN
-    INSERT INTO BusJourney (
+    INSERT INTO bus_journey (
         bus_service_id,
         bus_vehicle_id
     ) VALUES (p_journey.service_id, p_journey.vehicle_id)

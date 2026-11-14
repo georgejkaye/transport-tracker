@@ -12,11 +12,10 @@ from networkx import MultiDiGraph
 from osmnx import settings as oxsettings
 from shapely import LineString, Point, geometry, ops
 
-from api.classes.train.station import StationPoint
 from api.db.types.train.station import (
     TrainStationPointsOutData,
 )
-from api.library.networkx import (
+from api.network.libraries.networkx import (
     add_edge,
     add_node,
     graph_from_place,
@@ -25,7 +24,8 @@ from api.library.networkx import (
     nearest_edges,
     project_graph,
 )
-from api.library.shapely import get_distance
+from api.network.libraries.shapely import get_distance
+from api.network.train import StationPoint
 
 coordinate_precision = 0.000001
 wgs84 = "EPSG:4326"
@@ -154,7 +154,7 @@ def get_edge_from_endpoints[T](
 
 
 def get_nearest_edge(network: MultiDiGraph[int], point: Point) -> EdgeDetails:
-    (source, target, _) = nearest_edges(network, point.x, point.y)
+    source, target, _ = nearest_edges(network, point.x, point.y)
     return get_edge_from_endpoints(network, source, target)
 
 
@@ -238,7 +238,7 @@ def insert_node_to_network(
             projected_network, {edge.target: id}
         )
     else:
-        (first_segment, second_segment) = split_linestring_at_point(
+        first_segment, second_segment = split_linestring_at_point(
             edge_geometry, point_on_edge
         )
         add_node(

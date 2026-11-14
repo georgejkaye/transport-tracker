@@ -6,16 +6,6 @@ from typing import Optional, Sequence, Tuple
 
 from psycopg import Connection
 
-from api.classes.interactive import PickMultiple, PickSingle, PickUnknown
-from api.classes.train.stock import (
-    StockReport,
-    StockSegment,
-    sort_by_classes,
-    sort_by_subclasses,
-    string_of_class,
-    string_of_class_and_subclass,
-    string_of_stock_report,
-)
 from api.data.train.api import RttApiManager
 from api.data.train.classes.gbnr.location import RttGbnrLocationService
 from api.data.train.classes.gbnr.service import (
@@ -59,6 +49,7 @@ from api.db.types.train.stock import (
     TrainStockOutData,
     TrainStockSubclassOutData,
 )
+from api.record.classes import StockReport, StockSegment
 from api.record.user import get_users_from_input
 from api.train.service.graph.builder import (
     build_service_graph,
@@ -71,7 +62,8 @@ from api.train.service.graph.classes import (
     ServiceGraphParentRelation,
 )
 from api.utils.database import connect_with_env
-from api.utils.interactive import (
+from api.utils.interactive.classes import PickMultiple, PickSingle, PickUnknown
+from api.utils.interactive.input import (
     get_choice_from_input,
     get_choice_from_input_paginate,
     get_choices_from_input,
@@ -211,15 +203,63 @@ class TrainRecorder:
             case _:
                 return None
 
+    def _sort_by_subclasses(
+        self,
+        stock: list[TrainStockSubclassOutData],
+    ) -> list[TrainStockSubclassOutData]:
+        return sorted(
+            stock,
+            key=lambda c: (
+                c.stock_subclass if c.stock_subclass is not None else -1
+            ),
+        )
+
+    def _string_of_class(self, stock_class: TrainStockOutData) -> str:
+        string = f"Class {stock_class.stock_class}"
+        if stock_class.stock_class_name is not None:
+            string = f"{string} ({stock_class.stock_class_name})"
+        return string
+
+    def _string_of_class_and_subclass(
+        self,
+        stock: TrainStockOutData,
+        subclass: TrainStockSubclassOutData,
+        name: bool = True,
+    ) -> str:
+        string = f"Class {stock.stock_class}"
+        if subclass.stock_subclass is not None:
+            string = f"{string}/{subclass.stock_subclass}"
+        if name:
+            if subclass.stock_subclass_name is not None:
+                string = f"{string} ({subclass.stock_subclass_name})"
+            elif stock.stock_class_name is not None:
+                string = f"{string} ({stock.stock_class_name})"
+        return string
+
+    def _sort_by_classes(
+        self,
+        stock: list[TrainStockOutData],
+    ) -> list[TrainStockOutData]:
+        return sorted(stock, key=lambda x: x.stock_class)
+
+    def _string_of_stock_report(self, report: StockReport) -> str:
+        if report.class_no is None:
+            return "Unknown"
+        if report.subclass_no is not None:
+            return str(report.stock_no)
+        if report.subclass_no is None:
+            return f"Class {report.class_no}"
+        return f"Class {report.class_no}/{report.subclass_no}"
+
     def _get_unit_class_from_input(
         self,
         operator_stock: list[TrainStockOutData],
     ) -> Optional[PickUnknown | PickSingle[TrainStockOutData]]:
         chosen_class = get_choice_from_input(
             "Class number",
-            sort_by_classes(operator_stock),
+            self._sort_by_classes(operator_stock),
             unknown=True,
-            display=string_of_class,
+            display=self._string_of_class,
         )
         match chosen_class:
             case None:
@@ -240,10 +280,10 @@ class TrainRecorder:
         else:
             chosen_subclass = get_choice_from_input(
                 "Subclass no",
-                sort_by_subclasses(stock.stock_subclasses),
+                self._sort_by_subclasses(stock.stock_subclasses),
                 unknown=True,
                 cancel=False,
-                display=lambda c: string_of_class_and_subclass(stock, c),
+                display=lambda c: self._string_of_class_and_subclass(stock, c),
             )
             match chosen_subclass:
                 case None:
@@ -275,7 +315,7 @@ class TrainRecorder:
     ) -> PickUnknown | PickSingle[int] | None:
         if len(stock_subclass.stock_cars) == 1:
             print_information(
-                f"{string_of_class_and_subclass(stock_class, stock_subclass, name=False)} always has {stock_subclass.stock_cars[0]} cars"
+                f"{self._string_of_class_and_subclass(stock_class, stock_subclass, name=False)} always has {stock_subclass.stock_cars[0]} cars"
             )
             return PickSingle(stock_subclass.stock_cars[0])
         result = get_choice_from_input(
@@ -512,7 +552,7 @@ class TrainRecorder:
                     result = get_choices_from_input(
                         "Which units remain",
                         previous_stock_segment_stock,
-                        string_of_stock_report,
+                        self._string_of_stock_report,
                     )
                     match result:
                         case None:

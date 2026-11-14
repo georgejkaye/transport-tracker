@@ -5,7 +5,7 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    INSERT INTO BusService (
+    INSERT INTO bus_service (
         bus_operator_id,
         bods_line_id,
         service_line,
@@ -14,7 +14,7 @@ BEGIN
     ) SELECT
         (
             SELECT bus_operator_id
-            FROM BusOperator
+            FROM bus_operator
             WHERE national_operator_code
                 = v_service.service_operator_national_code
         ),
@@ -34,14 +34,14 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    INSERT INTO BusServiceVia (
+    INSERT INTO bus_service_via (
         bus_service_id,
         is_outbound,
         via_name,
         via_index
     ) SELECT
         (SELECT bus_service_id
-        FROM BusService
+        FROM bus_service
         WHERE bods_line_id = v_via.bods_line_id),
         v_via.is_outbound,
         v_via.via_name,

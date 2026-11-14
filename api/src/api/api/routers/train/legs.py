@@ -6,13 +6,13 @@ from api.api.lifespan import (
     get_network,
     get_train_operator_brand_colour,
 )
-from api.classes.network.geometry import TrainLegGeometry
 from api.db.functions.select.train.leg import (
     select_train_leg_by_id_fetchone,
     select_train_leg_points_by_leg_id_fetchone,
     select_train_leg_points_by_leg_ids_fetchall,
 )
 from api.db.types.train.leg import TrainLegOutData
+from api.network.classes import TrainLegGeometry
 from api.network.map import (
     get_leg_map_page_by_leg_id,
     get_train_leg_geometries_for_leg_points,
