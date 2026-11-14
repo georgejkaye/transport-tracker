@@ -24,6 +24,20 @@ jobs:
         id: version
         uses: gittools/actions/gitversion/execute@v4.7.0
 
+      - name: Check for data scripts
+        id: data
+        run: |
+          if [ ! -d db/data ]; then
+            echo "::error::db/data directory does not exist"
+            exit 1
+          fi
+          sql_file=$(find db/data -maxdepth 1 -type f -name '*.sql' -print -quit)
+          if [ -n "$sql_file" ]; then
+            echo "has_db_data=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_db_data=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Rebuild the docker image
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -42,9 +56,11 @@ jobs:
                 -d
 
       - name: Delete db data scripts
-        run: rm db/data/*sql
+        if: steps.data.outputs.has_db_data == 'true'
+        run: rm db/data/*.sql
 
       - name: Commit data script removal
+        if: steps.data.outputs.has_db_data == 'true'
         uses: EndBug/add-and-commit@v11.1.1
         with:
           add: db/data
@@ -53,6 +69,14 @@ jobs:
           tag: v${{ steps.version.outputs.fullSemVer }}
           author_name: "github-actions[bot]"
           author_email: "github-actions[bot]@users.noreply.github.com"
+
+      - name: Tag current commit
+        if: steps.data.outputs.has_db_data == 'false'
+        env:
+          VERSION_TAG: v${{ steps.version.outputs.fullSemVer }}
+        run: |
+          git tag "$VERSION_TAG"
+          git push origin "$VERSION_TAG"
 
       - name: Create release
         uses: actions/create-release@v1
