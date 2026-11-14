@@ -157,8 +157,8 @@ dmypy.json
 
 db/scripts/dump.pgdata
 cache
-*.gml
-.populate
+.volume
+api/data
 
 # Generated db code
 

@@ -9,6 +9,21 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     steps:
+      - name: Check out repo
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ssh-key: ${{ secrets.DEPLOY_TOKEN }}
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v4.7.0
+        with:
+          versionSpec: 6.8.x
+
+      - name: Get version
+        id: version
+        uses: gittools/actions/gitversion/execute@v4.7.0
+
       - name: Rebuild the docker image
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -19,4 +34,26 @@ jobs:
           script: |
             cd ${{ vars.PROJECT_ROOT }}
             git pull
+            ./deploy/db.sql
             VERSION=$(gitversion -showvariable FullSemVer) docker compose -f docker-compose.deploy.yml up --build -d
+
+      - name: Delete db data scripts
+        run: rm db/data/*sql
+
+      - name: Commit data script removal
+        uses: EndBug/add-and-commit@v11.1.1
+        with:
+          add: db/data
+          message: "ci: remove rolled data scripts"
+          commit: "--cleanup=verbatim"
+          tag: v${{ steps.version.outputs.fullSemVer }}
+          author_name: "github-actions[bot]"
+          author_email: "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.fullSemVer }}
+          release_name: v${{ steps.version.outputs.fullSemVer }}
