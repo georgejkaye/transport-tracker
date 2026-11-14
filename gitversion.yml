@@ -1,0 +1,11 @@
+mode: ContinuousDeployment
+assembly-version-scheme: MajorMinorPath
+tag-prefix: 'v'
+branches:
+  main:
+    regex: ^main$
+    increment: Patch
+next-version: v0.0.0
+major-version-bump-message: "^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\\([\\w\\s-,/\\\\]*\\))?(!:|:.*\\n\\n((.+\\n)+\\n)?BREAKING CHANGE:\\s.+)"
+minor-version-bump-message: "^(feat|revert)(\\([\\w\\s-,/\\\\]*\\))?:"
+patch-version-bump-message: "^(build|refactor|ci|fix|perf|test|docs|chore|style)(\\([\\w\\s-,/\\\\]*\\))?:"
