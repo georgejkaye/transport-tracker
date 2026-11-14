@@ -1,13 +1,18 @@
-from typing import Any, Optional, cast
+from typing import Any, Callable, Optional, cast
 
 from questionary import Choice, confirm, select, text
 
 from api.utils.interactive.classes import PickChoice
 
 
-def ask_text_question(message: str, default: str) -> Optional[str]:
+def ask_text_question(
+    message: str, default: str, validate: Callable[[str], bool] = lambda _: True
+) -> Optional[str]:
     return cast(
-        Optional[str], cast(Any, text)(message=message, default=default).ask()
+        Optional[str],
+        cast(Any, text)(
+            message=message, default=default, validate=validate
+        ).ask(),
     )
 
 
