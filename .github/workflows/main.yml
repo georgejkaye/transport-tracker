@@ -34,7 +34,6 @@ jobs:
           script: |
             cd ${{ vars.PROJECT_ROOT }}
             git pull
-            ./deploy/db.sql
             VERSION=$(gitversion -showvariable FullSemVer) docker compose -f docker-compose.deploy.yml up --build -d
 
       - name: Delete db data scripts
