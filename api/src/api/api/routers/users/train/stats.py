@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 
 from api.api.lifespan import get_db_connection
-from api.classes.train.stats import TrainStats
+from api.stats.classes.train import TrainStats
 from api.stats.train import get_train_stats
 
 router = APIRouter(prefix="/stats", tags=["users/train/stats"])

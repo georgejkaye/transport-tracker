@@ -4,20 +4,17 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
 from api.api.lifespan import get_db_connection, get_network
-from api.classes.network.map import (
-    LegLine,
-    MarkerTextParams,
-)
-from api.classes.train.station import DbTrainStationPointPointsOutData
 from api.db.functions.select.train.station import (
     select_train_station_points_by_crses_fetchall,
 )
+from api.network.classes import LegLine, MarkerTextParams
 from api.network.map import (
     LegData,
     get_leg_map,
     get_leg_map_page_from_leg_data,
 )
 from api.network.pathfinding import find_shortest_path_between_network_nodes
+from api.network.train import DbTrainStationPointPointsOutData
 
 router = APIRouter(prefix="/train", tags=["utils/train"])
 

@@ -16,7 +16,7 @@ from api.network.network import (
     wgs84,
 )
 from api.utils.database import connect_with_env
-from api.utils.interactive import get_confirmation_from_input
+from api.utils.interactive.input import get_confirmation_from_input
 
 input = get_confirmation_from_input("Download network?", default=False)
 

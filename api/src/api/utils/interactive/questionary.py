@@ -2,7 +2,7 @@ from typing import Any, Optional, cast
 
 from questionary import Choice, confirm, select, text
 
-from api.classes.interactive import PickChoice
+from api.utils.interactive.classes import PickChoice
 
 
 def ask_text_question(message: str, default: str) -> Optional[str]:

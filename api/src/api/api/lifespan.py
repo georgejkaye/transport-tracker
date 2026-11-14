@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from typing import AsyncGenerator, Optional
 
 from fastapi import FastAPI
 from networkx import MultiDiGraph
 from psycopg import Connection
 
-from api.classes.train.operators import OperatorBrandLookup
 from api.data.train.clients.api import RttApiClient
 from api.db.functions.select.train.operator import (
     select_train_operator_details_fetchall,
@@ -18,6 +18,13 @@ from api.db.types.train.operator import (
 )
 from api.library.networkx import load_osmnx_graphml
 from api.utils.environment import get_env_variable, get_secret
+
+
+@dataclass
+class OperatorBrandLookup:
+    operators: dict[int, TrainOperatorDetailsOutData]
+    brands: dict[int, TrainOperatorDetailsOutData]
+
 
 network_path = get_env_variable("NETWORK_PATH")
 

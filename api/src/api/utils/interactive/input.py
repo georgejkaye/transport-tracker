@@ -6,14 +6,14 @@ from typing import Callable, Optional
 from questionary import Choice, checkbox, text
 from termcolor import colored
 
-from api.classes.interactive import (
+from api.utils.interactive.classes import (
     PickCancel,
     PickChoice,
     PickMultiple,
     PickSingle,
     PickUnknown,
 )
-from api.library.questionary import (
+from api.utils.interactive.questionary import (
     ask_bool_question,
     ask_select_question,
 )
