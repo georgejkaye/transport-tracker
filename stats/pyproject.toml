@@ -22,6 +22,7 @@ dependencies = [
 mypy = "^1.19.1"
 ruff = "^0.14.10"
 types-requests = "^2.32.4.20250913"
+pandas-stubs = "^3.1.0.261029"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
