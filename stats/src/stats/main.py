@@ -1,9 +1,6 @@
 import sys
-from datetime import date
-from os import rename
 from typing import Any
 
-import matplotlib.pyplot as plt
 import pandas as pd
 from stats.client import ApiClient
 
@@ -59,15 +56,21 @@ def main(base_url: str):
     train_df_total = round_datetime_column(df, "duration")
     train_df_total["delay"] = train_df_total["delay"].round(1)
     train_df_total = add_month_column(train_df_total, "start_datetime")
-    df_month = group_by(df[["month", "distance", "duration", "delay"]], "month").agg(
-        {"month": "count", "distance": aggs, "duration": aggs, "delay": aggs}
-    )
-    df_month.loc[:, ("distance", "mean_str")] = df_month["distance"]["mean"].round(4)
-    df_month.loc[:, ("distance", "median_str")] = df_month["distance"]["median"].round(
-        4
-    )
-    df_month.loc[:, ("distance", "min_str")] = df_month["distance"]["min"].round(4)
-    df_month.loc[:, ("distance", "max_str")] = df_month["distance"]["max"].round(4)
+    df_month = group_by(
+        df[["month", "distance", "duration", "delay"]], "month"
+    ).agg({"month": "count", "distance": aggs, "duration": aggs, "delay": aggs})
+    df_month.loc[:, ("distance", "mean_str")] = df_month["distance"][
+        "mean"
+    ].round(4)
+    df_month.loc[:, ("distance", "median_str")] = df_month["distance"][
+        "median"
+    ].round(4)
+    df_month.loc[:, ("distance", "min_str")] = df_month["distance"][
+        "min"
+    ].round(4)
+    df_month.loc[:, ("distance", "max_str")] = df_month["distance"][
+        "max"
+    ].round(4)
     df_month.loc[:, ("delay", "mean_str")] = (
         df_month["delay"]["mean"].round(0).astype("int")
     )
@@ -103,8 +106,12 @@ def main(base_url: str):
             "max_str": "max",
         }
     )
-    df_month_distance = add_column_suffix(df_train_month_strs, "distance", "_distance")
-    df_month_duration = add_column_suffix(df_train_month_strs, "duration", "_duration")
+    df_month_distance = add_column_suffix(
+        df_train_month_strs, "distance", "_distance"
+    )
+    df_month_duration = add_column_suffix(
+        df_train_month_strs, "duration", "_duration"
+    )
     df_month_delay = add_column_suffix(df_train_month_strs, "delay", "_delay")
 
     train_df_month = (
@@ -136,7 +143,10 @@ def main(base_url: str):
         bus_df_month_agg, "duration", "_duration"
     )
     bus_df_month = (
-        bus_df.groupby("month").size().to_frame("count").join(bus_df_month_agg_duration)
+        bus_df.groupby("month")
+        .size()
+        .to_frame("count")
+        .join(bus_df_month_agg_duration)
     )
     return (train_df_total, train_df_month, bus_df_total, bus_df_month)
 
