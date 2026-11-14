@@ -4,7 +4,7 @@ from api.db.functions.select.bus.operator import (
     select_bus_operator_details_by_name_fetchall,
 )
 from api.db.functions.update.bus.leg import update_bus_leg_vehicle
-from api.record.bus import get_and_insert_new_bus_vehicle_from_input
+from api.record.bus.bus.bus import get_and_insert_new_bus_vehicle_from_input
 from api.utils.database import connect_with_env
 from api.utils.interactive.classes import PickSingle
 from api.utils.interactive.input import (
