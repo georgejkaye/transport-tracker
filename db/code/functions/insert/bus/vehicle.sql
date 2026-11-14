@@ -74,7 +74,7 @@ RETURNS insert_bus_vehicle_result
 LANGUAGE sql
 AS
 $$
-INSERT INTO busvehicle (
+INSERT INTO bus_vehicle (
     bus_operator_id,
     vehicle_identifier,
     bustimes_id,
