@@ -4,13 +4,13 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
+from api.network.nodes import get_node_id_from_crs_and_platform
 from shapely import LineString, Point
 
 from api.db.types.train.leg import (
     TrainLegCallPointOutData,
     TrainLegCallPointsOutData,
 )
-from api.network.train import get_node_id_from_crs_and_platform
 
 
 @dataclass
