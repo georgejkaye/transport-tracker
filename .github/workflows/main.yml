@@ -64,7 +64,7 @@ jobs:
         uses: EndBug/add-and-commit@v11.1.1
         with:
           add: db/data
-          message: "ci: remove rolled data scripts\n\nskip-checks: true"
+          message: "ci: remove rolled data scripts\n\n\nskip-checks: true"
           commit: "--cleanup=verbatim"
           tag: v${{ steps.version.outputs.fullSemVer }}
           author_name: "github-actions[bot]"
