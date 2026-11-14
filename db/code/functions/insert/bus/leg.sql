@@ -10,7 +10,7 @@ DECLARE
     v_bus_leg_id INTEGER_NOTNULL := 0;
 BEGIN
     SELECT insert_bus_journey(p_leg.journey) INTO v_bus_journey_id;
-    INSERT INTO BusLeg (
+    INSERT INTO bus_leg (
         bus_journey_id,
         board_call_index,
         alight_call_index

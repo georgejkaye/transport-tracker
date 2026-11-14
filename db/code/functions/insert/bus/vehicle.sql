@@ -10,7 +10,7 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    INSERT INTO BusModel (bus_model_name)
+    INSERT INTO bus_model (bus_model_name)
     SELECT v_model.model_name
     FROM UNNEST(p_models) AS v_model
     ON CONFLICT DO NOTHING;
@@ -24,7 +24,7 @@ LANGUAGE plpgsql
 AS
 $$
 BEGIN
-    INSERT INTO BusVehicle (
+    INSERT INTO bus_vehicle (
         operator_id,
         vehicle_number,
         bustimes_id,
@@ -39,7 +39,7 @@ BEGIN
         v_vehicle.bustimes_id,
         v_vehicle.vehicle_numberplate,
         (SELECT bus_model_id
-        FROM BusModel
+        FROM bus_model
         WHERE bus_model_name = v_vehicle.vehicle_model),
         v_vehicle.vehicle_livery_style,
         v_vehicle.vehicle_name
