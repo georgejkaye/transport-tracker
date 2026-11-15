@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from api.record.bus.stop import get_stop_name_variations
+from api.record.bus.vehicle import get_and_insert_new_bus_vehicle_from_input
 from psycopg import Connection
 
 from api.data.bus.pages.bustimes import accept_bustimes_cookies
@@ -19,8 +20,6 @@ from api.data.bus.pages.stop.reader import (
 from api.data.bus.pages.trip.reader import get_bus_trip
 from api.data.selenium.driver import Driver, DriverManager
 from api.db.functions.insert.bus.leg import insert_bus_leg_fetchone
-from api.db.functions.insert.bus.vehicle import insert_bus_vehicle_fetchone
-from api.db.functions.select.bus.model import select_bus_models_by_name_fetchall
 from api.db.functions.select.bus.operator import (
     select_bus_operator_details_by_national_operator_code_fetchone,
 )
@@ -31,7 +30,6 @@ from api.db.functions.select.bus.stop import (
     select_bus_stop_details_by_names_fetchall,
 )
 from api.db.functions.select.bus.vehicle import (
-    select_bus_vehicle_details_by_bus_vehicle_id_fetchone,
     select_bus_vehicle_details_fetchall,
 )
 from api.db.types.bus.journey import (
@@ -312,58 +310,6 @@ def get_board_datetime() -> Optional[tuple[datetime, timedelta]]:
     else:
         datetime_offset = timedelta(0)
     return (board_datetime, datetime_offset)
-
-
-def get_and_insert_new_bus_vehicle_from_input(
-    conn: Connection,
-    bus_operator_id: int,
-    vehicle_identifier: Optional[str] = None,
-) -> Optional[BusVehicleDetails]:
-    model_search_string = get_text_from_input("Search for model", min_length=1)
-    if model_search_string is None:
-        print_error("No model search string provided")
-        return None
-    models = select_bus_models_by_name_fetchall(conn, model_search_string)
-    model_choice = get_choice_from_input_paginate(
-        "Model", models, lambda model: model.model_name
-    )
-    match model_choice:
-        case PickSingle(model):
-            pass
-        case _:
-            print_error("Could not get model")
-            return None
-    vehicle_identifier = get_text_from_input(
-        "Vehicle identifier", default=vehicle_identifier
-    )
-    numberplate = get_text_from_input("Numberplate", min_length=1)
-    if numberplate is None:
-        print_error("Numberplate is required")
-        return None
-    vehicle_name = get_text_from_input("Vehicle name")
-    bustimes_id = get_text_from_input("Bustimes id", min_length=1)
-    if bustimes_id is None:
-        print_error("Bustimes id is required")
-        return None
-    insert_bus_vehicle_result = insert_bus_vehicle_fetchone(
-        conn,
-        bus_operator_id,
-        vehicle_identifier,
-        bustimes_id,
-        numberplate,
-        model.bus_model_id,
-        None,
-        vehicle_name,
-    )
-    if insert_bus_vehicle_result is None:
-        print_error("Could not insert bus vehicle")
-        return None
-    print_information(
-        f"Inserted bus vehicle {insert_bus_vehicle_result.bus_vehicle_id}"
-    )
-    return select_bus_vehicle_details_by_bus_vehicle_id_fetchone(
-        conn, insert_bus_vehicle_result.bus_vehicle_id
-    )
 
 
 def get_bus_vehicle_from_bustimes_data(
