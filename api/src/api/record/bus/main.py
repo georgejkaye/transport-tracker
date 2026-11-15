@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
+from api.record.bus.stop import get_stop_name_variations
 from psycopg import Connection
 
 from api.data.bus.pages.bustimes import accept_bustimes_cookies
@@ -27,7 +28,7 @@ from api.db.functions.select.bus.service import (
     select_bus_service_details_by_operator_id_and_line_name_fetchone,
 )
 from api.db.functions.select.bus.stop import (
-    select_bus_stop_details_by_name_fetchall,
+    select_bus_stop_details_by_names_fetchall,
 )
 from api.db.functions.select.bus.vehicle import (
     select_bus_vehicle_details_by_bus_vehicle_id_fetchone,
@@ -78,7 +79,8 @@ def get_bus_stop_from_input(
     search_string = get_text_from_input("Bus stop name")
     if search_string is None:
         return None
-    bus_stops = select_bus_stop_details_by_name_fetchall(conn, search_string)
+    search_strings = get_stop_name_variations(search_string)
+    bus_stops = select_bus_stop_details_by_names_fetchall(conn, search_strings)
     bus_stop_choice = get_choice_from_input_paginate(
         "Select bus stop", bus_stops, display=short_string_of_bus_stop_details
     )
