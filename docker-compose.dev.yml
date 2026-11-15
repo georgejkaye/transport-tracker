@@ -7,10 +7,10 @@ services:
       context: db/setup
       dockerfile: Dockerfile
     environment:
-      DB_HOST: ${DB_HOST}
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PORT: ${DB_PORT:-5432}
+      DB_HOST: ${REMOTE_DB_HOST}
+      DB_NAME: ${REMOTE_DB_NAME}
+      DB_USER: ${REMOTE_DB_USER}
+      DB_PORT: ${REMOTE_DB_PORT:-5432}
       DB_PASSWORD_SECRET_FILE: /run/secrets/remote_db_secret
     volumes:
       - ./db/.volume:/volume
