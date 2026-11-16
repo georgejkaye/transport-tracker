@@ -2318,14 +2318,14 @@ wsproto = ">=0.14"
 
 [[package]]
 name = "types-geopandas"
-version = "1.1.4.20261006"
+version = "1.2.0.20261107"
 description = "Typing stubs for geopandas"
 optional = false
 python-versions = ">=3.10"
 groups = ["dev"]
 files = [
-    {file = "types_geopandas-1.1.4.20261006-py3-none-any.whl", hash = "sha256:6689210f1273b10d6ba0ed10f611b338f75845145f575133484421f15c98511e"},
-    {file = "types_geopandas-1.1.4.20261006.tar.gz", hash = "sha256:0b23c70557ae5a2878f9f4159bcf58b7f7c4b2f99673cbb0fb720c08fba8131e"},
+    {file = "types_geopandas-1.2.0.20261107-py3-none-any.whl", hash = "sha256:85c46b5b1fd68de8d7b9bcd82051b7c2b0371dccb7d37b1360ec07e8cf19e027"},
+    {file = "types_geopandas-1.2.0.20261107.tar.gz", hash = "sha256:3494457e9f9a21462812390ce271af8660a1061d7d503171d94d212e8b7df1e1"},
 ]
 
 [package.dependencies]
