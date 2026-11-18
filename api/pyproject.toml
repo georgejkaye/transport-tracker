@@ -31,7 +31,7 @@ email-validator = "^2.3.0"
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.6.0"
 types-requests = "^2.31.0.2"
-types-pytz = "^2025.2.0.20250516"
+types-pytz = ">=2025.2.0.20250516,<2027.0.0.0"
 types-shapely = "^2.1.0.20250512"
 types-geopandas = "^1.0.1.20250601"
 types-networkx = "^3.5.0.20250918"
