@@ -1,21 +1,23 @@
 DROP TYPE IF EXISTS bus_leg_service_details CASCADE;
 DROP TYPE IF EXISTS bus_call_details CASCADE;
 DROP TYPE IF EXISTS bus_leg_user_details CASCADE;
+DROP TYPE IF EXISTS bus_leg_user_summary_notnull CASCADE;
+DROP TYPE IF EXISTS bus_leg_bus_stop CASCADE;
 
 DROP TYPE IF EXISTS insert_bus_leg_result CASCADE;
 
 DROP DOMAIN IF EXISTS bus_leg_service_details_notnull CASCADE;
 DROP DOMAIN IF EXISTS bus_call_details_notnull CASCADE;
 DROP DOMAIN IF EXISTS bus_leg_user_details_notnull CASCADE;
+DROP DOMAIN IF EXISTS bus_leg_user_summary_notnull CASCADE;
+DROP DOMAIN IF EXISTS bus_leg_bus_stop_notnull CASCADE;
 
 CREATE TYPE bus_leg_service_details AS (
     service_id INTEGER_NOTNULL,
     service_line TEXT,
     bus_operator bus_operator_details,
     outbound_description TEXT,
-    inbound_description TEXT,
-    bg_colour TEXT,
-    fg_colour TEXT
+    inbound_description TEXT
 );
 
 CREATE DOMAIN bus_leg_service_details_notnull
@@ -48,3 +50,25 @@ AS bus_leg_user_details NOT NULL;
 CREATE TYPE insert_bus_leg_result AS (
     bus_leg_id INTEGER_NOTNULL
 );
+
+CREATE TYPE bus_leg_bus_stop AS (
+    atco_code TEXT_NOTNULL,
+    locality TEXT_NOTNULL,
+    name TEXT_NOTNULL,
+    indicator TEXT
+);
+
+CREATE DOMAIN bus_leg_bus_stop_notnull
+AS bus_leg_bus_stop NOT NULL;
+
+CREATE TYPE bus_leg_user_summary AS (
+    leg_id INTEGER_NOTNULL,
+    leg_start TIMESTAMP_NOTNULL,
+    board_stop
+    service bus_leg_service_details_notnull,
+    vehicle bus_vehicle_details_notnull,
+    duration INTERVAL
+);
+
+CREATE DOMAIN bus_leg_user_summary_notnull
+AS bus_leg_user_summary NOT NULL;

@@ -106,6 +106,81 @@ WHERE bus_call.call_index >= BoardCall.call_index
 AND bus_call.call_index <= AlightCall.call_index
 GROUP BY bus_stop.bus_stop_id, transport_user_bus_leg.user_id;
 
+CREATE OR REPLACE VIEW bus_leg_user_summary_view AS
+SELECT
+    bus_leg.bus_leg_id AS leg_id,
+    bus_leg_start.leg_start,
+    transport_user_bus_leg.user_id,
+    (
+        bus_service.bus_service_id,
+        bus_service.service_line,
+        (
+            bus_operator.bus_operator_id,
+            bus_operator.operator_name,
+            bus_operator.national_operator_code,
+            bus_operator.bg_colour,
+            bus_operator.fg_colour
+        )::bus_operator_details,
+        bus_service.description_outbound,
+        bus_service.description_inbound,
+        bus_service.bg_colour,
+        bus_service.fg_colour
+    )::bus_leg_service_details AS leg_service,
+    (
+        bus_vehicle.bus_vehicle_id,
+        (
+            BusVehicleOperator.bus_operator_id,
+            BusVehicleOperator.operator_name,
+            BusVehicleOperator.national_operator_code,
+            BusVehicleOperator.bg_colour,
+            BusVehicleOperator.fg_colour
+        )::bus_operator_details,
+        bus_vehicle.vehicle_identifier,
+        bus_vehicle.bustimes_id,
+        bus_vehicle.numberplate,
+        bus_model.bus_model_name,
+        bus_vehicle.livery_style,
+        bus_vehicle.vehicle_name
+    )::bus_vehicle_details AS leg_vehicle,
+    COALESCE(
+        BusLegCall.leg_calls[array_upper(BusLegCall.leg_calls, 1)].act_arr,
+        BusLegCall.leg_calls[array_upper(BusLegCall.leg_calls, 1)].plan_arr,
+        BusLegCall.leg_calls[array_upper(BusLegCall.leg_calls, 1)].act_dep,
+        BusLegCall.leg_calls[array_upper(BusLegCall.leg_calls, 1)].plan_dep
+    ) - COALESCE(
+            BusLegCall.leg_calls[1].act_arr,
+            BusLegCall.leg_calls[1].plan_arr,
+            BusLegCall.leg_calls[1].act_dep,
+            BusLegCall.leg_calls[1].plan_dep
+    ) AS leg_duration
+FROM transport_user_bus_leg
+INNER JOIN bus_leg
+ON transport_user_bus_leg.bus_leg_id = bus_leg.bus_leg_id
+INNER JOIN bus_journey
+ON bus_leg.bus_journey_id = bus_journey.bus_journey_id
+INNER JOIN bus_service
+ON bus_journey.bus_service_id = bus_service.bus_service_id
+INNER JOIN bus_operator
+ON bus_service.bus_operator_id = bus_operator.bus_operator_id
+INNER JOIN bus_vehicle
+ON bus_journey.bus_vehicle_id = bus_vehicle.bus_vehicle_id
+INNER JOIN bus_operator BusVehicleOperator
+ON bus_vehicle.bus_operator_id = BusVehicleOperator.bus_operator_id
+INNER JOIN bus_model
+ON bus_vehicle.bus_model_id = bus_model.bus_model_id
+INNER JOIN (
+    SELECT
+        bus_leg_id,
+        COALESCE(bus_call.plan_dep, bus_call.plan_arr) AS leg_start
+    FROM bus_leg
+    INNER JOIN bus_journey
+    ON bus_leg.bus_journey_id = bus_journey.bus_journey_id
+    INNER JOIN bus_call
+    ON bus_call.bus_journey_id = bus_journey.bus_journey_id
+    AND bus_call.call_index = bus_leg.board_call_index
+) bus_leg_start
+ON bus_leg.bus_leg_id = bus_leg_start.bus_leg_id;
+
 CREATE OR REPLACE VIEW bus_leg_user_details_view AS
 SELECT
     bus_leg.bus_leg_id AS leg_id,
