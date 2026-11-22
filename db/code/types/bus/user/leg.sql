@@ -23,7 +23,6 @@ AS bus_leg_service_details NOT NULL;
 
 CREATE TYPE bus_call_details AS (
     bus_call_id INTEGER_NOTNULL,
-    call_index INT,
     bus_stop bus_call_stop_details,
     plan_arr TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
