@@ -13,9 +13,7 @@ CREATE TYPE bus_leg_service_details AS (
     service_line TEXT,
     bus_operator bus_operator_details,
     outbound_description TEXT,
-    inbound_description TEXT,
-    bg_colour TEXT,
-    fg_colour TEXT
+    inbound_description TEXT
 );
 
 CREATE DOMAIN bus_leg_service_details_notnull

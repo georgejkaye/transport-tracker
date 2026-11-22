@@ -27,10 +27,7 @@ CREATE TYPE bus_stop_user_details AS (
     indicator TEXT,
     bearing TEXT,
     locality_name TEXT,
-    parent_locality_name TEXT,
-    grandparent_locality_name TEXT,
     town_name TEXT,
-    suburb_name TEXT,
     latitude DECIMAL,
     longitude DECIMAL,
     stop_legs bus_stop_leg_details[]

@@ -15,9 +15,7 @@ AS bus_operator_in_data NOT NULL;
 CREATE TYPE bus_operator_details AS (
     bus_operator_id INTEGER_NOTNULL,
     operator_name TEXT_NOTNULL,
-    national_operator_code TEXT_NOTNULL,
-    bg_colour TEXT,
-    fg_colour TEXT
+    national_operator_code TEXT_NOTNULL
 );
 
 CREATE DOMAIN bus_operator_details_notnull

@@ -17,20 +17,81 @@ SELECT
     bus_stop.indicator,
     bus_stop.bearing,
     bus_stop.locality_name,
-    bus_stop.parent_locality_name,
-    bus_stop.grandparent_locality_name,
     bus_stop.town_name,
-    bus_stop.suburb_name,
     bus_stop.latitude,
     bus_stop.longitude,
     COALESCE(
-        bus_stop_leg_details_view.stop_user_legs,
+        stop_leg_details.stop_user_legs,
         ARRAY[]::bus_stop_leg_details[]
     )
 FROM bus_stop
-LEFT JOIN bus_stop_leg_details_view
-ON bus_stop.bus_stop_id = bus_stop_leg_details_view.bus_stop_id
-AND bus_stop_leg_details_view.user_id = p_user_id
+LEFT JOIN LATERAL (
+    SELECT ARRAY_AGG((
+        bus_leg_id,
+        (
+            bus_service_id,
+            service_line,
+            (
+                bus_operator_id,
+                operator_name,
+                national_operator_code
+            )::bus_operator_details,
+            description_outbound,
+            description_inbound
+        )::bus_leg_service_details,
+        (
+            board_call_id,
+            (
+                board_stop_id,
+                board_atco_code,
+                board_stop_name,
+                board_locality_name,
+                board_street_name,
+                board_indicator
+            )::bus_call_stop_details,
+            board_plan_arr,
+            board_act_arr,
+            board_plan_dep,
+            board_act_dep
+        )::bus_call_details,
+        (
+            alight_call_id,
+            (
+                alight_stop_id,
+                alight_atco_code,
+                alight_stop_name,
+                alight_locality_name,
+                alight_street_name,
+                alight_indicator
+            )::bus_call_stop_details,
+            alight_plan_arr,
+            alight_act_arr,
+            alight_plan_dep,
+            alight_act_dep
+        )::bus_call_details,
+        (
+            bus_call_id,
+            (
+                bus_stop_id,
+                atco_code,
+                stop_name,
+                locality_name,
+                street_name,
+                indicator
+            )::bus_call_stop_details,
+            plan_arr,
+            act_arr,
+            plan_dep,
+            act_dep
+        )::bus_call_details,
+        stops_before,
+        stops_after
+    )::bus_stop_leg_details ORDER BY effective_time)
+    AS stop_user_legs
+    FROM transport_user_bus_stop_view
+    WHERE bus_stop_id = bus_stop.bus_stop_id
+    AND user_id = p_user_id
+) stop_leg_details ON TRUE
 WHERE bus_stop.bus_stop_id = p_stop_id;
 $$;
 
@@ -53,20 +114,79 @@ SELECT
     bus_stop.indicator,
     bus_stop.bearing,
     bus_stop.locality_name,
-    bus_stop.parent_locality_name,
-    bus_stop.grandparent_locality_name,
     bus_stop.town_name,
-    bus_stop.suburb_name,
     bus_stop.latitude,
     bus_stop.longitude,
-    COALESCE(
-        bus_stop_leg_details_view.stop_user_legs,
-        ARRAY[]::bus_stop_leg_details[]
-    )
+    COALESCE(stop_leg_details.stop_user_legs,
+        ARRAY[]::bus_stop_leg_details[])
 FROM bus_stop
-LEFT JOIN bus_stop_leg_details_view
-ON bus_stop.bus_stop_id = bus_stop_leg_details_view.bus_stop_id
-AND bus_stop_leg_details_view.user_id = p_user_id
+LEFT JOIN LATERAL (
+    SELECT ARRAY_AGG((
+        bus_leg_id,
+        (
+            bus_service_id,
+            service_line,
+            (
+                bus_operator_id,
+                operator_name,
+                national_operator_code
+            )::bus_operator_details,
+            description_outbound,
+            description_inbound
+        )::bus_leg_service_details,
+        (
+            board_call_id,
+            (
+                board_stop_id,
+                board_atco_code,
+                board_stop_name,
+                board_locality_name,
+                board_street_name,
+                board_indicator
+            )::bus_call_stop_details,
+            board_plan_arr,
+            board_act_arr,
+            board_plan_dep,
+            board_act_dep
+        )::bus_call_details,
+        (
+            alight_call_id,
+            (
+                alight_stop_id,
+                alight_atco_code,
+                alight_stop_name,
+                alight_locality_name,
+                alight_street_name,
+                alight_indicator
+            )::bus_call_stop_details,
+            alight_plan_arr,
+            alight_act_arr,
+            alight_plan_dep,
+            alight_act_dep
+        )::bus_call_details,
+        (
+            bus_call_id,
+            (
+                bus_stop_id,
+                atco_code,
+                stop_name,
+                locality_name,
+                street_name,
+                indicator
+            )::bus_call_stop_details,
+            plan_arr,
+            act_arr,
+            plan_dep,
+            act_dep
+        )::bus_call_details,
+        stops_before,
+        stops_after
+    )::bus_stop_leg_details ORDER BY effective_time)
+    AS stop_user_legs
+    FROM transport_user_bus_stop_view
+    WHERE bus_stop_id = bus_stop.bus_stop_id
+    AND user_id = p_user_id
+) stop_leg_details ON TRUE
 WHERE bus_stop.atco_code = p_atco;
 $$;
 
@@ -88,19 +208,78 @@ SELECT
     bus_stop.indicator,
     bus_stop.bearing,
     bus_stop.locality_name,
-    bus_stop.parent_locality_name,
-    bus_stop.grandparent_locality_name,
     bus_stop.town_name,
-    bus_stop.suburb_name,
     bus_stop.latitude,
     bus_stop.longitude,
-    COALESCE(
-        bus_stop_leg_details_view.stop_user_legs,
-        ARRAY[]::bus_stop_leg_details[]
-    )
+    COALESCE(stop_leg_details.stop_user_legs,
+        ARRAY[]::bus_stop_leg_details[])
 FROM bus_stop
-INNER JOIN bus_stop_leg_details_view
-ON bus_stop.bus_stop_id = bus_stop_leg_details_view.bus_stop_id
-AND bus_stop_leg_details_view.user_id = p_user_id
+CROSS JOIN LATERAL (
+    SELECT ARRAY_AGG((
+        bus_leg_id,
+        (
+            bus_service_id,
+            service_line,
+            (
+                bus_operator_id,
+                operator_name,
+                national_operator_code
+            )::bus_operator_details,
+            description_outbound,
+            description_inbound
+        )::bus_leg_service_details,
+        (
+            board_call_id,
+            (
+                board_stop_id,
+                board_atco_code,
+                board_stop_name,
+                board_locality_name,
+                board_street_name,
+                board_indicator
+            )::bus_call_stop_details,
+            board_plan_arr,
+            board_act_arr,
+            board_plan_dep,
+            board_act_dep
+        )::bus_call_details,
+        (
+            alight_call_id,
+            (
+                alight_stop_id,
+                alight_atco_code,
+                alight_stop_name,
+                alight_locality_name,
+                alight_street_name,
+                alight_indicator
+            )::bus_call_stop_details,
+            alight_plan_arr,
+            alight_act_arr,
+            alight_plan_dep,
+            alight_act_dep
+        )::bus_call_details,
+        (
+            bus_call_id,
+            (
+                bus_stop_id,
+                atco_code,
+                stop_name,
+                locality_name,
+                street_name,
+                indicator
+            )::bus_call_stop_details,
+            plan_arr,
+            act_arr,
+            plan_dep,
+            act_dep
+        )::bus_call_details,
+        stops_before,
+        stops_after
+    )::bus_stop_leg_details ORDER BY effective_time)
+    AS stop_user_legs
+    FROM transport_user_bus_stop_view
+    WHERE bus_stop_id = bus_stop.bus_stop_id
+    AND user_id = p_user_id
+) stop_leg_details
 ORDER BY bus_stop.stop_name, bus_stop.locality_name, bus_stop.indicator;
 $$;
