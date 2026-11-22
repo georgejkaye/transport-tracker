@@ -23,7 +23,6 @@ CREATE TYPE bus_stop_user_details AS (
     stop_name TEXT,
     landmark_name TEXT,
     street_name TEXT,
-    crossing_name TEXT,
     indicator TEXT,
     bearing TEXT,
     locality_name TEXT,
