@@ -2379,18 +2379,18 @@ urllib3 = ">=2"
 
 [[package]]
 name = "types-shapely"
-version = "2.1.0.20261030"
+version = "2.2.0.20261117"
 description = "Typing stubs for shapely"
 optional = false
-python-versions = ">=3.10"
+python-versions = ">=3.11"
 groups = ["dev"]
 files = [
-    {file = "types_shapely-2.1.0.20261030-py3-none-any.whl", hash = "sha256:73b477a4a4e0e400ddc5324c7f556b9e4aea74bf0e4bcaafe49f66975a27b05f"},
-    {file = "types_shapely-2.1.0.20261030.tar.gz", hash = "sha256:2299ee7c5e671ea1f76c190236e1d7895dfd1a32672ff1f4c163da830cd96230"},
+    {file = "types_shapely-2.2.0.20261117-py3-none-any.whl", hash = "sha256:4df7c5234fe82fdc78f344f621f2c0d65c05cd72e01082290e8535f1d89a1e06"},
+    {file = "types_shapely-2.2.0.20261117.tar.gz", hash = "sha256:4156656f46ac90a4b247a894ac4c8ab587d88de15162075831bb2014c05fa9ce"},
 ]
 
 [package.dependencies]
-numpy = ">=1.20"
+numpy = ">=1.26"
 
 [[package]]
 name = "typing-extensions"
