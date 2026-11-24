@@ -11,7 +11,7 @@ from api.db.functions.select.bus.user.leg import (
     select_bus_leg_user_details_by_user_id_and_start_datetime_fetchall,
     select_bus_leg_user_details_fetchall,
 )
-from api.db.types.bus.user.leg import BusLegUserDetails
+from api.db.types.bus.user.leg import BusLegDetails, BusLegSummary
 
 router = APIRouter(prefix="/legs", tags=["users/bus/legs"])
 
@@ -21,7 +21,7 @@ async def get_legs(
     user_id: int,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
-) -> list[BusLegUserDetails]:
+) -> list[BusLegSummary]:
     conn = get_db_connection()
     if start_date and end_date:
         legs = select_bus_leg_user_details_by_user_id_and_datetime_fetchall(
@@ -43,7 +43,7 @@ async def get_legs(
 
 
 @router.get("/{leg_id}", summary="Get details of a bus leg for a user")
-async def get_leg_by_id(user_id: int, leg_id: int) -> BusLegUserDetails:
+async def get_leg_by_id(user_id: int, leg_id: int) -> BusLegDetails:
     leg = select_bus_leg_user_details_by_user_id_and_leg_id_fetchone(
         get_db_connection(), user_id, leg_id
     )
@@ -55,7 +55,7 @@ async def get_leg_by_id(user_id: int, leg_id: int) -> BusLegUserDetails:
 @router.get(
     "/years/{year}", summary="Get details of all bus legs for a user in a year"
 )
-async def get_legs_by_year(user_id: int, year: int) -> list[BusLegUserDetails]:
+async def get_legs_by_year(user_id: int, year: int) -> list[BusLegSummary]:
     legs = select_bus_leg_user_details_by_user_id_and_datetime_fetchall(
         get_db_connection(),
         user_id,
