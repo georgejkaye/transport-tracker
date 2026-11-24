@@ -69,7 +69,7 @@ WHERE NOT EXISTS (
 )
 ON CONFLICT DO NOTHING;
 
--- join up bus legs that break over birmingham bus mall ms8 (281514)
+-- join up bus legs that break over birmingham bus mall ms8 (281514) and square peg (281483)
 
 DO
 $$
@@ -81,25 +81,28 @@ BEGIN
     FROM (
         SELECT
             bus_leg_id AS arr_leg_id,
+            bus_call.bus_call_id AS arr_call_id,
             bus_leg_journey.bus_journey_id AS arr_journey_id,
             COALESCE(plan_arr, plan_dep) AS arr
         FROM bus_leg_journey
         INNER JOIN bus_call
         ON bus_leg_journey.end_call_id = bus_call.bus_call_id
-        WHERE bus_call.bus_stop_id = 281514
+        WHERE bus_call.bus_stop_id IN (281514, 281483)
     ) alight
     INNER JOIN (
         SELECT
             bus_leg_id AS dep_leg_id,
+            bus_call.bus_call_id AS dep_call_id,
             bus_leg_journey.bus_journey_id AS dep_journey_id,
             plan_dep AS dep
         FROM bus_leg_journey
         INNER JOIN bus_call
         ON bus_leg_journey.start_call_id = bus_call.bus_call_id
-        WHERE bus_call.bus_stop_id = 281514
+        WHERE bus_call.bus_stop_id IN (281514, 281483)
     ) board
     ON (EXTRACT(EPOCH FROM (board.dep - alight.arr))) BETWEEN 0 AND 600
     AND alight.arr_leg_id != board.dep_leg_id
+    AND alight.arr_call_id = board.dep_call_id
     WHERE NOT EXISTS (
         SELECT 1
         FROM bus_leg_journey existing
@@ -121,16 +124,18 @@ BEGIN
     FROM (
         SELECT
             bus_leg_id AS arr_leg_id,
+            bus_stop_id AS arr_stop_id,
             bus_leg_journey.bus_journey_id AS arr_journey_id,
             COALESCE(plan_arr, plan_dep) AS arr
         FROM bus_leg_journey
         INNER JOIN bus_call
         ON bus_leg_journey.end_call_id = bus_call.bus_call_id
-        WHERE bus_call.bus_stop_id = 281514
+        WHERE bus_call.bus_stop_id IN (281514, 281483)
     ) alight
     INNER JOIN (
         SELECT
             bus_leg_id AS dep_leg_id,
+            bus_stop_id AS dep_stop_id,
             bus_leg_journey.start_call_id AS dep_start_call_id,
             bus_leg_journey.end_call_id AS dep_end_call_id,
             bus_leg_journey.bus_journey_id AS dep_journey_id,
@@ -138,10 +143,11 @@ BEGIN
         FROM bus_leg_journey
         INNER JOIN bus_call
         ON bus_leg_journey.start_call_id = bus_call.bus_call_id
-        WHERE bus_call.bus_stop_id = 281514
+        WHERE bus_call.bus_stop_id IN (281514, 281483)
     ) board
     ON (EXTRACT(EPOCH FROM (board.dep - alight.arr))) BETWEEN 0 AND 600
     AND alight.arr_leg_id != board.dep_leg_id
+    AND alight.arr_stop_id = board.dep_stop_id
     WHERE NOT EXISTS (
         SELECT 1
         FROM bus_leg_journey existing
