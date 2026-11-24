@@ -36,3 +36,15 @@ CREATE TYPE bus_vehicle_details AS (
 );
 
 CREATE DOMAIN bus_vehicle_details_notnull AS bus_vehicle_details NOT NULL;
+
+CREATE TYPE bus_vehicle_summary
+AS (
+    bus_vehicle_id INTEGER_NOTNULL,
+    operator bus_operator_summary,
+    vehicle_identifier TEXT,
+    vehicle_numberplate TEXT_NOTNULL,
+    vehicle_name TEXT
+);
+
+CREATE DOMAIN bus_vehicle_summary_notnull
+AS bus_vehicle_summary NOT NULL;

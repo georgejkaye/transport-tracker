@@ -4,37 +4,72 @@ DROP VIEW IF EXISTS bus_leg_journey_summary_view CASCADE;
 CREATE VIEW bus_leg_summary_view AS
 SELECT
     bus_leg.bus_leg_id,
-    bus_leg_board.bus_stop_id AS board_stop_id,
-    bus_leg_board.atco_code AS board_atco_code,
-    bus_leg_board.locality_name AS board_locality_name,
-    bus_leg_board.stop_name AS board_stop_name,
-    bus_leg_board.street_name AS board_street_name,
-    bus_leg_board.indicator AS board_indicator,
-    COALESCE(bus_leg_board.plan_dep, bus_leg_board.plan_arr)
-        AS plan_board_time,
-    COALESCE(bus_leg_board.act_dep, bus_leg_board.act_arr)
-        AS act_board_time,
-    bus_leg_alight.bus_stop_id AS alight_stop_id,
-    bus_leg_alight.atco_code AS alight_atco_code,
-    bus_leg_alight.locality_name AS alight_locality_name,
-    bus_leg_alight.stop_name AS alight_stop_name,
-    bus_leg_alight.street_name AS alight_street_name,
-    bus_leg_alight.indicator AS alight_indicator,
-    COALESCE(bus_leg_alight.plan_dep, bus_leg_alight.plan_arr)
-        AS plan_alight_time,
-    COALESCE(bus_leg_alight.act_dep, bus_leg_alight.act_arr)
-        AS act_alight_time,
+    (
+        bus_leg_operator.bus_operator_id,
+        bus_leg_operator.operator_name,
+        bus_leg_operator.national_operator_code
+    )::bus_operator_summary AS operator,
+    bus_leg_service.services,
+    CASE
+        WHEN bus_leg_vehicle.bus_vehicle_id IS NULL THEN NULL
+        ELSE (
+            bus_leg_vehicle.bus_vehicle_id,
+            bus_leg_vehicle.operator,
+            bus_leg_vehicle.vehicle_identifier,
+            bus_leg_vehicle.numberplate,
+            bus_leg_vehicle.vehicle_name
+        )::bus_vehicle_summary
+    END AS vehicle,
+    (
+        bus_leg_board.bus_stop_id,
+        bus_leg_board.atco_code,
+        bus_leg_board.stop_name,
+        bus_leg_board.locality_name,
+        bus_leg_board.indicator,
+        COALESCE(bus_leg_board.plan_dep, bus_leg_board.plan_arr),
+        COALESCE(bus_leg_board.act_dep, bus_leg_board.act_arr)
+    )::bus_leg_summary_board_stop AS board_stop,
+    (
+        bus_leg_alight.bus_stop_id,
+        bus_leg_alight.atco_code,
+        bus_leg_alight.stop_name,
+        bus_leg_alight.locality_name,
+        bus_leg_alight.indicator,
+        COALESCE(bus_leg_alight.plan_dep, bus_leg_alight.plan_arr),
+        COALESCE(bus_leg_alight.act_dep, bus_leg_alight.act_arr)
+    )::bus_leg_summary_alight_stop AS alight_stop,
     COALESCE(bus_leg_alight.act_arr, bus_leg_alight.act_dep,
         bus_leg_alight.plan_arr, bus_leg_alight.plan_dep)
     - COALESCE(bus_leg_board.act_dep, bus_leg_board.act_arr,
         bus_leg_board.plan_dep, bus_leg_board.plan_arr)
-        AS duration,
-    bus_leg_operator.bus_operator_id,
-    bus_leg_operator.operator_name,
-    bus_leg_vehicle.bus_vehicle_id,
-    bus_leg_vehicle.vehicle_identifier,
-    bus_leg_vehicle.numberplate
+        AS duration
 FROM bus_leg
+INNER JOIN (
+    SELECT DISTINCT
+        bus_leg.bus_leg_id,
+        ARRAY_AGG(
+            (
+                bus_service.bus_service_id,
+                (
+                    bus_operator.bus_operator_id,
+                    bus_operator.operator_name,
+                    bus_operator.national_operator_code
+                )::bus_operator_summary,
+                bus_service.service_line
+            )::bus_service_summary
+        ) AS services
+    FROM bus_leg
+    INNER JOIN bus_leg_journey
+    ON bus_leg.bus_leg_id = bus_leg_journey.bus_leg_id
+    INNER JOIN bus_journey
+    ON bus_leg_journey.bus_journey_id = bus_journey.bus_journey_id
+    INNER JOIN bus_service
+    ON bus_journey.bus_service_id = bus_service.bus_service_id
+    INNER JOIN bus_operator
+    ON bus_service.bus_operator_id = bus_operator.bus_operator_id
+    GROUP BY bus_leg.bus_leg_id
+) bus_leg_service
+ON bus_leg.bus_leg_id = bus_leg_service.bus_leg_id
 INNER JOIN (
     SELECT DISTINCT ON (bus_leg_journey.bus_leg_id)
         bus_leg_journey.bus_leg_id,
@@ -93,7 +128,8 @@ INNER JOIN (
     SELECT DISTINCT
         bus_leg.bus_leg_id,
         bus_operator.bus_operator_id,
-        bus_operator.operator_name
+        bus_operator.operator_name,
+        bus_operator.national_operator_code
     FROM bus_leg
     INNER JOIN bus_leg_journey
     ON bus_leg.bus_leg_id = bus_leg_journey.bus_leg_id
@@ -108,9 +144,15 @@ ON bus_leg.bus_leg_id = bus_leg_operator.bus_leg_id
 LEFT JOIN (
     SELECT DISTINCT
         bus_leg.bus_leg_id,
+        (
+            bus_operator.bus_operator_id,
+            bus_operator.operator_name,
+            bus_operator.national_operator_code
+        )::bus_operator_summary AS operator,
         bus_vehicle.bus_vehicle_id,
         bus_vehicle.vehicle_identifier,
-        bus_vehicle.numberplate
+        bus_vehicle.numberplate,
+        bus_vehicle.vehicle_name
     FROM bus_leg
     INNER JOIN bus_leg_journey
     ON bus_leg.bus_leg_id = bus_leg_journey.bus_leg_id
@@ -118,6 +160,8 @@ LEFT JOIN (
     ON bus_leg_journey.bus_journey_id = bus_journey.bus_journey_id
     INNER JOIN bus_vehicle
     ON bus_journey.bus_vehicle_id = bus_vehicle.bus_vehicle_id
+    INNER JOIN bus_operator
+    ON bus_vehicle.bus_operator_id = bus_operator.bus_operator_id
 ) bus_leg_vehicle
 ON bus_leg.bus_leg_id = bus_leg_vehicle.bus_leg_id;
 
