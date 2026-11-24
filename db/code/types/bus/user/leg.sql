@@ -2,8 +2,9 @@ DROP TYPE IF EXISTS bus_leg_service_details CASCADE;
 DROP TYPE IF EXISTS bus_call_details CASCADE;
 DROP TYPE IF EXISTS bus_leg_journey_summary CASCADE;
 DROP TYPE IF EXISTS bus_leg_journey_stop_summary CASCADE;
-DROP TYPE IF EXISTS bus_leg_user_details CASCADE;
 DROP TYPE IF EXISTS bus_leg_summary CASCADE;
+DROP TYPE IF EXISTS bus_leg_details CASCADE;
+DROP TYPE IF EXISTS bus_leg_summary_stop CASCADE;
 
 DROP TYPE IF EXISTS insert_bus_leg_result CASCADE;
 
@@ -11,8 +12,9 @@ DROP DOMAIN IF EXISTS bus_leg_service_details_notnull CASCADE;
 DROP DOMAIN IF EXISTS bus_call_details_notnull CASCADE;
 DROP DOMAIN IF EXISTS bus_leg_journey_summary_notnull CASCADE;
 DROP DOMAIN IF EXISTS bus_leg_journey_stop_summary_notnull CASCADE;
-DROP DOMAIN IF EXISTS bus_leg_user_details_notnull CASCADE;
 DROP DOMAIN IF EXISTS bus_leg_summary_notnull CASCADE;
+DROP DOMAIN IF EXISTS bus_leg_details_notnull CASCADE;
+DROP DOMAIN IF EXISTS bus_leg_summary_stop_notnull CASCADE;
 
 CREATE TYPE bus_leg_service_details AS (
     service_id INTEGER_NOTNULL,
@@ -60,12 +62,40 @@ CREATE TYPE bus_leg_journey_summary AS (
 CREATE DOMAIN bus_leg_journey_summary_notnull
 AS bus_leg_journey_summary NOT NULL;
 
-CREATE TYPE bus_leg_summary AS (
+CREATE TYPE bus_leg_summary_stop AS (
+    bus_stop_id BIGINT,
+    stop_atco TEXT,
+    stop_name TEXT,
+    stop_locality TEXT,
+    stop_indicator TEXT,
+    plan_arr TIMESTAMP WITH TIME ZONE,
+    act_arr TIMESTAMP WITH TIME ZONE,
+    plan_dep TIMESTAMP WITH TIME ZONE,
+    act_dep TIMESTAMP WITH TIME ZONE
+);
+
+CREATE DOMAIN bus_leg_summary_stop_notnull
+AS bus_leg_summary_stop NOT NULL;
+
+CREATE TYPE bus_leg_details AS (
     leg_id INTEGER_NOTNULL,
     operator bus_operator_summary,
     journeys bus_leg_journey_summary[],
     vehicle bus_vehicle_details,
     calls bus_call_details[],
+    duration INTERVAL
+);
+
+CREATE DOMAIN bus_leg_details_notnull
+AS bus_leg_details NOT NULL;
+
+CREATE TYPE bus_leg_summary AS (
+    leg_id INTEGER_NOTNULL,
+    operator bus_operator_summary,
+    journeys bus_leg_journey_summary[],
+    vehicle bus_vehicle_details,
+    start_stop bus_leg_summary_stop,
+    end_stop bus_leg_summary_stop,
     duration INTERVAL
 );
 

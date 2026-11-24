@@ -24,6 +24,64 @@ SELECT
         )::bus_vehicle_details
     END AS leg_vehicle,
     BusLegCall.leg_calls AS leg_calls,
+    (
+        ((BusLegCall.leg_calls[1]).stop).bus_stop_id,
+        ((BusLegCall.leg_calls[1]).stop).stop_atco,
+        ((BusLegCall.leg_calls[1]).stop).stop_name,
+        ((BusLegCall.leg_calls[1]).stop).stop_locality,
+        ((BusLegCall.leg_calls[1]).stop).stop_indicator,
+        (BusLegCall.leg_calls[1]).plan_arr,
+        (BusLegCall.leg_calls[1]).act_arr,
+        (BusLegCall.leg_calls[1]).plan_dep,
+        (BusLegCall.leg_calls[1]).act_dep
+    )::bus_leg_summary_stop AS leg_start_stop,
+    (
+        (
+            BusLegCall.leg_calls[
+                array_upper(BusLegCall.leg_calls, 1)
+            ]
+        ).stop.bus_stop_id,
+        (
+            BusLegCall.leg_calls[
+                array_upper(BusLegCall.leg_calls, 1)
+            ]
+        ).stop.stop_atco,
+        (
+            BusLegCall.leg_calls[
+                array_upper(BusLegCall.leg_calls, 1)
+            ]
+        ).stop.stop_name,
+        (
+            BusLegCall.leg_calls[
+                array_upper(BusLegCall.leg_calls, 1)
+            ]
+        ).stop.stop_locality,
+        (
+            BusLegCall.leg_calls[
+                array_upper(BusLegCall.leg_calls, 1)
+            ]
+        ).stop.stop_indicator,
+        (
+            BusLegCall.leg_calls[
+                array_upper(BusLegCall.leg_calls, 1)
+            ]
+        ).plan_arr,
+        (
+            BusLegCall.leg_calls[
+                array_upper(BusLegCall.leg_calls, 1)
+            ]
+        ).act_arr,
+        (
+            BusLegCall.leg_calls[
+                array_upper(BusLegCall.leg_calls, 1)
+            ]
+        ).plan_dep,
+        (
+            BusLegCall.leg_calls[
+                array_upper(BusLegCall.leg_calls, 1)
+            ]
+        ).act_dep
+    )::bus_leg_summary_stop AS leg_end_stop,
     COALESCE(
         BusLegCall.leg_calls[array_upper(BusLegCall.leg_calls, 1)].act_arr,
         BusLegCall.leg_calls[array_upper(BusLegCall.leg_calls, 1)].plan_arr,

@@ -10,7 +10,8 @@ SELECT
     transport_user_bus_leg_view.leg_operator,
     transport_user_bus_leg_view.leg_journeys,
     transport_user_bus_leg_view.leg_vehicle,
-    transport_user_bus_leg_view.leg_calls,
+    transport_user_bus_leg_view.leg_start_stop,
+    transport_user_bus_leg_view.leg_end_stop,
     transport_user_bus_leg_view.leg_duration
 FROM transport_user_bus_leg_view
 WHERE transport_user_bus_leg_view.user_id = p_user_id
@@ -30,7 +31,8 @@ SELECT
     transport_user_bus_leg_view.leg_operator,
     transport_user_bus_leg_view.leg_journeys,
     transport_user_bus_leg_view.leg_vehicle,
-    transport_user_bus_leg_view.leg_calls,
+    transport_user_bus_leg_view.leg_start_stop,
+    transport_user_bus_leg_view.leg_end_stop,
     transport_user_bus_leg_view.leg_duration
 FROM transport_user_bus_leg_view
 WHERE transport_user_bus_leg_view.user_id = p_user_id
@@ -59,7 +61,8 @@ SELECT
     transport_user_bus_leg_view.leg_operator,
     transport_user_bus_leg_view.leg_journeys,
     transport_user_bus_leg_view.leg_vehicle,
-    transport_user_bus_leg_view.leg_calls,
+    transport_user_bus_leg_view.leg_start_stop,
+    transport_user_bus_leg_view.leg_end_stop,
     transport_user_bus_leg_view.leg_duration
 FROM transport_user_bus_leg_view
 WHERE transport_user_bus_leg_view.user_id = p_user_id
@@ -83,7 +86,8 @@ SELECT
     transport_user_bus_leg_view.leg_operator,
     transport_user_bus_leg_view.leg_journeys,
     transport_user_bus_leg_view.leg_vehicle,
-    transport_user_bus_leg_view.leg_calls,
+    transport_user_bus_leg_view.leg_start_stop,
+    transport_user_bus_leg_view.leg_end_stop,
     transport_user_bus_leg_view.leg_duration
 FROM transport_user_bus_leg_view
 WHERE transport_user_bus_leg_view.user_id = p_user_id
@@ -98,7 +102,7 @@ CREATE OR REPLACE FUNCTION select_bus_leg_user_details_by_user_id_and_leg_id (
     p_user_id INTEGER_NOTNULL,
     p_leg_id INTEGER_NOTNULL
 )
-RETURNS SETOF bus_leg_summary
+RETURNS SETOF bus_leg_details
 LANGUAGE sql
 AS
 $$
@@ -127,7 +131,8 @@ SELECT
     transport_user_bus_leg_view.leg_operator,
     transport_user_bus_leg_view.leg_journeys,
     transport_user_bus_leg_view.leg_vehicle,
-    transport_user_bus_leg_view.leg_calls,
+    transport_user_bus_leg_view.leg_start_stop,
+    transport_user_bus_leg_view.leg_end_stop,
     transport_user_bus_leg_view.leg_duration
 FROM transport_user_bus_leg_view
 WHERE transport_user_bus_leg_view.user_id = p_user_id
