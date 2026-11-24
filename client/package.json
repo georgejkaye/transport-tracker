@@ -43,7 +43,7 @@
     "eslint-config-next": "^16.4.6",
     "openapi-typescript": "^7.13.0",
     "postcss": "^8.5.31",
-    "tailwindcss": "^4.3.3",
+    "tailwindcss": "^4.3.5",
     "typescript": "npm:@typescript/typescript6@^6.0.0",
     "typescript-7": "npm:typescript@^7.0.0"
   },
