@@ -45,9 +45,10 @@ SELECT
         AS duration
 FROM bus_leg
 INNER JOIN (
-    SELECT DISTINCT
+    SELECT
         bus_leg.bus_leg_id,
         ARRAY_AGG(
+            DISTINCT
             (
                 bus_service.bus_service_id,
                 (
