@@ -7,7 +7,7 @@ DROP DOMAIN IF EXISTS bus_service_via_in_data_notnull CASCADE;
 DROP DOMAIN IF EXISTS bus_service_details_notnull CASCADE;
 
 CREATE TYPE bus_service_in_data AS (
-    service_line TEXT_NOTNULL,
+    line TEXT_NOTNULL,
     bods_line_id TEXT_NOTNULL,
     service_operator_national_code TEXT_NOTNULL,
     service_outbound_description TEXT_NOTNULL,
@@ -29,8 +29,8 @@ AS bus_service_via_in_data NOT NULL;
 
 CREATE TYPE bus_service_details AS (
     bus_service_id INTEGER_NOTNULL,
-    bus_operator bus_operator_details_notnull,
-    service_line TEXT_NOTNULL,
+    operator bus_operator_summary_notnull,
+    line TEXT_NOTNULL,
     description_outbound TEXT,
     service_outbound_vias TEXT_NOTNULL[],
     description_inbound TEXT,

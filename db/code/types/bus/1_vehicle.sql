@@ -26,7 +26,7 @@ CREATE DOMAIN bus_vehicle_in_data_notnull AS bus_vehicle_in_data NOT NULL;
 
 CREATE TYPE bus_vehicle_details AS (
     bus_vehicle_id INTEGER_NOTNULL,
-    bus_operator bus_operator_details,
+    operator bus_operator_summary,
     vehicle_identifier TEXT,
     bustimes_id TEXT,
     vehicle_numberplate TEXT_NOTNULL,

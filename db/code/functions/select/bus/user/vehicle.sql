@@ -12,7 +12,7 @@ SELECT
     vehicle_operator,
     vehicle_legs,
     vehicle_duration
-FROM bus_vehicle_user_details_view
+FROM transport_user_bus_vehicle_view
 WHERE user_id = p_user_id
 ORDER BY CARDINALITY(vehicle_legs) DESC;
 $$;
@@ -32,7 +32,7 @@ SELECT
     vehicle_operator,
     vehicle_legs,
     vehicle_duration
-FROM bus_vehicle_user_details_view
+FROM transport_user_bus_vehicle_view
 WHERE user_id = p_user_id
 AND vehicle_id = p_vehicle_id;
 $$;

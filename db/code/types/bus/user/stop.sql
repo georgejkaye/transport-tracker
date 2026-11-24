@@ -8,7 +8,8 @@ DROP DOMAIN IF EXISTS bus_stop_user_summary_notnull CASCADE;
 
 CREATE TYPE bus_stop_leg_details AS (
     leg_id INTEGER_NOTNULL,
-    bus_service bus_leg_service_details,
+    operator bus_operator_summary,
+    journeys bus_leg_journey_summary[],
     board_call bus_call_details,
     alight_call bus_call_details,
     this_call bus_call_details,

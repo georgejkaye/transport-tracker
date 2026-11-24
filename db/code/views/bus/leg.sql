@@ -1,4 +1,5 @@
 DROP VIEW IF EXISTS bus_leg_summary_view CASCADE;
+DROP VIEW IF EXISTS bus_leg_journey_summary_view CASCADE;
 
 CREATE VIEW bus_leg_summary_view AS
 SELECT
@@ -119,3 +120,98 @@ LEFT JOIN (
     ON bus_journey.bus_vehicle_id = bus_vehicle.bus_vehicle_id
 ) bus_leg_vehicle
 ON bus_leg.bus_leg_id = bus_leg_vehicle.bus_leg_id;
+
+CREATE VIEW bus_leg_journey_summary_view AS
+SELECT
+    bus_leg_journey.bus_leg_id,
+    ARRAY_AGG((
+        bus_journey.bus_journey_id,
+        bus_service.bus_service_id,
+        bus_service.service_line,
+        (
+            journey_start.bus_stop_id,
+            journey_start.stop_name,
+            journey_start.locality_name,
+            journey_start.indicator
+        )::bus_leg_journey_stop_summary,
+        (
+            journey_end.bus_stop_id,
+            journey_end.stop_name,
+            journey_end.locality_name,
+            journey_end.indicator
+        )::bus_leg_journey_stop_summary,
+        (
+            leg_start.bus_stop_id,
+            leg_start.stop_name,
+            leg_start.locality_name,
+            leg_start.indicator
+        )::bus_leg_journey_stop_summary,
+        (
+            leg_end.bus_stop_id,
+            leg_end.stop_name,
+            leg_end.locality_name,
+            leg_end.indicator
+        )::bus_leg_journey_stop_summary
+    )::bus_leg_journey_summary ORDER BY COALESCE(
+        leg_start_call.plan_dep,
+        leg_start_call.plan_arr,
+        leg_start_call.act_dep,
+        leg_start_call.act_arr
+    ) ASC NULLS LAST, bus_leg_journey.bus_leg_journey_id) AS journeys,
+    (ARRAY_AGG((
+        bus_operator.bus_operator_id,
+        bus_operator.operator_name,
+        bus_operator.national_operator_code
+    )::bus_operator_summary ORDER BY COALESCE(
+        leg_start_call.plan_dep,
+        leg_start_call.plan_arr,
+        leg_start_call.act_dep,
+        leg_start_call.act_arr
+    ) ASC NULLS LAST, bus_leg_journey.bus_leg_journey_id))[1]
+        AS operator
+FROM bus_leg_journey
+INNER JOIN bus_journey
+ON bus_leg_journey.bus_journey_id = bus_journey.bus_journey_id
+INNER JOIN bus_service
+ON bus_journey.bus_service_id = bus_service.bus_service_id
+INNER JOIN bus_operator
+ON bus_service.bus_operator_id = bus_operator.bus_operator_id
+INNER JOIN bus_call leg_start_call
+ON bus_leg_journey.start_call_id = leg_start_call.bus_call_id
+INNER JOIN bus_stop leg_start
+ON leg_start_call.bus_stop_id = leg_start.bus_stop_id
+INNER JOIN bus_call leg_end_call
+ON bus_leg_journey.end_call_id = leg_end_call.bus_call_id
+INNER JOIN bus_stop leg_end
+ON leg_end_call.bus_stop_id = leg_end.bus_stop_id
+INNER JOIN LATERAL (
+    SELECT
+        journey_start_call.bus_stop_id,
+        journey_start.stop_name,
+        journey_start.locality_name,
+        journey_start.indicator
+    FROM bus_call journey_start_call
+    INNER JOIN bus_stop journey_start
+    ON journey_start_call.bus_stop_id = journey_start.bus_stop_id
+    WHERE journey_start_call.bus_journey_id = bus_journey.bus_journey_id
+    ORDER BY
+        journey_start_call.call_index ASC,
+        journey_start_call.bus_call_id ASC
+    LIMIT 1
+) journey_start ON TRUE
+INNER JOIN LATERAL (
+    SELECT
+        journey_end_call.bus_stop_id,
+        journey_end.stop_name,
+        journey_end.locality_name,
+        journey_end.indicator
+    FROM bus_call journey_end_call
+    INNER JOIN bus_stop journey_end
+    ON journey_end_call.bus_stop_id = journey_end.bus_stop_id
+    WHERE journey_end_call.bus_journey_id = bus_journey.bus_journey_id
+    ORDER BY
+        journey_end_call.call_index DESC,
+        journey_end_call.bus_call_id DESC
+    LIMIT 1
+) journey_end ON TRUE
+GROUP BY bus_leg_journey.bus_leg_id;

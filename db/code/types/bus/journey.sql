@@ -33,8 +33,8 @@ CREATE DOMAIN bus_journey_in_data_notnull AS bus_journey_in_data NOT NULL;
 
 CREATE TYPE bus_journey_service_details AS (
     service_id INTEGER_NOTNULL,
-    service_operator bus_operator_details,
-    service_line TEXT_NOTNULL,
+    operator bus_operator_summary,
+    line TEXT_NOTNULL,
     bg_colour TEXT,
     fg_colour TEXT
 );

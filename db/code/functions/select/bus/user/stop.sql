@@ -27,17 +27,8 @@ FROM bus_stop
 LEFT JOIN LATERAL (
     SELECT ARRAY_AGG((
         bus_leg_id,
-        (
-            bus_service_id,
-            service_line,
-            (
-                bus_operator_id,
-                operator_name,
-                national_operator_code
-            )::bus_operator_details,
-            description_outbound,
-            description_inbound
-        )::bus_leg_service_details,
+        leg_operator,
+        leg_journeys,
         (
             board_call_id,
             (
@@ -123,17 +114,8 @@ FROM bus_stop
 LEFT JOIN LATERAL (
     SELECT ARRAY_AGG((
         bus_leg_id,
-        (
-            bus_service_id,
-            service_line,
-            (
-                bus_operator_id,
-                operator_name,
-                national_operator_code
-            )::bus_operator_details,
-            description_outbound,
-            description_inbound
-        )::bus_leg_service_details,
+        leg_operator,
+        leg_journeys,
         (
             board_call_id,
             (

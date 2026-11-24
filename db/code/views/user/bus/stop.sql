@@ -7,13 +7,8 @@ WITH leg_stop_call AS (
         bus_stop.bus_stop_id,
         bus_call.bus_call_id,
         bus_journey.bus_journey_id,
-        bus_service.bus_service_id,
-        bus_service.service_line,
-        bus_service.description_outbound,
-        bus_service.description_inbound,
-        bus_operator.bus_operator_id,
-        bus_operator.operator_name,
-        bus_operator.national_operator_code,
+        bus_leg_journey_summary_view.operator AS leg_operator,
+        bus_leg_journey_summary_view.journeys AS leg_journeys,
         board_call.bus_call_id AS board_call_id,
         board_call.plan_arr AS board_plan_arr,
         board_call.act_arr AS board_act_arr,
@@ -60,12 +55,10 @@ WITH leg_stop_call AS (
     ON bus_journey.bus_journey_id = bus_leg_journey.bus_journey_id
     INNER JOIN bus_leg
     ON bus_leg_journey.bus_leg_id = bus_leg.bus_leg_id
+    INNER JOIN bus_leg_journey_summary_view
+    ON bus_leg.bus_leg_id = bus_leg_journey_summary_view.bus_leg_id
     INNER JOIN bus_leg_summary_view
     ON bus_leg.bus_leg_id = bus_leg_summary_view.bus_leg_id
-    INNER JOIN bus_service
-    ON bus_journey.bus_service_id = bus_service.bus_service_id
-    INNER JOIN bus_operator
-    ON bus_service.bus_operator_id = bus_operator.bus_operator_id
     INNER JOIN bus_call board_call
     ON bus_leg_journey.start_call_id = board_call.bus_call_id
     INNER JOIN bus_stop board_stop
@@ -99,13 +92,8 @@ ranked_leg_stop_call AS (
         bus_stop_id,
         bus_call_id,
         bus_journey_id,
-        bus_service_id,
-        service_line,
-        description_outbound,
-        description_inbound,
-        bus_operator_id,
-        operator_name,
-        national_operator_code,
+        leg_operator,
+        leg_journeys,
         board_call_id,
         board_plan_arr,
         board_act_arr,
@@ -153,13 +141,8 @@ SELECT
     ranked_leg_stop_call.bus_stop_id,
     ranked_leg_stop_call.bus_call_id,
     ranked_leg_stop_call.bus_journey_id,
-    ranked_leg_stop_call.bus_service_id,
-    ranked_leg_stop_call.service_line,
-    ranked_leg_stop_call.description_outbound,
-    ranked_leg_stop_call.description_inbound,
-    ranked_leg_stop_call.bus_operator_id,
-    ranked_leg_stop_call.operator_name,
-    ranked_leg_stop_call.national_operator_code,
+    ranked_leg_stop_call.leg_operator,
+    ranked_leg_stop_call.leg_journeys,
     ranked_leg_stop_call.board_call_id,
     ranked_leg_stop_call.board_plan_arr,
     ranked_leg_stop_call.board_act_arr,
