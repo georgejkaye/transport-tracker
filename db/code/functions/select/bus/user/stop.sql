@@ -1,8 +1,8 @@
-CREATE OR REPLACE FUNCTION select_bus_stop_user_details_by_user_id_and_stop_id (
+CREATE OR REPLACE FUNCTION select_transport_user_bus_stop_details_by_user_id_and_stop_id (
     p_user_id INTEGER_NOTNULL,
     p_stop_id INTEGER_NOTNULL
 )
-RETURNS SETOF bus_stop_user_details
+RETURNS SETOF transport_user_bus_stop_details
 LANGUAGE sql
 AS
 $$
@@ -21,14 +21,14 @@ SELECT
     bus_stop.longitude,
     COALESCE(
         stop_leg_details.stop_user_legs,
-        ARRAY[]::bus_stop_leg_details[]
+        ARRAY[]::transport_user_bus_stop_leg_summary[]
     )
 FROM bus_stop
 LEFT JOIN LATERAL (
     SELECT ARRAY_AGG((
         bus_leg_id,
-        leg_operator,
-        leg_journeys,
+        operator,
+        journeys,
         (
             board_call_id,
             (
@@ -76,7 +76,7 @@ LEFT JOIN LATERAL (
         )::bus_call_details,
         stops_before,
         stops_after
-    )::bus_stop_leg_details ORDER BY effective_time)
+    )::transport_user_bus_stop_leg_summary ORDER BY effective_time)
     AS stop_user_legs
     FROM transport_user_bus_stop_view
     WHERE bus_stop_id = bus_stop.bus_stop_id
@@ -85,11 +85,11 @@ LEFT JOIN LATERAL (
 WHERE bus_stop.bus_stop_id = p_stop_id;
 $$;
 
-CREATE OR REPLACE FUNCTION select_bus_stop_user_details_by_user_id_and_atco (
+CREATE OR REPLACE FUNCTION select_transport_user_bus_stop_details_by_user_id_and_atco (
     p_user_id INTEGER_NOTNULL,
     p_atco TEXT_NOTNULL
 )
-RETURNS SETOF bus_stop_user_details
+RETURNS SETOF transport_user_bus_stop_details
 LANGUAGE sql
 AS
 $$
@@ -108,7 +108,7 @@ SELECT
     bus_stop.longitude,
     COALESCE(
         stop_leg_details.stop_user_legs,
-        ARRAY[]::bus_stop_leg_details[]
+        ARRAY[]::transport_user_bus_stop_leg_summary[]
     )
 FROM bus_stop
 LEFT JOIN LATERAL (
@@ -163,7 +163,7 @@ LEFT JOIN LATERAL (
         )::bus_call_details,
         stops_before,
         stops_after
-    )::bus_stop_leg_details ORDER BY effective_time)
+    )::transport_user_bus_stop_leg_summary ORDER BY effective_time)
     AS stop_user_legs
     FROM transport_user_bus_stop_view
     WHERE bus_stop_id = bus_stop.bus_stop_id
@@ -172,10 +172,10 @@ LEFT JOIN LATERAL (
 WHERE bus_stop.atco_code = p_atco;
 $$;
 
-CREATE OR REPLACE FUNCTION select_bus_stop_user_details_by_user_id (
+CREATE OR REPLACE FUNCTION select_transport_user_bus_stop_details_by_user_id (
     p_user_id INTEGER_NOTNULL
 )
-RETURNS SETOF bus_stop_user_summary
+RETURNS SETOF transport_user_bus_stop_summary
 LANGUAGE sql
 AS
 $$

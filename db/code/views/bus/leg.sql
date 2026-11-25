@@ -167,6 +167,36 @@ LEFT JOIN (
 ON bus_leg.bus_leg_id = bus_leg_vehicle.bus_leg_id;
 
 CREATE VIEW bus_leg_journey_summary_view AS
+WITH journey_start AS (
+    SELECT DISTINCT ON (bus_call.bus_journey_id)
+        bus_call.bus_journey_id,
+        bus_stop.bus_stop_id,
+        bus_stop.stop_name,
+        bus_stop.locality_name,
+        bus_stop.indicator
+    FROM bus_call
+    INNER JOIN bus_stop
+    ON bus_call.bus_stop_id = bus_stop.bus_stop_id
+    ORDER BY
+        bus_call.bus_journey_id,
+        bus_call.call_index,
+        bus_call.bus_call_id
+),
+journey_end AS (
+    SELECT DISTINCT ON (bus_call.bus_journey_id)
+        bus_call.bus_journey_id,
+        bus_stop.bus_stop_id,
+        bus_stop.stop_name,
+        bus_stop.locality_name,
+        bus_stop.indicator
+    FROM bus_call
+    INNER JOIN bus_stop
+    ON bus_call.bus_stop_id = bus_stop.bus_stop_id
+    ORDER BY
+        bus_call.bus_journey_id,
+        bus_call.call_index DESC,
+        bus_call.bus_call_id DESC
+)
 SELECT
     bus_leg_journey.bus_leg_id,
     ARRAY_AGG((
@@ -229,34 +259,8 @@ INNER JOIN bus_call leg_end_call
 ON bus_leg_journey.end_call_id = leg_end_call.bus_call_id
 INNER JOIN bus_stop leg_end
 ON leg_end_call.bus_stop_id = leg_end.bus_stop_id
-INNER JOIN LATERAL (
-    SELECT
-        journey_start_call.bus_stop_id,
-        journey_start.stop_name,
-        journey_start.locality_name,
-        journey_start.indicator
-    FROM bus_call journey_start_call
-    INNER JOIN bus_stop journey_start
-    ON journey_start_call.bus_stop_id = journey_start.bus_stop_id
-    WHERE journey_start_call.bus_journey_id = bus_journey.bus_journey_id
-    ORDER BY
-        journey_start_call.call_index ASC,
-        journey_start_call.bus_call_id ASC
-    LIMIT 1
-) journey_start ON TRUE
-INNER JOIN LATERAL (
-    SELECT
-        journey_end_call.bus_stop_id,
-        journey_end.stop_name,
-        journey_end.locality_name,
-        journey_end.indicator
-    FROM bus_call journey_end_call
-    INNER JOIN bus_stop journey_end
-    ON journey_end_call.bus_stop_id = journey_end.bus_stop_id
-    WHERE journey_end_call.bus_journey_id = bus_journey.bus_journey_id
-    ORDER BY
-        journey_end_call.call_index DESC,
-        journey_end_call.bus_call_id DESC
-    LIMIT 1
-) journey_end ON TRUE
+INNER JOIN journey_start
+ON journey_start.bus_journey_id = bus_journey.bus_journey_id
+INNER JOIN journey_end
+ON journey_end.bus_journey_id = bus_journey.bus_journey_id
 GROUP BY bus_leg_journey.bus_leg_id;

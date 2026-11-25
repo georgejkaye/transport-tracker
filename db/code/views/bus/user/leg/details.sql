@@ -1,19 +1,19 @@
-DROP VIEW IF EXISTS transport_user_bus_leg_view CASCADE;
+DROP VIEW IF EXISTS transport_user_bus_leg_details_view CASCADE;
 
-CREATE VIEW transport_user_bus_leg_view AS
+CREATE VIEW transport_user_bus_leg_details_view AS
 SELECT
-    bus_leg.bus_leg_id AS leg_id,
+    transport_user_bus_leg.bus_leg_id AS leg_id,
     transport_user_bus_leg.user_id,
-    leg_journey_summary.operator AS leg_operator,
-    leg_journey_summary.journeys AS leg_journeys,
+    leg_journey_summary.operator AS operator,
+    leg_journey_summary.journeys AS journeys,
     CASE
         WHEN bus_vehicle.bus_vehicle_id IS NULL THEN NULL
         ELSE (
             bus_vehicle.bus_vehicle_id,
             (
-                BusVehicleOperator.bus_operator_id,
-                BusVehicleOperator.operator_name,
-                BusVehicleOperator.national_operator_code
+                bus_vehicle_operator.bus_operator_id,
+                bus_vehicle_operator.operator_name,
+                bus_vehicle_operator.national_operator_code
             )::bus_operator_summary,
             bus_vehicle.vehicle_identifier,
             bus_vehicle.bustimes_id,
@@ -22,82 +22,40 @@ SELECT
             bus_vehicle.livery_style,
             bus_vehicle.vehicle_name
         )::bus_vehicle_details
-    END AS leg_vehicle,
-    BusLegCall.leg_calls AS leg_calls,
+    END AS vehicle,
+    leg_call_summary.leg_calls AS calls,
     (
-        ((BusLegCall.leg_calls[1]).stop).bus_stop_id,
-        ((BusLegCall.leg_calls[1]).stop).stop_atco,
-        ((BusLegCall.leg_calls[1]).stop).stop_name,
-        ((BusLegCall.leg_calls[1]).stop).stop_locality,
-        ((BusLegCall.leg_calls[1]).stop).stop_indicator,
-        (BusLegCall.leg_calls[1]).plan_arr,
-        (BusLegCall.leg_calls[1]).act_arr,
-        (BusLegCall.leg_calls[1]).plan_dep,
-        (BusLegCall.leg_calls[1]).act_dep
-    )::bus_leg_summary_stop AS leg_start_stop,
+        ((leg_call_endpoints.start_call).stop).bus_stop_id,
+        ((leg_call_endpoints.start_call).stop).stop_atco,
+        ((leg_call_endpoints.start_call).stop).stop_name,
+        ((leg_call_endpoints.start_call).stop).stop_locality,
+        ((leg_call_endpoints.start_call).stop).stop_indicator,
+        (leg_call_endpoints.start_call).plan_dep,
+        (leg_call_endpoints.start_call).act_dep
+    )::bus_leg_summary_board_stop AS board_stop,
     (
-        (
-            BusLegCall.leg_calls[
-                array_upper(BusLegCall.leg_calls, 1)
-            ]
-        ).stop.bus_stop_id,
-        (
-            BusLegCall.leg_calls[
-                array_upper(BusLegCall.leg_calls, 1)
-            ]
-        ).stop.stop_atco,
-        (
-            BusLegCall.leg_calls[
-                array_upper(BusLegCall.leg_calls, 1)
-            ]
-        ).stop.stop_name,
-        (
-            BusLegCall.leg_calls[
-                array_upper(BusLegCall.leg_calls, 1)
-            ]
-        ).stop.stop_locality,
-        (
-            BusLegCall.leg_calls[
-                array_upper(BusLegCall.leg_calls, 1)
-            ]
-        ).stop.stop_indicator,
-        (
-            BusLegCall.leg_calls[
-                array_upper(BusLegCall.leg_calls, 1)
-            ]
-        ).plan_arr,
-        (
-            BusLegCall.leg_calls[
-                array_upper(BusLegCall.leg_calls, 1)
-            ]
-        ).act_arr,
-        (
-            BusLegCall.leg_calls[
-                array_upper(BusLegCall.leg_calls, 1)
-            ]
-        ).plan_dep,
-        (
-            BusLegCall.leg_calls[
-                array_upper(BusLegCall.leg_calls, 1)
-            ]
-        ).act_dep
-    )::bus_leg_summary_stop AS leg_end_stop,
+        ((leg_call_endpoints.end_call).stop).bus_stop_id,
+        ((leg_call_endpoints.end_call).stop).stop_atco,
+        ((leg_call_endpoints.end_call).stop).stop_name,
+        ((leg_call_endpoints.end_call).stop).stop_locality,
+        ((leg_call_endpoints.end_call).stop).stop_indicator,
+        (leg_call_endpoints.end_call).plan_arr,
+        (leg_call_endpoints.end_call).act_arr
+    )::bus_leg_summary_alight_stop AS alight_stop,
     COALESCE(
-        BusLegCall.leg_calls[array_upper(BusLegCall.leg_calls, 1)].act_arr,
-        BusLegCall.leg_calls[array_upper(BusLegCall.leg_calls, 1)].plan_arr,
-        BusLegCall.leg_calls[array_upper(BusLegCall.leg_calls, 1)].act_dep,
-        BusLegCall.leg_calls[array_upper(BusLegCall.leg_calls, 1)].plan_dep
+        (leg_call_endpoints.end_call).act_arr,
+        (leg_call_endpoints.end_call).plan_arr,
+        (leg_call_endpoints.end_call).act_dep,
+        (leg_call_endpoints.end_call).plan_dep
     ) - COALESCE(
-            BusLegCall.leg_calls[1].act_arr,
-            BusLegCall.leg_calls[1].plan_arr,
-            BusLegCall.leg_calls[1].act_dep,
-            BusLegCall.leg_calls[1].plan_dep
-    ) AS leg_duration
+            (leg_call_endpoints.start_call).act_arr,
+            (leg_call_endpoints.start_call).plan_arr,
+            (leg_call_endpoints.start_call).act_dep,
+            (leg_call_endpoints.start_call).plan_dep
+    ) AS duration
 FROM transport_user_bus_leg
-INNER JOIN bus_leg
-ON transport_user_bus_leg.bus_leg_id = bus_leg.bus_leg_id
 INNER JOIN bus_leg_journey_summary_view leg_journey_summary
-ON bus_leg.bus_leg_id = leg_journey_summary.bus_leg_id
+ON transport_user_bus_leg.bus_leg_id = leg_journey_summary.bus_leg_id
 INNER JOIN (
     SELECT DISTINCT ON (bus_leg_journey.bus_leg_id)
         bus_leg_journey.bus_leg_id,
@@ -114,19 +72,19 @@ INNER JOIN (
             board_call.act_arr
         ) ASC NULLS LAST,
         bus_leg_journey.bus_leg_journey_id ASC
-) LegJourney
-ON bus_leg.bus_leg_id = LegJourney.bus_leg_id
+) leg_journey
+ON transport_user_bus_leg.bus_leg_id = leg_journey.bus_leg_id
 INNER JOIN bus_journey
-ON LegJourney.bus_journey_id = bus_journey.bus_journey_id
+ON leg_journey.bus_journey_id = bus_journey.bus_journey_id
 LEFT JOIN bus_vehicle
 ON bus_journey.bus_vehicle_id = bus_vehicle.bus_vehicle_id
-LEFT JOIN bus_operator BusVehicleOperator
-ON bus_vehicle.bus_operator_id = BusVehicleOperator.bus_operator_id
+LEFT JOIN bus_operator bus_vehicle_operator
+ON bus_vehicle.bus_operator_id = bus_vehicle_operator.bus_operator_id
 LEFT JOIN bus_model
 ON bus_vehicle.bus_model_id = bus_model.bus_model_id
 INNER JOIN (
     SELECT
-        bus_leg.bus_leg_id,
+        bus_leg_journey.bus_leg_id,
         ARRAY_AGG (
             (
                 bus_call.bus_call_id,
@@ -152,9 +110,7 @@ INNER JOIN (
                 ),
                 bus_call.bus_call_id
         ) AS leg_calls
-    FROM bus_leg
-    INNER JOIN bus_leg_journey
-    ON bus_leg.bus_leg_id = bus_leg_journey.bus_leg_id
+    FROM bus_leg_journey
     INNER JOIN bus_call start_call
     ON bus_leg_journey.start_call_id = start_call.bus_call_id
     INNER JOIN bus_call end_call
@@ -165,6 +121,13 @@ INNER JOIN (
     AND bus_call.call_index <= end_call.call_index
     INNER JOIN bus_stop
     ON bus_call.bus_stop_id = bus_stop.bus_stop_id
-    GROUP BY bus_leg.bus_leg_id
-) BusLegCall
-ON bus_leg.bus_leg_id = BusLegCall.bus_leg_id;
+    GROUP BY bus_leg_journey.bus_leg_id
+) leg_call_summary
+ON transport_user_bus_leg.bus_leg_id = leg_call_summary.bus_leg_id
+CROSS JOIN LATERAL (
+    SELECT
+        leg_call_summary.leg_calls[1] AS start_call,
+        leg_call_summary.leg_calls[
+            array_upper(leg_call_summary.leg_calls, 1)
+        ] AS end_call
+) leg_call_endpoints;
