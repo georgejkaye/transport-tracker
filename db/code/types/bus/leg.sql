@@ -16,9 +16,7 @@ CREATE DOMAIN bus_leg_journey_in_data_notnull
 AS bus_leg_journey_in_data NOT NULL;
 
 CREATE TYPE bus_leg_in_data AS (
-    journeys bus_leg_journey_in_data_notnull[],
-    board_atco TEXT_NOTNULL,
-    alight_atco TEXT_NOTNULL
+    journeys bus_leg_journey_in_data_notnull[]
 );
 
 CREATE DOMAIN bus_leg_in_data_notnull
