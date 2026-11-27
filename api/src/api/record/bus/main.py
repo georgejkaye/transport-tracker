@@ -36,7 +36,7 @@ from api.db.types.bus.journey import (
     BusCallInData,
     BusJourneyInData,
 )
-from api.db.types.bus.leg import BusLegInData
+from api.db.types.bus.leg import BusLegInData, BusLegJourneyInData
 from api.db.types.bus.operator import BusOperatorDetails
 from api.db.types.bus.stop import BusStopDetails
 from api.db.types.bus.vehicle import BusVehicleDetails
@@ -114,18 +114,18 @@ def string_of_bus_call_in(bus_call: BusCallInData) -> str:
     return f"{bus_call.stop_name}{time_string}"
 
 
-def get_alight_call_and_index_from_input(
+def get_alight_call_from_input(
     calls: list[BusCallInData], board_call_index: int
-) -> Optional[tuple[BusCallInData, int]]:
+) -> Optional[BusCallInData]:
     possible_alight_calls = calls[board_call_index + 1 :]
     alight_choice = get_choice_from_input_paginate(
         "Alight call",
-        list(enumerate(possible_alight_calls)),
-        lambda x: string_of_bus_call_in(x[1]),
+        possible_alight_calls,
+        string_of_bus_call_in,
     )
     match alight_choice:
-        case PickSingle((i, choice)):
-            return (choice, i + board_call_index + 1)
+        case PickSingle(choice):
+            return choice
         case _:
             return None
 
@@ -209,7 +209,6 @@ def get_bus_journey_from_bustimes_journey(
         return None
     journey_calls = [
         BusCallInData(
-            i,
             call.stop_name,
             call.stop_id,
             call.plan_arr,
@@ -217,7 +216,7 @@ def get_bus_journey_from_bustimes_journey(
             call.plan_dep,
             call.act_dep,
         )
-        for i, call in enumerate(journey.calls)
+        for call in journey.calls
     ]
     bustimes_operator = get_bustimes_operator(driver, journey.operator.slug)
     if bustimes_operator is None:
@@ -373,12 +372,11 @@ def get_bus_leg_from_input(
             )
         if bustimes_journey_data is None:
             return None
-        alight_call_and_index = get_alight_call_and_index_from_input(
+        alight_call = get_alight_call_from_input(
             bustimes_journey_data.calls, bustimes_journey_data.board_call_index
         )
-        if alight_call_and_index is None:
+        if alight_call is None:
             return None
-        _, alight_call_index = alight_call_and_index
         vehicle = get_bus_vehicle_from_bustimes_data(
             conn,
             bustimes_journey_data,
@@ -389,8 +387,21 @@ def get_bus_leg_from_input(
             bustimes_journey_data.calls,
             vehicle.bus_vehicle_id if vehicle is not None else None,
         )
+        if alight_call.plan_arr is None:
+            if alight_call.plan_dep is None:
+                raise RuntimeError("Could not get plan time for alight call")
+            alight_call_time = alight_call.plan_dep
+        else:
+            alight_call_time = alight_call.plan_arr
+        leg_journey = BusLegJourneyInData(
+            journey,
+            board_stop.atco_code,
+            departure.dep_time,
+            alight_call.stop_atco,
+            alight_call_time,
+        )
         leg = BusLegInData(
-            journey, bustimes_journey_data.board_call_index, alight_call_index
+            [leg_journey], board_stop.atco_code, alight_call.stop_atco
         )
         return leg
 
