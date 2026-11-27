@@ -1,4 +1,4 @@
-DROP VIEW IF EXISTS transport_user_bus_stop_view CASCADE;
+DROP VIEW IF EXISTS transport_user_bus_stop_leg_view CASCADE;
 
 CREATE VIEW transport_user_bus_stop_leg_view AS
 WITH leg_stop_call AS (
