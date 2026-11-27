@@ -194,7 +194,7 @@ LEFT JOIN LATERAL (
 WHERE bus_stop.atco_code = p_atco;
 $$;
 
-CREATE OR REPLACE FUNCTION select_transport_user_bus_stop_details_by_user_id (
+CREATE OR REPLACE FUNCTION select_transport_user_bus_stop_summaries_by_user_id (
     p_user_id INTEGER_NOTNULL
 )
 RETURNS SETOF transport_user_bus_stop_summary
