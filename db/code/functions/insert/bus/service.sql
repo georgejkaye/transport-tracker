@@ -19,7 +19,7 @@ BEGIN
                 = v_service.service_operator_national_code
         ),
         v_service.bods_line_id,
-        v_service.service_line,
+        v_service.line,
         v_service.service_outbound_description,
         v_service.service_inbound_description
     FROM UNNEST(p_services) AS v_service

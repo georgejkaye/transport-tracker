@@ -8,7 +8,6 @@ $$
 BEGIN
     INSERT INTO bus_call (
         bus_journey_id,
-        call_index,
         bus_stop_id,
         plan_arr,
         act_arr,
@@ -16,10 +15,11 @@ BEGIN
         act_dep
     ) SELECT
         p_journey_id,
-        v_call.call_index,
-        (SELECT bus_stop_id
-        FROM bus_stop
-        WHERE v_call.stop_atco = bus_stop.atco_code),
+        (
+            SELECT bus_stop_id
+            FROM bus_stop
+            WHERE v_call.stop_atco = bus_stop.atco_code
+        ),
         v_call.plan_arr,
         v_call.act_arr,
         v_call.plan_dep,

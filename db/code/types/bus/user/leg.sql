@@ -1,21 +1,29 @@
 DROP TYPE IF EXISTS bus_leg_service_details CASCADE;
 DROP TYPE IF EXISTS bus_call_details CASCADE;
-DROP TYPE IF EXISTS bus_leg_user_details CASCADE;
+DROP TYPE IF EXISTS bus_leg_journey_summary CASCADE;
+DROP TYPE IF EXISTS bus_leg_journey_stop_summary CASCADE;
+DROP TYPE IF EXISTS bus_leg_summary CASCADE;
+DROP TYPE IF EXISTS bus_leg_details CASCADE;
+DROP TYPE IF EXISTS bus_leg_summary_board_stop CASCADE;
+DROP TYPE IF EXISTS bus_leg_summary_alight_stop CASCADE;
 
 DROP TYPE IF EXISTS insert_bus_leg_result CASCADE;
 
 DROP DOMAIN IF EXISTS bus_leg_service_details_notnull CASCADE;
 DROP DOMAIN IF EXISTS bus_call_details_notnull CASCADE;
-DROP DOMAIN IF EXISTS bus_leg_user_details_notnull CASCADE;
+DROP DOMAIN IF EXISTS bus_leg_journey_summary_notnull CASCADE;
+DROP DOMAIN IF EXISTS bus_leg_journey_stop_summary_notnull CASCADE;
+DROP DOMAIN IF EXISTS bus_leg_summary_notnull CASCADE;
+DROP DOMAIN IF EXISTS bus_leg_details_notnull CASCADE;
+DROP DOMAIN IF EXISTS bus_leg_summary_board_stop_notnull CASCADE;
+DROP DOMAIN IF EXISTS bus_leg_summary_alight_stop_notnull CASCADE;
 
 CREATE TYPE bus_leg_service_details AS (
     service_id INTEGER_NOTNULL,
-    service_line TEXT,
-    bus_operator bus_operator_details,
+    line TEXT,
+    operator bus_operator_summary,
     outbound_description TEXT,
-    inbound_description TEXT,
-    bg_colour TEXT,
-    fg_colour TEXT
+    inbound_description TEXT
 );
 
 CREATE DOMAIN bus_leg_service_details_notnull
@@ -23,8 +31,7 @@ AS bus_leg_service_details NOT NULL;
 
 CREATE TYPE bus_call_details AS (
     bus_call_id INTEGER_NOTNULL,
-    call_index INT,
-    bus_stop bus_call_stop_details,
+    stop bus_call_stop_details,
     plan_arr TIMESTAMP WITH TIME ZONE,
     act_arr TIMESTAMP WITH TIME ZONE,
     plan_dep TIMESTAMP WITH TIME ZONE,
@@ -34,16 +41,79 @@ CREATE TYPE bus_call_details AS (
 CREATE DOMAIN bus_call_details_notnull
 AS bus_call_details NOT NULL;
 
-CREATE TYPE bus_leg_user_details AS (
+CREATE TYPE bus_leg_journey_stop_summary AS (
+    stop_id INTEGER_NOTNULL,
+    name TEXT_NOTNULL,
+    locality TEXT,
+    indicator TEXT
+);
+
+CREATE DOMAIN bus_leg_journey_stop_summary_notnull
+AS bus_leg_journey_stop_summary NOT NULL;
+
+CREATE TYPE bus_leg_journey_summary AS (
+    journey_id INTEGER_NOTNULL,
+    service_id INTEGER_NOTNULL,
+    line TEXT_NOTNULL,
+    journey_start bus_leg_journey_stop_summary,
+    journey_end bus_leg_journey_stop_summary,
+    leg_start bus_leg_journey_stop_summary,
+    leg_end bus_leg_journey_stop_summary
+);
+
+CREATE DOMAIN bus_leg_journey_summary_notnull
+AS bus_leg_journey_summary NOT NULL;
+
+CREATE TYPE bus_leg_summary_board_stop AS (
+    bus_stop_id INTEGER_NOTNULL,
+    stop_atco TEXT_NOTNULL,
+    stop_name TEXT_NOTNULL,
+    stop_locality TEXT_NOTNULL,
+    stop_indicator TEXT,
+    plan_dep TIMESTAMP WITH TIME ZONE,
+    act_dep TIMESTAMP WITH TIME ZONE
+);
+
+CREATE DOMAIN bus_leg_summary_board_stop_notnull
+AS bus_leg_summary_board_stop NOT NULL;
+
+CREATE TYPE bus_leg_summary_alight_stop AS (
+    bus_stop_id INTEGER_NOTNULL,
+    stop_atco TEXT_NOTNULL,
+    stop_name TEXT_NOTNULL,
+    stop_locality TEXT_NOTNULL,
+    stop_indicator TEXT,
+    plan_arr TIMESTAMP WITH TIME ZONE,
+    act_arr TIMESTAMP WITH TIME ZONE
+);
+
+CREATE DOMAIN bus_leg_summary_alight_stop_notnull
+AS bus_leg_summary_alight_stop NOT NULL;
+
+CREATE TYPE bus_leg_details AS (
     leg_id INTEGER_NOTNULL,
-    service bus_leg_service_details,
+    operator bus_operator_summary,
+    journeys bus_leg_journey_summary[],
     vehicle bus_vehicle_details,
     calls bus_call_details[],
     duration INTERVAL
 );
 
-CREATE DOMAIN bus_leg_user_details_notnull
-AS bus_leg_user_details NOT NULL;
+CREATE DOMAIN bus_leg_details_notnull
+AS bus_leg_details NOT NULL;
+
+CREATE TYPE bus_leg_summary AS (
+    leg_id INTEGER_NOTNULL,
+    operator bus_operator_summary_notnull,
+    services bus_service_summary_notnull[],
+    vehicle bus_vehicle_summary,
+    board_stop bus_leg_summary_board_stop,
+    alight_stop bus_leg_summary_alight_stop,
+    duration INTERVAL
+);
+
+CREATE DOMAIN bus_leg_summary_notnull
+AS bus_leg_summary NOT NULL;
 
 CREATE TYPE insert_bus_leg_result AS (
     bus_leg_id INTEGER_NOTNULL

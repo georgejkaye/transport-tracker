@@ -5,7 +5,6 @@ CREATE TABLE bus_stop (
     stop_name TEXT NOT NULL,
     landmark_name TEXT,
     street_name TEXT NOT NULL,
-    crossing_name TEXT,
     indicator TEXT,
     bearing TEXT NOT NULL,
     locality_name TEXT NOT NULL,

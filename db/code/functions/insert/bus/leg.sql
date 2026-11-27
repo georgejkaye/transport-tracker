@@ -6,20 +6,54 @@ LANGUAGE plpgsql
 AS
 $$
 DECLARE
-    v_bus_journey_id INTEGER_NOTNULL := 0;
+    v_bus_journey bus_journey_in_data_notnull;
+    v_bus_journey_ids INTEGER_NOTNULL[] := '{}';
+    v_bus_journey_id INTEGER_NOTNULL;
     v_bus_leg_id INTEGER_NOTNULL := 0;
 BEGIN
-    SELECT insert_bus_journey(p_leg.journey) INTO v_bus_journey_id;
-    INSERT INTO bus_leg (
-        bus_journey_id,
-        board_call_index,
-        alight_call_index
-    ) VALUES (
-        v_bus_journey_id,
-        p_leg.board_index,
-        p_leg.alight_index
-    )
+    INSERT INTO bus_leg DEFAULT VALUES
     RETURNING bus_leg_id INTO v_bus_leg_id;
+
+    FOREACH v_bus_journey IN ARRAY p_leg.journeys
+    LOOP
+        SELECT insert_bus_journey(v_bus_journey.journey)
+        INTO v_bus_journey_id;
+        v_bus_journey_ids := ARRAY_APPEND(
+            v_bus_journey_ids,
+            v_bus_journey_id
+        );
+
+        INSERT INTO bus_leg_journey (
+            bus_leg_id,
+            bus_journey_id,
+            board_call_id,
+            alight_call_id
+        )
+        VALUES (
+            v_bus_leg_id,
+            v_bus_journey_id,
+            (
+                SELECT bus_call_id
+                FROM bus_call
+                WHERE bus_journey_id = v_bus_journey_id
+                AND stop_atco = v_bus_journey.start_atco
+                AND (
+                    plan_dep = v_bus_journey.start_time
+                    OR plan_arr = v_bus_journey.start_time
+                )
+            ),
+            (
+                SELECT bus_call_id
+                FROM bus_call
+                WHERE bus_journey_id = v_bus_journey_id
+                AND stop_atco = v_bus_journey.end_atco
+                AND (
+                    plan_dep = v_bus_journey.start_time
+                    OR plan_arr = v_bus_journey.start_time
+                )
+            )
+        );
+    END LOOP;
 
     INSERT INTO transport_user_bus_leg (
         user_id,

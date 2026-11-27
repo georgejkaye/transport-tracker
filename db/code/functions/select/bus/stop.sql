@@ -10,7 +10,6 @@ SELECT
     stop_name,
     landmark_name,
     street_name,
-    crossing_name,
     indicator,
     bearing,
     locality_name,
@@ -37,7 +36,6 @@ SELECT
     stop_name,
     landmark_name,
     street_name,
-    crossing_name,
     indicator,
     bearing,
     locality_name,
@@ -65,7 +63,6 @@ SELECT
     stop_name,
     landmark_name,
     street_name,
-    crossing_name,
     indicator,
     bearing,
     locality_name,
@@ -83,6 +80,33 @@ WHERE LOWER(stop_name) LIKE ANY (
 ORDER BY stop_name ASC, locality_name ASC, indicator ASC;
 $$;
 
+CREATE OR REPLACE FUNCTION select_bus_stop_details_by_atco (
+    p_atco TEXT_NOTNULL
+) RETURNS SETOF bus_stop_details
+LANGUAGE sql
+AS
+$$
+SELECT
+    bus_stop_id,
+    atco_code,
+    naptan_code,
+    stop_name,
+    landmark_name,
+    street_name,
+    indicator,
+    bearing,
+    locality_name,
+    parent_locality_name,
+    grandparent_locality_name,
+    town_name,
+    suburb_name,
+    latitude,
+    longitude
+FROM bus_stop
+WHERE atco_code = p_atco
+ORDER BY stop_name ASC, locality_name ASC, indicator ASC;
+$$;
+
 CREATE OR REPLACE FUNCTION select_bus_stop_details_by_atcos (
     p_atcos TEXT_NOTNULL[]
 ) RETURNS SETOF bus_stop_details
@@ -96,7 +120,6 @@ SELECT
     stop_name,
     landmark_name,
     street_name,
-    crossing_name,
     indicator,
     bearing,
     locality_name,
@@ -125,7 +148,6 @@ SELECT
     stop_name,
     landmark_name,
     street_name,
-    crossing_name,
     indicator,
     bearing,
     locality_name,
