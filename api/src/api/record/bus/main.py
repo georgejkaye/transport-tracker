@@ -1,6 +1,12 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
+from api.record.bus.call import (
+    AlightAtCall,
+    AlightOption,
+    RemainOnBoard,
+    string_of_alight_option,
+)
 from api.record.bus.stop import get_stop_name_variations
 from api.record.bus.vehicle import get_and_insert_new_bus_vehicle_from_input
 from psycopg import Connection
@@ -18,7 +24,7 @@ from api.data.bus.pages.stop.reader import (
     short_string_of_bus_stop_departure,
 )
 from api.data.bus.pages.trip.reader import get_bus_trip
-from api.data.selenium.driver import Driver, DriverManager
+from api.data.selenium.driver import Driver, DriverManager, SeleniumDriver
 from api.db.functions.insert.bus.leg import insert_bus_leg_fetchone
 from api.db.functions.select.bus.operator import (
     select_bus_operator_details_by_national_operator_code_fetchone,
@@ -27,6 +33,7 @@ from api.db.functions.select.bus.service import (
     select_bus_service_details_by_operator_id_and_line_name_fetchone,
 )
 from api.db.functions.select.bus.stop import (
+    select_bus_stop_details_by_atco_fetchone,
     select_bus_stop_details_by_names_fetchall,
 )
 from api.db.functions.select.bus.vehicle import (
@@ -41,7 +48,6 @@ from api.db.types.bus.operator import BusOperatorDetails
 from api.db.types.bus.stop import BusStopDetails
 from api.db.types.bus.vehicle import BusVehicleDetails
 from api.db.types.register import register_types
-from api.db.types.user.user import TransportUserPublicOutData
 from api.record.classes import BustimesJourneyData
 from api.record.user import get_users_from_input
 from api.utils.database import connect_with_env
@@ -116,12 +122,15 @@ def string_of_bus_call_in(bus_call: BusCallInData) -> str:
 
 def get_alight_call_from_input(
     calls: list[BusCallInData], board_call_index: int
-) -> Optional[BusCallInData]:
+) -> Optional[AlightOption]:
     possible_alight_calls = calls[board_call_index + 1 :]
+    alight_options = [AlightAtCall(call) for call in possible_alight_calls] + [
+        RemainOnBoard()
+    ]
     alight_choice = get_choice_from_input_paginate(
         "Alight call",
-        possible_alight_calls,
-        string_of_bus_call_in,
+        alight_options,
+        string_of_alight_option,
     )
     match alight_choice:
         case PickSingle(choice):
@@ -339,9 +348,57 @@ def get_bus_vehicle_from_bustimes_data(
     return vehicle_options[0]
 
 
-def get_bus_leg_from_input(
-    conn: Connection, users: list[TransportUserPublicOutData]
-) -> Optional[BusLegInData]:
+def _get_departure_from_bus_stop(
+    driver: SeleniumDriver,
+    board_stop: BusStopDetails,
+    board_datetime: datetime,
+    datetime_offset: timedelta,
+) -> Optional[BusStopDeparture]:
+    departures = get_departures_from_bus_stop(
+        driver, board_stop, board_datetime, datetime_offset
+    )
+    if len(departures) == 0:
+        print_information("No departures from bus stop")
+        return None
+    return get_bus_stop_departure_from_input(departures)
+
+
+def _get_bus_journey_from_input(
+    driver: SeleniumDriver,
+    departure: BusStopDeparture,
+    board_stop: BusStopDetails,
+) -> Optional[tuple[BusJourneyInData, AlightOption]]:
+    if departure.live:
+        bustimes_journey_data = get_bus_journey_from_bustimes_journey(
+            conn, driver, departure, board_stop
+        )
+    else:
+        bustimes_journey_data = get_bus_journey_from_bustimes_trip(
+            conn, driver, departure, board_stop
+        )
+    if bustimes_journey_data is None:
+        return None
+    alight_option = get_alight_call_from_input(
+        bustimes_journey_data.calls,
+        bustimes_journey_data.board_call_index,
+    )
+    if alight_option is None:
+        print_error("Could not get alight call")
+        return None
+    vehicle = get_bus_vehicle_from_bustimes_data(
+        conn,
+        bustimes_journey_data,
+        bustimes_journey_data.operator.bus_operator_id,
+    )
+    journey = BusJourneyInData(
+        bustimes_journey_data.service.bus_service_id,
+        bustimes_journey_data.calls,
+        vehicle.bus_vehicle_id if vehicle is not None else None,
+    )
+    return (journey, alight_option)
+
+
+def get_bus_leg_from_input(conn: Connection) -> Optional[BusLegInData]:
     board_stop = get_bus_stop_from_input(conn, prompt="Board stop")
     if board_stop is None:
         print_information("Could not get board stop")
@@ -351,58 +408,67 @@ def get_bus_leg_from_input(
         print_information("Could not get board datetime")
         return None
     board_datetime, datetime_offset = datetime_result
+    leg_journeys: list[BusLegJourneyInData] = []
     with DriverManager() as driver:
         driver.get_page_html(get_bustimes_url(), accept_bustimes_cookies)
-        departures = get_departures_from_bus_stop(
-            driver, board_stop, board_datetime, datetime_offset
-        )
-        if len(departures) == 0:
-            print_information("No departures from bus stop")
-            return None
-        departure = get_bus_stop_departure_from_input(departures)
-        if departure is None:
-            return None
-        if departure.live:
-            bustimes_journey_data = get_bus_journey_from_bustimes_journey(
-                conn, driver, departure, board_stop
+        alighted = False
+        current_departure_stop = board_stop
+        current_departure_datetime = board_datetime
+        current_datetime_offset = datetime_offset
+        while not alighted:
+            departure = _get_departure_from_bus_stop(
+                driver,
+                current_departure_stop,
+                current_departure_datetime,
+                current_datetime_offset,
             )
-        else:
-            bustimes_journey_data = get_bus_journey_from_bustimes_trip(
-                conn, driver, departure, board_stop
+            if departure is None:
+                print_error("Could not get departure")
+                return None
+            journey_and_alight = _get_bus_journey_from_input(
+                driver, departure, board_stop
             )
-        if bustimes_journey_data is None:
-            return None
-        alight_call = get_alight_call_from_input(
-            bustimes_journey_data.calls, bustimes_journey_data.board_call_index
-        )
-        if alight_call is None:
-            return None
-        vehicle = get_bus_vehicle_from_bustimes_data(
-            conn,
-            bustimes_journey_data,
-            bustimes_journey_data.operator.bus_operator_id,
-        )
-        journey = BusJourneyInData(
-            bustimes_journey_data.service.bus_service_id,
-            bustimes_journey_data.calls,
-            vehicle.bus_vehicle_id if vehicle is not None else None,
-        )
-        if alight_call.plan_arr is None:
-            if alight_call.plan_dep is None:
-                raise RuntimeError("Could not get plan time for alight call")
-            alight_call_time = alight_call.plan_dep
-        else:
-            alight_call_time = alight_call.plan_arr
-        leg_journey = BusLegJourneyInData(
-            journey,
-            board_stop.atco_code,
-            departure.dep_time,
-            alight_call.stop_atco,
-            alight_call_time,
-        )
-        leg = BusLegInData(
-            [leg_journey], board_stop.atco_code, alight_call.stop_atco
-        )
+            if journey_and_alight is None:
+                print_error("Could not get journey")
+                return None
+            journey, alight_option = journey_and_alight
+            match alight_option:
+                case AlightAtCall(call):
+                    alighted = True
+                    alight_call = call
+                case RemainOnBoard():
+                    alight_call = journey.journey_calls[-1]
+            if alight_call.plan_arr is None:
+                if alight_call.plan_dep is None:
+                    raise RuntimeError(
+                        "Could not get plan time for alight call"
+                    )
+                call_time = alight_call.plan_dep
+            else:
+                call_time = alight_call.plan_arr
+            leg_journey = BusLegJourneyInData(
+                journey,
+                board_stop.atco_code,
+                departure.dep_time,
+                alight_call.stop_atco,
+                call_time,
+            )
+            leg_journeys.append(leg_journey)
+            match alight_option:
+                case RemainOnBoard():
+                    current_departure_datetime = call_time
+                    current_departure_stop = (
+                        select_bus_stop_details_by_atco_fetchone(
+                            conn, alight_call.stop_atco
+                        )
+                    )
+                    if current_departure_stop is None:
+                        print_error("Could not get departure stop")
+                        return None
+                case _:
+                    pass
+
+        leg = BusLegInData(leg_journeys)
         return leg
 
 
@@ -410,7 +476,7 @@ def record_bus_leg(conn: Connection) -> None:
     users = get_users_from_input(conn)
     if len(users) == 0:
         return
-    leg = get_bus_leg_from_input(conn, users)
+    leg = get_bus_leg_from_input(conn)
     if leg is None:
         print_information("Could not get bus leg")
         return
